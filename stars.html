@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en" data-mode="terminal">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stars! RSVP Tech Tree Simulator v2.0</title>
+  <script src="https://unpkg.com/regl@2/dist/regl.min.js"></script>
+  <script src="https://unpkg.com/tsne-js@1"></script>
+  <style>
+    :root { --fg:#00ff00; --bg:#000; --border:#0f0; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'IBM Plex Mono', monospace; }
+    html[data-mode="paper"] { --fg:#000; --bg:#fff; --border:#000; }
+    body { background:var(--bg); color:var(--fg); font-family:var(--mono); margin:0; padding:1em; }
+    h1 { font-size:1.4em; text-shadow:0 0 3px var(--fg); margin:0 0 8px 0; }
+    .panel { border:1px solid var(--border); padding:1em; border-radius:8px; margin-bottom:1em; }
+    button,input,select { background:transparent; color:var(--fg); border:1px solid var(--border); border-radius:6px; font:inherit; padding:4px 8px; }
+    .row { display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin-bottom:8px; }
+    canvas.sim { border:1px solid var(--border); border-radius:10px; width:100%; max-width:960px; height:auto; aspect-ratio:16/9; background:#000; }
+    canvas.plot { background:#000; margin:4px; }
+    .small { font-size:.85em; opacity:.75 }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .stats { white-space:pre; font-family:var(--mono); }
+    @media(max-width:900px){ .grid2,.grid3{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <h1>Stars! RSVP Evolutionary Tech Tree v2.0</h1>
+  <div class="panel grid2">
+    <div>
+      <div class="row">
+        <button id="start">Start</button>
+        <button id="pause">Pause</button>
+        <button id="reset">Reset</button>
+        <button id="exportCSV">Export CSV</button>
+        <button id="toggleMode">Toggle Mode</button>
+      </div>
+
+      <div class="row">
+        <label>Population <input id="pop" type="number" value="100" min="10" max="500"></label>
+        <label>Mutation <input id="mut" type="number" value="0.12" step="0.01" min="0" max="0.5"></label>
+        <label>Gen. length (y) <input id="genLen" type="number" value="15" min="1" max="50"></label>
+        <label>λ (RSVP) <input id="lambda" type="number" value="0.05" step="0.01" min="0" max="0.2"></label>
+      </div>
+
+      <div class="row">
+        <label>Ironium <input id="ironium" type="number" value="800" min="100" max="3000"></label>
+        <label>Boranium <input id="boranium" type="number" value="600" min="100" max="3000"></label>
+        <label>Germanium <input id="germanium" type="number" value="400" min="100" max="3000"></label>
+      </div>
+
+      <div class="row">
+        <label>Tech Cost <input id="techCost" type="number" value="150" min="50" max="500"></label>
+        <label>Factory Cost <input id="factoryCost" type="number" value="200" min="100" max="1000"></label>
+        <label>Victory Score <input id="victory" type="number" value="25000" min="10000" max="100000"></label>
+      </div>
+
+      <div class="small">
+        Fitness = Score − λ·RSVP − Waste; Evolvable: Tech(6) + Factory(4) priorities, Deploy rate, Entropy threshold
+      </div>
+    </div>
+
+    <div>
+      <canvas id="cv" class="sim" width="960" height="540"></canvas>
+      <div class="stats" id="stats">gen=0 y=0 best=0 avg=0 rsvp=0</div>
+    </div>
+  </div>
+
+  <div class="panel grid3">
+    <canvas id="techRadar" class="plot" width="320" height="320"></canvas>
+    <canvas id="factoryRadar" class="plot" width="320" height="320"></canvas>
+    <canvas id="tsnePlot" class="plot" width="320" height="180"></canvas>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+const W = 2, H = 540;
+
+// RSVP Fields
+const regl = createREGL({ canvas: $('cv'), extensions: ['OES_texture_float'] });
+const phiTex = regl.texture({ width: W, height: H, format: 'luminance', type: 'float' });
+const trailTex = regl.texture({ width: W, height: H, format: 'luminance', type: 'float' });
+
+// Tech + Factories
+const TECH_FIELDS = ['Energy', 'Weapons', 'Propulsion', 'Construction', 'Electronics', 'Biotech'];
+const FACTORY_TYPES = ['Geothermal Accel.', 'Hoberman Elev.', 'Kelp Farms', 'Rainforest Gen.'];
+const GENOME_SIZE = TECH_FIELDS.length + FACTORY_TYPES.length + 2;
+
+// Simulation
+const SIM = {
+  t: 0, gen: 0, running: false,
+  empires: [],
+  phi: new Float32Array(W*H),
+  trails: new Float32Array(W*H),
+  log: { gen: [], best: [], avg: [], rsvp: [], genomes: [] }
+};
+
+class Empire {
+  constructor() {
+    this.resources = {
+      ironium: +$('ironium').value,
+      boranium: +$('boranium').value,
+      germanium: +$('germanium').value
+    };
+    this.tech = TECH_FIELDS.reduce((o,f)=>(o[f]=0,o), {});
+    this.factories = FACTORY_TYPES.reduce((o,f)=>(o[f]=0,o), {});
+    this.score = 0; this.rsvp = 0; this.waste = 0; this.age = 0;
+    this.g = {
+      techPriority: TECH_FIELDS.reduce((o,f)=>(o[f]=1/6,o), {}),
+      factoryPriority: FACTORY_TYPES.reduce((o,f)=>(o[f]=1/4,o), {}),
+      deployRate: 0.5,
+      entropyThreshold: 0.3
+    };
+  }
+}
+
+function normalizeGenome(g) {
+  const techSum = TECH_FIELDS.reduce((s,f)=>s+g.techPriority[f],0);
+  TECH_FIELDS.forEach(f=>g.techPriority[f]/=techSum);
+  const factSum = FACTORY_TYPES.reduce((s,f)=>s+g.factoryPriority[f],0);
+  FACTORY_TYPES.forEach(f=>g.factoryPriority[f]/=factSum);
+}
+
+function idx(x,y){ x|=0;y|=0; return (x%W+W)%W + W*((y%H+H)%H); }
+
+function initField() {
+  for(let i=0;i<W*H;i++) {
+    SIM.phi[i] = Math.random()*0.3 + 0.1;
+    SIM.trails[i] = 0;
+  }
+  phiTex({ data: SIM.phi });
+  trailTex({ data: SIM.trails });
+}
+
+function initEmpires() {
+  const pop = +$('pop').value;
+  SIM.empires = Array.from({length: pop}, ()=> {
+    const e = new Empire();
+    TECH_FIELDS.forEach(f=>e.g.techPriority[f]=Math.random());
+    FACTORY_TYPES.forEach(f=>e.g.factoryPriority[f]=Math.random());
+    e.g.deployRate = Math.random();
+    e.g.entropyThreshold = Math.random();
+    normalizeGenome(e.g);
+    return e;
+  });
+}
+
+function diffuseFields() {
+  const phiDiff = 0.95, trailDecay = 0.98, phiRegen = 0.0002;
+  const tmp = new Float32Array(W*H);
+  for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){
+    const k=idx(x,y);
+    const mean=(SIM.phi[idx(x-1,y)]+SIM.phi[idx(x+1,y)]+SIM.phi[idx(x,y-1)]+SIM.phi[idx(x,y+1)]+SIM.phi[k])*0.2;
+    tmp[k]=SIM.phi[k]*phiDiff + mean*(1-phiDiff) + phiRegen*(1-SIM.phi[k]);
+    SIM.trails[k] *= trailDecay;
+  }
+  SIM.phi.set(tmp); phiTex.subimage(SIM.phi);
+}
+
+function techCost(field, level) {
+  return +$('techCost').value * Math.pow(1.4, level);
+}
+
+function factoryCost(type, level) {
+  return +$('factoryCost').value * Math.pow(1.3, level);
+}
+
+function step() {
+  diffuseFields();
+  const dt = 1; SIM.t += dt;
+  const lambda = +$('lambda').value;
+
+  for(const e of SIM.empires) {
+    e.age += dt;
+
+    const fx = (Math.random()*W)|0, fy = (Math.random()*H)|0;
+    const fieldIdx = idx(fx,fy);
+    const localPhi = SIM.phi[fieldIdx];
+    const localS = SIM.trails[fieldIdx];
+    const rsvpPenalty = localS > e.g.entropyThreshold ? localS * 2 : 0;
+
+    let totalTechSpent = 0;
+    TECH_FIELDS.forEach(f => {
+      const budget = e.resources.ironium * 0.6 * e.g.techPriority[f] * e.g.deployRate * (1 - rsvpPenalty);
+      const cost = techCost(f, e.tech[f]);
+      const levels = Math.floor(budget / cost);
+      if(levels > 0) {
+        totalTechSpent += levels * cost * 0.6;
+        e.tech[f] += levels;
+        ['ironium','boranium','germanium'].forEach(r=>e.resources[r] -= levels * cost * 0.2);
+      }
+    });
+
+    let totalFactSpent = 0;
+    FACTORY_TYPES.forEach(f => {
+      const budget = e.resources.boranium * e.g.factoryPriority[f] * e.g.deployRate;
+      const cost = factoryCost(f, e.factories[f]);
+      const units = Math.floor(budget / cost);
+      if(units > 0 && localS < e.g.entropyThreshold) {
+        totalFactSpent += units * cost;
+        e.factories[f] += units;
+        ['ironium','boranium','germanium'].forEach(r=>e.resources[r] -= units * cost * 0.33);
+      }
+    });
+
+    if(rsvpPenalty > 0.1) SIM.trails[fieldIdx] += 0.05;
+
+    const factIncome = FACTORY_TYPES.reduce((s,f)=>s + e.factories[f] * 10, 0);
+    e.resources.ironium += 40 + factIncome * 0.5;
+    e.resources.boranium += 30 + factIncome * 0.4;
+    e.resources.germanium += 20 + factIncome * 0.3;
+
+    e.score = TECH_FIELDS.reduce((s,f)=>s+e.tech[f]*150,0) + FACTORY_TYPES.reduce((s,f)=>s+e.factories[f]*200,0);
+    e.rsvp = rsvpPenalty * 1000 * e.age;
+
+    e.waste = Math.max(0, totalTechSpent + totalFactSpent - (e.resources.ironium + e.resources.boranium + e.resources.germanium));
+  }
+
+  draw();
+  updateStats();
+  if(SIM.t >= +$('genLen').value) epoch();
+}
+
+function epoch() {
+  SIM.empires.forEach(e => {
+    e.fitness = e.score - +$('lambda').value * e.rsvp - e.waste * 0.1;
+  });
+
+  const sorted = SIM.empires.slice().sort((a,b)=>b.fitness-a.fitness);
+  const keep = Math.max(4,(sorted.length*0.25)|0);
+  const elite = sorted.slice(0,keep);
+  const mut = +$('mut').value;
+  const kids = [];
+
+  while(kids.length < SIM.empires.length) {
+    const p1 = elite[(Math.random()*elite.length)|0];
+    const p2 = elite[(Math.random()*elite.length)|0];
+    const c = new Empire();
+    
+    TECH_FIELDS.forEach(f=> {
+      c.g.techPriority[f] = (p1.g.techPriority[f]+p2.g.techPriority[f])/2 + (Math.random()*2-1)*mut;
+    });
+    FACTORY_TYPES.forEach(f=> {
+      c.g.factoryPriority[f] = (p1.g.factoryPriority[f]+p2.g.factoryPriority[f])/2 + (Math.random()*2-1)*mut;
+    });
+    c.g.deployRate = Math.max(0.1,Math.min(1.0,(p1.g.deployRate+p2.g.deployRate)/2 + (Math.random()*2-1)*mut));
+    c.g.entropyThreshold = Math.max(0.1,Math.min(0.9,(p1.g.entropyThreshold+p2.g.entropyThreshold)/2 + (Math.random()*2-1)*mut));
+    
+    normalizeGenome(c.g);
+    kids.push(c);
+  }
+
+  SIM.empires = kids;
+
+  const best = Math.max(...elite.map(e=>e.fitness));
+  const avg = SIM.empires.reduce((s,e)=>s+e.fitness,0)/SIM.empires.length;
+  const rsvpAvg = SIM.empires.reduce((s,e)=>s+e.rsvp,0)/SIM.empires.length;
+
+  SIM.log.gen.push(SIM.gen);
+  SIM.log.best.push(best);
+  SIM.log.avg.push(avg);
+  SIM.log.rsvp.push(rsvpAvg);
+  SIM.log.genomes.push(SIM.empires.map(e=>({...e.g})));
+
+  SIM.gen++; SIM.t=0;
+  initField();
+  updatePlots();
+}
+
+// Rendering
+const renderFields = regl({
+  frag: `
+    precision highp float;
+    uniform sampler2D phi, trails;
+    void main() {
+      vec2 uv = gl_FragCoord.xy / vec2(${W}.0, ${H}.0);
+      float p = texture2D(phi, uv).r;
+      float s = texture2D(trails, uv).r;
+      gl_FragColor = vec4(p*0.3, p, 0.0, 0.4 + s*2.0);
+    }`,
+  uniforms: { phi: phiTex, trails: trailTex },
+  depth: { enable: false }
+});
+
+function draw() {
+  trailTex.subimage(SIM.trails);
+  regl.clear({ color: [0,0,0,1] });
+  renderFields();
+
+  const ctx = $('cv').getContext('2d');
+  const best = SIM.empires.reduce((b,e)=>e.score>b?.score? e : b, null);
+  if(!best) return;
+
+  const techCx = 200, techCy = H/2, techR = 120;
+  const factCx = W-200, factCy = H/2, factR = 120;
+
+  ctx.strokeStyle='#0f0'; ctx.lineWidth=2; ctx.font='11px monospace';
+  ctx.beginPath(); ctx.arc(techCx,techCy,techR,0,Math.PI*2); ctx.stroke();
+  TECH_FIELDS.forEach((f,i)=>{
+    const ang = i*2*Math.PI/TECH_FIELDS.length;
+    const lvl = Math.min(1, best.tech[f]/25);
+    const x = techCx + Math.cos(ang)*lvl*techR;
+    const y = techCy + Math.sin(ang)*lvl*techR;
+    ctx.beginPath(); ctx.moveTo(techCx,techCy); ctx.lineTo(x,y); ctx.stroke();
+    ctx.fillText(f.slice(0,3), techCx+Math.cos(ang)*(techR+15), techCy+Math.sin(ang)*(techR+15));
+  });
+
+  ctx.strokeStyle='#0ff'; 
+  ctx.beginPath(); ctx.arc(factCx,factCy,factR,0,Math.PI*2); ctx.stroke();
+  FACTORY_TYPES.forEach((f,i)=>{
+    const ang = i*2*Math.PI/FACTORY_TYPES.length;
+    const lvl = Math.min(1, best.factories[f]/15);
+    const x = factCx + Math.cos(ang)*lvl*factR;
+    const y = factCy + Math.sin(ang)*lvl*factR;
+    ctx.beginPath(); ctx.moveTo(factCx,factCy); ctx.lineTo(x,y); ctx.stroke();
+    ctx.fillText(f.slice(0,4), factCx+Math.cos(ang)*(factR+20), factCy+Math.sin(ang)*(factR+20));
+  });
+
+  ctx.fillStyle='#fff'; ctx.font='16px monospace';
+  ctx.fillText(`Score: ${best.score.toFixed(0)} RSVP: ${best.rsvp.toFixed(0)}`, 20, 30);
+}
+
+function updateStats() {
+  const best = Math.max(...SIM.empires.map(e=>e.fitness));
+  const avg = SIM.empires.reduce((s,e)=>s+e.fitness,0)/SIM.empires.length;
+  const rsvpAvg = SIM.empires.reduce((s,e)=>s+e.rsvp,0)/SIM.empires.length;
+  $('stats').textContent=`gen=${SIM.gen} y=${SIM.t.toFixed(0)} best=${best.toFixed(0)} avg=${avg.toFixed(0)} rsvp=${rsvpAvg.toFixed(0)}`;
+}
+
+// t-SNE
+let tsne = null;
+function updateTSNE() {
+  if(SIM.log.genomes.length<2) return;
+  const data = SIM.log.genomes[SIM.log.genomes.length-1];
+  const X = data.map(g => 
+    TECH_FIELDS.map(f=>g.techPriority[f])
+    .concat(FACTORY_TYPES.map(f=>g.factoryPriority[f]))
+    .concat([g.deployRate, g.entropyThreshold])
+  );
+
+  if(!tsne) tsne = new TSNE({perplexity:25,dim:2});
+  tsne.initDataRaw?tsne.initDataRaw(X):tsne.setDataRaw(X);
+  for(let i=0;i<40;i++) tsne.step();
+
+  const Y = tsne.getSolution();
+  const ctx = $('tsnePlot').getContext('2d');
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,320,180);
+  ctx.fillStyle='#f0f';
+  Y.forEach((p,i)=>{
+    const x = (p[0]+3)*50 + 40;
+    const y = (p[1]+3)*50 + 90;
+    ctx.fillRect(x-1,y-1,2,2);
+  });
+}
+
+function updatePlots() { updateTSNE(); }
+
+$('exportCSV').onclick=()=>{
+  let csv="gen,best_fitness,avg_fitness,rsvp_penalty\n";
+  for(let i=0;i<SIM.log.gen.length;i++){
+    csv+=`${SIM.log.gen[i]},${SIM.log.best[i].toFixed(1)},${SIM.log.avg[i].toFixed(1)},${SIM.log.rsvp[i].toFixed(0)}\n`;
+  }
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`stars_rsvp_gen${SIM.gen}_data.csv`; a.click();
+  URL.revokeObjectURL(url);
+};
+
+let rafId=null;
+function loop(){ if(!SIM.running) return; step(); rafId=requestAnimationFrame(loop); }
+
+$('start').onclick=()=>{ SIM.running=true; if(!rafId) rafId=requestAnimationFrame(loop); };
+$('pause').onclick=()=>{ SIM.running=false; cancelAnimationFrame(rafId); rafId=null; };
+$('reset').onclick=()=>{
+  $('pause').click(); SIM.t=0; SIM.gen=0;
+  SIM.log={gen:[],best:[],avg:[],rsvp:[],genomes:[]}; tsne=null;
+  initField(); initEmpires(); updateStats(); updatePlots(); draw();
+};
+$('toggleMode').onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-mode')||'terminal';
+  document.documentElement.setAttribute('data-mode',cur==='terminal'?'paper':'terminal');
+};
+
+// Boot
+initField(); initEmpires(); updatePlots(); draw();
+</script>
+</body>
+</html>
