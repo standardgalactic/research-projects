@@ -1,7 +1,7 @@
 # Research Projects — RSVP Simulators and Essays
 
 **Repository:** [standardgalactic/research-projects](https://github.com/standardgalactic/research-projects)  
-**Live site:** [standardgalactic.github.io/research-projects/rsvp-simulators/](https://standardgalactic.github.io/research-projects/rsvp-simulators/)
+**Live site:** [standardgalactic.github.io/research-projects/](https://standardgalactic.github.io/research-projects/)
 
 This repository hosts two RSVP-based simulators and their theoretical essays.
 
