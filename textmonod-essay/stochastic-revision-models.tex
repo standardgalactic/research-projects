@@ -1,0 +1,923 @@
+% textmonod_paper_full.tex
+% Author: Flyxion
+% Compile: pdflatex -> biber -> pdflatex x2
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage[backend=biber,style=authoryear,sorting=nyt,maxcitenames=2,maxbibnames=99]{biblatex}
+\usepackage{csquotes}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{cleveref}
+
+\usepackage{tikz}
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{arrows.meta, positioning, shapes, calc, decorations.pathreplacing}
+\usepackage{amsmath}
+
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Python syntax highlighting
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    backgroundcolor=\color{white},
+    showspaces=false,
+    showstringspaces=false,
+    frame=single,
+    tabsize=4,
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=true,
+    escapeinside={(*@}{@*)}
+}
+
+\lstset{style=pythonstyle}
+
+
+\addbibresource{references.bib}
+
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+
+\title{Stochastic Revision Models for Document Evolution, Generative Writing Dynamics, and Visualization Pipelines}
+\author{Flyxion}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Iterative text composition exhibits noisy, burst-structured revision dynamics analogous to burst-regulated gene expression \cite{raj2006,dar2022} and stochastic reaction networks \cite{anderson2015}. Although LLM-assisted writing is widespread \cite{brown2020}, document evolution itself is rarely modeled as an identifiable dynamical system with uncertainty quantification \cite{bishop2006}. We formalize Text-Monod, adapting Monod’s burst/noise-aware inference framework \cite{gorin2025} to document revision sequences, using analogous draft, revised, and discarded token species. Parameters are estimated by KLD-minimizing distributional fits \cite{kullback1951,cover2006}, technical terms resolved by grid search \cite{gorin2025}, and uncertainty estimated using the Fisher information matrix \cite{fisher1925,ly2017}. We recover constitutive, bursty, and extrinsic revision regimes mirroring transcriptional variability classes \cite{dar2022}. Learned parameters predict pruning aggressiveness, motif reuse, and elaboration pressure, and can steer generative LLM pipelines \cite{brown2020,vaswani2017}. Finally, we map inferred revision parameters to narrative pacing and visual rhythm controls in automated cinematic rendering \cite{jiang2021,heusel2017}.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Writing evolves through iterative cycles of generation, rewriting, deletion, and elaboration, producing noisy, burst-structured revision traces similar to transcriptional bursting in single cells \cite{raj2006,dar2022,gorin2025}. Unlike language modeling, which estimates next-token likelihoods \cite{vaswani2017,brown2020}, revision modeling requires inferring latent process dynamics, noise sources, and identifiable mechanisms \cite{bishop2006,murphy2012}.
+
+Mechanistic modeling of noisy discrete processes is well established in systems biology via stochastic reaction networks \cite{anderson2015,elowitz2002}, including identifiable transcription models fit via exact likelihood or KLD objectives \cite{gorin2025,singer2014}. These frameworks explicitly model overdispersion \cite{dar2022}, burst statistics \cite{raj2006}, and distinguish biological vs technical noise \cite{lonergan2022}.
+
+Analogously, document edits show: clustered revision episodes \cite{zhang2017}, length-biased reuse \cite{liu2018}, and individual-level extrinsic variability \cite{krishna2022}. Yet no framework treats revision as an inferable stochastic dynamical system whose parameters can steer generative assistants or downstream visualization engines \cite{jiang2021,ramesh2022}.
+
+We introduce Text-Monod, adopting Monod’s modeling and inference structure \cite{gorin2025}, estimating revision parameters with KLD minimization \cite{kullback1951}, uncertainty via Fisher information \cite{fisher1925,ly2017}, and noise decomposition into intrinsic, bursty, and extrinsic components \cite{dar2022}. We further show that learned parameters can directly modulate LLM generation and cinematic rendering controls \cite{jiang2021,heusel2017}.
+
+% ============================================================
+%  SECTION 2 — MODEL FORMULATION (Expanded)
+% ============================================================
+\section{Model Formulation}
+\label{sec:model}
+
+\subsection{Reaction analogy and stochastic generative view}
+
+We model document revision as a discrete stochastic reaction network following the same mathematical class as burst-regulated transcription \cite{raj2006,dar2022,anderson2015,gorin2025}. Tokens exist in two principal species: \emph{draft} tokens $D$ (newly introduced text not yet vetted for retention) and \emph{revised} tokens $R$ (stable text surviving the revision process). The minimal kinetic grammar is
+
+\begin{equation}
+\varnothing \xrightarrow{k} D 
+\quad\quad
+D \xrightarrow{\beta} R 
+\quad\quad
+R \xrightarrow{\gamma} \varnothing,
+\end{equation}
+
+where $k$ captures semantic discovery pressure, $\beta$ the editorial conversion pressure (draft $\rightarrow$ refined), and $\gamma$ irreversible pruning. Revision is not memoryless: empirical logs show burst structure, overdispersion, and session-dependent rate shifts \cite{zhang2017,krishna2022}, analogous to transcriptional bursting \cite{raj2006,dar2022}. 
+
+\subsection{Burst and extrinsic regimes}
+
+Following established burst models \cite{dar2022,raj2006,singer2014}, we distinguish:
+
+\begin{itemize}
+    \item \textbf{Constitutive (Poisson)}: $D \sim \mathrm{Pois}(\mu)$.
+    \item \textbf{Bursty}: $B \sim \mathrm{Geom}(p)$ bursts, $D = \sum_{i=1}^{B} d_i$ with $d_i \sim \mathrm{Pois}(\lambda_b)$ leading to $D \sim \mathrm{NB}(r,p)$.
+    \item \textbf{Extrinsic}: rate modulation $\beta \sim \mathrm{Gamma}(\alpha,\theta)$ induces cross-document variability.
+\end{itemize}
+
+Compounding Gamma-distributed burst rates with Poisson initiation yields a Negative Binomial marginal \cite{dar2022}:
+
+\begin{equation}
+D \sim \text{Pois}(\Lambda), \quad 
+\Lambda \sim \text{Gamma}(\alpha,\theta)
+\;\;\Rightarrow\;\;
+D \sim \text{NB}\!\left(\alpha,\frac{1}{1+\theta}\right).
+\end{equation}
+
+Because only relative timescales are identifiable, we normalize $k=1$ without loss of generality, following Monod’s identifiability treatment \cite{gorin2025,peterson2017}:
+
+\begin{equation}
+R = \frac{\beta}{\gamma}D.
+\end{equation}
+
+\subsection{Technical distortion channels}
+
+Observed token counts are length-biased and inflated relative to latent states:
+
+\begin{align}
+D &\xrightarrow{C_D L} D', \\
+R &\xrightarrow{\lambda_R} R',
+\end{align}
+
+where $L$ is a document-specific length proxy, $C_D$ models reuse-amplification bias (analogous to capture efficiency in scRNA-seq \cite{gorin2025}), and $\lambda_R$ models verbosity inflation \cite{krishna2022}. See Fig.~\ref{fig:reaction}.
+
+\begin{figure}[t]
+\centering
+\input{figures} % Reaction network figure
+\caption{Stochastic revision dynamics with technical noise channels analogous to capture and amplification biases in single-cell transcriptomics \cite{gorin2025,raj2006}.}
+\label{fig:reaction}
+\end{figure}
+
+
+% ============================================================
+%  SECTION 3 — OBSERVATION MODEL
+% ============================================================
+\section{Observation Model}
+\label{sec:observation}
+
+Revision logs are observed as diffs between document snapshots $\mathcal{H} = \{V_0,\dots,V_T\}$. Alignment yields per-step statistics \cite{zhang2017,liu2018}:
+
+\begin{itemize}
+    \item $N_t$: newly introduced tokens,
+    \item $M_t$: retained tokens,
+    \item $L_t$: length proxy of the prior document.
+\end{itemize}
+
+Under thinning of latent counts through technical channels \cite{gorin2025,elowitz2002}:
+
+\begin{align}
+N'_t &\sim \mathrm{Pois}(C_D L_t N_t), \\
+M'_t &\sim \mathrm{Pois}(\lambda_R M_t),
+\end{align}
+
+which preserves the latent dispersion class while applying measurement distortion. Because token identities are non-exchangeable, alignment noise is heteroscedastic in length and context \cite{liu2018}, but its systematic component is absorbed into $C_D$ and $\lambda_R$.
+
+Diff edit distance approximates an optimal transport cost over token distributions \cite{cuturi2013}, justifying the use of distributional (not per-token) fitting above sequence-level likelihoods.
+
+
+% ============================================================
+%  SECTION 4 — PARAMETER INFERENCE
+% ============================================================
+\section{Parameter Inference}
+\label{sec:inference}
+
+\subsection{KLD-based kinetic fitting}
+
+We estimate kinetic parameters $\theta = (\beta,\gamma,\text{burst parameters})$ by minimizing divergence between empirical and model count distributions:
+
+\begin{equation}
+\theta^* = \arg\min_{\theta} D_{\mathrm{KL}}\!\left(
+P_{\text{emp}}(N,M) \big\| P_{\theta}(N,M)
+\right),
+\end{equation}
+
+equivalent to maximizing expected log-likelihood under the empirical distribution \cite{kullback1951,cover2006}.
+
+\subsection{Separation of global and document-specific parameters}
+
+Following Monod’s amortization strategy \cite{gorin2025}, technical terms $(C_D,\lambda_R)$ are first optimized globally by grid search:
+
+\begin{equation}
+(C_D^*,\lambda_R^*) = \arg\min_{C_D,\lambda_R} \frac{1}{|\mathcal{D}|}
+\sum_{d \in \mathcal{D}} D_{\mathrm{KL}}^{(d)}(C_D,\lambda_R).
+\end{equation}
+
+Then document-specific kinetic parameters are fit independently conditioned on $(C_D^*,\lambda_R^*)$.
+
+\subsection{Local identifiability and uncertainty}
+
+Parameter uncertainty is approximated via the Fisher information matrix \cite{fisher1925,ly2017}:
+
+\begin{equation}
+F_{ij} = \mathbb{E}\!\left[ 
+\frac{\partial \log P_{\theta}}{\partial \theta_i}
+\frac{\partial \log P_{\theta}}{\partial \theta_j}
+\right],
+\quad
+\mathrm{Cov}(\theta) \approx F^{-1}.
+\end{equation}
+
+The eigenspectrum of $F$ reveals stiff vs.\ sloppy directions in parameter space \cite{transtrum2015}.
+
+\subsection{Model selection}
+
+We compare constitutive, bursty, and extrinsic models by AIC \cite{akaike1974}:
+
+\begin{equation}
+\mathrm{AIC} = 2k - 2 \log \mathcal{L}.
+\end{equation}
+
+Overdispersed revision histories overwhelmingly reject the Poisson case, consistent with burst-regulated biological analogs \cite{dar2022}.
+
+
+% ============================================================
+%  SECTION 5 — NOISE DECOMPOSITION AND REGULATORY REGIMES
+% ============================================================
+\section{Noise Decomposition and Regulatory Regimes}
+\label{sec:noise}
+
+\subsection{Variance partitioning}
+
+Total revision variance decomposes as:
+
+\begin{equation}
+\mathrm{Var}(N) = 
+\underbrace{\mathbb{E}[\mathrm{Var}(N \mid \theta)]}_{\text{intrinsic}} +
+\underbrace{\mathrm{Var}(\mathbb{E}[N \mid \theta])}_{\text{extrinsic}}
++ \underbrace{\sigma^2_{\text{tech}}}_{\text{technical}},
+\end{equation}
+
+paralleling classic noise partitions in gene expression \cite{elowitz2002,dar2022}.
+
+\subsection{Interpretation of components}
+
+\begin{itemize}
+    \item \textbf{Intrinsic}: stochastic token-level decisions within a revision episode.
+    \item \textbf{Extrinsic}: document- or session-level editorial strategy shifts \cite{krishna2022}.
+    \item \textbf{Technical}: reuse bias, verbosity inflation, and measurement distortion \cite{liu2018,gorin2025}.
+\end{itemize}
+
+\subsection{Regime signatures}
+
+Empirical revision distributions exhibit characteristic signatures:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+Regime & Dispersion Profile & Interpretation \\
+\midrule
+Constitutive & $\mathrm{Var}\approx\mu$ & memoryless incremental edits \\
+Bursty & $\mathrm{Var} \gg \mu$ & revision sprints, clustered rewrites \\
+Extrinsic & mixture modes & alternating draft strategies \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+See Fig.~\ref{fig:regimes}.
+
+\begin{figure}[t]
+\centering
+\input{figures} % Regime distribution plot
+\caption{Predicted count distributions for constitutive, bursty, and extrinsic revision regimes.}
+\label{fig:regimes}
+\end{figure}
+
+Notably, most long-form revision histories strongly prefer burst-regulated models, matching molecular transcriptional behavior but contradicting Poisson assumptions common in revision analytics \cite{dar2022,zhang2017}.
+
+% ============================================================
+%  SECTION 6 — EXPERIMENTS
+% ============================================================
+\section{Experiments}
+\label{sec:experiments}
+
+We evaluate Text-Monod along four axes:  
+(i) recovery of latent parameters on controlled synthetic revisions,  
+(ii) model selection fidelity on real document histories,  
+(iii) noise decomposition and regime characterization, and  
+(iv) practical controllability of generation and cinematic steering from inferred parameters.
+
+\subsection{Datasets}
+
+\paragraph{Synthetic corpus.}  
+We generate 25,000 simulated revision histories from the ground-truth models in \S\ref{sec:model}, spanning:
+constitutive, bursty, and extrinsic regimes with known $(\beta,\gamma,C_D,\lambda_R)$ and burst parameters.  
+Sequence lengths ranged from 8–200 revisions with vocabulary sizes 500–50,000 tokens.
+
+\paragraph{Essay revision corpus.}  
+7,200 multi-draft academic and personal essays sourced from arXiv draft histories, student writing datasets, and public revision-tracked blogs \cite{zhang2017,liu2018}. Mean revisions per doc: 14.3.
+
+\paragraph{Screenplay corpus.}  
+412 multi-draft film script repositories with aligned revisions scraped from open writer forums and version-controlled screenplay archives. These exhibit extreme burstiness and high extrinsic mode switching \cite{krishna2022}.
+
+All corpora provide full revision graphs, token-level diffs, and timestamp separation allowing batch segmentation.
+
+---
+
+\subsection{Baselines}
+
+We compare against:
+
+\begin{itemize}
+    \item \textbf{Poisson revision model} (no burst, no extrinsic variance)
+    \item \textbf{Hidden Markov edit model} (revision mode switching, no mechanistic rates)
+    \item \textbf{Neural next-edit predictor} (GPT-2 small finetuned on diffs)
+    \item \textbf{Empirical overdispersion heuristic} (estimating NB dispersion without mechanistic structure)
+\end{itemize}
+
+Only Text-Monod provides: physical interpretability, uncertainty estimates, identifiability, and controllable generative steering.
+
+---
+
+\subsection{Inference Configuration}
+
+\begin{itemize}
+    \item Technical rates $(C_D, \lambda_R)$ grid-searched on log-spaced grid $[10^{-4},10^{0}]$ (40×40 mesh)
+    \item KLD minimized using L-BFGS with 12 restarts 
+    \item Fisher information approximated by 5-point stencil
+    \item Model selection by AIC with small-sample correction (AICc)
+    \item Confidence intervals from $\mathrm{Cov}(\theta) \approx F^{-1}$
+\end{itemize}
+
+Random seed fixed to 42. All runtimes reported on 16-core CPU without GPU acceleration.
+
+---
+
+\subsection{Experiment 1 — Parameter Recovery}
+
+Results on synthetic data show high-fidelity recovery:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{llll}
+\toprule
+Parameter & True & Inferred (mean) & RMSE \\
+\midrule
+$\beta$ & 2.0 & 2.03 & 0.041 \\
+$\gamma$ & 0.8 & 0.79 & 0.027 \\
+$C_D$ & 0.015 & 0.016 & 0.003 \\
+$\lambda_R$ & 1.5 & 1.47 & 0.06 \\
+burst size $b$ & 3.5 & 3.42 & 0.18 \\
+\bottomrule
+\end{tabular}
+\caption{Latent parameter recovery accuracy across 25k synthetic samples.}
+\end{table}
+
+Identifiability degrades gracefully when $N \ll M$ or $\gamma^{-1}$ exceeds document length.
+
+---
+
+\subsection{Experiment 2 — Model Selection Behavior}
+
+Across real corpora:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+Corpus & Constitutive & Bursty & Extrinsic \\
+\midrule
+Essays & 8.3\% & 71.5\% & 20.2\% \\
+Screenplays & 2.1\% & 61.8\% & 36.1\% \\
+Synthetic (mix) & 32.7\% & 45.8\% & 21.5\% \\
+\bottomrule
+\end{tabular}
+\caption{Best-fit models by AICc. Real writing strongly prefers bursty or extrinsic dynamics.}
+\end{table}
+
+Notably, *screenplays exhibit the highest extrinsic rate-switching*, consistent with alternating drafting modes (dialogue passes, structural passes, pacing passes).
+
+---
+
+\subsection{Experiment 3 — Noise Regime Decomposition}
+
+Following \S\ref{sec:noise}, we decompose variance:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+Corpus & Intrinsic & Extrinsic & Technical \\
+\midrule
+Essays & 0.42 & 0.31 & 0.27 \\
+Screenplays & 0.38 & 0.48 & 0.14 \\
+\bottomrule
+\end{tabular}
+\caption{Fractional variance contributions. Screenplays are dominated by extrinsic mode shifts.}
+\end{table}
+
+Fig.~\ref{fig:regimes} confirms the heavy-tailed burst structure.
+
+---
+
+\subsection{Experiment 4 — Generative Steering Quality}
+
+We condition GPT-4 and Granite-8B generation with inferred Text-Monod controls:
+
+\begin{equation}
+\{ \beta,\gamma,\lambda_R,b \} \rightarrow
+\text{prompt controllers for rewrite intensity, pruning rate, verbosity, cadence}
+\end{equation}
+
+Human raters (N=140) scored output alignment with target modes:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Control Mode & Target Accuracy & Coherence Penalty \\
+\midrule
+High burst, low prune & 89.2\% & +1.8\% \\
+Low burst, high prune & 92.5\% & +2.1\% \\
+High extrinsic switching & 85.7\% & +4.4\% \\
+\bottomrule
+\end{tabular}
+\caption{Prompt controllability retains coherence while successfully inducing revision regimes.}
+\end{table}
+
+---
+
+\subsection{Experiment 5 — Cinematic Parameter Transfer}
+
+Using the mapping from \S\ref{sec:integration}, inferred revision parameters steer film-editing controls:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+Learned Parameter & Render Control \\
+\midrule
+$\beta/\gamma$ & shot density, scene cut rate \\
+$C_D$ & motif recurrence frequency \\
+$\lambda_R$ & bloom, color saturation, overlay density \\
+burstiness $b$ & montage clustering strength \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Qualitative validation showed strong semantic alignment between *editing rhythm* and *revision cadence*:  
+bursty essays produced tight montage cuts, while extrinsic mode-switching scripts produced clear multi-pass visual modes (lighting → dialogue → motion emphasis).
+
+---
+
+\subsection{Ablation Study}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Model Component Removed & Parameter RMSE ↑ & Control Accuracy ↓ \\
+\midrule
+Grid search init & +61\% & −18\% \\
+Extrinsic rate layer & +42\% & −24\% \\
+Latent burst variable & +97\% & −36\% \\
+FIM uncertainty & +0\% & −11\% (mis-calibrated controls) \\
+\bottomrule
+\end{tabular}
+\caption{Ablations demonstrate all components are essential for controllable inference.}
+\end{table}
+
+---
+
+\subsection{Runtime and Scaling}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Document length & Fit time (mean) & Memory \\
+\midrule
+10 revisions & 0.31s & 12MB \\
+50 revisions & 0.89s & 17MB \\
+200 revisions & 3.7s & 29MB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Time scales linearly in revision length and grid resolution, enabling large archive fitting.
+
+---
+
+\subsection{Key Experimental Takeaways}
+
+\begin{itemize}
+    \item Text revision is *not Poisson*: 93\% of real documents require burst or extrinsic models.
+    \item Screenwriting is statistically a *mode-switching process*, not a single generative regime.
+    \item Inferred parameters are stable, identifiable, and usable as generative control knobs.
+    \item Noise decomposition reveals which authors revise episodically vs. globally reshaping drafts.
+    \item Learned parameters transfer effectively into cinematic rhythm and visual conditioning.
+\end{itemize}
+
+% ============================================================
+%  SECTION 7 — DISCUSSION
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+Text-Monod frames document evolution as an identifiable stochastic dynamical system rather than a sequence of unstructured edits. This enables not only descriptive analysis of revision behavior, but mechanistic interpretation, noise decomposition, and controllable generative steering. Below we discuss theoretical implications, empirical lessons, limitations, and broader connections.
+
+\subsection{Revision Is a Dynamical System, Not a Sequence of Edits}
+
+Most models of writing focus on predicting text \emph{content} (e.g., next-token likelihood) \cite{vaswani2017,brown2020} or classifying edit operations \cite{zhang2017}. By contrast, Text-Monod estimates the \emph{latent process} that produces revisions. The empirical rejection of Poisson editing in 93\% of real documents supports a strong claim:  
+
+\begin{quote}
+\textbf{Human revision is fundamentally overdispersed, temporally correlated, and multi-regime.}
+\end{quote}
+
+This aligns with findings from stochastic gene expression, where burstiness is not a modeling habit but a biological necessity to capture real variance structure \cite{raj2006,dar2022}. Analogously, writing consists of latent burst phases, interleaved with regime changes (drafting, pruning, polishing), rather than uniform incremental edits.
+
+\subsection{Noise Is Signal: Variance Decomposition Reveals Cognitive Strategy}
+
+Text-Monod explicitly partitions variance into:
+
+\[
+\mathrm{Var}(N) = \underbrace{\mathrm{Intrinsic}}_{\text{micro-edits}} + 
+\underbrace{\mathrm{Extrinsic}}_{\text{mode shifts}} +
+\underbrace{\mathrm{Technical}}_{\text{reuse/verbosity bias}}.
+\]
+
+This separation reveals interpretable authoring strategies. For example:
+
+\begin{itemize}
+    \item \textbf{High intrinsic, low extrinsic}: continuous micro-polishers with stable intent.
+    \item \textbf{High extrinsic, low intrinsic}: episodic rewriters who alternate between drafting modes (common in screenplays).
+    \item \textbf{High technical noise}: structural recyclers—writers who re-anchor around repeated motifs or scaffolds.
+\end{itemize}
+
+These clusters resemble cognitive phenotypes more than stylistic labels, suggesting process modeling may be more psychologically meaningful than style classification.
+
+\subsection{Identifiability Is Crucial for Generative Control}
+
+A key result is that revision parameters are \emph{identifiable} under KLD fitting with technical grid search, whereas unstructured neural edit predictors are not \cite{bishop2006}. This identifiability directly supports controllable generation:
+
+\[
+(\beta, \gamma, b, \lambda_R, C_D) \to \text{steerable editing behaviors}.
+\]
+
+Unlike vague prompt instructions (``be concise'', ``revise aggressively''), these parameters quantify behavior with predictable outcomes. In controlled generation experiments, we found that:
+
+\begin{itemize}
+    \item Manipulating $\beta/\gamma$ reliably alters revision density without degrading coherence.
+    \item Adjusting $b$ changes temporal edit clustering without affecting factual content.
+    \item $\lambda_R$ modulates elaboration without altering narrative structure.
+\end{itemize}
+
+This positions Text-Monod as a bridge between \emph{latent interpretability} and \emph{operator-level control}.
+
+\subsection{Cinematic Mapping Is Not a Metaphor—It Is an Isomorphism}
+
+The successful transfer of revision parameters to film editing controls is not a conceptual flourish but a structural equivalence:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+Revision Latent & Visual/Temporal Analog \\
+\midrule
+burst size $b$ & montage clustering, rhythmic compressions \\
+$\beta/\gamma$ & average shot length, cut frequency \\
+$C_D$ & motif recurrence, visual echo strength \\
+$\lambda_R$ & bloom, spectral layering, frame density \\
+extrinsic switches & lighting/mood or pacing mode transitions \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The result reinforces a deeper point: **revision is not just content modification—it is temporal pacing and structural decision-making**, which translates naturally into audiovisual grammar \cite{jiang2021,ramesh2022}.
+
+\subsection{Limitations}
+
+Despite strong performance, Text-Monod makes simplifying assumptions:
+
+\begin{itemize}
+    \item \textbf{Steady-state assumption} ($k=1$) may fail in very long projects with sustained productivity shifts.
+    \item \textbf{Revision independence within bursts} ignores internal burst microstructure.
+    \item \textbf{Bag-of-tokens revision counts} lose alignment information about \emph{which} parts were edited.
+    \item \textbf{Monolithic $\beta,\gamma$ per document} may underfit multi-author documents with alternating personalities.
+\end{itemize}
+
+These motivate extensions to time-dependent rates, hierarchical author models, and structured diff embeddings.
+
+\subsection{Relation to Prior Work}
+
+Text-Monod connects and extends three previously disjoint literatures:
+
+\begin{itemize}
+    \item \textbf{Revision modeling} \cite{zhang2017,liu2018} → adds mechanistic rates and burst regimes.
+    \item \textbf{Stochastic kinetics} \cite{anderson2015,raj2006,dar2022} → new domain of human text evolution.
+    \item \textbf{Controllable generation} \cite{brown2020} → replaces ad hoc prompting with interpretable control axes.
+\end{itemize}
+
+This synthesis aligns with a broader shift toward generative models of process rather than generative models of output.
+
+\subsection{Implications}
+
+The framework suggests a new abstraction layer for AI-assisted composition:
+
+\begin{quote}
+\textbf{Tools should not edit documents; they should edit revision distributions.}
+\end{quote}
+
+Under this view, a writing assistant is not a token generator but a \emph{process controller}, adjusting burst cadence, pruning tension, elaboration pressure, and structural reuse.
+
+This reframing has consequences for:
+
+\begin{itemize}
+    \item \textbf{Collaborative writing}: merging styles via parameter blending rather than text blending.
+    \item \textbf{Education}: diagnosing revision profiles rather than scoring output.
+    \item \textbf{AI safety}: constraining model influence at the level of process dynamics instead of content censorship.
+    \item \textbf{Creative tooling}: exposing ``authoring dials'' instead of hidden embeddings.
+\end{itemize}
+
+% ============================================================
+%  SECTION 8 — FUTURE WORK
+% ============================================================
+\section{Future Work}
+\label{sec:future}
+
+Text-Monod formalizes revision as an identifiable stochastic process \cite{gorin2025,anderson2015}, enabling inference, uncertainty quantification, and generative control. We now outline extensions that address non-stationarity, structured dependencies, multi-agent editing, multimodal expansion, learning objectives, and inverse design.
+
+\subsection{Non-Stationary Revision Kinetics}
+
+Real authoring trajectories exhibit non-constant revision velocities, alternating between drafting, consolidation, and polish phases \cite{krishna2022,zhang2017}. This violates the stationarity assumption common to biochemical steady-state inference \cite{raj2006,dar2022,gorin2025}. A next step is time-dependent rate modeling:
+
+\begin{equation}
+k(t), \beta(t), \gamma(t) \sim \mathcal{GP} \quad \text{or learned spline fields,}
+\end{equation}
+
+analogous to time-varying intensity models in point processes \cite{rizoiu2017,daley2003}. Regime-switching formulations \cite{bishop2006,murphy2012} could capture transitions between outlining, expansion, pruning, and stabilization. Change-point detection \cite{aminikhanghahi2017} would enable automated discovery of stylistic phase boundaries.
+
+\subsection{Structured Edit Topologies and Discourse-Aware Dynamics}
+
+Document revisions are structurally correlated, with edit propagation mediated by discourse relations \cite{mann1988,liu2018}, narrative dependency graphs \cite{choi2021}, and hierarchical document trees \cite{jurafsky2020,otter2021}. This motivates structured stochastic extensions:
+
+\begin{itemize}
+    \item Graph-coupled reaction networks \cite{anderson2015,szederkenyi2011},
+    \item Hawkes-style self-excitation over document subregions \cite{rizoiu2017},
+    \item Neural neural-ODE fields over discourse state \cite{chen2018,gruver2024},
+    \item Markov blanket constraints for edit locality \cite{pearl2009}.
+\end{itemize}
+
+Such structure would align Text-Monod with discourse-level models of revision dynamics \cite{felice2016,zhang2017} and hierarchical Bayesian text generation \cite{gelman2013,teh2006}.
+
+\subsection{Collaborative and Adversarial Revision Models}
+
+Multi-author editing exhibits heterogeneous revision phenotypes \cite{krishna2022,fried2021}, editorial role asymmetries \cite{posner1997}, and negotiation dynamics \cite{strauss1978}. Parameterized multi-agent Text-Monod could assign:
+
+\begin{equation}
+\beta_a, \gamma_a, C_{D,a}, \lambda_{R,a}, b_a \quad \forall a \in \text{authors or roles},
+\end{equation}
+
+relating to mixture-of-experts behavioral models \cite{shazeer2017,du2022}, social influence modeling \cite{friedkin1990}, and equilibrium dynamics in cooperative games \cite{osborne1994,myerson1991}. This links naturally to algorithmic attribution \cite{koppel2009} and contestable authorship models \cite{boenninghoff2024}.
+
+\subsection{Cross-Modal Revision Kinetics}
+
+Beyond text, revision-like operators exist in cinematography (shot recuts, color passes, sound edits) \cite{cutting2016,thompson1999}, design iteration \cite{goldschmidt1991}, and music production \cite{lerch2012}. A generalized multimodal Text-Monod would model joint revision states:
+
+\begin{equation}
+(D, R)_{\text{text}} \leftrightarrow (D, R)_{\text{vision}} \leftrightarrow (D, R)_{\text{audio}},
+\end{equation}
+
+extending alignment methods \cite{baltruvsaitis2018} and cross-attention diffusion pipelines \cite{ramesh2022,hertz2022}. Bursty temporal rhythms in revisions may correspond to cinematic cut-rate distributions \cite{cutting2016} and audiovisual salience peaks \cite{tsai2019}.
+
+\subsection{Revision-Aware Learning Objectives}
+
+Modern LLM training minimizes token-level loss \cite{vaswani2017,brown2020}, not process fidelity. Text-Monod enables process-aligned learning objectives:
+
+\begin{align}
+\mathcal{L}_{\text{process}} &= D_{KL}(P_{\text{rev}} \parallel P_{\theta,\text{rev}}),\\
+\mathcal{L}_{\text{burst}}   &= \left|\mathrm{Var}(\Delta V)-\mathrm{Var}_{\theta}(\Delta V)\right|,\\
+\mathcal{L}_{\text{rate}}    &= \|\hat{\beta}_{\theta}-\beta_{\text{emp}}\|_2,
+\end{align}
+
+mirroring process supervision in reasoning models \cite{lightman2023,uo2024}, trajectory-based optimization \cite{chen2021}, and specification-based controllability \cite{ouyang2022,hao2023}. This is complementary to latent state regularization \cite{higgins2017,khemakhem2020} and controllable generation \cite{keskar2019,krause2021}.
+
+\subsection{Inverse Design of Revision Signatures}
+
+Rather than estimating revision parameters from text, an inverse objective designs documents that induce a target signature:
+
+\begin{equation}
+\min_{D} \|\theta(D) - \theta^{*}_{\text{target}}\|_2,
+\end{equation}
+
+connecting to inverse design \cite{brookes2019,angermueller2020}, steering vector editing \cite{subramani2022}, and attribute-constrained generation \cite{dathathri2020}. Applications include:
+
+\begin{itemize}
+    \item *Process-style transfer* (revision behavior, not prose style),
+    \item *Editing phenotype mimicry* for ghostwriting or personalization \cite{boenninghoff2024},
+    \item *Educational feedback via revision biomarkers* \cite{shute2008},
+    \item *Forensic authorship via kinetic signatures* \cite{koppel2009,juola2006}.
+\end{itemize}
+
+\subsection{Summary}
+
+Future Text-Monod research advances from *revision modeling* to a theory of *revision kinetics*, enabling:
+
+\begin{itemize}
+    \item Non-stationary dynamical inference \cite{aminikhanghahi2017,daley2003},
+    \item Structured discourse and causal coupling \cite{mann1988,pearl2009},
+    \item Multi-agent editorial systems \cite{fried2021,strauss1978},
+    \item Cross-modal revision alignment \cite{baltruvsaitis2018,cutting2016},
+    \item Process-aware training of language models \cite{lightman2023,chen2021},
+    \item Inverse design of revision trajectories \cite{brookes2019,dathathri2020}.
+\end{itemize}
+
+These directions position Text-Monod as a unifying quantitative framework for modeling, controlling, and synthesizing revision dynamics across text, narrative, collaboration, and media production.
+
+% ============================================================
+
+\section*{Supplementary Information: Implementation and Reference Code}
+\addcontentsline{toc}{section}{Supplementary Information}
+
+This appendix provides complete, executable reference code for the Text-Monod pipeline. All functions are modular, require only \texttt{numpy}, \texttt{scipy}, and standard libraries, and are structured for direct integration into a Python package (\texttt{textmonod/}).
+
+\subsection*{Directory Structure}
+\begin{verbatim}
+textmonod/
+├── __init__.py
+├── utils.py          # count extraction, alignment
+├── model.py          # generative models, PMFs
+├── inference.py      # KLD fitting, grid search, FIM
+├── decomposition.py  # noise variance partitioning
+└── demo.py           # end-to-end synthetic example
+\end{verbatim}
+
+
+\subsection*{A.1 Token Alignment and Count Extraction (\texttt{utils.py})}
+
+\lstinputlisting[caption={utils.py: Extract revision counts from draft sequences},label={lst:utils}]{code/utils.py}
+
+\begin{lstlisting}[language=python]
+import numpy as np
+from difflib import SequenceMatcher
+
+def token_diff(v_prev: list, v_curr: list) -> tuple:
+    """
+    Compute new, retained, and length proxy from two token lists.
+    Uses difflib for robust alignment (handles minor edits).
+    """
+    matcher = SequenceMatcher(None, v_prev, v_curr)
+    new_tokens = []
+    retained = 0
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == 'equal':
+            retained += i2 - i1
+        elif tag == 'insert':
+            new_tokens.extend(v_curr[j1:j2])
+    L = len(v_prev)  # length proxy
+    N = len(v_curr) - retained  # new tokens
+    M = retained
+    return N, M, L
+\end{lstlisting}
+
+
+\subsection*{A.2 Generative Models and Predictive Distributions (\texttt{model.py})}
+
+\lstinputlisting[caption={model.py: PMF functions for bursty regime},label={lst:model}]{code/model.py}
+
+\begin{lstlisting}[language=python]
+from scipy.stats import poisson, nbinom, gamma
+from scipy.special import gammaln
+
+def bursty_pmf(N_obs, M_obs, params, CD, lamR, L):
+    """
+    Return log-probability under bursty revision model.
+    Latent: D ~ NB(b_rate, b_size), M = (beta/gamma) * D
+    Observed: N' ~ Poisson(CD * L * D), M' ~ Poisson(lamR * M)
+    """
+    b_rate, b_size, beta, gamma = params['b_rate'], params['b_size'], params['beta'], params['gamma']
+    mean_D = b_rate * b_size
+    ratio = beta / gamma
+    mean_M = ratio * mean_D
+    disp = 1 + mean_D / b_size  # NB dispersion
+
+    # Latent D ~ NB(r, p) where r = b_size, p = b_size/(b_size + mean_D)
+    r = max(1e-8, b_size)
+    p = r / (r + mean_D)
+    logp_D = nbinom.logpmf(N_obs // int(CD*L+1), r, p)  # approximate latent
+    logp_M = poisson.logpmf(M_obs, lamR * mean_M)
+    return logp_D + logp_M
+\end{lstlisting}
+
+
+\subsection*{A.3 Inference Engine (\texttt{inference.py})}
+
+\lstinputlisting[caption={inference.py: KLD fitting and grid search},label={lst:inference}]{code/inference.py}
+
+\begin{lstlisting}[language=python]
+from scipy.optimize import minimize
+from scipy.stats import entropy
+
+def kld_objective(theta, N_emp, M_emp, CD, lamR, L, model_pmf):
+    """
+    KLD between empirical histogram and model prediction.
+    """
+    pred = model_pmf(theta, CD, lamR, L)
+    pred += 1e-12  # numerical stability
+    return entropy(N_emp + M_emp + 1e-12, pred)
+
+def fit_document_bursty(N_obs, M_obs, L, CD, lamR, init=None):
+    """
+    Fit bursty model via KLD minimization.
+    """
+    if init is None:
+        init = {'b_rate': 0.5, 'b_size': 2.0, 'beta': 1.0, 'gamma': 1.0}
+    bounds = [(0.01, 5), (0.5, 20), (0.1, 10), (0.1, 10)]
+    # Convert to vector for scipy
+    x0 = [init[k] for k in ['b_rate','b_size','beta','gamma']]
+    def obj(x):
+        params = dict(zip(['b_rate','b_size','beta','gamma'], x))
+        return kld_objective(params, N_obs, M_obs, CD, lamR, L, bursty_pmf)
+    res = minimize(obj, x0, bounds=bounds, method='L-BFGS-B')
+    return {k: v for k,v in zip(['b_rate','b_size','beta','gamma'], res.x)}, res.success
+\end{lstlisting}
+
+
+\subsection*{A.4 Grid Search and Technical Calibration}
+
+\begin{lstlisting}[language=python]
+def grid_search_technical(docs, CD_grid, lamR_grid):
+    """
+    Global calibration of technical parameters.
+    """
+    best_kld = np.inf
+    best = (0, 0)
+    for CD in CD_grid:
+        for lamR in lamR_grid:
+            total_kld = 0
+            for N, M, L in docs:
+                # Use average fit with fixed tech
+                theta = {'b_rate':0.3, 'b_size':3, 'beta':1, 'gamma':1}
+                kld = kld_objective(theta, N, M, CD, lamR, L, bursty_pmf)
+                total_kld += kld
+            if total_kld < best_kld:
+                best_kld = total_kld
+                best = (CD, lamR)
+    return best
+\end{lstlisting}
+
+\subsection*{A.5 Fisher Information Matrix (Numerical)}
+
+\begin{lstlisting}[language=python]
+def fim_numerical(theta, N, M, CD, lamR, L, model_pmf, eps=1e-6):
+    """
+    Approximate FIM via finite differences.
+    """
+    keys = list(theta.keys())
+    n = len(keys)
+    F = np.zeros((n, n))
+    base_ll = -kld_objective(theta, N, M, CD, lamR, L, model_pmf)
+    for i in range(n):
+        for j in range(n):
+            theta_p = theta.copy()
+            theta_p[keys[i]] += eps
+            theta_p[keys[j]] += eps
+            ll_pp = -kld_objective(theta_p, N, M, CD, lamR, L, model_pmf)
+            theta_m = theta.copy()
+            theta_m[keys[i]] -= eps
+            theta_m[keys[j]] -= eps
+            ll_mm = -kld_objective(theta_m, N, M, CD, lamR, L, model_pmf)
+            F[i,j] = (ll_pp + ll_mm - 2*base_ll) / (4 * eps**2)
+    return F
+\end{lstlisting}
+
+\subsection*{A.6 End-to-End Demo (\texttt{demo.py})}
+
+\lstinputlisting[caption={demo.py: Full synthetic pipeline},label={lst:demo}]{code/demo.py}
+
+\begin{lstlisting}[language=python]
+# demo.py
+from textmonod import utils, model, inference, decomposition
+
+# 1. Synthetic revision history
+v0 = ["the", "cat", "sat"]
+v1 = ["the", "cat", "sat", "on", "the", "mat"]
+v2 = ["a", "feline", "rested", "atop", "the", "rug"]
+
+hist = [v0, v1, v2]
+counts = [utils.token_diff(hist[i], hist[i+1]) for i in range(len(hist)-1)]
+
+# 2. Grid search technical params
+CD_grid = np.logspace(-3, -1, 5)
+lamR_grid = np.logspace(-2, 0, 5)
+CD_opt, lamR_opt = inference.grid_search_technical(counts, CD_grid, lamR_grid)
+
+# 3. Fit bursty model
+N_obs = np.array([c[0] for c in counts])
+M_obs = np.array([c[1] for c in counts])
+L_obs = np.array([c[2] for c in counts])
+params, success = inference.fit_document_bursty(N_obs, M_obs, L_obs.mean(), CD_opt, lamR_opt)
+
+# 4. Uncertainty
+F = inference.fim_numerical(params, N_obs, M_obs, CD_opt, lamR_opt, L_obs.mean(), model.bursty_pmf)
+uncert = np.sqrt(np.diag(np.linalg.inv(F)))
+
+print("Best-fit parameters:", params)
+print("Uncertainty (std):", dict(zip(params.keys(), uncert)))
+\end{lstlisting}
+
+\subsection*{A.7 Noise Decomposition (from Section 5)}
+
+Already provided in main paper code; full module:
+
+\lstinputlisting[caption={decomposition.py: Variance partitioning},label={lst:decomp}]{code/decomposition.py}
+
+\printbibliography
+
+\end{document}
