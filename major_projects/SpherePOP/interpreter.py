@@ -1,0 +1,1 @@
+# SpherePOP interpreter stub

@@ -1,0 +1,4079 @@
+Sparse Bayesian policy selection
+Skip to content
+Open sidebar
+ChatGPT
+Memory full
+Get Plus
+ChatGPT
+Get Plus
+Memory full
+Share
+You said:
+Here is a rigorous explanation of how all thought can be framed as policy selection under sparse Bayesian selection, written in dense academic prose without diagrams.
+
+
+---
+
+1. Thought as the Selection of a Policy
+
+A policy is a mapping from perceived states to actions (including internal cognitive actions). To think is to choose among possible trajectories of internal or external action, under uncertainty, in order to minimize expected cost (or maximize expected utility or evidence). Even reasoning, imagination, planning, remembering, or perceiving can be reframed as selection over internal policies—sequences of latent state updates, attention shifts, or conceptual transitions—rather than motor outputs.
+
+Thus:
+
+\text{Thought} \equiv \arg\max_{\pi \in \Pi} \; \mathbb{E}[U \mid \pi, \mathcal{O}]
+
+where  is a candidate policy and  is partial observation. The argument is not that cognition always computes this explicitly, but that it is functionally equivalent to behaving as if it did.
+
+
+---
+
+2. Bayesian Selection Over Latent Policies
+
+Under uncertainty, policy selection must marginalize over hidden causes. A Bayesian agent maintains a posterior over policies:
+
+P(\pi \mid \mathcal{O}) \propto P(\mathcal{O} \mid \pi) P(\pi)
+
+ encodes inductive biases, habits, or structural constraints.
+
+ measures how well a policy predicts or explains observations, including counterfactual internal simulations.
+
+
+Thoughts become policy inference: selecting which internal or external trajectory best explains, reduces, or restructures prediction error.
+
+
+---
+
+3. Sparsity as the Fundamental Constraint
+
+Biological and algorithmic cognition both operate under severe bottlenecks in attention, memory, bandwidth, and simulation depth. Therefore, cognition is not arbitrary Bayesian inference, but sparse Bayesian inference, where the posterior is compressed to a small support:
+
+P(\pi \mid \mathcal{O}) \approx \sum_{k=1}^{K \ll |\Pi|} w_k \, \delta(\pi = \pi_k)
+
+Only a small number of candidate policies receive non-negligible probability mass. Thought becomes winner-takes-few, not winner-takes-all but winner-takes-sparse.
+
+Sparsity may emerge from:
+
+ℓ₀ or ℓ₁ penalties on active policies
+
+attention bottlenecks
+
+energy limits on neural firing
+
+amortized inference restricting search to learned prototypes
+
+sampling-based approximations (e.g., particle filters with small particle count)
+
+
+
+---
+
+4. Thought as Sampling or Maximization Under Sparsity
+
+Two regimes appear:
+
+1. Deliberation as sparse sampling:
+
+
+
+\pi^{(i)} \sim P(\pi \mid \mathcal{O}), \quad i = 1 \dots K
+
+2. Commitment as sparse MAP selection:
+
+
+
+\pi^* = \arg\max_{\pi} P(\pi \mid \mathcal{O}) - \lambda \|\pi\|_0
+
+Inner monologue, imagery, reasoning, or intuition are traces of this very small .
+
+
+---
+
+5. Internal Thought Is Just Policy Over Latent Actions
+
+Crucially, a policy need not refer to the external world. Internal cognitive operations—retrieving a memory, forming a metaphor, applying a mathematical rule, shifting attention, invoking a model, or suppressing a tempting idea—are all latent actions in a cognitive state space.
+
+Thus:
+
+Cognitive event	Interpreted as
+
+Reasoning step	Transition in a latent policy
+Memory recall	Policy that queries a knowledge distribution
+Attention shift	Policy that reallocates sampling weight
+Emotion	Gradient over policy priors
+Imagination	Rollout from a candidate policy
+
+
+Thinking is therefore inference over internal policies, not merely planning over external ones.
+
+
+---
+
+6. The Brain as a Policy Pruner, Not a Policy Enumerator
+
+The space of possible policies is super-exponential. Explicit enumeration is impossible. Instead, sparse Bayesian selection is implemented by:
+
+amortized inference (reusing past policy fragments)
+
+policy prototypes (compressed into cortical circuits)
+
+winner-take-sparse neural competition
+
+predictive coding selecting among generative policies
+
+neuromodulators tuning prior weights
+
+hippocampal sampling of trajectory fragments
+
+
+This converts the inference problem from intractable search to selection among a small library of stochastic policy atoms.
+
+
+---
+
+7. Unification: What "a thought" actually is
+
+A single thought can be defined as:
+
+> A transient, sparse Bayesian update that elevates one policy fragment (or a small set of fragments) to dominance in the posterior, constraining subsequent inference and action.
+
+
+
+Or more compactly:
+
+\Delta \text{thought} \equiv \text{SparsePosteriorUpdate}(\pi \mid \mathcal{O})
+
+This unifies:
+
+decision making
+
+abstract reasoning
+
+linguistic generation
+
+analogy
+
+imagination
+
+planning
+
+emotional impulse
+
+and even perception
+
+
+because all of them bias the posterior over the next selected policy.
+
+
+---
+
+8. Consequences
+
+This reframing implies:
+
+1. There is no categorical boundary between thinking and acting—only whether selected policies terminate internally or externally.
+
+
+2. Cognition is compression—not optimizing over all policies, but aggressively pruning to a tiny active set.
+
+
+3. Beliefs are cached policy priors, not independent truth variables.
+
+
+4. Attention is posterior sparsification, not spotlight illumination.
+
+
+5. Character and identity are long-term policy priors, not fixed internal objects.
+
+
+6. Intuition is fast policy MAP under strong sparsity; reasoning is slower sampling with larger .
+
+
+
+
+---
+
+9. Summary Statement
+
+> Mind is the constrained Bayesian selection of latent policies under extreme sparsification; a thought is the momentary dominance of one such policy fragment in the posterior.
+
+
+
+This formulation collapses perception, reasoning, planning, and imagination into one computational principle:
+
+\textbf{Cognition} = \textbf{Sparse Bayesian policy inference in a latent action space}
+
+
+---
+
+If you'd like, the next step is to formalize one of the following:
+
+1. The mathematical equivalence to active inference (Friston)
+
+
+2. The equivalence to sparse coding with policy atoms
+
+You picked "1" — the mathematical equivalence to active inference (Friston). Below is a dense, rigorous, academic-style derivation and explanation showing how sparse Bayesian policy selection is formally equivalent (or naturally maps) to active inference / variational free-energy minimization. I keep it compact but complete: definitions, derivations, implementation recipes, and consequences.
+
+
+---
+
+0. Summary statement (roadmap)
+
+Active inference frames action and perception as minimization of (variational) free energy by adjusting beliefs and selecting policies whose rollouts minimize expected free energy. Sparse Bayesian policy selection says cognition picks a very small set of candidate policies from a huge space via a posterior that is strongly concentrated (sparse). The equivalence follows by (A) casting policy selection as Bayesian inference over policies and (B) showing that minimizing variational free energy (and expected free energy for prospective choices) is mathematically the same objective as forming a posterior over policies that (implicitly) enforces sparsity via precision / prior structure or explicit sparsity penalties. Below I make that precise.
+
+
+---
+
+1. Objects and notation
+
+sensory observations:  (history up to time )
+
+hidden states: 
+
+policy (action trajectory / control strategy):  (each  generates actions  and therefore likelihoods over observations)
+
+generative model (agent's model of world): . Factorisation commonly used:
+
+
+P(o_{1:T}, s_{1:T}, \pi) = P(\pi)\prod_{t=1}^T P(o_t \mid s_t)P(s_t\mid s_{t-1}, a_{t-1})
+
+variational posterior (approximate): . Often factorised .
+
+variational free energy (evidence bound) for fixed :
+
+
+\mathcal{F}[Q(s),\pi] = \mathrm{KL}\!\big[Q(s)\,\|\,P(s\mid o,\pi)\big] - \log P(o\mid\pi)
+
+\mathcal{F}[Q] = \mathbb{E}_{Q(s,\pi)}\big[\log Q(s,\pi) - \log P(o,s,\pi)\big].
+
+
+---
+
+2. Bayesian policy posterior (sparse Bayesian selection)
+
+Start from Bayes rule over policies:
+
+P(\pi \mid o_{1:T}) \propto P(o_{1:T}\mid\pi)P(\pi).
+
+\log P(o_{1:T}\mid\pi) \ge -\mathcal{F}[Q(s\mid\pi),\pi].
+
+Q(\pi) \propto \exp\!\big( -\mathcal{F}[Q(s\mid\pi),\pi] \big) P(\pi).
+
+If we now add a sparsity prior (or an explicit penalty), e.g.
+
+P(\pi) \propto \exp\big(-\lambda \, \|\pi\|_0\big)\quad\text{or}\quad P(\pi)\propto\exp(-\lambda \|\pi\|_1),
+
+Q(\pi) \propto \exp\big( -\mathcal{F}[Q(s\mid\pi),\pi] - \lambda\|\pi\| \big).
+
+\pi^* = \arg\min_{\pi}\; \mathcal{F}[Q(s\mid\pi),\pi] + \lambda\|\pi\|.
+
+
+---
+
+3. Mapping to active inference: expected free energy and prospective selection
+
+Active inference operationalises prospective choice by minimising expected free energy , which decomposes into epistemic and pragmatic terms (information gain + utility). Concretely,
+
+G(\pi) := \mathbb{E}_{Q(o_{t+1:T}, s_{t+1:T}\mid\pi)}\Big[ \log Q(s_{t+1:T}\mid\pi) - \log P(o_{t+1:T}, s_{t+1:T}\mid\pi) \Big],
+
+Compare  to : both are variational free-energy quantities measuring mismatch between beliefs and the generative model, but  explicitly reasons about future evidence. The variational posterior over policies above can be written using the expected free energy as the negative log-evidence surrogate:
+
+Q(\pi) \propto \exp\big(-G(\pi)\big)P(\pi),
+
+when  is used as the approximate surprise of future outcomes under . Therefore selecting high-posterior policies under the sparse Bayesian view is isomorphic to selecting policies that minimise expected free energy under active inference (with an added prior that can enforce sparsity).
+
+
+---
+
+4. Sparsity arises naturally in active inference via precision and priors
+
+Active inference introduces precision (inverse-temperature) parameters on beliefs and prediction errors. Two routes produce sparsity:
+
+1. Explicit prior sparsity:  with heavy-tailed or spike-and-slab priors concentrates mass on few policies. Equivalent to L0/L1 regularisation in the MAP objective.
+
+
+2. Precision-driven pruning: high precision on policy priors or selective gating (neuromodulatory control) causes a softmax over  to become sharp:
+
+
+
+Q(\pi) \propto \exp\big( -\gamma\, G(\pi) \big),
+
+Combining (1) and (2) yields extreme sparsity: a small set of policies receives almost all mass.
+
+
+---
+
+5. Formal equivalence (sketch)
+
+1. Start from active inference policy selection rule:
+
+
+
+Q(\pi)\propto \exp(-G(\pi)).
+
+Q(\pi)\propto \exp(-G(\pi))P(\pi)=\exp(-G(\pi)-\log\frac{1}{P(\pi)}).
+
+\text{select }\pi^*=\arg\min_\pi\ G(\pi)+\lambda\|\pi\|,
+
+
+---
+
+6. Operational algorithm (practical instantiation)
+
+Below is a simple algorithmic pattern that implements the equivalence in a computational model.
+
+1. Policy library: maintain a structured (possibly learned) set  of candidate policies (atoms).  can be large, but selection will be sparse.
+
+
+2. For each : a. Simulate forward rollouts (imagined ).
+b. Compute approximate expected free energy  (pragmatic + epistemic terms).
+c. Compute complexity/sparsity penalty  or log prior .
+
+
+3. Form posterior weights:
+
+
+
+w_k \leftarrow \exp\big(-\beta (G(\pi_k) + C(\pi_k))\big)
+
+4. Sparsify: keep top- policies by mass (truncate small weights). Optionally re-normalize.
+
+
+5. Act / update beliefs: either choose  (commit) or sample from truncated  (deliberation). Update state beliefs  given new observation and repeat.
+
+
+
+This algorithm is a particle-filter / importance-sampling style implementation of active inference with explicit sparsity imposed.
+
+
+---
+
+7. Decomposition of expected free energy (interpretation)
+
+Active inference decomposes  as:
+
+G(\pi) = \underbrace{\mathbb{E}[\text{risk}]}_{\text{pragmatic}} - \underbrace{\mathbb{E}[\text{information gain}]}_{\text{epistemic}} + \text{complexity}.
+
+Maximising information gain encourages epistemic exploration.
+
+Adding explicit complexity / sparsity term encourages parsimonious plans.
+
+
+Sparse Bayesian selection therefore balances exploitation, exploration, and parsimony in a single objective.
+
+
+---
+
+8. Neural/biological mapping (brief)
+
+Variational beliefs  ↔ cortical / hippocampal population codes.
+
+Precision  ↔ neuromodulatory gain (e.g., dopamine, noradrenaline).
+
+Policy priors  ↔ long-term habits / cached plans in basal ganglia or prefrontal cortex.
+
+Epistemic drive ↔ curiosity signals (anterior cingulate / PFC).
+
+Sparsity enforced by winner-take-all dynamics or thresholded softmax.
+
+
+This matches the earlier statement that the brain behaves as a policy-pruner.
+
+
+---
+
+9. Consequences and predictions
+
+1. Fast intuition vs slow deliberation: Intuition = high , strong prior  → single  dominates. Deliberation = lower , larger  samples.
+
+
+2. Cognitive effort: Increasing  or lowering sparsity penalty raises metabolic cost (simulation complexity).
+
+
+3. Learning: Update  over long timescales by reweighting policies according to past posterior mass; this yields habitisation.
+
+
+4. Pathologies: Over-precision (too high ) leads to perseveration; under-precision leads to distractibility; malformed priors lead to maladaptive policy selection (e.g., compulsions).
+
+
+5. Experimental markers: Manipulations that increase perceived variance (lower precision) should increase sampling  and exploration; pharmacological manipulation of neuromodulators should alter posterior sharpness.
+
+
+
+
+---
+
+10. Minimal worked mathematical identity (compact)
+
+Starting point:
+
+Q(\pi)\propto P(\pi)\exp\big(-\mathcal{F}[Q(s\mid\pi),\pi]\big).
+
+Then
+
+\log Q(\pi) = -G(\pi) - \lambda\|\pi\| + \text{const}.
+
+\pi^*=\arg\max_\pi \log Q(\pi)=\arg\min_\pi G(\pi)+\lambda\|\pi\|,
+
+
+---
+
+11. Suggested next formal steps (if you want this developed further)
+
+Derive exact forms of  for a particular generative model (e.g., linear-Gaussian control) and show closed-form sparsity thresholds.
+
+Produce a particle-based algorithm with complexity bounds relating , , and approximation error.
+
+Connect to control-as-inference frameworks (Kappen, Todorov) and show how L1/L0 regularisation maps to KL constraints in control-as-inference.
+
+Provide a categorical/formal functorial account where policies are morphisms and sparsity is a left adjoint selection functor.
+
+
+
+---
+
+If you want, I'll: (a) produce a worked example (linear-Gaussian POMDP) with explicit formulae for  and the sparsity threshold; (b) give a particle-filter / beam-search pseudo-code and complexity analysis; or (c) produce a short manuscript-style write-up tying this to predictive coding and neuromodulation. Which of (a),(b),(c) do you want me to do next?
+3. A categorical formulation (policy objects, inference as functors)
+
+
+4. An algorithmic instantiation (particle-filter policy inference, sparse beams, or policy libraries)
+ChatGPT said:
+Pensado durante 25s
+Nice — I'll do
+(a) a worked example (linear-Gaussian POMDP) with explicit formulae for
+G
+(
+π
+)
+G(\pi)
+G
+(
+π
+)
+and a closed-form sparsity threshold
+, and I'll finish with a tiny numeric illustration so the threshold is concrete.
+I'll keep it compact and rigorous.
+1. Minimal 1-D linear-Gaussian POMDP (single-step policy) — model
+State and observation (scalar), single time step
+t
+=
+0
+→
+1
+t=0\to1
+t
+=
+0
+→
+1
+:
+x
+1
+=
+A
+x
+0
++
+B
+a
++
+w
+,
+w
+∼
+N
+(
+0
+,
+q
+)
+,
+x_{1} = A x_0 + B a + w,\qquad w\sim\mathcal{N}(0,q),
+x
+1
+​
+=
+A
+x
+0
+​
++
+B
+a
++
+w
+,
+w
+∼
+N
+(
+0
+,
+q
+)
+,
+o
+1
+=
+C
+x
+1
++
+v
+,
+v
+∼
+N
+(
+0
+,
+r
+)
+.
+o_{1} = C x_{1} + v,\qquad v\sim\mathcal{N}(0,r).
+o
+1
+​
+=
+C
+x
+1
+​
++
+v
+,
+v
+∼
+N
+(
+0
+,
+r
+)
+.
+Assume
+A
+=
+C
+=
+1
+A=C=1
+A
+=
+C
+=
+1
+,
+B
+=
+1
+B=1
+B
+=
+1
+(identity dynamics/observation), known initial state
+x
+0
+x_0
+x
+0
+​
+(for simplicity take
+x
+0
+=
+0
+x_0=0
+x
+0
+​
+=
+0
+). A
+policy
+π
+\pi
+π
+here is just the scalar action
+a
+a
+a
+applied at
+t
+=
+0
+t=0
+t
+=
+0
+. The agent has a
+preferred
+/target observation
+o
+∗
+o^\ast
+o
+∗
+(a Gaussian prior on preferred outcomes), modelled as
+p
+(
+o
+1
+∣
+pref
+)
+=
+N
+(
+o
+∗
+,
+s
+)
+.
+p(o_1\mid\text{pref})=\mathcal{N}(o^\ast,\,s).
+p
+(
+o
+1
+​
+∣
+pref
+)
+=
+N
+(
+o
+∗
+,
+s
+)
+.
+We will compute the expected free energy for a candidate action
+a
+a
+a
+and then add a sparsity penalty
+λ
+∥
+π
+∥
+\lambda\|\pi\|
+λ
+∥
+π
+∥
+(take
+∥
+π
+∥
+=
+∣
+a
+∣
+\|\pi\|=|a|
+∥
+π
+∥
+=
+∣
+a
+∣
+as an
+L
+1
+L_1
+L
+1
+​
+proxy; the same reasoning works with L0 for discrete policy atoms).
+Define the predictive variance of
+o
+1
+o_1
+o
+1
+​
+:
+S
+:
+=
+Var
+⁡
+(
+o
+1
+)
+=
+q
++
+r
+.
+S := \operatorname{Var}(o_1) = q + r.
+S
+:=
+Var
+(
+o
+1
+​
+)
+=
+q
++
+r
+.
+The predictive distribution of
+o
+1
+o_1
+o
+1
+​
+under action
+a
+a
+a
+is
+p
+(
+o
+1
+∣
+a
+)
+=
+N
+(
+m
+a
+,
+S
+)
+,
+m
+a
+=
+A
+x
+0
++
+B
+a
+=
+a
+(
+since
+x
+0
+=
+0
+,
+A
+=
+B
+=
+1
+)
+.
+p(o_1\mid a)=\mathcal{N}(m_a, S),\qquad m_a = A x_0 + B a = a \quad (\text{since }x_0=0, A=B=1).
+p
+(
+o
+1
+​
+∣
+a
+)
+=
+N
+(
+m
+a
+​
+,
+S
+)
+,
+m
+a
+​
+=
+A
+x
+0
+​
++
+B
+a
+=
+a
+(
+since
+x
+0
+​
+=
+0
+,
+A
+=
+B
+=
+1
+)
+.
+2. Expected free energy
+G
+(
+π
+)
+G(\pi)
+G
+(
+π
+)
+(scalar case, immediate prospective term)
+For the simple preference model above, a convenient surrogate for expected free energy is the expected negative log probability of preferred observations under the predictive distribution (a standard, compact form used in practice):
+G
+(
+a
+)
+=
+E
+p
+(
+o
+1
+∣
+a
+)
+[
+−
+log
+⁡
+p
+(
+o
+1
+∣
+pref
+)
+]
+.
+G(a) \;=\; \mathbb{E}_{p(o_1\mid a)}\big[ -\log p(o_1\mid\text{pref}) \big].
+G
+(
+a
+)
+=
+E
+p
+(
+o
+1
+​
+∣
+a
+)
+​
+[
+−
+lo
+g
+p
+(
+o
+1
+​
+∣
+pref
+)
+]
+.
+Plugging Gaussians (all univariate) yields (const terms collected into
+c
+o
+n
+s
+t
+\mathrm{const}
+const
+):
+G
+(
+a
+)
+=
+E
+o
+∼
+N
+(
+m
+a
+,
+S
+)
+[
+1
+2
+log
+⁡
+(
+2
+π
+s
+)
++
+1
+2
+(
+o
+−
+o
+∗
+)
+2
+s
+]
+=
+1
+2
+log
+⁡
+(
+2
+π
+s
+)
++
+1
+2
+s
+(
+E
+[
+(
+o
+−
+m
+a
+)
+2
+]
+⏟
+=
+S
++
+(
+m
+a
+−
+o
+∗
+)
+2
+)
+=
+1
+2
+log
+⁡
+(
+2
+π
+s
+)
++
+1
+2
+s
+(
+S
++
+(
+a
+−
+o
+∗
+)
+2
+)
+.
+\begin{aligned}
+G(a)
+&= \mathbb{E}_{o\sim\mathcal{N}(m_a,S)}\Big[\frac{1}{2}\log(2\pi s) + \frac{1}{2}\frac{(o-o^\ast)^2}{s}\Big] \\
+&= \frac{1}{2}\log(2\pi s) + \frac{1}{2s}\big( \underbrace{\mathbb{E}[(o-m_a)^2]}_{=S} + (m_a-o^\ast)^2 \big) \\
+&= \frac{1}{2}\log(2\pi s) + \frac{1}{2s}\big( S + (a-o^\ast)^2 \big).
+\end{aligned}
+G
+(
+a
+)
+​
+=
+E
+o
+∼
+N
+(
+m
+a
+​
+,
+S
+)
+​
+[
+2
+1
+​
+lo
+g
+(
+2
+π
+s
+)
++
+2
+1
+​
+s
+(
+o
+−
+o
+∗
+)
+2
+​
+]
+=
+2
+1
+​
+lo
+g
+(
+2
+π
+s
+)
++
+2
+s
+1
+​
+(
+=
+S
+E
+[(
+o
+−
+m
+a
+​
+)
+2
+]
+​
+​
++
+(
+m
+a
+​
+−
+o
+∗
+)
+2
+)
+=
+2
+1
+​
+lo
+g
+(
+2
+π
+s
+)
++
+2
+s
+1
+​
+(
+S
++
+(
+a
+−
+o
+∗
+)
+2
+)
+.
+​
+The constant
+1
+2
+log
+⁡
+(
+2
+π
+s
+)
++
+S
+2
+s
+\tfrac{1}{2}\log(2\pi s) + \tfrac{S}{2s}
+2
+1
+​
+lo
+g
+(
+2
+π
+s
+)
++
+2
+s
+S
+​
+is independent of
+a
+a
+a
+, so for policy comparison we can use the
+a
+a
+a
+-dependent part
+G
+(
+a
+)
+=
+1
+2
+s
+(
+a
+−
+o
+∗
+)
+2
++
+const
+.
+G(a) = \frac{1}{2s}(a-o^\ast)^2 + \text{const}.
+G
+(
+a
+)
+=
+2
+s
+1
+​
+(
+a
+−
+o
+∗
+)
+2
++
+const
+.
+This is the familiar quadratic (risk) term: closer the predictive mean
+m
+a
+m_a
+m
+a
+​
+to preferred
+o
+∗
+o^\ast
+o
+∗
+, the smaller
+G
+G
+G
+.
+3. Posterior over policies with sparsity penalty
+Using a Gibbs-like posterior with explicit sparsity cost (L1 proxy):
+Q
+(
+a
+)
+∝
+exp
+⁡
+(
+−
+G
+(
+a
+)
+−
+λ
+∣
+a
+∣
+)
+.
+Q(a)\propto \exp\big(-G(a) - \lambda |a|\big).
+Q
+(
+a
+)
+∝
+exp
+(
+−
+G
+(
+a
+)
+−
+λ
+∣
+a
+∣
+)
+.
+The MAP (or truncated-sparse selection) picks
+a
+∗
+=
+arg
+⁡
+min
+⁡
+a
+G
+(
+a
+)
++
+λ
+∣
+a
+∣
+=
+arg
+⁡
+min
+⁡
+a
+1
+2
+s
+(
+a
+−
+o
+∗
+)
+2
++
+λ
+∣
+a
+∣
+.
+a^\ast = \arg\min_a \; G(a) + \lambda |a|
+= \arg\min_a \; \frac{1}{2s}(a-o^\ast)^2 + \lambda |a|.
+a
+∗
+=
+ar
+g
+a
+min
+​
+G
+(
+a
+)
++
+λ
+∣
+a
+∣
+=
+ar
+g
+a
+min
+​
+2
+s
+1
+​
+(
+a
+−
+o
+∗
+)
+2
++
+λ
+∣
+a
+∣.
+This is exactly the
+LASSO
+(quadratic + L1) scalar problem: we can write the optimal continuous solution as the soft-threshold of the unconstrained minimizer.
+Without the L1 term the minimizer would be
+a
+L
+S
+=
+o
+∗
+a_{\mathrm{LS}}=o^\ast
+a
+LS
+​
+=
+o
+∗
+. With the L1 penalty, the closed-form scalar solution is the soft-threshold:
+a
+∗
+=
+sign
+⁡
+(
+o
+∗
+)
+max
+⁡
+⁣
+(
+∣
+o
+∗
+∣
+−
+s
+λ
+,
+0
+)
+.
+a^\ast = \operatorname{sign}(o^\ast)\,\max\!\big( |o^\ast| - s\lambda,\, 0\big).
+a
+∗
+=
+sign
+(
+o
+∗
+)
+max
+(
+∣
+o
+∗
+∣
+−
+s
+λ
+,
+0
+)
+.
+(Proof sketch: rewrite objective as
+1
+2
+s
+(
+a
+−
+o
+∗
+)
+2
++
+λ
+∣
+a
+∣
+\tfrac{1}{2s}(a-o^\ast)^2 + \lambda|a|
+2
+s
+1
+​
+(
+a
+−
+o
+∗
+)
+2
++
+λ
+∣
+a
+∣
+. Differentiate for
+a
+≠
+0
+a\neq0
+a
+
+=
+0
+, set derivative zero:
+1
+s
+(
+a
+−
+o
+∗
+)
++
+λ
+sign
+⁡
+(
+a
+)
+=
+0
+\tfrac{1}{s}(a-o^\ast)+\lambda\operatorname{sign}(a)=0
+s
+1
+​
+(
+a
+−
+o
+∗
+)
++
+λ
+sign
+(
+a
+)
+=
+0
+, giving
+a
+=
+o
+∗
+−
+s
+λ
+sign
+⁡
+(
+a
+)
+a=o^\ast - s\lambda\operatorname{sign}(a)
+a
+=
+o
+∗
+−
+s
+λ
+sign
+(
+a
+)
+. Consistency implies the soft-threshold solution; if
+∣
+o
+∗
+∣
+≤
+s
+λ
+|o^\ast|\le s\lambda
+∣
+o
+∗
+∣
+≤
+s
+λ
+the optimum is
+a
+∗
+=
+0
+a^\ast=0
+a
+∗
+=
+0
+.)
+Interpretation / sparsity threshold:
+the L1 penalty zeros the action whenever the preferred observation magnitude is too small relative to the penalty:
+a
+∗
+=
+0
+iff
+∣
+o
+∗
+∣
+≤
+s
+λ
+.
+\boxed{a^\ast=0 \quad\text{iff}\quad |o^\ast|\le s\lambda.}
+a
+∗
+=
+0
+iff
+∣
+o
+∗
+∣
+≤
+s
+λ
+.
+​
+Thus the critical sparsity threshold is
+λ
+⋆
+=
+∣
+o
+∗
+∣
+/
+s
+\lambda^\star = |o^\ast|/s
+λ
+⋆
+=
+∣
+o
+∗
+∣/
+s
+: for
+λ
+>
+λ
+⋆
+\lambda>\lambda^\star
+λ
+>
+λ
+⋆
+the agent prunes the policy (set action to zero); for
+λ
+<
+λ
+⋆
+\lambda<\lambda^\star
+λ
+<
+λ
+⋆
+it commits to a nonzero action that shifts predictions toward the preferred outcome.
+4. Two-policy discrete atom comparison (L0 view)
+Suppose instead we have a
+library of two discrete candidate policies
+(policy atoms):
+π
+0
+\pi_0
+π
+0
+​
+with action
+a
+0
+a_0
+a
+0
+​
+and
+π
+1
+\pi_1
+π
+1
+​
+with action
+a
+1
+a_1
+a
+1
+​
+. Use an explicit L0 penalty
+λ
+1
+[
+π
+≠
+0
+]
+\lambda \, \mathbf{1}[\pi\neq 0]
+λ
+1
+[
+π
+
+=
+0
+]
+(cost for "nonzero" atom). Compare policies by their objective:
+score
+(
+π
+)
+=
+G
+(
+a
+)
++
+λ
+⋅
+1
+[
+π
+nonzero
+]
+.
+\text{score}(\pi) = G(a) + \lambda\cdot \mathbf{1}[\pi\ \text{nonzero}].
+score
+(
+π
+)
+=
+G
+(
+a
+)
++
+λ
+⋅
+1
+[
+π
+nonzero
+]
+.
+Pick
+π
+1
+\pi_1
+π
+1
+​
+over
+π
+0
+\pi_0
+π
+0
+​
+if
+G
+(
+a
+1
+)
++
+λ
+⋅
+1
+[
+π
+1
+≠
+0
+]
+<
+G
+(
+a
+0
+)
++
+λ
+⋅
+1
+[
+π
+0
+≠
+0
+]
+.
+G(a_1) + \lambda\cdot\mathbf{1}[\pi_1\ne0] \;<\; G(a_0)+\lambda\cdot\mathbf{1}[\pi_0\ne0].
+G
+(
+a
+1
+​
+)
++
+λ
+⋅
+1
+[
+π
+1
+​
+
+=
+0
+]
+<
+G
+(
+a
+0
+​
+)
++
+λ
+⋅
+1
+[
+π
+0
+​
+
+=
+0
+]
+.
+If
+π
+0
+\pi_0
+π
+0
+​
+is the baseline zero-action (
+a
+0
+=
+0
+a_0=0
+a
+0
+​
+=
+0
+) and
+π
+1
+\pi_1
+π
+1
+​
+is nonzero, the selection condition reduces to
+λ
+<
+G
+(
+0
+)
+−
+G
+(
+a
+1
+)
+.
+\lambda \;<\; G(0) - G(a_1).
+λ
+<
+G
+(
+0
+)
+−
+G
+(
+a
+1
+​
+)
+.
+Plug the quadratic form for
+G
+G
+G
+:
+G
+(
+0
+)
+−
+G
+(
+a
+1
+)
+=
+1
+2
+s
+(
+(
+0
+−
+o
+∗
+)
+2
+−
+(
+a
+1
+−
+o
+∗
+)
+2
+)
+=
+1
+2
+s
+(
+o
+∗
+2
+−
+(
+a
+1
+−
+o
+∗
+)
+2
+)
+.
+G(0)-G(a_1) = \frac{1}{2s}\big( (0-o^\ast)^2 - (a_1-o^\ast)^2 \big)
+= \frac{1}{2s}\big( o^{\ast 2} - (a_1-o^\ast)^2\big).
+G
+(
+0
+)
+−
+G
+(
+a
+1
+​
+)
+=
+2
+s
+1
+​
+(
+(
+0
+−
+o
+∗
+)
+2
+−
+(
+a
+1
+​
+−
+o
+∗
+)
+2
+)
+=
+2
+s
+1
+​
+(
+o
+∗
+2
+−
+(
+a
+1
+​
+−
+o
+∗
+)
+2
+)
+.
+So the discrete
+sparsity threshold
+for choosing
+π
+1
+\pi_1
+π
+1
+​
+is
+λ
+⋆
+=
+1
+2
+s
+(
+o
+∗
+2
+−
+(
+a
+1
+−
+o
+∗
+)
+2
+)
+.
+\boxed{\lambda^\star \;=\; \frac{1}{2s}\big( o^{\ast 2} - (a_1-o^\ast)^2\big).}
+λ
+⋆
+=
+2
+s
+1
+​
+(
+o
+∗
+2
+−
+(
+a
+1
+​
+−
+o
+∗
+)
+2
+)
+.
+​
+and
+π
+1
+\pi_1
+π
+1
+​
+is selected iff
+λ
+<
+λ
+⋆
+\lambda<\lambda^\star
+λ
+<
+λ
+⋆
+. Note
+λ
+⋆
+\lambda^\star
+λ
+⋆
+can be negative (impossible to beat zero-action) if
+a
+1
+a_1
+a
+1
+​
+is a poor match to the preference.
+5. Simple numeric illustration (concrete numbers)
+Let
+s
+=
+1
+s=1
+s
+=
+1
+(preference variance),
+q
++
+r
+q+r
+q
++
+r
+small so constant terms cancel, and
+o
+∗
+=
+1.0
+o^\ast = 1.0
+o
+∗
+=
+1.0
+. Consider candidate nonzero action
+a
+1
+=
+1.0
+a_1=1.0
+a
+1
+​
+=
+1.0
+and baseline
+a
+0
+=
+0
+a_0=0
+a
+0
+​
+=
+0
+.
+Continuous L1 case: threshold
+λ
+⋆
+=
+∣
+o
+∗
+∣
+/
+s
+=
+1.0
+\lambda^\star = |o^\ast|/s = 1.0
+λ
+⋆
+=
+∣
+o
+∗
+∣/
+s
+=
+1.0
+.
+If
+λ
+>
+1.0
+\lambda > 1.0
+λ
+>
+1.0
+→
+a
+∗
+=
+0
+a^\ast=0
+a
+∗
+=
+0
+(policy pruned).
+If
+λ
+<
+1.0
+\lambda < 1.0
+λ
+<
+1.0
+→
+a
+∗
+=
+sign
+⁡
+(
+1
+)
+max
+⁡
+(
+1
+−
+λ
+,
+0
+)
+=
+1
+−
+λ
+a^\ast=\operatorname{sign}(1)\max(1 - \lambda,0)=1-\lambda
+a
+∗
+=
+sign
+(
+1
+)
+max
+(
+1
+−
+λ
+,
+0
+)
+=
+1
+−
+λ
+(nonzero).
+Discrete two-atom (L0) case using the formula above:
+λ
+⋆
+=
+1
+2
+(
+1
+2
+−
+(
+1
+−
+1
+)
+2
+)
+=
+1
+2
+.
+\lambda^\star = \frac{1}{2}\big(1^2 - (1-1)^2\big) = \frac{1}{2}.
+λ
+⋆
+=
+2
+1
+​
+(
+1
+2
+−
+(
+1
+−
+1
+)
+2
+)
+=
+2
+1
+​
+.
+So with
+λ
+<
+0.5
+\lambda<0.5
+λ
+<
+0.5
+the nonzero action
+a
+1
+=
+1
+a_1=1
+a
+1
+​
+=
+1
+wins; if
+λ
+>
+0.5
+\lambda>0.5
+λ
+>
+0.5
+the zero policy wins.
+These simple numbers show how choice of sparsity penalty
+λ
+\lambda
+λ
+governs whether the posterior concentrates (prunes) to the null policy or keeps/activates a nontrivial policy atom.
+6. Remarks connecting back to active inference and LQG
+The scalar worked example directly generalizes: for multi-dimensional linear-Gaussian dynamics and Gaussian preferences
+p
+(
+o
+∗
+,
+Σ
+∗
+)
+p(o^\ast,\Sigma^\ast)
+p
+(
+o
+∗
+,
+Σ
+∗
+)
+, the expected free energy becomes a quadratic form in the action sequence and the soft-thresholding generalizes to group-LASSO or block-sparsity solutions depending on the chosen penalty norm.
+Precision/temperature in active inference appears as a multiplicative factor in front of
+G
+(
+π
+)
+G(\pi)
+G
+(
+π
+)
+; increasing precision has the same effect as lowering
+λ
+\lambda
+λ
+(favoring more complex/nonzero policies), and vice versa.
+If you adopt an L0 prior on discrete policy atoms (a spike-and-slab), you get the discrete selection condition above. If you adopt L1/Laplace priors you obtain soft-thresholding and amenable convex optimization routines.
+7. Short summary / takeaway
+In a linear-Gaussian POMDP with Gaussian outcome preferences, the expected free energy reduces to a quadratic (risk) in the action(s).
+Adding an explicit sparsity penalty (L1 or L0) yields closed-form or semi-closed-form thresholds that determine whether a policy atom is
+pruned
+(posterior mass ~0) or
+kept
+.
+The threshold depends transparently on the preference magnitude, predictive variance
+s
+s
+s
+, and the sparsity weight
+λ
+\lambda
+λ
+. This gives a direct, quantitative mapping from the abstract sparse-Bayesian selection story to the free-energy / active-inference formalism.
+If you like this level of detail I can next:
+(b) produce the
+particle/beam pseudo-code
++ complexity bounds (useful for implementing sparse policy inference),
+or
+(c) write a short manuscript-style tie-in to predictive coding and neuromodulation (intended for a paper section).
+Which would you like next —
+(b)
+or
+(c)
+?
+You said:
+Connect it to my theories
+ChatGPT said:
+Pensado durante 7s
+Nice — I'll tie the sparse-Bayesian policy selection / active-inference worked example directly into your RSVP apparatus and show concrete, actionable mappings, predictions, and next technical steps you can take (including a recipe to derive the same LASSO threshold from a linearized RSVP PDE). I'll be compact and equation-forward.
+1. High-level mapping (semantics)
+Policies (π)
+→
+control fields / plan rollouts on the plenum
+. A policy is no longer just a scalar a: it's a spatio-temporal field
+u
+(
+x
+,
+t
+)
+u(x,t)
+u
+(
+x
+,
+t
+)
+(or a small set of such fields) that modifies the RSVP state update (pushes the plenum toward particular local configurations, queries memory, or deploys attention resources).
+Actions
+→
+latent field operations
+: local injection/withdrawal of entropy, small diffeomorphisms of the vector flow
+v
+\mathbf{v}
+v
+, or targeted modulation of the scalar field
+Φ
+\Phi
+Φ
+.
+Observations
+→ partial measurements of
+(
+Φ
+,
+v
+,
+S
+)
+(\Phi,\mathbf{v},S)
+(
+Φ
+,
+v
+,
+S
+)
+through sensors / sensory channels (internal or external).
+Expected free energy
+G
+(
+π
+)
+G(\pi)
+G
+(
+π
+)
+→ a functional measuring expected mismatch between future plenum configurations under policy
+u
+u
+u
+and the agent's preferred manifold of configurations (goals, homeostatic setpoints, or low-free-energy attractors). In RSVP language,
+G
+G
+G
+quantifies expected
+entropy gradients remaining
+plus epistemic utility (information gain about the plenum).
+Sparsity penalty
+λ
+\lambda
+λ
+→ metabolic/neural/thermodynamic cost of enacting spatially extended control fields; or global entropic pressure that favors smoothing over local, costly distortions. High
+λ
+\lambda
+λ
+↔ strong entropic pressure toward Expyrosis / crystalline freeze (policy pruning).
+2. Minimal PDE mapping (how a policy enters RSVP dynamics)
+Take your canonical RSVP fields:
+scalar field
+Φ
+(
+x
+,
+t
+)
+\Phi(x,t)
+Φ
+(
+x
+,
+t
+)
+(e.g., entropy density / potential),
+vector flow
+v
+(
+x
+,
+t
+)
+\mathbf{v}(x,t)
+v
+(
+x
+,
+t
+)
+,
+scalar entropy field
+S
+(
+x
+,
+t
+)
+S(x,t)
+S
+(
+x
+,
+t
+)
+(or
+S
+\mathcal{S}
+S
+as local entropy).
+Write a stylized controlled RSVP evolution (first-order in time) with control field
+u
+(
+x
+,
+t
+)
+u(x,t)
+u
+(
+x
+,
+t
+)
+produced by policy
+π
+\pi
+π
+:
+∂
+t
+Φ
+=
+L
+Φ
+[
+Φ
+,
+v
+,
+S
+]
++
+B
+Φ
+[
+u
+]
++
+ξ
+Φ
+,
+∂
+t
+v
+=
+L
+v
+[
+Φ
+,
+v
+,
+S
+]
++
+B
+v
+[
+u
+]
++
+ξ
+v
+,
+∂
+t
+S
+=
+L
+S
+[
+Φ
+,
+v
+,
+S
+]
++
+B
+S
+[
+u
+]
++
+ξ
+S
+,
+\begin{aligned}
+\partial_t \Phi &= \mathcal{L}_\Phi[\Phi,\mathbf{v},S] + B_\Phi[u] + \xi_\Phi,\\
+\partial_t \mathbf{v} &= \mathcal{L}_v[\Phi,\mathbf{v},S] + B_v[u] + \xi_v,\\
+\partial_t S &= \mathcal{L}_S[\Phi,\mathbf{v},S] + B_S[u] + \xi_S,
+\end{aligned}
+∂
+t
+​
+Φ
+∂
+t
+​
+v
+∂
+t
+​
+S
+​
+=
+L
+Φ
+​
+[
+Φ
+,
+v
+,
+S
+]
++
+B
+Φ
+​
+[
+u
+]
++
+ξ
+Φ
+​
+,
+=
+L
+v
+​
+[
+Φ
+,
+v
+,
+S
+]
++
+B
+v
+​
+[
+u
+]
++
+ξ
+v
+​
+,
+=
+L
+S
+​
+[
+Φ
+,
+v
+,
+S
+]
++
+B
+S
+​
+[
+u
+]
++
+ξ
+S
+​
+,
+​
+where
+L
+∙
+\mathcal{L}_\bullet
+L
+∙
+​
+are the RSVP deterministic operators (advection, diffusion, entropy fluxes, potential gradients) and
+B
+∙
+[
+u
+]
+B_\bullet[u]
+B
+∙
+​
+[
+u
+]
+are linear (or local nonlinear) couplings that implement the chosen latent action (e.g., local injection of negentropy, reweighting of advection).
+ξ
+\xi
+ξ
+are process noise terms.
+A policy
+π
+\pi
+π
+= "apply control field
+u
+u
+u
+" generates a predictive distribution over future
+(
+Φ
+,
+v
+,
+S
+)
+(\Phi,\mathbf{v},S)
+(
+Φ
+,
+v
+,
+S
+)
+via forward simulation of the above SDE/PDE.
+3. Expected free energy as an RSVP functional
+Define a preferred plenum configuration (or goal manifold)
+O
+∗
+(
+x
+)
+\mathcal{O}^\ast(x)
+O
+∗
+(
+x
+)
+(e.g., a desired local entropy profile, or an observation model that prefers low prediction error). Then the expected free energy of a policy
+π
+\pi
+π
+that issues
+u
+u
+u
+over horizon
+T
+T
+T
+is:
+G
+[
+π
+]
+=
+E
+p
+(
+Φ
+t
++
+1
+:
+t
++
+T
+∣
+Φ
+t
+,
+π
+)
+⁣
+[
+∫
+t
+t
++
+T
+R
+(
+Φ
+(
+τ
+)
+,
+v
+(
+τ
+)
+,
+S
+(
+τ
+)
+;
+O
+∗
+)
+d
+τ
++
+I
+n
+f
+o
+G
+a
+i
+n
+]
+,
+G[\pi] \;=\; \mathbb{E}_{p(\Phi_{t+1:t+T}\mid \Phi_t,\pi)}\!\left[ \int_{t}^{t+T} \mathcal{R}\big(\Phi(\tau),\mathbf{v}(\tau),S(\tau); \mathcal{O}^\ast\big)\,d\tau \;+\; \mathrm{InfoGain}\right],
+G
+[
+π
+]
+=
+E
+p
+(
+Φ
+t
++
+1
+:
+t
++
+T
+​
+∣
+Φ
+t
+​
+,
+π
+)
+​
+[
+∫
+t
+t
++
+T
+​
+R
+(
+Φ
+(
+τ
+)
+,
+v
+(
+τ
+)
+,
+S
+(
+τ
+)
+;
+O
+∗
+)
+d
+τ
++
+InfoGain
+]
+,
+with a typical quadratic-risk choice
+R
+=
+1
+2
+∫
+Ω
+(
+Φ
+(
+x
+,
+τ
+)
+−
+Φ
+∗
+(
+x
+)
+)
+⊤
+W
+(
+x
+)
+(
+Φ
+(
+x
+,
+τ
+)
+−
+Φ
+∗
+(
+x
+)
+)
+d
+x
+\mathcal{R} = \tfrac{1}{2}\int_{\Omega} \big(\Phi(x,\tau)-\Phi^\ast(x)\big)^\top W(x)\big(\Phi(x,\tau)-\Phi^\ast(x)\big)\,dx
+R
+=
+2
+1
+​
+∫
+Ω
+​
+(
+Φ
+(
+x
+,
+τ
+)
+−
+Φ
+∗
+(
+x
+)
+)
+⊤
+W
+(
+x
+)
+(
+Φ
+(
+x
+,
+τ
+)
+−
+Φ
+∗
+(
+x
+)
+)
+d
+x
+plus similar terms for
+v
+\mathbf{v}
+v
+and
+S
+S
+S
+. The InfoGain term is the epistemic value (expected reduction in posterior uncertainty about latent plenum modes).
+4. Sparsity penalty as field norm: continuous L1/L0
+Sparsity is now a
+spatial/functional
+cost on
+u
+u
+u
+. Two canonical choices:
+L1 (total activation / LASSO-like):
+C
+[
+u
+]
+=
+λ
+∫
+Ω
+∣
+u
+(
+x
+)
+∣
+d
+x
+C[u] = \lambda \int_\Omega |u(x)|\,dx
+C
+[
+u
+]
+=
+λ
+∫
+Ω
+​
+∣
+u
+(
+x
+)
+∣
+d
+x
+.
+L0 (atom selection):
+C
+[
+u
+]
+=
+λ
+#
+{
+activated atoms
+}
+C[u] = \lambda\, \#\{ \text{activated atoms}\}
+C
+[
+u
+]
+=
+λ
+#
+{
+activated atoms
+}
+if
+u
+u
+u
+is drawn from a library of basis atoms
+{
+u
+k
+(
+x
+)
+}
+\{u_k(x)\}
+{
+u
+k
+​
+(
+x
+)}
+.
+Posterior over policies:
+Q
+(
+π
+)
+∝
+exp
+⁡
+(
+−
+G
+[
+π
+]
+−
+C
+[
+u
+π
+]
+)
+.
+Q(\pi)\propto \exp\big(-G[\pi] - C[u_\pi]\big).
+Q
+(
+π
+)
+∝
+exp
+(
+−
+G
+[
+π
+]
+−
+C
+[
+u
+π
+​
+]
+)
+.
+MAP selection solves a variational control problem with an L1/L0 regularizer → leads to soft/hard thresholding of control amplitude or pruning of atom support.
+5. Linearization → LQG reduction and closed-form sparsity threshold
+Take a background solution (smooth plenum)
+(
+Φ
+ˉ
+,
+v
+ˉ
+,
+S
+ˉ
+)
+(\bar\Phi,\bar{\mathbf{v}},\bar S)
+(
+Φ
+ˉ
+,
+v
+ˉ
+,
+S
+ˉ
+)
+and linearize the dynamics about it. Represent control as coefficients
+a
+a
+a
+on a
+single atom
+u
+(
+x
+)
+=
+a
+ψ
+(
+x
+)
+u(x)=a \, \psi(x)
+u
+(
+x
+)
+=
+a
+ψ
+(
+x
+)
+(one localized policy fragment). With Gaussian process noise and quadratic risk, the linearized predictive distribution for the observation functional (e.g., local observable
+o
+o
+o
+=
+∫
+w
+(
+x
+)
+Φ
+(
+x
+)
+d
+x
+\int w(x)\Phi(x)\,dx
+∫
+w
+(
+x
+)
+Φ
+(
+x
+)
+d
+x
+) becomes Gaussian with mean linear in
+a
+a
+a
+and variance
+s
+s
+s
+(exactly the structure of the scalar LQG example).
+Thus the scalar LASSO solution you already have maps directly: the action amplitude
+a
+a
+a
+equals the coefficient on the RSVP atom
+ψ
+\psi
+ψ
+, the preference
+o
+∗
+o^\ast
+o
+∗
+is the desired projection of
+Φ
+\Phi
+Φ
+onto the observation weight
+w
+w
+w
+, and
+s
+s
+s
+is the predictive variance from linearized dynamics plus measurement noise. The soft-threshold
+a
+⋆
+=
+sign
+⁡
+(
+o
+∗
+)
+max
+⁡
+(
+∣
+o
+∗
+∣
+−
+s
+λ
+,
+0
+)
+a^\star=\operatorname{sign}(o^\ast)\max(|o^\ast|-s\lambda,0)
+a
+⋆
+=
+sign
+(
+o
+∗
+)
+max
+(
+∣
+o
+∗
+∣
+−
+s
+λ
+,
+0
+)
+becomes a
+local control amplitude threshold
+: if the expected change in the plenum produced by atom
+ψ
+\psi
+ψ
+is smaller than the entropic/metabolic penalty, prune the atom.
+In short:
+linearize RSVP → project onto control atoms → you recover the LASSO threshold per atom
+.
+6. Conceptual consequences inside RSVP language
+Thoughts as policy fragments
+: each fragment is an atom
+u
+k
+(
+x
+)
+u_k(x)
+u
+k
+​
+(
+x
+)
+(a localized modulation of
+Φ
+\Phi
+Φ
+, a hippocampal trajectory sampled into the plenum, a reweighting of
+v
+\mathbf{v}
+v
+). A thought is the transient elevation of one
+a
+k
+a_k
+a
+k
+​
+.
+Sparsity = Entropy Pressure
+: large global smoothing pressure (the tendency toward Expyrosis / crystalline freeze) is a large
+λ
+\lambda
+λ
+that prunes policy atoms and collapses cognition to maintenance. Conversely low
+λ
+\lambda
+λ
+permits rich, energetic, creative policy ensembles.
+Intuition vs deliberation
+: neuromodulatory parameters (precision γ) map onto effective scaling of
+G
+G
+G
+; high γ sharpens posteriors (same effect as lowering λ), producing quick single-atom dominance; low γ increases sampling.
+Learning/habits
+: long-term reweighting of policy priors
+P
+(
+π
+)
+P(\pi)
+P
+(
+π
+)
+= habitual bias is your basal-ganglia / cortical embedding of frequently useful
+u
+k
+u_k
+u
+k
+​
+atoms (lower prior penalty for common atoms). This matches your "character = long-term priors" statement in RSVP.
+7. Empirical predictions & tests (specific and RSVP-flavored)
+Local control amplitude thresholds
+: in RSVP simulations, measure the distribution of control amplitudes
+a
+k
+a_k
+a
+k
+​
+for atom set
+{
+ψ
+k
+}
+\{\psi_k\}
+{
+ψ
+k
+​
+}
+as you vary a global sparsity parameter
+λ
+\lambda
+λ
+. You will observe a sharp deactivation boundary consistent with soft-thresholding.
+Entropic pressure manipulation
+: increase the diffusion / smoothing coefficient in
+L
+S
+\mathcal{L}_S
+L
+S
+​
+(stronger smoothing dynamics) and observe that fewer policy atoms are reliably recruited — cognitive repertoire narrows. This is a direct mapping of
+↑
+\uparrow
+↑
+smoothing ↔
+↑
+λ
+\uparrow\lambda
+↑
+λ
+.
+Precision manipulations
+: simulate changes in γ (precision) by re-scaling the
+G
+G
+G
+term; measure sampling count
+K
+K
+K
+(effective particle number) and reaction times: high γ → fewer samples, faster commitment.
+Expyrosis signature
+: as the plenum approaches global smoothness, policy posterior mass concentrates onto the null policy
+u
+≡
+0
+u\equiv0
+u
+≡
+0
+. That trajectory is environmentally measurable as decaying variance of activated policy amplitudes across simulated agents.
+Pathological regimes
+: excessive prior precision (too-small λ or excessively tight priors) yields perseverative activation of the same atom(s) → analogues of compulsions; under-precision yields persistent sampling (distractibility).
+8. Practical recipes / next technical steps I can produce right away
+I can immediately produce one of the following, fully worked and ready-to-run:
+A.
+Derivation & code
+: Linearize a chosen RSVP PDE (you pick a canonical form from your manuscript or I pick a plausible one), choose a small atom library
+{
+ψ
+k
+}
+\{\psi_k\}
+{
+ψ
+k
+​
+}
+, derive the linear-Gaussian predictive mean/variance for projected observables, then implement the particle/soft-threshold selection algorithm and produce numeric plots showing the sparsity threshold and regime shifts (this is the LQG + particle instantiation).
+B.
+Manuscript section
+: A 2-3 page manuscript-style section that integrates the sparse-Bayesian policy formalism into your RSVP commentary — equations, intuition, predictions, and suggested experiments to validate in simulator or fMRI/EEG (if you want neuro links).
+C.
+Theoretical note
+: Category-theoretic framing: treat policy atoms as morphisms, sparsity as a left-adjoint selection functor — produce a short formal categorical appendix tying your earlier categorical program to the selection functor idea.
+I suggest
+(A)
+if you want to demonstrate the exact LASSO thresholds in RSVP numerics;
+(B)
+if you want text to drop straight into your paper. Tell me which and I'll produce it now (I won't run anything in the background — I'll generate code/derivations and results in this turn).
+You said:
+A
+ChatGPT said:
+Thought for 16s
+Analyzed
+python
+Always show details
+Copy code
+# Linearized RSVP LASSO threshold demo
+# Produces numeric demonstration of the soft-threshold sparsity rule for control atoms
+# in a linearized RSVP PDE projected to an observable.
+#
+# This code runs a small experiment:
+# - 1D spatial domain discretized
+# - Linearized dynamics matrix A = I + dt * L (Laplacian - kI)
+# - Single-step predictive model x_{t+1} = A x_t + B a + noise
+# - Observation o = C x_{t+1} (C is a weighting vector)
+# - Compute analytic MAP amplitude a* under quadratic G + L1 penalty (soft-threshold)
+# - Show results for one atom and for a small library of atoms (spatially localized)
+#
+# The notebook will plot:
+# 1) analytical a* vs sparsity lambda for single atom
+# 2) selection among multiple atoms as lambda varies (posterior weights & top atom)
+#
+# Uses matplotlib (no seaborn) as required.
+import
+numpy
+as
+np
+import
+matplotlib.pyplot
+as
+plt
+import
+pandas
+as
+pd
+from
+math
+import
+copysign
+# ---------- Model & discretization ----------
+L =
+101
+# spatial points
+x = np.linspace(-
+5
+,
+5
+,L)
+dx = x[
+1
+]-x[
+0
+]
+dt =
+0.1
+k =
+0.5
+# local decay
+D =
+0.2
+# diffusion coeff for Laplacian term
+# Construct 1D Laplacian with Neumann BC approx
+Lmat = np.zeros((L,L))
+for
+i
+in
+range
+(L):
+if
+i>
+0
+:
+        Lmat[i,i-
+1
+] =
+1.0
+if
+i < L-
+1
+:
+        Lmat[i,i+
+1
+] =
+1.0
+Lmat[i,i] = -
+2.0
+Lmat[
+0
+,
+0
+] = -
+1.0
+; Lmat[
+0
+,
+1
+]=
+1.0
+# Neumann approx
+Lmat[-
+1
+,-
+1
+] = -
+1.0
+; Lmat[-
+1
+,-
+2
+]=
+1.0
+Lop = D * Lmat / (dx*dx) - k * np.eye(L)
+A = np.eye(L) + dt * Lop
+# discrete-time linearized state transition
+# ---------- Atoms (localized control fields) ----------
+def
+gauss_atom
+(
+center, width=
+0.5
+):
+return
+np.exp(-
+0.5
+* ((x-center)/width)**
+2
+)
+# Create a small library of atoms at different spatial locations
+centers = np.linspace(-
+3
+,
+3
+,
+5
+)
+atoms = [gauss_atom(c, width=
+0.6
+)
+for
+c
+in
+centers]
+atoms = [a/np.linalg.norm(a)
+for
+a
+in
+atoms]
+# normalize atoms for interpretability
+K =
+len
+(atoms)
+# ---------- Observation weighting C (sensor) ----------
+# e.g., the agent monitors a local patch centered at 1.0
+obs_center =
+1.0
+Cvec = np.exp(-
+0.5
+* ((x-obs_center)/
+0.7
+)**
+2
+)
+Cvec = Cvec / np.linalg.norm(Cvec)
+# normalize
+C = Cvec.reshape(
+1
+,-
+1
+)
+# 1 x L observation matrix
+# ---------- Noise / predictive variance ----------
+q =
+1e-3
+# process noise variance per spatial site
+r =
+1e-2
+# measurement noise variance
+Q = q * np.eye(L)
+R = r
+# ---------- Initial state (background plenum) ----------
+x0 = np.zeros(L)
+# assume known background smooth state for simplicity
+m0 = C.dot(A.dot(x0)).item()
+# baseline predictive mean without control (zero here)
+# ---------- Analytical coefficients for each atom ----------
+# For control u = a * psi, B = dt * psi (approx), predictive mean contribution m_a = C B a = alpha * a
+alphas = []
+for
+psi
+in
+atoms:
+    B = dt * psi.reshape(-
+1
+,
+1
+)
+# L x 1
+alpha = (C.dot(B)).item()
+# scalar mapping from amplitude to observation mean
+alphas.append(alpha)
+alphas = np.array(alphas)
+# Predictive variance for single-step (assuming x0 known): s = C Q C^T + R
+s = (C.dot(Q).dot(C.T)).item() + R
+# ---------- Soft-threshold analytic solution helper ----------
+def
+soft_threshold
+(
+o_eff, s_eff, lam
+):
+    val =
+max
+(
+abs
+(o_eff) - s_eff*lam,
+0.0
+)
+return
+copysign(val, o_eff)
+# ---------- Single-atom demonstration (pick center atom index 2) ----------
+idx =
+2
+alpha = alphas[idx]
+psi = atoms[idx]
+# Effective target for amplitude: o_eff = (o_star - m0)/alpha
+o_star =
+1.0
+# desired observation magnitude (preference)
+o_eff = (o_star - m0) / alpha
+if
+abs
+(alpha) >
+1e-12
+else
+0.0
+s_eff = s / (alpha*alpha)
+if
+abs
+(alpha) >
+1e-12
+else
+1e9
+# Sweep lambda and compute analytic a*
+lambdas = np.linspace(
+0.0
+,
+2.0
+,
+201
+)
+a_star_vals = [soft_threshold(o_eff, s_eff, lam)
+for
+lam
+in
+lambdas]
+# ---------- Multi-atom posterior weights (G + L1 penalty) ----------
+# For each atom, compute G(a_hat) where a_hat is the local MAP amplitude (soft-threshold),
+# then compute unnormalized posterior weight w = exp(-beta*(G + lam*|a|))
+beta =
+1.0
+def
+G_of_a
+(
+alpha, a, s, m0, o_star
+):
+    m = alpha*a + m0
+return
+0.5
+*(m - o_star)**
+2
+/ s
+# ignoring constants
+def
+compute_weights_for_lambda
+(
+lam
+):
+    a_hats = []
+    Gvals = []
+for
+k
+in
+range
+(K):
+if
+abs
+(alphas[k])<
+1e-12
+:
+            a_hat =
+0.0
+else
+:
+            o_eff_k = (o_star - m0) / alphas[k]
+            s_eff_k = s / (alphas[k]**
+2
+)
+            a_hat = soft_threshold(o_eff_k, s_eff_k, lam)
+        a_hats.append(a_hat)
+        Gvals.append(G_of_a(alphas[k], a_hat, s, m0, o_star))
+    a_hats = np.array(a_hats)
+    Gvals = np.array(Gvals)
+    costs = Gvals + lam * np.
+abs
+(a_hats)
+    w_unnorm = np.exp(-beta * costs)
+if
+w_unnorm.
+sum
+() ==
+0
+:
+        probs = np.ones(K)/K
+else
+:
+        probs = w_unnorm / w_unnorm.
+sum
+()
+return
+a_hats, Gvals, probs
+# Compute over lambda sweep
+prob_matrix = np.zeros((
+len
+(lambdas), K))
+a_hat_matrix = np.zeros((
+len
+(lambdas), K))
+for
+i, lam
+in
+enumerate
+(lambdas):
+    a_hats, Gvals, probs = compute_weights_for_lambda(lam)
+    prob_matrix[i,:] = probs
+    a_hat_matrix[i,:] = a_hats
+# ---------- Create DataFrame for thresholds and key numbers ----------
+df = pd.DataFrame({
+"atom_center"
+: centers,
+"alpha"
+: alphas,
+"a_hat_at_lambda_0"
+: a_hat_matrix[
+0
+,:],
+"a_hat_at_lambda_0.5"
+: np.interp(
+0.5
+, lambdas, a_hat_matrix[:,idx]),
+})
+# Use display helper for DataFrame
+import
+caas_jupyter_tools
+as
+cjt
+cjt.display_dataframe_to_user(
+"RSVP_atom_summary"
+, df)
+# ---------- Plotting ----------
+plt.figure(figsize=(
+8
+,
+4
+))
+plt.plot(lambdas, a_star_vals)
+plt.xlabel(
+"sparsity penalty λ"
+)
+plt.ylabel(
+"MAP amplitude a* (single atom)"
+)
+plt.title(
+"Soft-threshold behavior for single RSVP control atom"
+)
+plt.grid(
+True
+)
+plt.tight_layout()
+plt.show()
+# Plot posterior probabilities of each atom vs lambda
+plt.figure(figsize=(
+8
+,
+4
+))
+for
+k
+in
+range
+(K):
+    plt.plot(lambdas, prob_matrix[:,k], label=
+f"atom
+{k}
+, c=
+{centers[k]:
+.2
+f}")
+plt.xlabel(
+"sparsity penalty λ"
+)
+plt.ylabel(
+"posterior weight (normalized)"
+)
+plt.title(
+"Posterior weights over atom library as λ varies"
+)
+plt.legend(loc=
+'upper right'
+, fontsize=
+'small'
+)
+plt.grid(
+True
+)
+plt.tight_layout()
+plt.show()
+# Also show a heatmap-like depiction of atom activation magnitudes
+plt.figure(figsize=(
+8
+,
+4
+))
+plt.imshow(a_hat_matrix.T, aspect=
+'auto'
+, origin=
+'lower'
+, extent=[lambdas[
+0
+], lambdas[-
+1
+],
+0
+, K-
+1
+])
+plt.colorbar(label=
+'MAP amplitude a_hat'
+)
+plt.yticks(np.arange(K), [
+f"
+{c:
+.2
+f}"
+for
+c
+in
+centers])
+plt.xlabel(
+"sparsity penalty λ"
+)
+plt.ylabel(
+"atom center"
+)
+plt.title(
+"MAP amplitudes for atoms vs λ (rows = atoms)"
+)
+plt.tight_layout()
+plt.show()
+# Save a small CSV of results to /mnt/data and provide link
+out_csv =
+"/mnt/data/rsvp_atom_results.csv"
+results_df = pd.DataFrame(a_hat_matrix, columns=[
+f"atom_
+{k}
+_center_
+{centers[k]:
+.2
+f}"
+for
+k
+in
+range
+(K)])
+results_df[
+'lambda'
+] = lambdas
+results_df = results_df[[
+'lambda'
+] + [c
+for
+c
+in
+results_df.columns
+if
+c.startswith(
+'atom_'
+)]]
+results_df.to_csv(out_csv, index=
+False
+)
+
+out_csv
+Result
+'/mnt/data/rsvp_atom_results.csv'
+Done — I wired the linearized-RSVP → LQG reduction, derived the per-atom soft-threshold, and ran a small numeric experiment.
+What I produced
+Analytic mapping from RSVP atom amplitude to the scalar soft-threshold formula (derived in the code comments).
+Numerical demo (code run) showing:
+how the MAP amplitude for a single atom falls with increasing sparsity penalty λ (soft-threshold behavior), and
+how posterior mass over a small library of spatial atoms shifts as λ varies (atoms nearer the observed target dominate; high λ prunes everything).
+Saved CSV with the computed MAP amplitudes across λ:
+Download results CSV
+.
+Interpretation (short)
+Each RSVP control atom
+u
+k
+(
+x
+)
+u_k(x)
+u
+k
+​
+(
+x
+)
+maps to a scalar gain
+a
+k
+a_k
+a
+k
+​
+. Linearization yields
+m
+k
+(
+a
+k
+)
+=
+α
+k
+a
+k
++
+m
+0
+m_k(a_k)=\alpha_k a_k + m_0
+m
+k
+​
+(
+a
+k
+​
+)
+=
+α
+k
+​
+a
+k
+​
++
+m
+0
+​
+for the predicted observable;
+α
+k
+=
+C
+B
+k
+\alpha_k = C B_k
+α
+k
+​
+=
+C
+B
+k
+​
+is the effectiveness of the atom at moving the observed projection. The predictive variance
+s
+s
+s
+collects process + measurement noise. The scalar soft-threshold solution becomes:
+a
+k
+⋆
+=
+s
+i
+g
+n
+⁣
+(
+o
+∗
+−
+m
+0
+α
+k
+)
+max
+⁡
+⁣
+(
+∣
+o
+∗
+−
+m
+0
+α
+k
+∣
+−
+s
+α
+k
+2
+λ
+,
+0
+)
+.
+a_k^\star \;=\; \mathrm{sign}\!\Big(\frac{o^\ast-m_0}{\alpha_k}\Big)\max\!\Big(\Big|\frac{o^\ast-m_0}{\alpha_k}\Big| - \frac{s}{\alpha_k^2}\lambda,\;0\Big).
+a
+k
+⋆
+​
+=
+sign
+(
+α
+k
+​
+o
+∗
+−
+m
+0
+​
+​
+)
+max
+(
+​
+α
+k
+​
+o
+∗
+−
+m
+0
+​
+​
+​
+−
+α
+k
+2
+​
+s
+​
+λ
+,
+0
+)
+.
+This is exactly the LASSO threshold but expressed in RSVP terms: atom efficacy
+α
+k
+\alpha_k
+α
+k
+​
+, predictive uncertainty
+s
+s
+s
+, and sparsity cost
+λ
+\lambda
+λ
+set whether an atom is pruned.
+Next steps I can do now (pick one)
+Expand the numeric experiment to simulate a temporal horizon (T>1) and compute expected free energy
+G
+(
+π
+)
+G(\pi)
+G
+(
+π
+)
+across rollouts (empirical Monte Carlo), then show how thresholds change with horizon length.
+Replace L1 with spike-and-slab / L0 prior and show discrete atom selection probability, plus derive closed-form discrete thresholds for simple cases.
+Produce a compact manuscript-ready Methods appendix (equations + figures + code snippets) you can drop into your RSVP paper.
+Which one would you like next?
+ChatGPT can make mistakes. Check important info. See
+Cookie Preferences
+.
+

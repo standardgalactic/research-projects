@@ -1,0 +1,1059 @@
+Troubleshooting Subtitle Reader Functionality - Grok
+Alternar barra lateral
+how to get the subtitle reader to work? <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Standard Galactic Suite — Retro Index</title>
+<style>
+/* -------- Retro Green Monochrome Theme -------- */
+body {
+&nbsp;&nbsp;background-color: #000;
+&nbsp;&nbsp;color: #00ff99;
+&nbsp;&nbsp;font-family: "Courier New", monospace;
+&nbsp;&nbsp;margin: 0;
+&nbsp;&nbsp;padding: 0;
+&nbsp;&nbsp;overflow-x: hidden;
+}
+a {
+&nbsp;&nbsp;color: #00ff99;
+&nbsp;&nbsp;text-decoration: none;
+}
+a:hover {
+&nbsp;&nbsp;text-shadow: 0 0 5px #00ff99;
+}
+header {
+&nbsp;&nbsp;text-align: center;
+&nbsp;&nbsp;padding: 20px;
+&nbsp;&nbsp;border-bottom: 1px solid #00ff99;
+}
+h1 {
+&nbsp;&nbsp;font-size: 1.8em;
+&nbsp;&nbsp;margin: 0;
+&nbsp;&nbsp;text-shadow: 0 0 10px #00ff99;
+}
+/* -------- Blog List & Content Display -------- */
+#content {
+&nbsp;&nbsp;max-width: 900px;
+&nbsp;&nbsp;margin: 0 auto;
+&nbsp;&nbsp;padding: 20px;
+&nbsp;&nbsp;white-space: pre-wrap;
+&nbsp;&nbsp;line-height: 1.5;
+}
+.article-link {
+&nbsp;&nbsp;display: block;
+&nbsp;&nbsp;padding: 6px 0;
+&nbsp;&nbsp;border-left: 2px solid #00ff99;
+&nbsp;&nbsp;padding-left: 10px;
+}
+#backButton {
+&nbsp;&nbsp;display: none;
+&nbsp;&nbsp;background: none;
+&nbsp;&nbsp;color: #00ff99;
+&nbsp;&nbsp;border: 1px solid #00ff99;
+&nbsp;&nbsp;padding: 6px 12px;
+&nbsp;&nbsp;cursor: pointer;
+&nbsp;&nbsp;margin-bottom: 20px;
+&nbsp;&nbsp;font-family: "Courier New", monospace;
+}
+#backButton:hover {
+&nbsp;&nbsp;background: #00ff99;
+&nbsp;&nbsp;color: #000;
+}
+/* -------- Audio Player & Subtitles -------- */
+#audioContainer {
+&nbsp;&nbsp;text-align: center;
+&nbsp;&nbsp;border-bottom: 1px solid #00ff99;
+&nbsp;&nbsp;padding: 15px 0;
+}
+audio {
+&nbsp;&nbsp;width: 80%;
+&nbsp;&nbsp;filter: hue-rotate(90deg) saturate(0.8);
+&nbsp;&nbsp;outline: none;
+&nbsp;&nbsp;margin-bottom: 8px;
+}
+#subtitle {
+&nbsp;&nbsp;font-size: 1.1em;
+&nbsp;&nbsp;text-align: center;
+&nbsp;&nbsp;color: #00ff99;
+&nbsp;&nbsp;height: 1.4em;
+&nbsp;&nbsp;text-shadow: 0 0 8px #00ff99;
+}
+/* -------- Terminal Glow Animation -------- */
+@keyframes flicker {
+&nbsp;&nbsp;0% { opacity: 1; }
+&nbsp;&nbsp;50% { opacity: 0.95; }
+&nbsp;&nbsp;100% { opacity: 1; }
+}
+body { animation: flicker 3s infinite; }
+</style>
+</head>
+<body>
+<header>
+&nbsp;&nbsp;<h1>🪐 Standard Galactic Suite — Knowledge Index</h1>
+</header>
+<div id="audioContainer">
+&nbsp;&nbsp;<audio id="player" controls>
+&nbsp;&nbsp;&nbsp;&nbsp;<source src="background/Geometric_Consciousness_and_LLMs.mp3" type="audio/mpeg">
+&nbsp;&nbsp;&nbsp;&nbsp;Your browser does not support audio playback.
+&nbsp;&nbsp;</audio>
+&nbsp;&nbsp;<div id="subtitle">[Subtitles loading...]</div>
+</div>
+<div id="content">
+&nbsp;&nbsp;<button id="backButton" onclick="showList()">⟵ Back</button>
+&nbsp;&nbsp;<div id="articleList">
+&nbsp;&nbsp;&nbsp;&nbsp;<h2>Available Articles</h2>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" class="article-link" data-file="background/blog-post.md">Blog Post</a>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" class="article-link" data-file="background/concept-explainer.md">Concept Explainer</a>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" class="article-link" data-file="background/explanatory-dialogue.md">Explanatory Dialogue</a>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" class="article-link" data-file="background/research-monograph.md">Research Monograph</a>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" class="article-link" data-file="background/briefing-doc.md">Briefing Document</a>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" class="article-link" data-file="background/conceptual-overview.md">Conceptual Overview</a>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" class="article-link" data-file="background/monograph.md">Monograph</a>
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" class="article-link" data-file="background/study-guide.md">Study Guide</a>
+&nbsp;&nbsp;</div>
+&nbsp;&nbsp;<div id="articleContent" style="display:none;"></div>
+</div>
+<script>
+// -------- Load and Display Markdown Articles --------
+const articleLinks = document.querySelectorAll('.article-link');
+const articleList = document.getElementById('articleList');
+const articleContent = document.getElementById('articleContent');
+const backButton = document.getElementById('backButton');
+articleLinks.forEach(link => {
+&nbsp;&nbsp;link.addEventListener('click', async e => {
+&nbsp;&nbsp;&nbsp;&nbsp;e.preventDefault();
+&nbsp;&nbsp;&nbsp;&nbsp;const file = link.getAttribute('data-file');
+&nbsp;&nbsp;&nbsp;&nbsp;const res = await fetch(file);
+&nbsp;&nbsp;&nbsp;&nbsp;const text = await res.text();
+&nbsp;&nbsp;&nbsp;&nbsp;articleList.style.display = 'none';
+&nbsp;&nbsp;&nbsp;&nbsp;backButton.style.display = 'inline-block';
+&nbsp;&nbsp;&nbsp;&nbsp;articleContent.style.display = 'block';
+&nbsp;&nbsp;&nbsp;&nbsp;articleContent.innerHTML = marked.parse(text);
+&nbsp;&nbsp;});
+});
+function showList() {
+&nbsp;&nbsp;articleContent.style.display = 'none';
+&nbsp;&nbsp;backButton.style.display = 'none';
+&nbsp;&nbsp;articleList.style.display = 'block';
+}
+<script>
+// -------- Subtitles Sync with Audio (improved) --------
+const player = document.getElementById('player');
+const subtitleDiv = document.getElementById('subtitle');
+let subtitles = [];
+let currentSub = -1;
+// try VTT first, then SRT
+loadSubtitles('background/Geometric_Consciousness_and_LLMs.vtt')
+&nbsp;&nbsp;.catch(() => loadSubtitles('background/Geometric_Consciousness_and_LLMs.srt'))
+&nbsp;&nbsp;.then(ok => {
+&nbsp;&nbsp;&nbsp;&nbsp;if (ok) subtitleDiv.textContent = "[Subtitles loaded — press play]";
+&nbsp;&nbsp;&nbsp;&nbsp;else subtitleDiv.textContent = "[No subtitles found]";
+&nbsp;&nbsp;});
+async function loadSubtitles(path) {
+&nbsp;&nbsp;try {
+&nbsp;&nbsp;&nbsp;&nbsp;const res = await fetch(path);
+&nbsp;&nbsp;&nbsp;&nbsp;if (!res.ok) return false;
+&nbsp;&nbsp;&nbsp;&nbsp;const text = await res.text();
+&nbsp;&nbsp;&nbsp;&nbsp;parseSubtitles(text);
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;} catch {
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;}
+}
+function parseSubtitles(data) {
+&nbsp;&nbsp;// detect format
+&nbsp;&nbsp;if (data.startsWith("WEBVTT")) {
+&nbsp;&nbsp;&nbsp;&nbsp;// WebVTT
+&nbsp;&nbsp;&nbsp;&nbsp;const pattern = /(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})[\s\S]*?(?=\n\n|$)/g;
+&nbsp;&nbsp;&nbsp;&nbsp;let match;
+&nbsp;&nbsp;&nbsp;&nbsp;while ((match = pattern.exec(data)) !== null) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const lines = match[0].split('\n').slice(1).join(' ');
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const [start, end] = match[1] ? [match[1], match[2]] : [];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;subtitles.push({
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;start: toSecondsVTT(match[1]),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end: toSecondsVTT(match[2]),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text: lines.trim()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;// SRT
+&nbsp;&nbsp;&nbsp;&nbsp;const pattern = /\d+\s*\n(\d{2}:\d{2}:\d{2}),(\d{3}) --> (\d{2}:\d{2}:\d{2}),(\d{3})\s*\n([\s\S]*?)(?=\n\n|$)/g;
+&nbsp;&nbsp;&nbsp;&nbsp;let match;
+&nbsp;&nbsp;&nbsp;&nbsp;while ((match = pattern.exec(data)) !== null) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const start = `${match[1]}.${match[2]}`;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const end = `${match[3]}.${match[4]}`;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;subtitles.push({
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;start: toSecondsVTT(start),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end: toSecondsVTT(end),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text: match[5].replace(/\n/g, ' ').trim()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;}
+}
+function toSecondsVTT(t) {
+&nbsp;&nbsp;const [h, m, s] = t.split(':');
+&nbsp;&nbsp;return parseFloat(h) * 3600 + parseFloat(m) * 60 + parseFloat(s);
+}
+player.addEventListener('timeupdate', () => {
+&nbsp;&nbsp;const t = player.currentTime;
+&nbsp;&nbsp;if (subtitles.length === 0) return;
+&nbsp;&nbsp;// keep currentSub if still in range
+&nbsp;&nbsp;if (currentSub >= 0 && t >= subtitles[currentSub].start && t <= subtitles[currentSub].end) return;
+&nbsp;&nbsp;// binary search to find current subtitle
+&nbsp;&nbsp;let lo = 0, hi = subtitles.length - 1;
+&nbsp;&nbsp;while (lo <= hi) {
+&nbsp;&nbsp;&nbsp;&nbsp;const mid = (lo + hi) >> 1;
+&nbsp;&nbsp;&nbsp;&nbsp;if (t < subtitles[mid].start) hi = mid - 1;
+&nbsp;&nbsp;&nbsp;&nbsp;else if (t > subtitles[mid].end) lo = mid + 1;
+&nbsp;&nbsp;&nbsp;&nbsp;else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;currentSub = mid;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;subtitleDiv.textContent = subtitles[mid].text;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;}
+&nbsp;&nbsp;currentSub = -1;
+&nbsp;&nbsp;subtitleDiv.textContent = '';
+});
+</script>
+<!-- Load marked.js for Markdown rendering -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</body>
+</html>
+To enable the subtitle reader functionality in the provided HTML document, the core JavaScript logic is already implemented but contains
+critical structural and logical errors
+that prevent it from functioning correctly. Below is a precise, professional diagnosis of the issues followed by a complete, corrected implementation.
+Root Causes of Failure
+Duplicate
+<script>
+tags
+The subtitle script is wrapped in two opening
+<script>
+tags with no closing tag for the first, causing a syntax error and halting execution.
+Incorrect
+toSecondsVTT
+parameter parsing
+The function assumes input like
+HH:MM:SS.mmm
+, but SRT provides
+HH:MM:SS,mmm
+(comma-separated). The current parser mishandles commas.
+Inefficient and incorrect binary search logic
+The
+timeupdate
+handler attempts binary search but fails to properly identify the correct subtitle when time falls within a cue's range.
+VTT parsing skips cue text lines
+The regex captures only timing; subsequent text lines are incorrectly processed.
+No fallback when subtitles fail to load
+The
+.catch().then()
+chain does not properly propagate success/failure.
+Corrected & Optimized Subtitle System
+Replace the
+entire second
+<script>
+block
+(the one containing subtitle logic) with the following corrected version:
+html
+Contraer
+Ajuste
+Copiar
+<
+script
+>
+// -------- Subtitles Sync with Audio (CORRECTED & ROBUST) --------
+const
+player
+=
+document
+.
+getElementById
+(
+'player'
+);
+const
+subtitleDiv
+=
+document
+.
+getElementById
+(
+'subtitle'
+);
+let
+subtitles
+= [];
+let
+currentSubIndex
+= -
+1
+;
+// Attempt to load VTT first, then SRT
+loadSubtitles
+(
+'background/Geometric_Consciousness_and_LLMs.vtt'
+)
+.
+then
+(
+success
+=>
+{
+if
+(!
+success
+)
+return
+loadSubtitles
+(
+'background/Geometric_Consciousness_and_LLMs.srt'
+);
+return
+success
+;
+})
+.
+then
+(
+success
+=>
+{
+if
+(
+success
+) {
+subtitleDiv
+.
+textContent
+=
+"[Subtitles loaded — press play]"
+;
+}
+else
+{
+subtitleDiv
+.
+textContent
+=
+"[No subtitles found]"
+;
+}
+})
+.
+catch
+(()
+=>
+{
+subtitleDiv
+.
+textContent
+=
+"[Subtitle error]"
+;
+});
+async
+function
+loadSubtitles
+(
+path
+) {
+try
+{
+const
+response
+=
+await
+fetch
+(
+path
+);
+if
+(!
+response
+.
+ok
+)
+return
+false
+;
+const
+text
+=
+await
+response
+.
+text
+();
+parseSubtitles
+(
+text
+);
+return
+subtitles
+.
+length
+>
+0
+;
+}
+catch
+(
+err
+) {
+console
+.
+warn
+(
+`Subtitle load failed for
+${
+path
+}
+:`
+,
+err
+);
+return
+false
+;
+}
+}
+function
+parseSubtitles
+(
+data
+) {
+subtitles
+= [];
+const
+isVTT
+=
+data
+.
+trimStart
+().
+startsWith
+(
+"WEBVTT"
+);
+const
+lines
+=
+data
+.
+replace
+(
+/\r\n/
+g
+,
+'
+\n
+'
+).
+split
+(
+'
+\n
+'
+);
+let
+i
+=
+0
+;
+if
+(
+isVTT
+)
+i
+=
+skipVTTHeader
+(
+lines
+,
+i
+);
+while
+(
+i
+<
+lines
+.
+length
+) {
+const
+cue
+=
+parseCue
+(
+lines
+,
+i
+,
+isVTT
+);
+if
+(
+cue
+) {
+subtitles
+.
+push
+(
+cue
+);
+i
+=
+cue
+.
+nextIndex
+;
+}
+else
+{
+i
+++;
+}
+}
+}
+function
+skipVTTHeader
+(
+lines
+,
+i
+) {
+while
+(
+i
+<
+lines
+.
+length
+&& (
+lines
+[
+i
+].
+trim
+() ===
+"WEBVTT"
+||
+lines
+[
+i
+].
+includes
+(
+"-->"
+) ===
+false
+)) {
+i
+++;
+}
+return
+i
+;
+}
+function
+parseCue
+(
+lines
+,
+startIdx
+,
+isVTT
+) {
+let
+i
+=
+startIdx
+;
+// Skip empty or note lines
+while
+(
+i
+<
+lines
+.
+length
+&& (!
+lines
+[
+i
+].
+includes
+(
+'-->'
+) &&
+lines
+[
+i
+].
+trim
+() !==
+''
+))
+i
+++;
+if
+(
+i
+>=
+lines
+.
+length
+|| !
+lines
+[
+i
+].
+includes
+(
+'-->'
+))
+return
+null
+;
+const
+timeLine
+=
+lines
+[
+i
+].
+trim
+();
+const
+match
+=
+timeLine
+.
+match
+(
+/
+(
+\d
+{2}
+)
+:
+(
+\d
+{2}
+)
+:
+(
+\d
+{2}
+)[
+.,
+](
+\d
+{3}
+)
+\s
+*
+-->\s
+*
+(
+\d
+{2}
+)
+:
+(
+\d
+{2}
+)
+:
+(
+\d
+{2}
+)[
+.,
+](
+\d
+{3}
+)
+/
+);
+if
+(!
+match
+)
+return
+null
+;
+const
+start
+=
+toSeconds
+(
+match
+[
+1
+],
+match
+[
+2
+],
+match
+[
+3
+],
+match
+[
+4
+]);
+const
+end
+=
+toSeconds
+(
+match
+[
+5
+],
+match
+[
+6
+],
+match
+[
+7
+],
+match
+[
+8
+]);
+i
+++;
+let
+text
+=
+''
+;
+while
+(
+i
+<
+lines
+.
+length
+&&
+lines
+[
+i
+].
+trim
+() !==
+''
+&& !
+lines
+[
+i
+].
+includes
+(
+'-->'
+)) {
+text
++= (
+text
+?
+' '
+:
+''
+) +
+lines
+[
+i
+].
+trim
+();
+i
+++;
+}
+return
+{
+start
+,
+end
+,
+text
+,
+nextIndex:
+i
++
+1
+};
+}
+function
+toSeconds
+(
+h
+,
+m
+,
+s
+,
+ms
+) {
+return
+parseInt
+(
+h
+,
+10
+) *
+3600
++
+parseInt
+(
+m
+,
+10
+) *
+60
++
+parseInt
+(
+s
+,
+10
+) +
+parseInt
+(
+ms
+,
+10
+) /
+1000
+;
+}
+// Efficient subtitle lookup using linear forward scan with index tracking
+player
+.
+addEventListener
+(
+'timeupdate'
+, ()
+=>
+{
+const
+currentTime
+=
+player
+.
+currentTime
+;
+if
+(
+subtitles
+.
+length
+===
+0
+)
+return
+;
+// If current subtitle is active, keep it
+if
+(
+currentSubIndex
+>=
+0
+&&
+currentTime
+>=
+subtitles
+[
+currentSubIndex
+].
+start
+&&
+currentTime
+<=
+subtitles
+[
+currentSubIndex
+].
+end
+) {
+return
+;
+}
+// Move forward from current index
+let
+nextIndex
+=
+currentSubIndex
++
+1
+;
+while
+(
+nextIndex
+<
+subtitles
+.
+length
+&&
+currentTime
+>
+subtitles
+[
+nextIndex
+].
+end
+) {
+nextIndex
+++;
+}
+if
+(
+nextIndex
+<
+subtitles
+.
+length
+&&
+currentTime
+>=
+subtitles
+[
+nextIndex
+].
+start
+&&
+currentTime
+<=
+subtitles
+[
+nextIndex
+].
+end
+) {
+currentSubIndex
+=
+nextIndex
+;
+subtitleDiv
+.
+textContent
+=
+subtitles
+[
+nextIndex
+].
+text
+;
+}
+else
+{
+currentSubIndex
+= -
+1
+;
+subtitleDiv
+.
+textContent
+=
+''
+;
+}
+});
+// Reset on seek or end
+player
+.
+addEventListener
+(
+'seeked'
+, ()
+=>
+{
+currentSubIndex
+= -
+1
+;
+// Force re-evaluation
+});
+</
+script
+>
+File Requirements
+Ensure the following files exist in the
+background/
+directory:
+Geometric_Consciousness_and_LLMs.mp3
+(audio)
+Either
+:
+Geometric_Consciousness_and_LLMs.vtt
+(recommended)
+Geometric_Consciousness_and_LLMs.srt
+Example
+.vtt
+format:
+vtt
+Contraer
+Ajuste
+Copiar
+WEBVTT
+
+00:00:01.000 --> 00:00:04.000
+Welcome to the exploration of geometric consciousness.
+
+00:00:04.500 --> 00:00:08.000
+We begin with the fundamental lattice structures.
+Example
+.srt
+format:
+srt
+Contraer
+Ajuste
+Copiar
+1
+00:00:01,000 --> 00:00:04,000
+Welcome to the exploration of geometric consciousness.
+
+2
+00:00:04,500 --> 00:00:08,000
+We begin with the fundamental lattice structures.
+Verification Steps
+Open browser developer console (F12)
+→ Check for:
+No JavaScript errors
+Network tab:
+vtt
+or
+srt
+file loads with 200 status
+Play audio
+→ Subtitles should appear synchronized.
+Seek audio
+→ Subtitles update correctly.
+Summary of Fixes
+Issue
+Fix
+Syntax error in
+<script>
+Removed duplicate tag
+Comma vs dot in timestamps
+Unified parser with regex
+Incorrect VTT text extraction
+Line-by-line cue parsing
+Faulty binary search
+Replaced with efficient forward scan
+Poor error handling
+Added
+.catch()
+and console warnings
+With this corrected script and properly formatted subtitle file, the
+subtitle reader will function reliably
+across VTT and SRT formats.
+Ask anything
+Auto
+Auto
+Actualizar a SuperGrok
+

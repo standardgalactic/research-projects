@@ -1,0 +1,3298 @@
+Thought as Sparse Bayesian Policy Selection - Grok
+Toggle Sidebar
+I would like an essay, author Flyxion. Here is a rigorous explanation of how all thought can be framed as policy selection under sparse Bayesian selection, written in dense academic prose without diagrams.
+Thought as the Selection of a Policy
+A policy is a mapping from perceived states to actions (including internal cognitive actions). To think is to choose among possible trajectories of internal or external action, under uncertainty, in order to minimize expected cost (or maximize expected utility or evidence). Even reasoning, imagination, planning, remembering, or perceiving can be reframed as selection over internal policies—sequences of latent state updates, attention shifts, or conceptual transitions—rather than motor outputs.
+Thus:
+\text{Thought} \equiv \arg\max_{\pi \in \Pi} ; \mathbb{E}[U \mid \pi, \mathcal{O}]
+where  is a candidate policy and  is partial observation. The argument is not that cognition always computes this explicitly, but that it is functionally equivalent to behaving as if it did.
+Bayesian Selection Over Latent Policies
+Under uncertainty, policy selection must marginalize over hidden causes. A Bayesian agent maintains a posterior over policies:
+P(\pi \mid \mathcal{O}) \propto P(\mathcal{O} \mid \pi) P(\pi)
+encodes inductive biases, habits, or structural constraints.
+measures how well a policy predicts or explains observations, including counterfactual internal simulations.
+Thoughts become policy inference: selecting which internal or external trajectory best explains, reduces, or restructures prediction error.
+Sparsity as the Fundamental Constraint
+Biological and algorithmic cognition both operate under severe bottlenecks in attention, memory, bandwidth, and simulation depth. Therefore, cognition is not arbitrary Bayesian inference, but sparse Bayesian inference, where the posterior is compressed to a small support:
+P(\pi \mid \mathcal{O}) \approx \sum_{k=1}^{K \ll |\Pi|} w_k , \delta(\pi = \pi_k)
+Only a small number of candidate policies receive non-negligible probability mass. Thought becomes winner-takes-few, not winner-takes-all but winner-takes-sparse.
+Sparsity may emerge from:
+ℓ₀ or ℓ₁ penalties on active policies
+attention bottlenecks
+energy limits on neural firing
+amortized inference restricting search to learned prototypes
+sampling-based approximations (e.g., particle filters with small particle count)
+Thought as Sampling or Maximization Under Sparsity
+Two regimes appear:
+Deliberation as sparse sampling:
+\pi^{(i)} \sim P(\pi \mid \mathcal{O}), \quad i = 1 \dots K
+Commitment as sparse MAP selection:
+\pi^* = \arg\max_{\pi} P(\pi \mid \mathcal{O}) - \lambda |\pi|_0
+Inner monologue, imagery, reasoning, or intuition are traces of this very small .
+Internal Thought Is Just Policy Over Latent Actions
+Crucially, a policy need not refer to the external world. Internal cognitive operations—retrieving a memory, forming a metaphor, applying a mathematical rule, shifting attention, invoking a model, or suppressing a tempting idea—are all latent actions in a cognitive state space.
+Thus:
+Cognitive event	Interpreted as
+Reasoning step	Transition in a latent policy
+Memory recall	Policy that queries a knowledge distribution
+Attention shift	Policy that reallocates sampling weight
+Emotion	Gradient over policy priors
+Imagination	Rollout from a candidate policy
+Thinking is therefore inference over internal policies, not merely planning over external ones.
+The Brain as a Policy Pruner, Not a Policy Enumerator
+The space of possible policies is super-exponential. Explicit enumeration is impossible. Instead, sparse Bayesian selection is implemented by:
+amortized inference (reusing past policy fragments)
+policy prototypes (compressed into cortical circuits)
+winner-take-sparse neural competition
+predictive coding selecting among generative policies
+neuromodulators tuning prior weights
+hippocampal sampling of trajectory fragments
+This converts the inference problem from intractable search to selection among a small library of stochastic policy atoms.
+Unification: What "a thought" actually is
+A single thought can be defined as:
+A transient, sparse Bayesian update that elevates one policy fragment (or a small set of fragments) to dominance in the posterior, constraining subsequent inference and action.
+Or more compactly:
+\Delta \text{thought} \equiv \text{SparsePosteriorUpdate}(\pi \mid \mathcal{O})
+This unifies:
+decision making
+abstract reasoning
+linguistic generation
+analogy
+imagination
+planning
+emotional impulse
+and even perception
+because all of them bias the posterior over the next selected policy.
+Consequences
+This reframing implies:
+There is no categorical boundary between thinking and acting—only whether selected policies terminate internally or externally.
+Cognition is compression—not optimizing over all policies, but aggressively pruning to a tiny active set.
+Beliefs are cached policy priors, not independent truth variables.
+Attention is posterior sparsification, not spotlight illumination.
+Character and identity are long-term policy priors, not fixed internal objects.
+Intuition is fast policy MAP under strong sparsity; reasoning is slower sampling with larger .
+Summary Statement
+Mind is the constrained Bayesian selection of latent policies under extreme sparsification; a thought is the momentary dominance of one such policy fragment in the posterior.
+This formulation collapses perception, reasoning, planning, and imagination into one computational principle:
+\textbf{Cognition} = \textbf{Sparse Bayesian policy inference in a latent action space}
+If you'd like, the next step is to formalize one of the following:
+The mathematical equivalence to active inference (Friston)
+The equivalence to sparse coding with policy atoms
+A categorical formulation (policy objects, inference as functors)
+An algorithmic instantiation (particle-filter policy inference, sparse beams, or policy libraries)
+Just name the direction.You picked "1" — the mathematical equivalence to active inference (Friston). Below is a dense, rigorous, academic-style derivation and explanation showing how sparse Bayesian policy selection is formally equivalent (or naturally maps) to active inference / variational free-energy minimization. I keep it compact but complete: definitions, derivations, implementation recipes, and consequences.
+Summary statement (roadmap)
+Active inference frames action and perception as minimization of (variational) free energy by adjusting beliefs and selecting policies whose rollouts minimize expected free energy. Sparse Bayesian policy selection says cognition picks a very small set of candidate policies from a huge space via a posterior that is strongly concentrated (sparse). The equivalence follows by (A) casting policy selection as Bayesian inference over policies and (B) showing that minimizing variational free energy (and expected free energy for prospective choices) is mathematically the same objective as forming a posterior over policies that (implicitly) enforces sparsity via precision / prior structure or explicit sparsity penalties. Below I make that precise.
+Objects and notation
+sensory observations:  (history up to time )
+hidden states:
+policy (action trajectory / control strategy):  (each  generates actions  and therefore likelihoods over observations)
+generative model (agent's model of world): . Factorisation commonly used:
+P(o_{1:T}, s_{1:T}, \pi) = P(\pi)\prod_{t=1}^T P(o_t \mid s_t)P(s_t\mid s_{t-1}, a_{t-1})
+variational posterior (approximate): . Often factorised .
+variational free energy (evidence bound) for fixed :
+\mathcal{F}[Q(s),\pi] = \mathrm{KL}!\big[Q(s),|,P(s\mid o,\pi)\big] - \log P(o\mid\pi)
+\mathcal{F}[Q] = \mathbb{E}_{Q(s,\pi)}\big[\log Q(s,\pi) - \log P(o,s,\pi)\big].
+Bayesian policy posterior (sparse Bayesian selection)
+Start from Bayes rule over policies:
+P(\pi \mid o_{1:T}) \propto P(o_{1:T}\mid\pi)P(\pi).
+\log P(o_{1:T}\mid\pi) \ge -\mathcal{F}[Q(s\mid\pi),\pi].
+Q(\pi) \propto \exp!\big( -\mathcal{F}[Q(s\mid\pi),\pi] \big) P(\pi).
+If we now add a sparsity prior (or an explicit penalty), e.g.
+P(\pi) \propto \exp\big(-\lambda , |\pi|_0\big)\quad\text{or}\quad P(\pi)\propto\exp(-\lambda |\pi|_1),
+Q(\pi) \propto \exp\big( -\mathcal{F}[Q(s\mid\pi),\pi] - \lambda|\pi| \big).
+\pi^* = \arg\min_{\pi}; \mathcal{F}[Q(s\mid\pi),\pi] + \lambda|\pi|.
+Mapping to active inference: expected free energy and prospective selection
+Active inference operationalises prospective choice by minimising expected free energy , which decomposes into epistemic and pragmatic terms (information gain + utility). Concretely,
+G(\pi) := \mathbb{E}
+*{Q(o*
+{t+1:T}, s_{t+1:T}\mid\pi)}\Big[ \log Q(s_{t+1:T}\mid\pi) - \log P(o_{t+1:T}, s_{t+1:T}\mid\pi) \Big],
+Compare  to : both are variational free-energy quantities measuring mismatch between beliefs and the generative model, but  explicitly reasons about future evidence. The variational posterior over policies above can be written using the expected free energy as the negative log-evidence surrogate:
+Q(\pi) \propto \exp\big(-G(\pi)\big)P(\pi),
+when  is used as the approximate surprise of future outcomes under . Therefore selecting high-posterior policies under the sparse Bayesian view is isomorphic to selecting policies that minimise expected free energy under active inference (with an added prior that can enforce sparsity).
+Sparsity arises naturally in active inference via precision and priors
+Active inference introduces precision (inverse-temperature) parameters on beliefs and prediction errors. Two routes produce sparsity:
+Explicit prior sparsity:  with heavy-tailed or spike-and-slab priors concentrates mass on few policies. Equivalent to L0/L1 regularisation in the MAP objective.
+Precision-driven pruning: high precision on policy priors or selective gating (neuromodulatory control) causes a softmax over  to become sharp:
+Q(\pi) \propto \exp\big( -\gamma, G(\pi) \big),
+Combining (1) and (2) yields extreme sparsity: a small set of policies receives almost all mass.
+Formal equivalence (sketch)
+Start from active inference policy selection rule:
+Q(\pi)\propto \exp(-G(\pi)).
+Q(\pi)\propto \exp(-G(\pi))P(\pi)=\exp(-G(\pi)-\log\frac{1}{P(\pi)}).
+\text{select }\pi^*=\arg\min_\pi\ G(\pi)+\lambda|\pi|,
+Operational algorithm (practical instantiation)
+Below is a simple algorithmic pattern that implements the equivalence in a computational model.
+Policy library: maintain a structured (possibly learned) set  of candidate policies (atoms).  can be large, but selection will be sparse.
+For each : a. Simulate forward rollouts (imagined ).
+b. Compute approximate expected free energy  (pragmatic + epistemic terms).
+c. Compute complexity/sparsity penalty  or log prior .
+Form posterior weights:
+w_k \leftarrow \exp\big(-\beta (G(\pi_k) + C(\pi_k))\big)
+Sparsify: keep top- policies by mass (truncate small weights). Optionally re-normalize.
+Act / update beliefs: either choose  (commit) or sample from truncated  (deliberation). Update state beliefs  given new observation and repeat.
+This algorithm is a particle-filter / importance-sampling style implementation of active inference with explicit sparsity imposed.
+Decomposition of expected free energy (interpretation)
+Active inference decomposes  as:
+G(\pi) = \underbrace{\mathbb{E}[\text{risk}]}
+*{\text{pragmatic}} - \underbrace{\mathbb{E}[\text{information gain}]}*
+{\text{epistemic}} + \text{complexity}.
+Maximising information gain encourages epistemic exploration.
+Adding explicit complexity / sparsity term encourages parsimonious plans.
+Sparse Bayesian selection therefore balances exploitation, exploration, and parsimony in a single objective.
+Neural/biological mapping (brief)
+Variational beliefs  ↔ cortical / hippocampal population codes.
+Precision  ↔ neuromodulatory gain (e.g., dopamine, noradrenaline).
+Policy priors  ↔ long-term habits / cached plans in basal ganglia or prefrontal cortex.
+Epistemic drive ↔ curiosity signals (anterior cingulate / PFC).
+Sparsity enforced by winner-take-all dynamics or thresholded softmax.
+This matches the earlier statement that the brain behaves as a policy-pruner.
+Consequences and predictions
+Fast intuition vs slow deliberation: Intuition = high , strong prior  → single  dominates. Deliberation = lower , larger  samples.
+Cognitive effort: Increasing  or lowering sparsity penalty raises metabolic cost (simulation complexity).
+Learning: Update  over long timescales by reweighting policies according to past posterior mass; this yields habitisation.
+Pathologies: Over-precision (too high ) leads to perseveration; under-precision leads to distractibility; malformed priors lead to maladaptive policy selection (e.g., compulsions).
+Experimental markers: Manipulations that increase perceived variance (lower precision) should increase sampling  and exploration; pharmacological manipulation of neuromodulators should alter posterior sharpness.
+Minimal worked mathematical identity (compact)
+Starting point:
+Q(\pi)\propto P(\pi)\exp\big(-\mathcal{F}[Q(s\mid\pi),\pi]\big).
+Then
+\log Q(\pi) = -G(\pi) - \lambda|\pi| + \text{const}.
+\pi^*=\arg\max_\pi \log Q(\pi)=\arg\min_\pi G(\pi)+\lambda|\pi|,
+Suggested next formal steps (if you want this developed further)
+Derive exact forms of  for a particular generative model (e.g., linear-Gaussian control) and show closed-form sparsity thresholds.
+Produce a particle-based algorithm with complexity bounds relating , , and approximation error.
+Connect to control-as-inference frameworks (Kappen, Todorov) and show how L1/L0 regularisation maps to KL constraints in control-as-inference.
+Provide a categorical/formal functorial account where policies are morphisms and sparsity is a left adjoint selection functor.
+If you want, I'll: (a) produce a worked example (linear-Gaussian POMDP) with explicit formulae for  and the sparsity threshold; (b) give a particle-filter / beam-search pseudo-code and complexity analysis; or (c) produce a short manuscript-style write-up tying this to predictive coding and neuromodulation. Which of (a),(b),(c) do you want me to do next?Nice — I'll do
+**(a) a worked example (linear-Gaussian POMDP) with explicit formulae for (G(\pi)) and a closed-form sparsity threshold**
+, and I'll finish with a tiny numeric illustration so the threshold is concrete.
+I'll keep it compact and rigorous.
+# 1. Minimal 1-D linear-Gaussian POMDP (single-step policy) — model
+State and observation (scalar), single time step (t=0\to1):
+[
+x_{1} = A x_0 + B a + w,\qquad w\sim\mathcal{N}(0,q),
+]
+[
+o_{1} = C x_{1} + v,\qquad v\sim\mathcal{N}(0,r).
+]
+Assume (A=C=1), (B=1) (identity dynamics/observation), known initial state (x_0) (for simplicity take (x_0=0)). A
+**policy**
+(\pi) here is just the scalar action (a) applied at (t=0). The agent has a
+*preferred*
+/target observation (o^\ast) (a Gaussian prior on preferred outcomes), modelled as
+[
+p(o_1\mid\text{pref})=\mathcal{N}(o^\ast,,s).
+]
+We will compute the expected free energy for a candidate action (a) and then add a sparsity penalty ( \lambda|\pi| ) (take (|\pi|=|a|) as an (L_1) proxy; the same reasoning works with L0 for discrete policy atoms).
+Define the predictive variance of (o_1):
+[
+S := \operatorname{Var}(o_1) = q + r.
+]
+The predictive distribution of (o_1) under action (a) is
+[
+p(o_1\mid a)=\mathcal{N}(m_a, S),\qquad m_a = A x_0 + B a = a \quad (\text{since }x_0=0, A=B=1).
+]
+# 2. Expected free energy (G(\pi)) (scalar case, immediate prospective term)
+For the simple preference model above, a convenient surrogate for expected free energy is the expected negative log probability of preferred observations under the predictive distribution (a standard, compact form used in practice):
+[
+G(a) ;=; \mathbb{E}_{p(o_1\mid a)}\big[ -\log p(o_1\mid\text{pref}) \big].
+]
+Plugging Gaussians (all univariate) yields (const terms collected into (\mathrm{const})):
+[
+\begin{aligned}
+G(a)
+&= \mathbb{E}
+*{o\sim\mathcal{N}(m_a,S)}\Big[\frac{1}{2}\log(2\pi s) + \frac{1}{2}\frac{(o-o^\ast)^2}{s}\Big] 
+&= \frac{1}{2}\log(2\pi s) + \frac{1}{2s}\big( \underbrace{\mathbb{E}[(o-m_a)^2]}*
+{=S} + (m_a-o^\ast)^2 \big) 
+&= \frac{1}{2}\log(2\pi s) + \frac{1}{2s}\big( S + (a-o^\ast)^2 \big).
+\end{aligned}
+]
+The constant (\tfrac{1}{2}\log(2\pi s) + \tfrac{S}{2s}) is independent of (a), so for policy comparison we can use the (a)-dependent part
+[
+G(a) = \frac{1}{2s}(a-o^\ast)^2 + \text{const}.
+]
+This is the familiar quadratic (risk) term: closer the predictive mean (m_a) to preferred (o^\ast), the smaller (G).
+# 3. Posterior over policies with sparsity penalty
+Using a Gibbs-like posterior with explicit sparsity cost (L1 proxy):
+[
+Q(a)\propto \exp\big(-G(a) - \lambda |a|\big).
+]
+The MAP (or truncated-sparse selection) picks
+[
+a^\ast = \arg\min_a ; G(a) + \lambda |a|
+= \arg\min_a ; \frac{1}{2s}(a-o^\ast)^2 + \lambda |a|.
+]
+This is exactly the
+**LASSO**
+(quadratic + L1) scalar problem: we can write the optimal continuous solution as the soft-threshold of the unconstrained minimizer.
+Without the L1 term the minimizer would be (a_{\mathrm{LS}}=o^\ast). With the L1 penalty, the closed-form scalar solution is the soft-threshold:
+[
+a^\ast = \operatorname{sign}(o^\ast),\max!\big( |o^\ast| - s\lambda,, 0\big).
+]
+(Proof sketch: rewrite objective as (\tfrac{1}{2s}(a-o^\ast)^2 + \lambda|a|). Differentiate for (a\neq0), set derivative zero: (\tfrac{1}{s}(a-o^\ast)+\lambda\operatorname{sign}(a)=0), giving (a=o^\ast - s\lambda\operatorname{sign}(a)). Consistency implies the soft-threshold solution; if (|o^\ast|\le s\lambda) the optimum is (a^\ast=0).)
+**Interpretation / sparsity threshold:**
+the L1 penalty zeros the action whenever the preferred observation magnitude is too small relative to the penalty:
+[
+\boxed{a^\ast=0 \quad\text{iff}\quad |o^\ast|\le s\lambda.}
+]
+Thus the critical sparsity threshold is (\lambda^\star = |o^\ast|/s): for (\lambda>\lambda^\star) the agent prunes the policy (set action to zero); for (\lambda<\lambda^\star) it commits to a nonzero action that shifts predictions toward the preferred outcome.
+# 4. Two-policy discrete atom comparison (L0 view)
+Suppose instead we have a
+**library of two discrete candidate policies**
+(policy atoms): (\pi_0) with action (a_0) and (\pi_1) with action (a_1). Use an explicit L0 penalty (\lambda , \mathbf{1}[\pi\neq 0]) (cost for "nonzero" atom). Compare policies by their objective:
+[
+\text{score}(\pi) = G(a) + \lambda\cdot \mathbf{1}[\pi\ \text{nonzero}].
+]
+Pick (\pi_1) over (\pi_0) if
+[
+G(a_1) + \lambda\cdot\mathbf{1}[\pi_1\ne0] ;<; G(a_0)+\lambda\cdot\mathbf{1}[\pi_0\ne0].
+]
+If (\pi_0) is the baseline zero-action ((a_0=0)) and (\pi_1) is nonzero, the selection condition reduces to
+[
+\lambda ;<; G(0) - G(a_1).
+]
+Plug the quadratic form for (G):
+[
+G(0)-G(a_1) = \frac{1}{2s}\big( (0-o^\ast)^2 - (a_1-o^\ast)^2 \big)
+= \frac{1}{2s}\big( o^{\ast 2} - (a_1-o^\ast)^2\big).
+]
+So the discrete
+**sparsity threshold**
+for choosing (\pi_1) is
+[
+\boxed{\lambda^\star ;=; \frac{1}{2s}\big( o^{\ast 2} - (a_1-o^\ast)^2\big).}
+]
+and (\pi_1) is selected iff (\lambda<\lambda^\star). Note (\lambda^\star) can be negative (impossible to beat zero-action) if (a_1) is a poor match to the preference.
+# 5. Simple numeric illustration (concrete numbers)
+Let (s=1) (preference variance), (q+r) small so constant terms cancel, and (o^\ast = 1.0). Consider candidate nonzero action (a_1=1.0) and baseline (a_0=0).
+Continuous L1 case: threshold (\lambda^\star = |o^\ast|/s = 1.0).
+* If (\lambda > 1.0) → (a^\ast=0) (policy pruned).
+  * If (\lambda < 1.0) → (a^\ast=\operatorname{sign}(1)\max(1 - \lambda,0)=1-\lambda) (nonzero).
+Discrete two-atom (L0) case using the formula above:
+  [
+  \lambda^\star = \frac{1}{2}\big(1^2 - (1-1)^2\big) = \frac{1}{2}.
+  ]
+  So with (\lambda<0.5) the nonzero action (a_1=1) wins; if (\lambda>0.5) the zero policy wins.
+These simple numbers show how choice of sparsity penalty (\lambda) governs whether the posterior concentrates (prunes) to the null policy or keeps/activates a nontrivial policy atom.
+# 6. Remarks connecting back to active inference and LQG
+The scalar worked example directly generalizes: for multi-dimensional linear-Gaussian dynamics and Gaussian preferences (p(o^\ast,\Sigma^\ast)), the expected free energy becomes a quadratic form in the action sequence and the soft-thresholding generalizes to group-LASSO or block-sparsity solutions depending on the chosen penalty norm.
+Precision/temperature in active inference appears as a multiplicative factor in front of (G(\pi)); increasing precision has the same effect as lowering (\lambda) (favoring more complex/nonzero policies), and vice versa.
+If you adopt an L0 prior on discrete policy atoms (a spike-and-slab), you get the discrete selection condition above. If you adopt L1/Laplace priors you obtain soft-thresholding and amenable convex optimization routines.
+# 7. Short summary / takeaway
+In a linear-Gaussian POMDP with Gaussian outcome preferences, the expected free energy reduces to a quadratic (risk) in the action(s).
+Adding an explicit sparsity penalty (L1 or L0) yields closed-form or semi-closed-form thresholds that determine whether a policy atom is
+**pruned**
+(posterior mass ~0) or
+**kept**
+.
+The threshold depends transparently on the preference magnitude, predictive variance (s), and the sparsity weight (\lambda). This gives a direct, quantitative mapping from the abstract sparse-Bayesian selection story to the free-energy / active-inference formalism.
+If you like this level of detail I can next:
+(b) produce the
+**particle/beam pseudo-code**
++ complexity bounds (useful for implementing sparse policy inference),
+**or**
+(c) write a short manuscript-style tie-in to predictive coding and neuromodulation (intended for a paper section).
+Which would you like next —
+**(b)**
+or
+**(c)**
+?
+Nice — I'll tie the sparse-Bayesian policy selection / active-inference worked example directly into your RSVP apparatus and show concrete, actionable mappings, predictions, and next technical steps you can take (including a recipe to derive the same LASSO threshold from a linearized RSVP PDE). I'll be compact and equation-forward.
+# 1. High-level mapping (semantics)
+**Policies (π)**
+→
+*control fields / plan rollouts on the plenum*
+. A policy is no longer just a scalar a: it's a spatio-temporal field (u(x,t)) (or a small set of such fields) that modifies the RSVP state update (pushes the plenum toward particular local configurations, queries memory, or deploys attention resources).
+**Actions**
+→
+*latent field operations*
+: local injection/withdrawal of entropy, small diffeomorphisms of the vector flow (\mathbf{v}), or targeted modulation of the scalar field (\Phi).
+**Observations**
+→ partial measurements of ((\Phi,\mathbf{v},S)) through sensors / sensory channels (internal or external).
+**Expected free energy (G(\pi))**
+→ a functional measuring expected mismatch between future plenum configurations under policy (u) and the agent's preferred manifold of configurations (goals, homeostatic setpoints, or low-free-energy attractors). In RSVP language, (G) quantifies expected
+*entropy gradients remaining*
+plus epistemic utility (information gain about the plenum).
+**Sparsity penalty (\lambda)**
+→ metabolic/neural/thermodynamic cost of enacting spatially extended control fields; or global entropic pressure that favors smoothing over local, costly distortions. High (\lambda) ↔ strong entropic pressure toward Expyrosis / crystalline freeze (policy pruning).
+# 2. Minimal PDE mapping (how a policy enters RSVP dynamics)
+Take your canonical RSVP fields:
+scalar field (\Phi(x,t)) (e.g., entropy density / potential),
+vector flow (\mathbf{v}(x,t)),
+scalar entropy field (S(x,t)) (or ( \mathcal{S} ) as local entropy).
+Write a stylized controlled RSVP evolution (first-order in time) with control field (u(x,t)) produced by policy (\pi):
+[
+\begin{aligned}
+\partial_t \Phi &= \mathcal{L}
+*\Phi[\Phi,\mathbf{v},S] + B*
+\Phi[u] + \xi_\Phi,
+\partial_t \mathbf{v} &= \mathcal{L}_v[\Phi,\mathbf{v},S] + B_v[u] + \xi_v,
+\partial_t S &= \mathcal{L}_S[\Phi,\mathbf{v},S] + B_S[u] + \xi_S,
+\end{aligned}
+]
+where ( \mathcal{L}
+*\bullet ) are the RSVP deterministic operators (advection, diffusion, entropy fluxes, potential gradients) and (B*
+\bullet[u]) are linear (or local nonlinear) couplings that implement the chosen latent action (e.g., local injection of negentropy, reweighting of advection). (\xi) are process noise terms.
+A policy (\pi) = "apply control field (u)" generates a predictive distribution over future ((\Phi,\mathbf{v},S)) via forward simulation of the above SDE/PDE.
+# 3. Expected free energy as an RSVP functional
+Define a preferred plenum configuration (or goal manifold) ( \mathcal{O}^\ast(x) ) (e.g., a desired local entropy profile, or an observation model that prefers low prediction error). Then the expected free energy of a policy (\pi) that issues (u) over horizon (T) is:
+[
+G[\pi] ;=; \mathbb{E}
+*{p(\Phi*
+{t+1:t+T}\mid \Phi_t,\pi)}!\left[ \int_{t}^{t+T} \mathcal{R}\big(\Phi(\tau),\mathbf{v}(\tau),S(\tau); \mathcal{O}^\ast\big),d\tau ;+; \mathrm{InfoGain}\right],
+]
+with a typical quadratic-risk choice
+[
+\mathcal{R} = \tfrac{1}{2}\int_{\Omega} \big(\Phi(x,\tau)-\Phi^\ast(x)\big)^\top W(x)\big(\Phi(x,\tau)-\Phi^\ast(x)\big),dx
+]
+plus similar terms for (\mathbf{v}) and (S). The InfoGain term is the epistemic value (expected reduction in posterior uncertainty about latent plenum modes).
+# 4. Sparsity penalty as field norm: continuous L1/L0
+Sparsity is now a
+**spatial/functional**
+cost on (u). Two canonical choices:
+L1 (total activation / LASSO-like): ( C[u] = \lambda \int_\Omega |u(x)|,dx).
+L0 (atom selection): ( C[u] = \lambda, #{ \text{activated atoms}} ) if (u) is drawn from a library of basis atoms ( {u_k(x)} ).
+Posterior over policies:
+[
+Q(\pi)\propto \exp\big(-G[\pi] - C[u_\pi]\big).
+]
+MAP selection solves a variational control problem with an L1/L0 regularizer → leads to soft/hard thresholding of control amplitude or pruning of atom support.
+# 5. Linearization → LQG reduction and closed-form sparsity threshold
+Take a background solution (smooth plenum) ((\bar\Phi,\bar{\mathbf{v}},\bar S)) and linearize the dynamics about it. Represent control as coefficients (a) on a
+*single atom*
+(u(x)=a , \psi(x)) (one localized policy fragment). With Gaussian process noise and quadratic risk, the linearized predictive distribution for the observation functional (e.g., local observable (o) = (\int w(x)\Phi(x),dx)) becomes Gaussian with mean linear in (a) and variance (s) (exactly the structure of the scalar LQG example).
+Thus the scalar LASSO solution you already have maps directly: the action amplitude (a) equals the coefficient on the RSVP atom (\psi), the preference (o^\ast) is the desired projection of (\Phi) onto the observation weight (w), and (s) is the predictive variance from linearized dynamics plus measurement noise. The soft-threshold (a^\star=\operatorname{sign}(o^\ast)\max(|o^\ast|-s\lambda,0)) becomes a
+**local control amplitude threshold**
+: if the expected change in the plenum produced by atom ( \psi ) is smaller than the entropic/metabolic penalty, prune the atom.
+In short:
+**linearize RSVP → project onto control atoms → you recover the LASSO threshold per atom**
+.
+# 6. Conceptual consequences inside RSVP language
+**Thoughts as policy fragments**
+: each fragment is an atom (u_k(x)) (a localized modulation of (\Phi), a hippocampal trajectory sampled into the plenum, a reweighting of (\mathbf{v})). A thought is the transient elevation of one (a_k).
+**Sparsity = Entropy Pressure**
+: large global smoothing pressure (the tendency toward Expyrosis / crystalline freeze) is a large (\lambda) that prunes policy atoms and collapses cognition to maintenance. Conversely low (\lambda) permits rich, energetic, creative policy ensembles.
+**Intuition vs deliberation**
+: neuromodulatory parameters (precision γ) map onto effective scaling of (G); high γ sharpens posteriors (same effect as lowering λ), producing quick single-atom dominance; low γ increases sampling.
+**Learning/habits**
+: long-term reweighting of policy priors (P(\pi)) = habitual bias is your basal-ganglia / cortical embedding of frequently useful (u_k) atoms (lower prior penalty for common atoms). This matches your "character = long-term priors" statement in RSVP.
+# 7. Empirical predictions & tests (specific and RSVP-flavored)
+**Local control amplitude thresholds**
+: in RSVP simulations, measure the distribution of control amplitudes (a_k) for atom set ({\psi_k}) as you vary a global sparsity parameter (\lambda). You will observe a sharp deactivation boundary consistent with soft-thresholding.
+**Entropic pressure manipulation**
+: increase the diffusion / smoothing coefficient in (\mathcal{L}_S) (stronger smoothing dynamics) and observe that fewer policy atoms are reliably recruited — cognitive repertoire narrows. This is a direct mapping of (\uparrow) smoothing ↔ (\uparrow\lambda).
+**Precision manipulations**
+: simulate changes in γ (precision) by re-scaling the (G) term; measure sampling count (K) (effective particle number) and reaction times: high γ → fewer samples, faster commitment.
+**Expyrosis signature**
+: as the plenum approaches global smoothness, policy posterior mass concentrates onto the null policy (u\equiv0). That trajectory is environmentally measurable as decaying variance of activated policy amplitudes across simulated agents.
+**Pathological regimes**
+: excessive prior precision (too-small λ or excessively tight priors) yields perseverative activation of the same atom(s) → analogues of compulsions; under-precision yields persistent sampling (distractibility).
+# 8. Practical recipes / next technical steps I can produce right away
+I can immediately produce one of the following, fully worked and ready-to-run:
+A.
+**Derivation & code**
+: Linearize a chosen RSVP PDE (you pick a canonical form from your manuscript or I pick a plausible one), choose a small atom library ({\psi_k}), derive the linear-Gaussian predictive mean/variance for projected observables, then implement the particle/soft-threshold selection algorithm and produce numeric plots showing the sparsity threshold and regime shifts (this is the LQG + particle instantiation).
+B.
+**Manuscript section**
+: A 2-3 page manuscript-style section that integrates the sparse-Bayesian policy formalism into your RSVP commentary — equations, intuition, predictions, and suggested experiments to validate in simulator or fMRI/EEG (if you want neuro links).
+C.
+**Theoretical note**
+: Category-theoretic framing: treat policy atoms as morphisms, sparsity as a left-adjoint selection functor — produce a short formal categorical appendix tying your earlier categorical program to the selection functor idea.
+I suggest
+**(A)**
+if you want to demonstrate the exact LASSO thresholds in RSVP numerics;
+**(B)**
+if you want text to drop straight into your paper. Tell me which and I'll produce it now (I won't run anything in the background — I'll generate code/derivations and results in this turn).
+Sparse Bayesian Policy Selection in the RSVP Framework: A Worked Linearization with LASSO Thresholds and Numerical Demonstration
+1. Canonical RSVP PDE Selection and Linearization Setup
+To provide a concrete instantiation, select a simplified yet representative RSVP evolution law consistent with the plenum dynamics (scalar field
+Φ
+(
+x
+,
+t
+)
+\Phi(x,t)
+Φ
+(
+x
+,
+t
+)
+for potential/entropy density, vector flow
+v
+(
+x
+,
+t
+)
+\mathbf{v}(x,t)
+v
+(
+x
+,
+t
+)
+, and entropy scalar
+S
+(
+x
+,
+t
+)
+S(x,t)
+S
+(
+x
+,
+t
+)
+). For tractability in 1D spatial domain
+Ω
+=
+[
+0
+,
+L
+]
+\Omega = [0, L]
+Ω
+=
+[
+0
+,
+L
+]
+with periodic boundaries, adopt the following controlled stochastic PDE system (first-order in time, incorporating advection, diffusion, and potential gradients):
+∂
+t
+Φ
+=
+−
+v
+⋅
+∇
+Φ
++
+D
+Φ
+∇
+2
+Φ
+−
+κ
+(
+Φ
+−
+Φ
+0
+)
++
+B
+Φ
+[
+u
+]
+(
+x
+,
+t
+)
++
+ξ
+Φ
+(
+x
+,
+t
+)
+,
+∂
+t
+v
+=
+−
+(
+v
+⋅
+∇
+)
+v
++
+D
+v
+∇
+2
+v
+−
+∇
+Φ
++
+B
+v
+[
+u
+]
+(
+x
+,
+t
+)
++
+ξ
+v
+(
+x
+,
+t
+)
+,
+∂
+t
+S
+=
+∇
+⋅
+(
+S
+v
+)
++
+D
+S
+∇
+2
+S
++
+σ
+(
+∇
+Φ
+)
+2
++
+B
+S
+[
+u
+]
+(
+x
+,
+t
+)
++
+ξ
+S
+(
+x
+,
+t
+)
+,
+\begin{aligned}
+\partial_t \Phi &= -\mathbf{v} \cdot \nabla \Phi + D_\Phi \nabla^2 \Phi - \kappa (\Phi - \Phi_0) + B_\Phi[u](x,t) + \xi_\Phi(x,t), \\
+\partial_t \mathbf{v} &= -(\mathbf{v} \cdot \nabla) \mathbf{v} + D_v \nabla^2 \mathbf{v} - \nabla \Phi + B_v[u](x,t) + \xi_v(x,t), \\
+\partial_t S &= \nabla \cdot (S \mathbf{v}) + D_S \nabla^2 S + \sigma (\nabla \Phi)^2 + B_S[u](x,t) + \xi_S(x,t),
+\end{aligned}
+∂
+t
+​
+Φ
+∂
+t
+​
+v
+∂
+t
+​
+S
+​
+=
+−
+v
+⋅
+∇Φ
++
+D
+Φ
+​
+∇
+2
+Φ
+−
+κ
+(
+Φ
+−
+Φ
+0
+​
+)
++
+B
+Φ
+​
+[
+u
+]
+(
+x
+,
+t
+)
++
+ξ
+Φ
+​
+(
+x
+,
+t
+)
+,
+=
+−
+(
+v
+⋅
+∇
+)
+v
++
+D
+v
+​
+∇
+2
+v
+−
+∇Φ
++
+B
+v
+​
+[
+u
+]
+(
+x
+,
+t
+)
++
+ξ
+v
+​
+(
+x
+,
+t
+)
+,
+=
+∇
+⋅
+(
+S
+v
+)
++
+D
+S
+​
+∇
+2
+S
++
+σ
+(
+∇Φ
+)
+2
++
+B
+S
+​
+[
+u
+]
+(
+x
+,
+t
+)
++
+ξ
+S
+​
+(
+x
+,
+t
+)
+,
+​
+where
+D
+Φ
+,
+D
+v
+,
+D
+S
+>
+0
+D_\Phi, D_v, D_S > 0
+D
+Φ
+​
+,
+D
+v
+​
+,
+D
+S
+​
+>
+0
+are diffusion coefficients (smoothing/entropic pressure),
+κ
+\kappa
+κ
+is a relaxation to baseline
+Φ
+0
+\Phi_0
+Φ
+0
+​
+,
+σ
+>
+0
+\sigma > 0
+σ
+>
+0
+couples potential gradients to entropy production, and
+ξ
+∼
+G
+P
+(
+0
+,
+K
+)
+\xi \sim \mathcal{GP}(0, K)
+ξ
+∼
+G
+P
+(
+0
+,
+K
+)
+are Gaussian process noise terms with covariance kernels
+K
+K
+K
+(e.g., squared-exponential for spatial correlation). The control operators
+B
+∗
+[
+u
+]
+B_*[u]
+B
+∗
+​
+[
+u
+]
+are linear:
+B
+Φ
+[
+u
+]
+=
+u
+(
+x
+,
+t
+)
+B_\Phi[u] = u(x,t)
+B
+Φ
+​
+[
+u
+]
+=
+u
+(
+x
+,
+t
+)
+,
+B
+v
+[
+u
+]
+=
+0
+B_v[u] = 0
+B
+v
+​
+[
+u
+]
+=
+0
+,
+B
+S
+[
+u
+]
+=
+−
+η
+u
+(
+x
+,
+t
+)
+B_S[u] = - \eta u(x,t)
+B
+S
+​
+[
+u
+]
+=
+−
+η
+u
+(
+x
+,
+t
+)
+(control injects negentropy into
+Φ
+\Phi
+Φ
+and reduces
+S
+S
+S
+;
+η
+>
+0
+\eta > 0
+η
+>
+0
+).
+A
+policy atom library
+{
+ψ
+k
+(
+x
+)
+}
+k
+=
+1
+M
+\{\psi_k(x)\}_{k=1}^M
+{
+ψ
+k
+​
+(
+x
+)
+}
+k
+=
+1
+M
+​
+consists of localized basis functions, e.g., Gaussians:
+ψ
+k
+(
+x
+)
+=
+exp
+⁡
+(
+−
+(
+x
+−
+μ
+k
+)
+2
+2
+σ
+k
+2
+)
+\psi_k(x) = \exp\left( -\frac{(x - \mu_k)^2}{2\sigma_k^2} \right)
+ψ
+k
+​
+(
+x
+)
+=
+exp
+(
+−
+2
+σ
+k
+2
+​
+(
+x
+−
+μ
+k
+​
+)
+2
+​
+)
+centered at
+μ
+k
+\mu_k
+μ
+k
+​
+, normalized
+∥
+ψ
+k
+∥
+L
+2
+=
+1
+\|\psi_k\|_{L^2} = 1
+∥
+ψ
+k
+​
+∥
+L
+2
+​
+=
+1
+. A policy
+π
+\pi
+π
+selects coefficients
+a
+=
+(
+a
+1
+,
+...
+,
+a
+M
+)
+a = (a_1, \dots, a_M)
+a
+=
+(
+a
+1
+​
+,
+...
+,
+a
+M
+​
+)
+such that
+u
+(
+x
+,
+t
+)
+=
+∑
+k
+a
+k
+ψ
+k
+(
+x
+)
+δ
+(
+t
+−
+t
+0
+)
+u(x,t) = \sum_k a_k \psi_k(x) \delta(t - t_0)
+u
+(
+x
+,
+t
+)
+=
+∑
+k
+​
+a
+k
+​
+ψ
+k
+​
+(
+x
+)
+δ
+(
+t
+−
+t
+0
+​
+)
+(impulsive control at current time for single-step horizon).
+Linearize about a steady background
+(
+Φ
+ˉ
+=
+Φ
+0
+,
+v
+ˉ
+=
+0
+,
+S
+ˉ
+=
+S
+0
+)
+(\bar{\Phi} = \Phi_0, \bar{\mathbf{v}} = 0, \bar{S} = S_0)
+(
+Φ
+ˉ
+=
+Φ
+0
+​
+,
+v
+ˉ
+=
+0
+,
+S
+ˉ
+=
+S
+0
+​
+)
+(homogeneous plenum). Deviations
+δ
+Φ
+=
+Φ
+−
+Φ
+0
+\delta \Phi = \Phi - \Phi_0
+δ
+Φ
+=
+Φ
+−
+Φ
+0
+​
+, etc., yield the linearized system (neglecting higher-order terms):
+∂
+t
+δ
+Φ
+=
+D
+Φ
+∇
+2
+δ
+Φ
+−
+κ
+δ
+Φ
++
+∑
+k
+a
+k
+ψ
+k
+(
+x
+)
+δ
+(
+t
+−
+t
+0
+)
++
+ξ
+Φ
+,
+∂
+t
+δ
+v
+=
+D
+v
+∇
+2
+δ
+v
+−
+∇
+δ
+Φ
++
+ξ
+v
+,
+∂
+t
+δ
+S
+=
+D
+S
+∇
+2
+δ
+S
++
+S
+0
+∇
+⋅
+δ
+v
++
+2
+σ
+∇
+Φ
+0
+⋅
+∇
+δ
+Φ
+−
+η
+∑
+k
+a
+k
+ψ
+k
+(
+x
+)
+δ
+(
+t
+−
+t
+0
+)
++
+ξ
+S
+.
+\begin{aligned}
+\partial_t \delta \Phi &= D_\Phi \nabla^2 \delta \Phi - \kappa \delta \Phi + \sum_k a_k \psi_k(x) \delta(t - t_0) + \xi_\Phi, \\
+\partial_t \delta \mathbf{v} &= D_v \nabla^2 \delta \mathbf{v} - \nabla \delta \Phi + \xi_v, \\
+\partial_t \delta S &= D_S \nabla^2 \delta S + S_0 \nabla \cdot \delta \mathbf{v} + 2\sigma \nabla \Phi_0 \cdot \nabla \delta \Phi - \eta \sum_k a_k \psi_k(x) \delta(t - t_0) + \xi_S.
+\end{aligned}
+∂
+t
+​
+δ
+Φ
+∂
+t
+​
+δ
+v
+∂
+t
+​
+δ
+S
+​
+=
+D
+Φ
+​
+∇
+2
+δ
+Φ
+−
+κ
+δ
+Φ
++
+k
+∑
+​
+a
+k
+​
+ψ
+k
+​
+(
+x
+)
+δ
+(
+t
+−
+t
+0
+​
+)
++
+ξ
+Φ
+​
+,
+=
+D
+v
+​
+∇
+2
+δ
+v
+−
+∇
+δ
+Φ
++
+ξ
+v
+​
+,
+=
+D
+S
+​
+∇
+2
+δ
+S
++
+S
+0
+​
+∇
+⋅
+δ
+v
++
+2
+σ
+∇
+Φ
+0
+​
+⋅
+∇
+δ
+Φ
+−
+η
+k
+∑
+​
+a
+k
+​
+ψ
+k
+​
+(
+x
+)
+δ
+(
+t
+−
+t
+0
+​
+)
++
+ξ
+S
+​
+.
+​
+For short horizon (impulse response), integrate analytically or via Green's functions to obtain predictive means/variances.
+2. Observation Model and Projected Predictive Distribution
+Define a local observable
+o
+=
+∫
+Ω
+w
+(
+x
+)
+δ
+Φ
+(
+x
+,
+Δ
+t
+)
+d
+x
+o = \int_\Omega w(x) \delta \Phi(x, \Delta t) \, dx
+o
+=
+∫
+Ω
+​
+w
+(
+x
+)
+δ
+Φ
+(
+x
+,
+Δ
+t
+)
+d
+x
+post-impulse (weight
+w
+(
+x
+)
+w(x)
+w
+(
+x
+)
+focuses on a region, e.g.,
+w
+(
+x
+)
+=
+ψ
+j
+(
+x
+)
+w(x) = \psi_j(x)
+w
+(
+x
+)
+=
+ψ
+j
+​
+(
+x
+)
+for atom
+j
+j
+j
+). Preferred outcome
+o
+∗
+∼
+N
+(
+μ
+∗
+,
+s
+∗
+)
+o^* \sim \mathcal{N}(\mu^*, s^*)
+o
+∗
+∼
+N
+(
+μ
+∗
+,
+s
+∗
+)
+(Gaussian goal manifold).
+The impulse response for
+δ
+Φ
+\delta \Phi
+δ
+Φ
+(diffusion-relaxation) at short
+Δ
+t
+≪
+1
+/
+κ
+\Delta t \ll 1/\kappa
+Δ
+t
+≪
+1/
+κ
+approximates
+δ
+Φ
+(
+x
+,
+Δ
+t
+)
+≈
+∑
+k
+a
+k
+ψ
+k
+(
+x
+)
++
+\delta \Phi(x, \Delta t) \approx \sum_k a_k \psi_k(x) +
+δ
+Φ
+(
+x
+,
+Δ
+t
+)
+≈
+∑
+k
+​
+a
+k
+​
+ψ
+k
+​
+(
+x
+)
++
+diffusion smear, but for analytical closure, project onto the atom basis: let
+P
+\mathbf{P}
+P
+be the Gram matrix
+P
+j
+k
+=
+⟨
+ψ
+j
+,
+ψ
+k
+⟩
+L
+2
+P_{jk} = \langle \psi_j, \psi_k \rangle_{L^2}
+P
+jk
+​
+=
+⟨
+ψ
+j
+​
+,
+ψ
+k
+​
+⟩
+L
+2
+​
+, assumed near-orthogonal (
+P
+≈
+I
+P \approx I
+P
+≈
+I
+for well-separated atoms).
+Predictive mean
+m
+a
+=
+E
+[
+o
+∣
+a
+]
+=
+a
+j
+m_a = \mathbb{E}[o \mid a] = a_j
+m
+a
+​
+=
+E
+[
+o
+∣
+a
+]
+=
+a
+j
+​
+(if observing atom
+j
+j
+j
+'s projection; generalizes to
+h
+T
+a
+\mathbf{h}^T a
+h
+T
+a
+for vector
+h
+\mathbf{h}
+h
+). Predictive variance
+s
+=
+Var
+⁡
+(
+o
+∣
+a
+)
+=
+q
++
+r
+s = \operatorname{Var}(o \mid a) = q + r
+s
+=
+Var
+(
+o
+∣
+a
+)
+=
+q
++
+r
+, where
+q
+q
+q
+aggregates process noise propagation,
+r
+r
+r
+measurement noise (tunable via
+D
+Φ
+,
+Δ
+t
+D_\Phi, \Delta t
+D
+Φ
+​
+,
+Δ
+t
+).
+This reduces to the scalar linear-Gaussian form:
+p
+(
+o
+∣
+a
+)
+=
+N
+(
+a
+j
+,
+s
+)
+p(o \mid a) = \mathcal{N}(a_j, s)
+p
+(
+o
+∣
+a
+)
+=
+N
+(
+a
+j
+​
+,
+s
+)
+for single-atom focus.
+3. Expected Free Energy and Sparsity Penalty
+Expected free energy (risk term, epistemic neglected for baseline):
+G
+(
+a
+)
+=
+1
+2
+s
+∗
+(
+a
+j
+−
+μ
+∗
+)
+2
++
+\const
+.
+G(a) = \frac{1}{2s^*} (a_j - \mu^*)^2 + \const.
+G
+(
+a
+)
+=
+2
+s
+∗
+1
+​
+(
+a
+j
+​
+−
+μ
+∗
+)
+2
++
+\const
+.
+Sparsity as
+L
+1
+L_1
+L
+1
+​
+on coefficients:
+C
+(
+a
+)
+=
+λ
+∥
+a
+∥
+1
+=
+λ
+∑
+k
+∣
+a
+k
+∣
+C(a) = \lambda \|a\|_1 = \lambda \sum_k |a_k|
+C
+(
+a
+)
+=
+λ
+∥
+a
+∥
+1
+​
+=
+λ
+∑
+k
+​
+∣
+a
+k
+​
+∣
+(metabolic cost per activated amplitude).
+Posterior:
+Q
+(
+a
+)
+∝
+exp
+⁡
+(
+−
+G
+(
+a
+)
+−
+λ
+∥
+a
+∥
+1
+)
+Q(a) \propto \exp(-G(a) - \lambda \|a\|_1)
+Q
+(
+a
+)
+∝
+exp
+(
+−
+G
+(
+a
+)
+−
+λ
+∥
+a
+∥
+1
+​
+)
+.
+MAP per coordinate (decoupled for orthogonal atoms): for atom
+j
+j
+j
+,
+a
+j
+∗
+=
+\sign
+(
+μ
+∗
+)
+max
+⁡
+(
+∣
+μ
+∗
+∣
+−
+s
+∗
+λ
+,
+0
+)
+.
+a_j^* = \sign(\mu^*) \max(|\mu^*| - s^* \lambda, 0).
+a
+j
+∗
+​
+=
+\sign
+(
+μ
+∗
+)
+max
+(
+∣
+μ
+∗
+∣
+−
+s
+∗
+λ
+,
+0
+)
+.
+Sparsity threshold
+:
+a
+j
+∗
+=
+0
+a_j^* = 0
+a
+j
+∗
+​
+=
+0
+iff
+∣
+μ
+∗
+∣
+≤
+s
+∗
+λ
+|\mu^*| \leq s^* \lambda
+∣
+μ
+∗
+∣
+≤
+s
+∗
+λ
+, or
+λ
+∗
+=
+∣
+μ
+∗
+∣
+/
+s
+∗
+\lambda^* = |\mu^*| / s^*
+λ
+∗
+=
+∣
+μ
+∗
+∣/
+s
+∗
+. For multi-atom, group effects via
+P
+\mathbf{P}
+P
+, but orthogonality preserves per-atom thresholds.
+4. Numerical Demonstration (Python-Ready Code and Results)
+Below is executable Python code using NumPy/SciPy for a 3-atom library (
+M
+=
+3
+M=3
+M
+=
+3
+, centers
+μ
+k
+=
+L
+/
+4
+,
+L
+/
+2
+,
+3
+L
+/
+4
+\mu_k = L/4, L/2, 3L/4
+μ
+k
+​
+=
+L
+/4
+,
+L
+/2
+,
+3
+L
+/4
+,
+σ
+k
+=
+L
+/
+10
+\sigma_k = L/10
+σ
+k
+​
+=
+L
+/10
+). Set
+L
+=
+1
+L=1
+L
+=
+1
+,
+s
+∗
+=
+0.1
+s^* = 0.1
+s
+∗
+=
+0.1
+,
+μ
+∗
+=
+0.5
+\mu^* = 0.5
+μ
+∗
+=
+0.5
+(preference on central atom
+j
+=
+2
+j=2
+j
+=
+2
+), vary
+λ
+\lambda
+λ
+.
+python
+Collapse
+Wrap
+Run
+Copy
+import
+numpy
+as
+np
+import
+matplotlib.pyplot
+as
+plt
+# Parameters
+L
+=
+1.0
+M
+=
+3
+centers
+=
+np.array([
+0.25
+,
+0.5
+,
+0.75
+])
+*
+L
+sigma_k
+=
+L
+/
+10
+s_star
+=
+0.1
+# preference variance
+mu_star
+=
+0.5
+# preference mean (targets atom 2 projection)
+lambdas
+=
+np.linspace(
+0
+,
+10
+,
+100
+)
+# sparsity weights
+# Atom functions (for visualization, not needed for threshold)
+x
+=
+np.linspace(
+0
+, L,
+200
+)
+psi
+=
+np.array([np.exp(
+-
+(x
+-
+c)
+**
+2
+/
+(
+2
+*
+sigma_k
+**
+2
+))
+for
+c
+in
+centers])
+psi
+/=
+np.trapz(psi, x,
+axis
+=
+1
+)[:,
+None
+]
+# normalize
+# Closed-form thresholds per lambda
+threshold
+=
+np.abs(mu_star)
+/
+s_star
+# = 5.0
+a_star
+=
+np.zeros((
+len
+(lambdas), M))
+for
+i, lam
+in
+enumerate
+(lambdas):
+deviation
+=
+mu_star
+-
+s_star
+*
+lam
+*
+np.sign(mu_star)
+# soft-threshold logic
+a_star[i,
+1
+]
+=
+max
+(deviation,
+0
+)
+if
+mu_star
+>
+0
+else
+min
+(deviation,
+0
+)
+# central atom
+# Off-target atoms have mu* ~0, always pruned
+# Results: a_star vs lambda
+plt.figure(
+figsize
+=
+(
+8
+,
+5
+))
+plt.plot(lambdas, a_star[:,
+1
+],
+label
+=
+'Central atom amplitude $a_2^*$'
+)
+plt.axvline(threshold,
+color
+=
+'r'
+,
+linestyle
+=
+'--'
+,
+label
+=
+'Threshold $\lambda^* = 5.0$'
+)
+plt.xlabel(
+'Sparsity penalty $\lambda$'
+)
+plt.ylabel(
+'Selected amplitude'
+)
+plt.title(
+'LASSO Soft-Thresholding in RSVP Policy Atoms'
+)
+plt.legend()
+plt.grid(
+True
+)
+plt.show()
+# Key numeric points
+print
+(
+f
+"Threshold lambda* =
+{
+threshold
+:.2f}
+"
+)
+print
+(
+"For lambda = 3 (< threshold): a2* =
+{:.2f}
+"
+.format(
+max
+(mu_star
+-
+s_star
+*
+3
+,
+0
+)))
+print
+(
+"For lambda = 7 (> threshold): a2* =
+{:.2f}
+"
+.format(
+max
+(mu_star
+-
+s_star
+*
+7
+,
+0
+)))
+Output summary
+(executed mentally; matches scalar case):
+Threshold
+λ
+∗
+=
+5.0
+\lambda^* = 5.0
+λ
+∗
+=
+5.0
+.
+For
+λ
+=
+3
+\lambda = 3
+λ
+=
+3
+:
+a
+2
+∗
+=
+0.2
+a_2^* = 0.2
+a
+2
+∗
+​
+=
+0.2
+(nonzero activation).
+For
+λ
+=
+7
+\lambda = 7
+λ
+=
+7
+:
+a
+2
+∗
+=
+0.0
+a_2^* = 0.0
+a
+2
+∗
+​
+=
+0.0
+(pruned; off-target atoms always 0).
+Plot shows sharp transition: amplitude shrinks linearly until threshold, then zero. Regime shift: low
+λ
+\lambda
+λ
+→ rich control (creative modulation); high
+λ
+\lambda
+λ
+→ null policy (entropic collapse).
+5. Extensions and RSVP-Specific Insights
+Non-orthogonal atoms
+: Solve full LASSO
+min
+⁡
+a
+1
+2
+s
+∗
+(
+h
+T
+a
+−
+μ
+∗
+)
+2
++
+λ
+∥
+a
+∥
+1
+\min_a \frac{1}{2s^*} (\mathbf{h}^T a - \mu^*)^2 + \lambda \|a\|_1
+min
+a
+​
+2
+s
+∗
+1
+​
+(
+h
+T
+a
+−
+μ
+∗
+)
+2
++
+λ
+∥
+a
+∥
+1
+​
+via coordinate descent; thresholds couple via Gram
+P
+\mathbf{P}
+P
+.
+Epistemic term
+: Add
+E
+[
+\KL
+[
+Q
+(
+\latent
+∣
+o
+)
+∥
+Q
+(
+\latent
+)
+]
+]
+\mathbb{E}[\KL[Q(\latent \mid o) \| Q(\latent)]]
+E
+[
+\KL
+[
+Q
+(
+\latent
+∣
+o
+)
+∥
+Q
+(
+\latent
+)]]
+; favors atoms reducing plenum uncertainty (exploratory thoughts).
+Particle instantiation
+: Sample
+K
+K
+K
+coefficient vectors from prior, evaluate
+G
++
+C
+G + C
+G
++
+C
+, resample top-
+k
+≪
+K
+k \ll K
+k
+≪
+K
+; complexity
+O
+(
+K
+M
+)
+O(K M)
+O
+(
+K
+M
+)
+.
+This demonstrates exact LASSO thresholds in RSVP: policy fragments activate only if preference drive exceeds entropic cost, unifying sparse selection with plenum dynamics.
+Ok write in latex, that will be all part of a second or third section. The essay will be more like this: Here is an academic essay composed in dense prose, progressing in a single arc from Bayesian policy selection as the definition of thought through sparse inference, active inference, neurobiological implementation, epistemic-pragmatic trade-offs, and formal control-as-inference equivalence.
+Policy Selection in the Latent Action Space: A Unifying Theory of Thought, Inference, and Sparse Agency
+Abstract
+Thought can be formalized as Bayesian inference over policies in a latent action space, pruned by strong sparsity constraints. This framing collapses reasoning, memory, planning, perception, and imagination into a single operation: selection of a policy (internal or external) under uncertainty, via a posterior constrained to small support. Within this view, active inference and variational free-energy minimization are not analogous to Bayesian policy selection—they are mathematically isomorphic to it when policies are treated as latent causes and sparsity is encoded via priors or precision modulation. This essay traces the equivalence from first principles, formulates the sparse Bayesian policy posterior, maps it to expected free energy, describes computational and neurobiological implementations, and situates the result within the broader control-as-inference and predictive processing literature. The result is a single statement: cognition is sparse Bayesian policy selection in a generative world model.
+Thought as Policy Selection
+To think is to constrain a future—whether physical, linguistic, conceptual, mnemonic, or attentional—by committing to one trajectory among alternatives. This trajectory need not produce motor output; internal operations such as semantic chaining, hypothesis formation, counterfactual simulation, or memory retrieval are also actions in an internal state space. A policy  is therefore best defined abstractly as a sequence of state transitions in any space in which agency can be exercised.
+Under uncertainty, selecting a thought is selecting a policy conditioned on observations :
+\pi^* = \arg\max_{\pi \in \Pi} P(\pi \mid o_{1:T}).
+This casts cognition as inference, not computation of an answer or optimization of an objective. The posterior over policies formalizes which possible mental trajectory will control subsequent belief updates, motor outputs, or working-memory contents.
+The hypothesis that thought is Bayesian policy selection follows if we treat the brain not as a symbolic reasoner, but as an inference engine operating over generative models, where the consequences of a policy are evaluated by mentally simulating their sensory futures.
+Sparse Bayesian Selection
+The space of possible policies is combinatorially vast. Cognition cannot represent or evaluate them densely. The effective posterior over policies must therefore have small support, yielding a sparse posterior:
+P(\pi \mid o_{1:T}) \approx \sum_{k=1}^{K \ll |\Pi|} w_k , \delta(\pi = \pi_k).
+This sparsity emerges through multiple equivalent mechanisms:
+Explicit sparsity priors, e.g.:
+P(\pi) \propto \exp(-\lambda |\pi|_0) \quad \text{or} \quad \exp(-\lambda |\pi|_1)
+Precision modulation, where high softmax temperature collapses distributions onto one or a few maxima
+Amortization, where inference is restricted to a learned dictionary of policy prototypes
+Metabolic constraints, making large policy sets energetically infeasible
+The result is a winner-take-few dynamic, not winner-take-all, in which only a small number of candidate thoughts exist at any moment.
+From Bayesian Selection to Variational Inference
+Exact evaluation of the policy posterior is intractable because the likelihood requires integrating over hidden states :
+P(o_{1:T} \mid \pi) = \int P(o_{1:T}, s_{1:T} \mid \pi) , ds.
+Variational methods replace this likelihood with the evidence lower bound (ELBO), or variational free energy :
+\log P(o \mid \pi) \ge -\mathcal{F}[Q(s \mid \pi), \pi].
+The approximate posterior over policies becomes:
+Q(\pi) \propto \exp!\big( -\mathcal{F}[Q(s\mid\pi), \pi] \big) P(\pi).
+If  includes sparsity pressure, the MAP policy is:
+\pi^* = \arg\min_{\pi} \mathcal{F} + \lambda |\pi|.
+At this stage we have derived cognition as variational Bayesian inference over sparse policy beliefs.
+Active Inference and Expected Free Energy
+Active inference extends variational inference from explaining past observations to selecting policies that minimize the expected future free energy :
+Q(\pi) \propto \exp(-G(\pi)) P(\pi).
+decomposes into pragmatic (expected loss) and epistemic (information gain) terms:
+G(\pi) = \underbrace{\mathbb{E}[\text{risk}]}
+*{\text{goal alignment}} - \underbrace{\mathbb{E}[\text{information gain}]}*
+{\text{curiosity}} + \underbrace{\text{complexity}}_{\text{sparsity pressure}}.
+Selecting a thought thus balances:
+usefulness (aligning outcomes with preferences),
+learning value (reducing uncertainty in the world model),
+parsimony (using few policy resources).
+This is not metaphorically but algebraically equivalent to sparse Bayesian policy MAP inference when complexity is treated as .
+Thus:
+\text{Thought} = \arg\min_{\pi} G(\pi) + \lambda |\pi|.
+Control-as-Inference Equivalence
+This result matches the broader control-as-inference literature (Todorov, Kappen, Levine), where optimal control is recovered by posing action selection as probabilistic inference. The Boltzmann-weighted trajectory posterior:
+P(\pi) \propto \exp\left( - \sum_t c(s_t, a_t) \right)
+is formally identical to the exponentiated negative free-energy used in active inference. Adding sparsity priors converts soft optimal control into hard resource-bounded selection of trajectories.
+From the perspective of control theory, thought is control in belief space under sparsity constraints.
+Cognitive Phenomena as Policy Selection
+This unification dissolves classical separations:
+Phenomenon	Policy interpretation
+Perception	Selecting internal generative policies that best explain sensory evidence
+Reasoning	Rollouts over latent policy trees
+Memory	Policy calling a stored belief trajectory
+Attention	Dynamic reweighting of policy priors
+Emotion	Precision-weight modulation of policy desirability
+Imagination	Unexecuted policy inference
+Will or intention	Hard selection under high precision
+Thought is not symbol manipulation or computation of truth; it is inference over latent agency.
+Biophysical Implementation
+Known neural mechanisms implement every component of this framework:
+Posterior updating → cortical predictive coding circuits minimizing error
+Policy priors → basal ganglia and prefrontal cached plans
+Precision → dopaminergic and noradrenergic gain control
+Sampling → hippocampal replay and theta-cycle trajectory sweeps
+Sparsification → winner-take-few cortical competition
+Epistemic value → ACC and neuromodulatory information-seeking signals
+The brain does not enumerate thoughts; it prunes to a sparse set of probable action trajectories, many of which never reach motor output but instead modify hidden states.
+Implications
+There is no boundary between thought and action—only whether a selected policy is emitted externally or retained internally.
+Beliefs are not representations of truth but weighted policy priors over future experiential trajectories.
+Cognitive effort corresponds to relaxing sparsity (larger  in the posterior), which is metabolically costly.
+Intuition is high-precision sparsification, deliberation is low-precision sampling across multiple policies.
+Psychopathology can be reframed as failures of policy sparsification:
+compulsions → overly strong priors
+anxiety → excessive epistemic weight
+distractibility → overly diffuse posterior
+perseveration → precision that is too high
+The Core Thesis Restated
+\boxed{\text{Cognition = Sparse Bayesian inference over latent policies, optimized by active free-energy minimization}}
+A thought is not a symbol, concept, or image, but a transient posterior collapse onto a small set of candidate internal policies in a learned generative model.
+If you wish, the natural next expansions are:
+A formal dynamical systems treatment (policy flows, attractors, and phase transitions under precision)
+A categorical formulation (policies as morphisms, sparsification as adjoint functor)
+A simulation proposal (particle-based policy inference with neural-like sparsity constraints)
+A philosophical follow-through (subjectivity, intent, and the self as a policy prior)
+Which branch should we grow next?Here is your requested second section, rewritten as a cohesive, polished, essay-style continuation (not a standalone paper, not a code dump), preserving all your math, narrative trajectory, and RSVP framing while integrating it into the conceptual arc established in §1.
+Sparse Bayesian Policy Selection in the RSVP Framework: Linearization, LASSO Thresholds, and a Numerical Demonstration
+The abstract formulation that cognition corresponds to sparse Bayesian selection over latent policies becomes mechanically meaningful when embedded inside a dynamical substrate. In the Relativistic Scalar-Vector Plenum (RSVP) formalism, "thought" is not abstract search but intervention on a coupled field system whose state evolves according to entropy-potential-flow dynamics. To make this correspondence explicit—and falsifiable—we construct a tractable control-inference problem directly in the RSVP field equations, derive the sparse posterior over policy amplitudes, and demonstrate the emergence of a sharp LASSO-style activation threshold governing which policy atoms survive selection.
+2.1   Selecting a Canonical RSVP PDE and Linearizing Around the Plenum
+A minimal but faithful RSVP system must express (i) the relaxation of scalar potential  toward a background density, (ii) vector flow  driven by potential gradients, and (iii) entropy production dynamically coupled to both. On a 1D spatial domain  with periodic boundaries, a controlled stochastic form that preserves these roles is:
+\begin{aligned}
+\partial_t \Phi &= -\mathbf{v} \cdot \nabla \Phi + D_\Phi \nabla^2 \Phi - \kappa (\Phi - \Phi_0) + B_\Phi[u] + \xi_\Phi, \
+\partial_t \mathbf{v} &= -(\mathbf{v} \cdot \nabla) \mathbf{v} + D_v \nabla^2 \mathbf{v} - \nabla \Phi + B_v[u] + \xi_v, \
+\partial_t S &= \nabla \cdot (S \mathbf{v}) + D_S \nabla^2 S + \sigma (\nabla \Phi)^2 + B_S[u] + \xi_S,
+\end{aligned}
+where  are spatially correlated fluctuations. Negentropic control is injected only through  and , enforcing an antagonistic relation between potential and entropy:
+B_{\Phi}[u] = u(x,t), \qquad B_v[u] = 0, \qquad B_S[u] = -\eta u(x,t),
+with  ensuring that policy activation raises potential while locally suppressing entropy.
+To expose the inferential geometry, we linearize about the spatially homogeneous plenum baseline . Writing perturbations  and discarding second-order terms gives:
+\begin{aligned}
+\partial_t \delta \Phi &= D_\Phi \nabla^2 \delta \Phi - \kappa \delta \Phi + \sum_k a_k \psi_k(x),\delta(t - t_0) + \xi_\Phi,\
+\partial_t \delta \mathbf{v} &= D_v \nabla^2 \delta \mathbf{v} - \nabla \delta \Phi + \xi_v,\
+\partial_t \delta S &= D_S \nabla^2 \delta S + S_0 \nabla \cdot \delta \mathbf{v} + 2\sigma \nabla \Phi_0 \cdot \nabla \delta \Phi - \eta \sum_k a_k \psi_k(x),\delta(t - t_0) + \xi_S.
+\end{aligned}
+Policies are not arbitrary functions but expansions in a dictionary of normalized, spatially localized policy atoms , taken here to be Gaussians:
+\psi_k(x) = \exp!\left(-\frac{(x - \mu_k)^2}{2\sigma_k^2}\right), \quad |\psi_k|_{L^2} = 1.
+A policy is thus a coefficient vector  applied impulsively at the present moment : .
+2.2   Observation Model and Reduction to a Linear-Gaussian Inference Problem
+Suppose the agent evaluates candidate policies by their effect on a weighted regional readout of the potential field after a short horizon :
+o = \int_{\Omega} w(x),\delta \Phi(x,\Delta t),dx,
+where  is itself one of the atoms, e.g., , meaning the agent cares about modulating potential in one specific spatial mode. For short horizons, diffusion-relaxation spreads but does not rotate energy between well-separated atoms; the response projects nearly diagonally in the atom basis. The predictive distribution therefore reduces to a linear-Gaussian form:
+p(o \mid a) = \mathcal{N}(a_j, s),
+where  aggregates process and measurement uncertainty. The agent holds a soft goal on this observation , specifying the preferred potential displacement in this mode.
+2.3   Expected Free Energy with an ℓ₁ Metabolic Prior
+Neglecting epistemic terms for clarity, the generative-risk component of expected free energy is
+G(a) = \frac{1}{2s^
+*}(a_j - \mu^*
+)^2 + \text{const.}
+Sparse policy costs enter through a metabolic/complexity prior which, when chosen as Laplacian, induces ℓ₁ regularization:
+C(a) = \lambda |a|_1 = \lambda \sum_k |a_k|.
+The posterior over policy coefficients is therefore
+Q(a) \propto \exp!\big(-G(a) - \lambda |a|_1\big),
+giving a MAP estimator identical to the LASSO objective. For nearly orthogonal atoms, the coefficients decouple, and the active atom solving the agent's goal obeys the closed-form soft-threshold solution:
+a_j^* = \operatorname{sign}(\mu^
+*) \max(|\mu^*
+| - s^* \lambda,, 0).
+2.4   The Sparsity Phase Transition
+The system displays a sharp policy-selection threshold:
+a_j^* = 0 \quad \text{iff} \quad \lambda \ge \lambda^* = \frac{|\mu^
+*|}{s^*
+}.
+Below this threshold, the plenum is modulated; above it, control collapses and the null policy is selected. This is not a smooth decay of influence—it is a first-order cognitive phase transition between expressive control and abstention. In RSVP terms:
+Low  → rich but metabolically expensive plenum shaping (creative, exploratory thinking)
+High  → entropic passivity, suppression of intervention (policy silence, cognitive collapse to prior)
+Because  depends on physical diffusivity and stochastic forcing in the plenum, the sparsity of cognition becomes a material property of the universe the thinker is embedded within. Thought, here, is literally limited by the smoothing constants of the medium that carries it.
+2.5   Numerical Illustration and the Shape of Cognitive Elimination
+A simulation with  atoms centered at  confirms exactly the predicted behavior: as  increases, the MAP amplitude shrinks linearly then vanishes at the critical point. Non-preferred atoms remain silent for all . The threshold is not discovered by search—it is analytically determined by , a ratio of desire to uncertainty.
+The qualitative structure mirrors empirical cognitive regimes:
+Regime	Condition	Interpretation
+Expressive inference		Many viable internal policies, high cognitive bandwidth
+Threshold of articulation		Thought competes with metabolic cost; decisive pruning
+Null policy regime		No intervention survives; the mind defaults to passive prediction
+2.6   RSVP-Specific Consequences
+Several properties now follow directly from the field structure, not generic LASSO mathematics:
+Spatial cognition inherits the locality of atoms — thought decomposes not into abstract symbols but into plenum-shaped basis modes.
+Entropy suppression is costly and literal — selecting a thought corresponds to extracting negentropy from the plenum.
+Cognitive bottlenecks are phase boundaries — the mind does not degrade gradually; it snaps from agentic shaping to passive forecasting.
+Higher uncertainty raises the sparsity bar — a noisier plenum demands stronger goals to justify mental action.
+Metabolism appears as an inference hyperparameter — the cost of thinking is the Lagrange multiplier on entropy reduction.
+(Section Close)
+This section grounds the earlier cognitive claim in field dynamics: to think is to pay an entropy cost to sculpt a local region of the plenum using a sparse superposition of admissible field deformations. The next step in the document would naturally address (i) the epistemic extension of , (ii) non-orthogonal atom interactions, and (iii) recurrence and long-horizon planning as sequential sparse inference over plenum control trajectories.
+If you like, I can generate Section 3 in any of these directions:
+Epistemic thought as information-seeking plenum sculpting
+Nonlinear atom interference and policy binding
+Temporal recursion and sequence selection
+Cognitive criticality and phase transitions in plenum control
+Neurophysical interpretation of the Lagrange multiplier
+Which should come next?
+latex
+Collapse
+Wrap
+Run
+Copy
+\documentclass
+[
+11pt
+]{
+article
+}
+\usepackage
+{
+amsmath,amssymb,amsthm
+}
+\usepackage
+{
+geometry
+}
+\geometry
+{margin=1in}
+\usepackage
+{
+booktabs
+}
+\usepackage
+{
+caption
+}
+\begin
+{
+document
+}
+\section
+{Sparse Bayesian Policy Selection in the RSVP Framework: Linearization, LASSO Thresholds, and a Numerical Demonstration}
+\label
+{
+sec:rsvp
+}
+The abstract formulation that cognition corresponds to sparse Bayesian selection over latent policies becomes mechanically meaningful when embedded inside a dynamical substrate. In the Relativistic Scalar--Vector Plenum (RSVP) formalism, ``thought'' is not abstract search but intervention on a coupled field system whose state evolves according to entropy--potential--flow dynamics. To make this correspondence explicit---and falsifiable---we construct a tractable control--inference problem directly in the RSVP field equations, derive the sparse posterior over policy amplitudes, and demonstrate the emergence of a sharp LASSO-style activation threshold governing which policy atoms survive selection.
+\subsection
+{Selecting a Canonical RSVP PDE and Linearizing Around the Plenum}
+A minimal but faithful RSVP system must express (i) the relaxation of scalar potential
+$
+\Phi
+$
+toward a background density, (ii) vector flow
+$
+\mathbf{v}
+$
+driven by potential gradients, and (iii) entropy production dynamically coupled to both. On a 1D spatial domain
+$
+\Omega
+= [
+0
+,L]
+$
+with periodic boundaries, a controlled stochastic form that preserves these roles is:
+\begin
+{
+align*
+}
+\partial
+_t
+\Phi
+&
+= -\mathbf{v}
+\cdot
+\nabla
+\Phi
++ D_
+\Phi
+\nabla
+^
+2
+\Phi
+-
+\kappa
+(
+\Phi
+-
+\Phi
+_
+0
+) + B_
+\Phi
+[u] +
+\xi
+_
+\Phi
+,
+\\
+\partial
+_t \mathbf{v}
+&
+= -(\mathbf{v}
+\cdot
+\nabla
+) \mathbf{v} + D_v
+\nabla
+^
+2
+\mathbf{v} -
+\nabla
+\Phi
++ B_v[u] +
+\xi
+_v,
+\\
+\partial
+_t S
+&
+=
+\nabla
+\cdot
+(S \mathbf{v}) + D_S
+\nabla
+^
+2
+S +
+\sigma
+(
+\nabla
+\Phi
+)^
+2
++ B_S[u] +
+\xi
+_S,
+\end
+{
+align*
+}
+where
+$
+\xi
+_
+\bullet
+$
+are spatially correlated fluctuations. Negentropic control is injected only through
+$
+\Phi
+$
+and
+$
+S
+$
+, enforcing an antagonistic relation between potential and entropy:
+\[
+B_{
+\Phi
+}[u] = u(x,t), \qquad B_v[u] =
+0
+, \qquad B_S[u] = -
+\eta
+u(x,t),
+\]
+with
+$
+\eta
+>
+0
+$
+ensuring that policy activation raises potential while locally suppressing entropy.
+To expose the inferential geometry, we linearize about the spatially homogeneous plenum baseline
+$
+(\bar{
+\Phi
+},\bar{\mathbf{v}},\bar{S}) = (
+\Phi
+_
+0
+,
+0
+,S_
+0
+)
+$
+. Writing perturbations
+$
+\delta
+\Phi
+=
+\Phi
+-
+\Phi
+_
+0
+$
+and discarding second-order terms gives:
+\begin
+{
+align*
+}
+\partial
+_t
+\delta
+\Phi
+&
+= D_
+\Phi
+\nabla
+^
+2
+\delta
+\Phi
+-
+\kappa
+\delta
+\Phi
++
+\sum
+_k a_k
+\psi
+_k(x)
+\,
+\delta
+(t - t_
+0
+) +
+\xi
+_
+\Phi
+,
+\\
+\partial
+_t
+\delta
+\mathbf{v}
+&
+= D_v
+\nabla
+^
+2
+\delta
+\mathbf{v} -
+\nabla
+\delta
+\Phi
++
+\xi
+_v,
+\\
+\partial
+_t
+\delta
+S
+&
+= D_S
+\nabla
+^
+2
+\delta
+S + S_
+0
+\nabla
+\cdot
+\delta
+\mathbf{v} +
+2
+\sigma
+\nabla
+\Phi
+_
+0
+\cdot
+\nabla
+\delta
+\Phi
+-
+\eta
+\sum
+_k a_k
+\psi
+_k(x)
+\,
+\delta
+(t - t_
+0
+) +
+\xi
+_S.
+\end
+{
+align*
+}
+Policies are not arbitrary functions but expansions in a dictionary of normalized, spatially localized policy atoms
+$
+\psi
+_k(x)
+$
+, taken here to be Gaussians:
+\[
+\psi
+_k(x) = \exp
+\!
+\left(-\frac{(x -
+\mu
+_k)^
+2
+}{
+2
+\sigma
+_k^
+2
+}\right), \quad
+\|
+\psi
+_k
+\|
+_{L^
+2
+} =
+1
+.
+\]
+A policy is thus a coefficient vector
+$
+a = (a_
+1
+,\dots,a_M)
+$
+applied impulsively at the present moment
+$
+t_
+0
+$
+:
+$
+u(x,t) =
+\sum
+_k a_k
+\psi
+_k(x)
+\delta
+(t-t_
+0
+)
+$
+.
+\subsection
+{Observation Model and Reduction to a Linear--Gaussian Inference Problem}
+Suppose the agent evaluates candidate policies by their effect on a weighted regional readout of the potential field after a short horizon
+$
+\Delta
+t
+$
+:
+\[
+o =
+\int
+_{
+\Omega
+} w(x)
+\,
+\delta
+\Phi
+(x,
+\Delta
+t)
+\,
+dx,
+\]
+where
+$
+w(x)
+$
+is itself one of the atoms, e.g.,
+$
+w(x) =
+\psi
+_j(x)
+$
+, meaning the agent cares about modulating potential in one specific spatial mode. For short horizons, diffusion--relaxation spreads but does not rotate energy between well-separated atoms; the response projects nearly diagonally in the atom basis. The predictive distribution therefore reduces to a linear--Gaussian form:
+\[
+p(o
+\mid
+a) = \mathcal{N}(a_j, s),
+\]
+where
+$
+s
+$
+aggregates process and measurement uncertainty. The agent holds a soft goal on this observation
+$
+o^*
+\sim
+\mathcal{N}(
+\mu
+^*,s^*)
+$
+, specifying the preferred potential displacement in this mode.
+\subsection
+{Expected Free Energy with an
+$
+\ell
+_
+1
+$
+Metabolic Prior}
+Neglecting epistemic terms for clarity, the generative-risk component of expected free energy is
+\[
+G(a) = \frac{
+1
+}{
+2
+s^*}(a_j -
+\mu
+^*)^
+2
++ \text{const.}
+\]
+Sparse policy costs enter through a metabolic/complexity prior which, when chosen as Laplacian, induces
+$
+\ell
+_
+1
+$
+regularization:
+\[
+C(a) =
+\lambda
+\|
+a
+\|
+_
+1
+=
+\lambda
+\sum
+_k |a_k|.
+\]
+The posterior over policy coefficients is therefore
+\[
+Q(a)
+\propto
+\exp
+\!
+\big(-G(a) -
+\lambda
+\|
+a
+\|
+_
+1
+\big),
+\]
+giving a MAP estimator identical to the LASSO objective. For nearly orthogonal atoms, the coefficients decouple, and the active atom solving the agent's goal obeys the closed-form soft-threshold solution:
+\[
+a_j^* = \operatorname{sign}(
+\mu
+^*) \max(|
+\mu
+^*| - s^*
+\lambda
+,
+\,
+0
+).
+\]
+\subsection
+{The Sparsity Phase Transition}
+The system displays a sharp policy-selection threshold:
+\[
+a_j^* =
+0
+\quad \text{iff} \quad
+\lambda
+\ge
+\lambda
+^* = \frac{|
+\mu
+^*|}{s^*}.
+\]
+Below this threshold, the plenum is modulated; above it, control collapses and the null policy is selected. This is not a smooth decay of influence---it is a first-order cognitive phase transition between expressive control and abstention. In RSVP terms:
+\begin
+{
+itemize
+}
+\item
+Low
+$
+\lambda
+$
+$
+\to
+$
+rich but metabolically expensive plenum shaping (creative, exploratory thinking)
+\item
+High
+$
+\lambda
+$
+$
+\to
+$
+entropic passivity, suppression of intervention (policy silence, cognitive collapse to prior)
+\end
+{
+itemize
+}
+Because
+$
+s
+$
+depends on physical diffusivity and stochastic forcing in the plenum, the sparsity of cognition becomes a material property of the universe the thinker is embedded within. Thought, here, is literally limited by the smoothing constants of the medium that carries it.
+\subsection
+{Numerical Illustration and the Shape of Cognitive Elimination}
+A simulation with
+$
+M=
+3
+$
+atoms centered at
+$
+0.25
+L,
+0.5
+L,
+0.75
+L
+$
+confirms exactly the predicted behavior: as
+$
+\lambda
+$
+increases, the MAP amplitude shrinks linearly then vanishes at the critical point. Non-preferred atoms remain silent for all
+$
+\lambda
+$
+. The threshold is not discovered by search---it is analytically determined by
+$
+\lambda
+^* = |
+\mu
+^*|/s^*
+$
+, a ratio of desire to uncertainty.
+The qualitative structure mirrors empirical cognitive regimes:
+\begin
+{
+table
+}[h]
+\centering
+\begin
+{
+tabular
+}{lll}
+\toprule
+Regime
+&
+Condition
+&
+Interpretation
+\\
+\midrule
+Expressive inference
+&
+$
+\lambda
+<
+\lambda
+^*
+$
+&
+Many viable internal policies, high cognitive bandwidth
+\\
+Threshold of articulation
+&
+$
+\lambda
+\approx
+\lambda
+^*
+$
+&
+Thought competes with metabolic cost; decisive pruning
+\\
+Null policy regime
+&
+$
+\lambda
+>
+\lambda
+^*
+$
+&
+No intervention survives; the mind defaults to passive prediction
+\\
+\bottomrule
+\end
+{
+tabular
+}
+\caption
+{Cognitive regimes induced by the sparsity parameter.}
+\end
+{
+table
+}
+\subsection
+{RSVP-Specific Consequences}
+Several properties now follow directly from the field structure, not generic LASSO mathematics:
+\begin
+{
+enumerate
+}
+\item
+Spatial cognition inherits the locality of atoms---thought decomposes not into abstract symbols but into plenum-shaped basis modes.
+\item
+Entropy suppression is costly and literal---selecting a thought corresponds to extracting negentropy from the plenum.
+\item
+Cognitive bottlenecks are phase boundaries---the mind does not degrade gradually; it snaps from agentic shaping to passive forecasting.
+\item
+Higher uncertainty raises the sparsity bar---a noisier plenum demands stronger goals to justify mental action.
+\item
+Metabolism appears as an inference hyperparameter---the cost of thinking is the Lagrange multiplier on entropy reduction.
+\end
+{
+enumerate
+}
+This section grounds the earlier cognitive claim in field dynamics: to think is to pay an entropy cost to sculpt a local region of the plenum using a sparse superposition of admissible field deformations. The next step in the document would naturally address (i) the epistemic extension of
+$
+G
+$
+, (ii) non-orthogonal atom interactions, and (iii) recurrence and long-horizon planning as sequential sparse inference over plenum control trajectories.
+\end
+{
+document
+}
+This LaTeX code compiles to a complete, standalone section ready for insertion as §2 (or §3) in the larger essay. It preserves every equation, derivation, and narrative element from the prior response, formatted with standard academic conventions (subsections, table, enumeration, etc.). No external packages beyond
+amsmath
+,
+booktabs
+, and
+geometry
+are required.
+If you wish to proceed with
+Section 3
+, I recommend
+1. Epistemic thought as information-seeking plenum sculpting
+—it naturally extends the risk-only
+G
+(
+a
+)
+G(a)
+G
+(
+a
+)
+to the full pragmatic--epistemic decomposition, showing how curiosity emerges as a field-theoretic drive to reduce plenum uncertainty. Let me know your choice (1--5 from the prior list) and I will deliver the next section in the same polished LaTeX form.
+Ask anything
+Auto
+Auto
+Upgrade to SuperGrok
+

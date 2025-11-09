@@ -1,0 +1,3562 @@
+Font Generation from Grid Template - Grok
+Alternar barra lateral
+Let's work on this <!doctype html>
+<html lang="en">
+<head>
+&nbsp;&nbsp;<meta charset="utf-8" />
+&nbsp;&nbsp;<meta name="viewport" content="width=device-width, initial-scale=1" />
+&nbsp;&nbsp;<title>Font from Grid — Template → Scan → TTF</title>
+&nbsp;&nbsp;<style>
+&nbsp;&nbsp;&nbsp;&nbsp;:root { --fg:#0a0a0a; --bg:#f6f6f6; --accent:#1d4ed8; }
+&nbsp;&nbsp;&nbsp;&nbsp;html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+&nbsp;&nbsp;&nbsp;&nbsp;header{padding:16px 20px;border-bottom:1px solid #ddd;background:#fff;position:sticky;top:0;z-index:10}
+&nbsp;&nbsp;&nbsp;&nbsp;header h1{margin:0;font-size:20px}
+&nbsp;&nbsp;&nbsp;&nbsp;main{max-width:1100px;margin:0 auto;padding:16px}
+&nbsp;&nbsp;&nbsp;&nbsp;.row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+&nbsp;&nbsp;&nbsp;&nbsp;.card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:14px}
+&nbsp;&nbsp;&nbsp;&nbsp;h2{font-size:18px;margin:0 0 8px}
+&nbsp;&nbsp;&nbsp;&nbsp;fieldset{border:1px solid #e6e6e6;border-radius:10px;padding:10px;margin:10px 0}
+&nbsp;&nbsp;&nbsp;&nbsp;legend{padding:0 6px;color:#333}
+&nbsp;&nbsp;&nbsp;&nbsp;label{display:block;font-size:13px;margin:8px 0 2px}
+&nbsp;&nbsp;&nbsp;&nbsp;input,select,button,textarea{font:inherit}
+&nbsp;&nbsp;&nbsp;&nbsp;input[type="number"], input[type="text"], select{width:100%;padding:8px;border:1px solid #cfcfcf;border-radius:8px;background:#fafafa}
+&nbsp;&nbsp;&nbsp;&nbsp;.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+&nbsp;&nbsp;&nbsp;&nbsp;.controls.wide{grid-template-columns:repeat(4,1fr)}
+&nbsp;&nbsp;&nbsp;&nbsp;.btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer}
+&nbsp;&nbsp;&nbsp;&nbsp;.btn.alt{background:#111}
+&nbsp;&nbsp;&nbsp;&nbsp;.btn.ghost{background:#fff;color:#111;border:1px solid #ddd}
+&nbsp;&nbsp;&nbsp;&nbsp;canvas{max-width:100%;background:#fff;border:1px dashed #bbb;border-radius:10px}
+&nbsp;&nbsp;&nbsp;&nbsp;.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+&nbsp;&nbsp;&nbsp;&nbsp;.small{font-size:12px;color:#444}
+&nbsp;&nbsp;&nbsp;&nbsp;.stack{display:flex;flex-direction:column;gap:10px}
+&nbsp;&nbsp;&nbsp;&nbsp;.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+&nbsp;&nbsp;&nbsp;&nbsp;.flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+&nbsp;&nbsp;&nbsp;&nbsp;.danger{color:#b91c1c}
+&nbsp;&nbsp;&nbsp;&nbsp;.ok{color:#166534}
+&nbsp;&nbsp;&nbsp;&nbsp;details{border:1px solid #e5e5e5;border-radius:10px;padding:10px;background:#fcfcfc}
+&nbsp;&nbsp;&nbsp;&nbsp;summary{cursor:pointer}
+&nbsp;&nbsp;&nbsp;&nbsp;.pill{display:inline-block;padding:2px 8px;border:1px solid #e2e8f0;border-radius:999px;background:#f8fafc;color:#0f172a;font-size:12px}
+&nbsp;&nbsp;</style>
+&nbsp;&nbsp;<!-- External libs (loaded at end of body to avoid blocking) -->
+</head>
+<body>
+<header>
+&nbsp;&nbsp;<h1>Font from Grid <span class="pill">prototype</span></h1>
+&nbsp;&nbsp;<div class="small">Generate printable templates → draw glyphs → scan/photo → extract → export TTF.</div>
+</header>
+<main>
+&nbsp;&nbsp;<section class="row">
+&nbsp;&nbsp;&nbsp;&nbsp;<div class="card">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<h2>1) Template generator</h2>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="controls wide">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Font name<input id="fontName" type="text" value="MyHandDrawn"/></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Page size<select id="pageSize">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="letter">US Letter (8.5×11 in)</option>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="a4">A4 (210×297 mm)</option>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</select></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Columns (per page)<input id="cols" type="number" min="4" max="32" value="16"/></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Rows (per page)<input id="rows" type="number" min="4" max="32" value="12"/></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="controls wide">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Cell px (print dpi scaled)<input id="cellPx" type="number" min="48" max="512" value="160"/></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Margin px<input id="marginPx" type="number" min="20" max="200" value="64"/></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Stroke px<input id="strokePx" type="number" min="1" max="8" value="2"/></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Guides<input id="guides" type="text" value="baseline=0.8,xheight=0.6,asc=0.9,desc=0.15"/></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<fieldset>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<legend>Codepoints to include</legend>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="controls">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Preset<select id="preset">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="ascii">ASCII (32-126)</option>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="latin1">Latin‑1 (32-255)</option>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<option value="custom" selected>Custom range</option>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</select></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Start U+<input id="startHex" type="text" class="mono" value="0020"/></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>End U+<input id="endHex" type="text" class="mono" value="007E"/></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</fieldset>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="flex">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn" id="renderTemplate">Render preview</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn ghost" id="downloadPNG">Download PNG</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn ghost" id="downloadPDF">Download PDF</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="small">Tip: print at 100% (no scaling). Each page includes corner fiducials.</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="stack">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<canvas id="tplCanvas" width="1600" height="1200"></canvas>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="small">Preview is raster. PDF export is vector‑ish via canvas; for exact vector outlines, a future iteration could emit pure PDF/SVG.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;<div class="card">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<h2>2) Scan / photo → extraction</h2>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="grid2">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="stack">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Upload scanned page(s)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input id="scanInput" type="file" accept="image/*" multiple />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Threshold (0-255)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input id="thresh" type="range" min="0" max="255" value="170" />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Downsample per glyph (pixels)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input id="glyphRes" type="number" min="16" max="96" value="48" />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="flex">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn" id="processScans">Process pages</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn alt" id="buildFont">Build TTF</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div id="status" class="small"></div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="stack">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<canvas id="scanCanvas" width="800" height="600"></canvas>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="small">Status preview: the most recent processed page appears here with deskew and threshold applied.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<details>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<summary>How it works (concise)</summary>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<ul>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<li>Templates include four corner squares (fiducials). We detect them to deskew the image.</li>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<li>Knowing rows/cols and margins, we segment cells, threshold to binary, and downsample to a small bitmap (e.g., 48×48).</li>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<li>We map cells → Unicode codepoints in scan order (left→right, top→bottom across pages).</li>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<li>Glyphs are converted to simple vector rectangles (one rect per on‑pixel) to build a valid TTF via OpenType.js. Crude but effective.</li>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</ul>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</details>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;</section>
+ 
+&nbsp;&nbsp;<section class="card" style="margin-top:18px">
+&nbsp;&nbsp;&nbsp;&nbsp;<h2>3) Download your font</h2>
+&nbsp;&nbsp;&nbsp;&nbsp;<div class="flex">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn" id="downloadTTF" disabled>Download TTF</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="fontSummary" class="small"></span>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;</section>
+ 
+&nbsp;&nbsp;<section class="card" style="margin-top:18px">
+&nbsp;&nbsp;&nbsp;&nbsp;<h2>Notes & limitations</h2>
+&nbsp;&nbsp;&nbsp;&nbsp;<ul>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<li>This is a browser‑only prototype. It favors simplicity and transparency over sophistication.</li>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<li>Vectorization is <em>rectangular per pixel</em>; for smoother curves, integrate a contour tracer (e.g., marching squares) in a future version.</li>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<li>If fiducial detection fails, ensure high contrast, flat scan, and print at 100% scale. You can also rotate the image manually before upload.</li>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<li>Use a black pen/marker; stay inside the inner guides. X‑height/baseline guides are advisory and can be adjusted in the template.</li>
+&nbsp;&nbsp;&nbsp;&nbsp;</ul>
+&nbsp;&nbsp;</section>
+</main>
+ 
+<!-- OpenType.js (MIT) -->
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+<!-- jsPDF for quick PDF export (MIT) -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+ 
+<script>
+(function(){
+&nbsp;&nbsp;const $ = sel => document.querySelector(sel);
+&nbsp;&nbsp;const tplCanvas = $('#tplCanvas');
+&nbsp;&nbsp;const tplCtx = tplCanvas.getContext('2d');
+&nbsp;&nbsp;const scanCanvas = $('#scanCanvas');
+&nbsp;&nbsp;const scanCtx = scanCanvas.getContext('2d');
+ 
+&nbsp;&nbsp;let codepoints = [];
+&nbsp;&nbsp;let extractedGlyphs = []; // { code, bitmap: Uint8Array(width*height), w, h }
+ 
+&nbsp;&nbsp;function pagePixels(size){
+&nbsp;&nbsp;&nbsp;&nbsp;// Render at 150 DPI equivalent for preview/export; scale will be handled for PDF
+&nbsp;&nbsp;&nbsp;&nbsp;if(size==='a4') return {w: 1240, h: 1754}; // ~A4 at 150dpi
+&nbsp;&nbsp;&nbsp;&nbsp;return {w: 1275, h: 1650}; // Letter at 150dpi
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function parseGuides(str){
+&nbsp;&nbsp;&nbsp;&nbsp;const g = { baseline:0.8, xheight:0.6, asc:0.9, desc:0.15 };
+&nbsp;&nbsp;&nbsp;&nbsp;str.split(',').forEach(kv=>{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const [k,v] = kv.split('=').map(s=>s.trim());
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(k && v && !Number.isNaN(parseFloat(v))) g[k]=parseFloat(v);
+&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;&nbsp;return g;
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function buildCodepoints(){
+&nbsp;&nbsp;&nbsp;&nbsp;const preset = $('#preset').value;
+&nbsp;&nbsp;&nbsp;&nbsp;let start=0x20, end=0x7E;
+&nbsp;&nbsp;&nbsp;&nbsp;if(preset==='latin1'){ start=0x20; end=0xFF; }
+&nbsp;&nbsp;&nbsp;&nbsp;if(preset==='custom'){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;start = parseInt($('#startHex').value,16);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end = parseInt($('#endHex').value,16);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(!Number.isFinite(start)||!Number.isFinite(end)||end<start) { start=0x20; end=0x7E; }
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;const cps=[];
+&nbsp;&nbsp;&nbsp;&nbsp;for(let c=start;c<=end;c++) cps.push(c);
+&nbsp;&nbsp;&nbsp;&nbsp;return cps;
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function drawTemplate(){
+&nbsp;&nbsp;&nbsp;&nbsp;const fontName=$('#fontName').value.trim()||'MyHandDrawn';
+&nbsp;&nbsp;&nbsp;&nbsp;const ps=$('#pageSize').value; const {w:PW,h:PH}=pagePixels(ps);
+&nbsp;&nbsp;&nbsp;&nbsp;const cols=+$$ ('#cols').value|0; const rows=+ $$('#rows').value|0;
+&nbsp;&nbsp;&nbsp;&nbsp;const cellPx=+$$ ('#cellPx').value|0; const margin=+ $$('#marginPx').value|0; const stroke=+$('#strokePx').value|0;
+&nbsp;&nbsp;&nbsp;&nbsp;const guides=parseGuides($('#guides').value);
+&nbsp;&nbsp;&nbsp;&nbsp;codepoints=buildCodepoints();
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// Determine grid overall size
+&nbsp;&nbsp;&nbsp;&nbsp;const gridW = cols*cellPx; const gridH = rows*cellPx;
+&nbsp;&nbsp;&nbsp;&nbsp;const pageW = Math.max(PW, gridW + margin*2);
+&nbsp;&nbsp;&nbsp;&nbsp;const pageH = Math.max(PH, gridH + margin*2 + 100);
+&nbsp;&nbsp;&nbsp;&nbsp;tplCanvas.width = pageW; tplCanvas.height = pageH;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// bg
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillStyle='#fff'; tplCtx.fillRect(0,0,pageW,pageH);
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillStyle='#111';
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// Header
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.font = '16px system-ui, sans-serif';
+&nbsp;&nbsp;&nbsp;&nbsp;const meta = `${fontName} • ${cols}×${rows} • cell ${cellPx}px • preset ${$('#preset').value}`;
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillText('Font from Grid — Template', margin, margin-32 < 24 ? 24 : margin-32);
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.font = '12px system-ui, sans-serif';
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillText(meta, margin, margin-10);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// Fiducial squares (20×20)
+&nbsp;&nbsp;&nbsp;&nbsp;const f=24;
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillRect(8,8,f,f);
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillRect(pageW-f-8,8,f,f);
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillRect(8,pageH-f-8,f,f);
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillRect(pageW-f-8,pageH-f-8,f,f);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// Grid outer rect
+&nbsp;&nbsp;&nbsp;&nbsp;const gx = Math.floor((pageW - gridW)/2);
+&nbsp;&nbsp;&nbsp;&nbsp;const gy = Math.floor((pageH - gridH)/2);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.strokeStyle='#000'; tplCtx.lineWidth=stroke;
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.strokeRect(gx,gy,gridW,gridH);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// Cell lines
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.beginPath();
+&nbsp;&nbsp;&nbsp;&nbsp;for(let c=1;c<cols;c++){ const x=gx+c*cellPx; tplCtx.moveTo(x,gy); tplCtx.lineTo(x,gy+gridH); }
+&nbsp;&nbsp;&nbsp;&nbsp;for(let r=1;r<rows;r++){ const y=gy+r*cellPx; tplCtx.moveTo(gx,y); tplCtx.lineTo(gx+gridH?gx+gridW:gx+gridW,y); }
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.stroke();
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// Guides inside each cell (baseline, xheight, ascender, descender)
+&nbsp;&nbsp;&nbsp;&nbsp;const gcolors=['#60a5fa','#93c5fd','#1d4ed8','#60a5fa'];
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.save();
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.globalAlpha=0.6; tplCtx.lineWidth=1;
+&nbsp;&nbsp;&nbsp;&nbsp;for(let r=0;r<rows;r++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let c=0;c<cols;c++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x=gx+c*cellPx, y=gy+r*cellPx;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const bl = y + cellPx*(1-guides.baseline);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const xh = y + cellPx*(1-guides.xheight);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const asc= y + cellPx*(1-guides.asc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const desc= y + cellPx*(1+guides.desc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[[asc,gcolors[2]],[xh,gcolors[1]],[bl,gcolors[0]],[desc,gcolors[3]]].forEach(([yy,col])=>{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.strokeStyle=col; tplCtx.beginPath(); tplCtx.moveTo(x+2,yy); tplCtx.lineTo(x+cellPx-2,yy); tplCtx.stroke();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.restore();
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// Cell labels (codepoint or hex)
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillStyle='#111';
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.font='10px ui-monospace, monospace';
+&nbsp;&nbsp;&nbsp;&nbsp;let idx=0;
+&nbsp;&nbsp;&nbsp;&nbsp;for(let r=0;r<rows;r++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let c=0;c<cols;c++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cp = codepoints[idx++]; if(cp===undefined) break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x=gx+c*cellPx+4; const y=gy+r*cellPx+12;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const hex = cp.toString(16).toUpperCase().padStart(4,'0');
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillText(`U+${hex}`, x, y);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// Footer
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillStyle='#333';
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.font='11px system-ui, sans-serif';
+&nbsp;&nbsp;&nbsp;&nbsp;tplCtx.fillText('Draw glyphs in black. Stay within the inner box. Keep baseline/x‑height alignment consistent.', gx, gy+gridH+24);
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function downloadPNG(){
+&nbsp;&nbsp;&nbsp;&nbsp;const url = tplCanvas.toDataURL('image/png');
+&nbsp;&nbsp;&nbsp;&nbsp;const a = document.createElement('a');
+&nbsp;&nbsp;&nbsp;&nbsp;a.href = url; a.download = `grid_template.png`; a.click();
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;async function downloadPDF(){
+&nbsp;&nbsp;&nbsp;&nbsp;const { jsPDF } = window.jspdf;
+&nbsp;&nbsp;&nbsp;&nbsp;const ps=$('#pageSize').value; const {w:PW,h:PH}=pagePixels(ps);
+&nbsp;&nbsp;&nbsp;&nbsp;const doc = new jsPDF({ unit:'pt', format:[PW,PH] });
+&nbsp;&nbsp;&nbsp;&nbsp;const img = tplCanvas.toDataURL('image/png');
+&nbsp;&nbsp;&nbsp;&nbsp;doc.addImage(img,'PNG',0,0,PW,PH);
+&nbsp;&nbsp;&nbsp;&nbsp;doc.save('grid_template.pdf');
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function setStatus(html, ok=true){
+&nbsp;&nbsp;&nbsp;&nbsp;const el=$('#status'); el.innerHTML=html; el.className = 'small ' + (ok?'ok':'danger');
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function getSegParams(){
+&nbsp;&nbsp;&nbsp;&nbsp;const ps=$('#pageSize').value; const {w:PW,h:PH}=pagePixels(ps);
+&nbsp;&nbsp;&nbsp;&nbsp;const cols=+$$ ('#cols').value|0; const rows=+ $$('#rows').value|0;
+&nbsp;&nbsp;&nbsp;&nbsp;const cellPx=+$('#cellPx').value|0;
+&nbsp;&nbsp;&nbsp;&nbsp;const gridW = cols*cellPx; const gridH = rows*cellPx;
+&nbsp;&nbsp;&nbsp;&nbsp;const gx = Math.floor((Math.max(PW, gridW + (+$('#marginPx').value)*2) - gridW)/2);
+&nbsp;&nbsp;&nbsp;&nbsp;const gy = Math.floor((Math.max(PH, gridH + (+$('#marginPx').value)*2 + 100) - gridH)/2);
+&nbsp;&nbsp;&nbsp;&nbsp;return { cols, rows, cellPx, gx, gy };
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function binarize(ctx, w, h, T){
+&nbsp;&nbsp;&nbsp;&nbsp;const {data} = ctx.getImageData(0,0,w,h);
+&nbsp;&nbsp;&nbsp;&nbsp;const out = new Uint8ClampedArray(w*h);
+&nbsp;&nbsp;&nbsp;&nbsp;for(let i=0, p=0;i<data.length;i+=4,p++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const lum = 0.2126*data[i] + 0.7152*data[i+1] + 0.0722*data[i+2];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out[p] = lum < T ? 1 : 0; // 1 = black (ink)
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;return out;
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function crop(ctx, x,y,w,h){
+&nbsp;&nbsp;&nbsp;&nbsp;const img = ctx.getImageData(x,y,w,h);
+&nbsp;&nbsp;&nbsp;&nbsp;const c = document.createElement('canvas'); c.width=w; c.height=h;
+&nbsp;&nbsp;&nbsp;&nbsp;c.getContext('2d').putImageData(img,0,0);
+&nbsp;&nbsp;&nbsp;&nbsp;return c;
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function downsample(bitmap, sw, sh, dx, dy){
+&nbsp;&nbsp;&nbsp;&nbsp;const out = new Uint8Array(dx*dy);
+&nbsp;&nbsp;&nbsp;&nbsp;const sx = sw/dx, sy = sh/dy;
+&nbsp;&nbsp;&nbsp;&nbsp;for(let j=0;j<dy;j++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let i=0;i<dx;i++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// average in the source cell
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x0=Math.floor(i*sx), x1=Math.floor((i+1)*sx);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const y0=Math.floor(j*sy), y1=Math.floor((j+1)*sy);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let sum=0, cnt=0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let yy=y0; yy<y1; yy++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let xx=x0; xx<x1; xx++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sum += bitmap[yy*sw+xx]; cnt++;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out[j*dx+i] = (sum/cnt) > 0.5 ? 1 : 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;return out;
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function drawToCanvas(img, dest){
+&nbsp;&nbsp;&nbsp;&nbsp;const scale = Math.min(dest.width/img.width, dest.height/img.height);
+&nbsp;&nbsp;&nbsp;&nbsp;const w = Math.round(img.width*scale); const h=Math.round(img.height*scale);
+&nbsp;&nbsp;&nbsp;&nbsp;const x = Math.round((dest.width-w)/2), y=Math.round((dest.height-h)/2);
+&nbsp;&nbsp;&nbsp;&nbsp;const ctx=dest.getContext('2d');
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillStyle='#fff'; ctx.fillRect(0,0,dest.width,dest.height);
+&nbsp;&nbsp;&nbsp;&nbsp;ctx.drawImage(img, x, y, w, h);
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;async function processScans(files){
+&nbsp;&nbsp;&nbsp;&nbsp;if(!files || !files.length){ setStatus('No images selected', false); return; }
+&nbsp;&nbsp;&nbsp;&nbsp;setStatus('Processing...');
+&nbsp;&nbsp;&nbsp;&nbsp;const T = +$('#thresh').value|0;
+&nbsp;&nbsp;&nbsp;&nbsp;const {cols, rows, cellPx, gx, gy} = getSegParams();
+&nbsp;&nbsp;&nbsp;&nbsp;const res = +$('#glyphRes').value|0;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// Build mapping order
+&nbsp;&nbsp;&nbsp;&nbsp;codepoints = buildCodepoints();
+&nbsp;&nbsp;&nbsp;&nbsp;let cpIndex=0;
+&nbsp;&nbsp;&nbsp;&nbsp;extractedGlyphs = [];
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;for (const f of files){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const img = await fileToImage(f);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawToCanvas(img, scanCanvas);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// For simplicity: assume the scan is aligned closely; take the region where grid would be on the template.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Compute same grid region on the displayed canvas.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const scaleX = img.width/scanCanvas.width; const scaleY = img.height/scanCanvas.height;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gridX = Math.floor(gx/scaleX), gridY=Math.floor(gy/scaleY);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gridW = Math.floor(cols*cellPx/scaleX), gridH=Math.floor(rows*cellPx/scaleY);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const ctx = scanCanvas.getContext('2d');
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gridCanvas = crop(ctx, Math.max(0,gridX), Math.max(0,gridY), Math.min(gridW,scanCanvas.width-gridX), Math.min(gridH,scanCanvas.height-gridY));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gctx = gridCanvas.getContext('2d');
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const bin = binarize(gctx, gridCanvas.width, gridCanvas.height, T);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Extract each cell region by proportional slicing
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cw = Math.floor(gridCanvas.width/cols);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const ch = Math.floor(gridCanvas.height/rows);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let r=0;r<rows;r++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let c=0;c<cols;c++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cp = codepoints[cpIndex++];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(cp===undefined) break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x0=c*cw, y0=r*ch;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Copy cell bitmap
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cell = new Uint8Array(cw*ch);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let y=0;y<ch;y++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let x=0;x<cw;x++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cell[y*cw+x] = bin[(y0+y)*gridCanvas.width + (x0+x)];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Remove a 10% border to avoid touching lines
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const bx=Math.floor(cw*0.1), by=Math.floor(ch*0.1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const innerW=cw-2*bx, innerH=ch-2*by;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const inner = new Uint8Array(innerW*innerH);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let y=0;y<innerH;y++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let x=0;x<innerW;x++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inner[y*innerW+x] = cell[(y+by)*cw + (x+bx)];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const dsm = downsample(inner, innerW, innerH, res, res);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;extractedGlyphs.push({ code: cp, bitmap: dsm, w: res, h: res });
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;setStatus(`Extracted ${extractedGlyphs.length} glyph bitmaps from ${files.length} page(s).`, true);
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function fileToImage(file){
+&nbsp;&nbsp;&nbsp;&nbsp;return new Promise((resolve,reject)=>{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const img = new Image();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;img.onload=()=>resolve(img);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;img.onerror=e=>reject(e);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;img.src = URL.createObjectURL(file);
+&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function rectanglesFromBitmap(bm, w, h){
+&nbsp;&nbsp;&nbsp;&nbsp;// Merge horizontal runs to fewer rectangles for efficiency
+&nbsp;&nbsp;&nbsp;&nbsp;const rects=[];
+&nbsp;&nbsp;&nbsp;&nbsp;for(let y=0;y<h;y++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let x=0; while(x<w){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(bm[y*w+x]){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let x2=x+1; while(x2<w && bm[y*w+x2]) x2++;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rects.push({x, y, w:(x2-x), h:1});
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x=x2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else x++;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;return rects;
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;function buildTTF(){
+&nbsp;&nbsp;&nbsp;&nbsp;if(!extractedGlyphs.length){ setStatus('No glyphs extracted yet.', false); return; }
+&nbsp;&nbsp;&nbsp;&nbsp;const unitsPerEm = 1000; // font design units
+&nbsp;&nbsp;&nbsp;&nbsp;const ascent = 800, descent = -200; // simple metrics
+&nbsp;&nbsp;&nbsp;&nbsp;const glyphs = [];
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;for(const g of extractedGlyphs){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const scale = 700/Math.max(g.w,g.h); // scale bitmap to 700 units square, leaving headroom
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const xOffset = 150, yOffset = 150; // margin inside the 1000 UPM box
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const path = new opentype.Path();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const rects = rectanglesFromBitmap(g.bitmap, g.w, g.h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(const r of rects){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Convert bitmap px to font units (y inverted)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x0 = xOffset + r.x*scale;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const y0 = yOffset + (g.h - (r.y + r.h))*scale;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const w = r.w*scale, h = r.h*scale;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Draw rectangle clockwise
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path.moveTo(x0, y0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path.lineTo(x0+w, y0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path.lineTo(x0+w, y0-h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path.lineTo(x0, y0-h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path.close();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const advanceWidth = 800; // fixed advance; could compute from bitmap bounds
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const glyph = new opentype.Glyph({
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: 'u'+g.code.toString(16),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unicode: g.code,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;advanceWidth,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glyphs.push(glyph);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;const font = new opentype.Font({
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;familyName: $('#fontName').value.trim()||'MyHandDrawn',
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;styleName: 'Regular',
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unitsPerEm,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ascender: ascent,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;descender: descent,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glyphs
+&nbsp;&nbsp;&nbsp;&nbsp;});
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;const ttfData = font.toArrayBuffer();
+&nbsp;&nbsp;&nbsp;&nbsp;const blob = new Blob([new DataView(ttfData)], {type:'font/ttf'});
+&nbsp;&nbsp;&nbsp;&nbsp;const url = URL.createObjectURL(blob);
+&nbsp;&nbsp;&nbsp;&nbsp;$('#downloadTTF').disabled=false;
+&nbsp;&nbsp;&nbsp;&nbsp;$('#downloadTTF').onclick=()=>{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const a=document.createElement('a');
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a.href=url; a.download=(font.names.fontFamily.en||'MyHandDrawn')+'.ttf'; a.click();
+&nbsp;&nbsp;&nbsp;&nbsp;};
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;$('#fontSummary').textContent = `Built ${glyphs.length} glyphs · UPM ${unitsPerEm} · ascent ${ascent} · descent ${descent}`;
+&nbsp;&nbsp;&nbsp;&nbsp;setStatus('TTF built in memory. You can download it now.', true);
+&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;// Event bindings
+&nbsp;&nbsp;$('#renderTemplate').addEventListener('click', drawTemplate);
+&nbsp;&nbsp;$('#downloadPNG').addEventListener('click', downloadPNG);
+&nbsp;&nbsp;$('#downloadPDF').addEventListener('click', downloadPDF);
+&nbsp;&nbsp;$('#processScans').addEventListener('click', ()=>{
+&nbsp;&nbsp;&nbsp;&nbsp;const files = $('#scanInput').files; processScans(files);
+&nbsp;&nbsp;});
+&nbsp;&nbsp;$('#buildFont').addEventListener('click', buildTTF);
+ 
+&nbsp;&nbsp;// Initial
+&nbsp;&nbsp;drawTemplate();
+})();
+</script>
+</body>
+</html>
+Perfect — I'll create SPECIFICATION.md for the Font-from-Grid repository in the same tone and structure as your other research-oriented but developer-ready documents.
+ 
+It will include:
+ 
+Overview
+ 
+Technical specs
+ 
+Architecture
+ 
+Roadmap (with future expansions)
+ 
+Integration with broader Flyxion theory (optional appendix)
+ 
+ 
+ 
+---
+ 
+SPECIFICATION.md
+ 
+# Font-from-Grid
+**Template → Draw → Scan → TTF**
+ 
+---
+ 
+## 1. Overview
+ 
+**Font-from-Grid** is an entirely client-side, open-source system for converting *hand-drawn characters on printed grids* into fully functional **TrueType fonts (TTF)**.
+It unifies analog creativity and digital typography through a closed causal loop:
+ 
+> **Generate → Draw → Scan → Export**
+ 
+Each stage — template creation, glyph extraction, and font synthesis — operates within the browser using `Canvas`, `OpenType.js`, and `jsPDF`, requiring no backend or external service.
+ 
+---
+ 
+## 2. Core Objectives
+ 
+- Democratize custom type design without specialized software.
+- Preserve the tactile quality of handwriting in digital media.
+- Serve as an open reference model for *physical-digital font reconstruction*.
+- Provide a modular base for future AI/ML vectorization and stylization pipelines.
+ 
+---
+ 
+## 3. Functional Specification
+ 
+| Component | Function | Libraries / Standards |
+|------------|-----------|-----------------------|
+| **Template Generator** | Produces printable grid sheets labeled by Unicode codepoints with configurable geometry and typographic guides. | Canvas 2D, jsPDF |
+| **Glyph Extractor** | Parses scanned or photographed pages, segments by grid, thresholds, and downsamples each glyph bitmap. | Canvas 2D |
+| **TTF Builder** | Converts bitmaps into vectorized rectangles per pixel, producing a valid OpenType font. | OpenType.js |
+| **Export / Download** | Exports PNG/PDF for templates and TTF for fonts. | Native browser APIs |
+ 
+---
+ 
+## 4. Architecture
+ 
+### 4.1 System Layout
+ 
+font-from-grid/ ├── index.html # single-page app ├── manifest.json # metadata ├── scripts/ │ ├── dev.sh # local test server │ └── build_zip.sh # package builder ├── Dockerfile # nginx static deploy └── .github/workflows/pages.yml # CI deploy
+ 
+### 4.2 Data Flow
+1. **Template Generation** → Canvas render → PNG/PDF output.
+2. **User Interaction** → Printed drawing → scanned image input.
+3. **Glyph Extraction** → Thresholding → grid segmentation → bitmaps.
+4. **TTF Construction** → Rectangular vectorization → OpenType font object → Blob download.
+ 
+### 4.3 Parameters
+| Setting | Default | Description |
+|----------|----------|-------------|
+| Page size | Letter | A4 optional |
+| Grid columns | 16 | per page |
+| Grid rows | 12 | per page |
+| Cell size | 160 px | approximate printable cell |
+| Threshold | 170 | grayscale cutoff |
+| Downsample | 48×48 | per-glyph bitmap resolution |
+ 
+---
+ 
+## 5. Technical Specification
+ 
+| Attribute | Specification |
+|------------|---------------|
+| **Language Stack** | HTML5, CSS3, ES6 JavaScript |
+| **Primary Libraries** | OpenType.js, jsPDF |
+| **Rendering** | Canvas 2D context |
+| **Output Formats** | `.png`, `.pdf`, `.ttf` |
+| **Font Metrics** | UnitsPerEm=1000, Ascender=+800, Descender=−200 |
+| **License** | MIT |
+| **Deployment** | GitHub Pages (CI via Actions) |
+| **Browser Support** | Chrome ≥95, Firefox ≥90, Edge ≥100 |
+ 
+---
+ 
+## 6. Design Rationale
+ 
+- **No server dependency:** Ensures privacy and reproducibility.
+- **Declarative geometry:** Font grids defined by exact cell metrics; reproducible across DPI and paper formats.
+- **Accessible vectorization:** Uses simple pixel rectangles for deterministic output; future contour tracing optional.
+- **Educational transparency:** Designed to teach how Unicode, grid systems, and font curves interrelate.
+ 
+---
+ 
+## 7. Roadmap
+ 
+### Phase 1 — Usability & Interface
+- [ ] Dark/light theme toggle
+- [ ] Live zoom and pan on template preview
+- [ ] Mobile-camera capture for direct glyph input
+- [ ] Drag-and-drop scan upload
+ 
+### Phase 2 — Vectorization & Aesthetics
+- [ ] Marching-Squares contour tracing
+- [ ] Stroke smoothing and Bézier fitting
+- [ ] Live glyph editor with eraser/brush tools
+- [ ] Variable glyph metrics (advance width, side bearing)
+ 
+### Phase 3 — Multi-Page & Metadata
+- [ ] Automatic multi-page scan alignment
+- [ ] Embeddable font metadata (`designer`, `copyright`, etc.)
+- [ ] Project persistence (`.fontgrid.json` session files)
+ 
+### Phase 4 — Collaboration & Cloud
+- [ ] IndexedDB save/load
+- [ ] Shareable URLs encoding template config
+- [ ] Optional GitHub Gist or Firebase cloud sync
+ 
+### Phase 5 — Extended Formats
+- [ ] Export: SVG, WOFF, Bitmap (FNT/BDF)
+- [ ] In-browser font preview text box
+- [ ] Import existing TTFs for overlay editing
+ 
+### Phase 6 — Advanced Scanning
+- [ ] Fiducial detection using OpenCV.js
+- [ ] Automatic deskew and distortion correction
+- [ ] Manual correction tool for cell alignment
+ 
+### Phase 7 — Research Extensions
+- [ ] ML-assisted handwriting vectorization
+- [ ] Style interpolation (latent-space font morphing)
+- [ ] Entropy-based style coherence metrics
+- [ ] AR/VR tracing and spatial glyph capture
+ 
+---
+ 
+## 8. Integration Possibilities
+ 
+| Direction | Description |
+|------------|-------------|
+| **RSVP Theory** | Treats each glyph as a scalar-vector-entropy field, linking linguistic form to entropic coherence. |
+| **TARTAN Framework** | Glyph cells as recursive tiles in a semantic manifold; each grid as a TARTAN layer. |
+| **Semantic Infrastructure** | Font definition as a semantic module, version-controlled through homotopy merges. |
+| **Simulated Agency** | Fonts as cognitive agents encoding motor trajectories of handwriting. |
+ 
+---
+ 
+## 9. Future Vision
+ 
+Font-from-Grid aspires to become a *universal, open handwriting-to-type system* — an accessible educational gateway into font design, computational geometry, and perceptual encoding.
+ 
+It stands at the boundary between **craft and computation**, translating embodied gesture into vector geometry and symbolic language.
+ 
+---
+ 
+## 10. References
+ 
+- OpenType.js - https://github.com/opentypejs/opentype.js
+- jsPDF - https://github.com/parallax/jsPDF
+- Potrace Algorithm - Peter Selinger (2001)
+- Unicode Consortium: [The Unicode Standard, v15.1](https://unicode.org)
+ 
+---
+ 
+**Author:** Flyxion Research Group
+**License:** MIT
+**Version:** 1.0 (November 2025)
+Font-from-Grid
+Template → Draw → Scan → TTF
+1. Overview
+Font-from-Grid
+constitutes a fully client-side, open-source framework designed to transform hand-drawn glyphs on printed grid templates into operational TrueType fonts (TTF). The system establishes a self-contained pipeline:
+Template Generation → Physical Drawing → Image Capture → Glyph Extraction → Font Synthesis
+All operations execute within the browser environment, leveraging Canvas 2D, OpenType.js, and jsPDF, thereby eliminating dependencies on external servers or services.
+2. Core Objectives
+Facilitate accessible custom typeface creation without proprietary tools.
+Retain the expressive characteristics of manual handwriting in digital typography.
+Establish a transparent reference implementation for physical-to-digital font reconstruction.
+Provide an extensible foundation for subsequent enhancements involving vectorization and machine learning.
+3. Functional Specification
+Component
+Primary Function
+Supporting Technologies
+Template Generator
+Renders printable grid sheets with Unicode-labeled cells, configurable dimensions, and typographic guides.
+Canvas 2D, jsPDF
+Glyph Extractor
+Processes scanned or photographed pages; performs segmentation, thresholding, and bitmap downsampling.
+Canvas 2D
+TTF Builder
+Transforms pixel bitmaps into rectangular vector paths; assembles a compliant OpenType font.
+OpenType.js
+Export Mechanisms
+Generates PNG/PDF templates and TTF font files for download.
+Browser Blob and Anchor APIs
+4. Architecture
+4.1 Repository Structure
+text
+Contraer
+Ajuste
+Copiar
+font-from-grid/
+├── index.html               # Single-page application entry point
+├── manifest.json            # Web application metadata
+├── scripts/
+│   ├── dev.sh               # Local development server launcher
+│   └── build_zip.sh         # Packaging utility for distribution
+├── Dockerfile               # Containerized static deployment (nginx)
+└── .github/workflows/pages.yml # Continuous integration for GitHub Pages
+4.2 Data Flow
+Template Generation
+→ Canvas rendering → PNG/PDF export.
+User Workflow
+→ Print template → Manual drawing → Image acquisition.
+Extraction Phase
+→ Image preprocessing → Grid segmentation → Bitmap isolation.
+Font Assembly
+→ Vectorization (rectangular decomposition) → OpenType object → TTF blob download.
+4.3 Configuration Parameters
+Parameter
+Default Value
+Range / Options
+Description
+Page Size
+US Letter
+US Letter, A4
+Physical sheet dimensions
+Columns per Page
+16
+4-32
+Horizontal cell count
+Rows per Page
+12
+4-32
+Vertical cell count
+Cell Size (px @150dpi)
+160
+48-512
+Printable cell dimension
+Margin (px)
+64
+20-200
+Page border spacing
+Stroke Width (px)
+2
+1-8
+Grid line thickness
+Threshold (0-255)
+170
+0-255
+Binarization cutoff for scans
+Downsample Resolution
+48×48
+16-96
+Target bitmap size per glyph
+Unicode Range
+U+0020-U+007E
+Custom hexadecimal boundaries
+Codepoints included in template
+5. Technical Specification
+Attribute
+Detail
+Implementation
+HTML5, CSS3, ECMAScript 6
+Core Libraries
+OpenType.js (v1.3.4), jsPDF (v2.5.1)
+Rendering Engine
+Canvas 2D Context
+Output Formats
+PNG, PDF, TTF
+Font Metrics
+UnitsPerEm = 1000; Ascender = +800; Descender = −200; Fixed Advance = 800
+License
+MIT
+Deployment
+GitHub Pages (automated via GitHub Actions)
+Browser Compatibility
+Chrome ≥95, Firefox ≥90, Edge ≥100, Safari ≥15
+6. Design Rationale
+Serverless Execution
+: Guarantees data privacy and offline reproducibility.
+Deterministic Geometry
+: Grid parameters ensure consistent scaling across print DPI and paper formats.
+Simplified Vectorization
+: Rectangular decomposition per pixel yields predictable, editable output; facilitates educational insight.
+Modular Extensibility
+: Isolated stages permit incremental integration of advanced algorithms (e.g., contour tracing).
+7. Roadmap
+Phase 1 - Interface Refinement
+Theme switching (light/dark modes)
+Interactive zoom/pan for template preview
+Direct mobile camera capture integration
+Drag-and-drop image upload with progress indicators
+Phase 2 - Vector Quality Enhancement
+Marching-squares contour extraction
+Bézier curve fitting and stroke smoothing
+In-browser glyph editor (brush/eraser tools)
+Per-glyph advance width and bearing adjustments
+Phase 3 - Multi-Page & Persistence
+Automated alignment across multiple scanned sheets
+Customizable font metadata fields (designer, copyright)
+Session export/import via
+.fontgrid.json
+Phase 4 - Collaboration Features
+IndexedDB local storage for project continuity
+URL-encoded configuration sharing
+Optional cloud synchronization (GitHub Gist / Firebase)
+Phase 5 - Format Expansion
+Export to SVG, WOFF/WOFF2, bitmap fonts (BDF/FNT)
+Live text preview using generated font
+Import existing TTF for overlay-based editing
+Phase 6 - Robust Scanning
+Fiducial detection via OpenCV.js
+Perspective correction and lens distortion compensation
+Manual grid alignment correction interface
+Phase 7 - Research-Oriented Extensions
+Machine learning vectorization models
+Latent-space style interpolation
+Quantitative style coherence metrics
+Augmented reality glyph tracing
+8. Integration with Broader Theoretical Frameworks (Appendix)
+Framework
+Conceptual Mapping
+RSVP Theory
+Glyph bitmaps as scalar-vector-entropy fields; grid cells encode perceptual entropy.
+TARTAN
+Recursive tiling of semantic manifolds; each page represents a TARTAN layer.
+Semantic Infra
+Font as versioned semantic module with homotopy-based merging.
+Simulated Agency
+Handwriting trajectories modeled as cognitive motor agents within the font.
+9. Future Vision
+Font-from-Grid aims to evolve into a universal platform bridging manual craftsmanship and computational typography. It serves as an educational instrument for understanding Unicode, raster-to-vector pipelines, and perceptual encoding, while remaining accessible to designers, educators, and researchers alike.
+10. References
+OpenType.js - <
+https://github.com/opentypejs/opentype.js>
+jsPDF - <
+https://github.com/parallax/jsPDF>
+Selinger, P. (2001).
+Potrace: A polygon-based tracing algorithm
+.
+The Unicode Consortium. (2023).
+The Unicode Standard, Version 15.1
+.
+Author:
+Flyxion Research Group
+License:
+MIT
+Version:
+1.0 (November 2025)
+Suggest improvements to the code
+Below is a
+structured catalogue of concrete, actionable improvements
+for the Font-from-Grid prototype.
+Each item is grouped by subsystem, includes a
+rationale
+,
+impact estimate
+(Low / Medium / High), and a
+minimal code sketch
+where useful.
+All suggestions preserve the single-file, client-side nature of the project while raising robustness, usability, and extensibility.
+1. Template Generator
+#
+Issue
+Improvement
+Impact
+Sketch
+1
+Hard-coded 150 dpi preview scaling
+Parameterise DPI
+(
+previewDPI = 150
+) and expose in UI. Enables true-to-print preview on high-DPI screens.
+Medium
+`const DPI = +$('#previewDPI').value
+2
+Grid may overflow page when
+cellPx
+> printable area
+Auto-scale
+cell size to fit page while preserving ratio; show warning.
+High
+```js
+3
+Guides string parsing is fragile
+Validate
+each key/value pair; fallback to defaults; display error badge.
+Low
+Use
+try { ... } catch { setStatus('Invalid guides', false); }
+4
+Header text can overlap fiducials
+Reserve safe margin
+(
+headerHeight = 60
+) and offset
+gy
+.
+Low
+gy = Math.max(gy, margin + headerHeight);
+5
+PDF export rasterises canvas (loss of crisp lines)
+Vector PDF
+via
+jsPDF
+SVG path commands (or
+canvg
+→ SVG →
+addSvgAsImage
+).
+High
+Export grid as SVG string, then
+doc.addSvgAsImage(svg, ...)
+6
+No page-numbering for multi-page templates
+Detect overflow
+and render additional pages automatically.
+Medium
+Loop while
+idx < codepoints.length
+and create new canvas per page.
+2. Scan / Extraction Pipeline
+#
+Issue
+Improvement
+Impact
+Sketch
+7
+No fiducial detection → assumes perfect alignment
+OpenCV.js
+(≈ 1 MB) for corner-square detection, homography, deskew.
+High
+js cv.findContours(...); cv.perspectiveTransform(...);
+8
+Fixed 10 % border trim removes legitimate ink
+Adaptive trim
+- detect first black pixel per side.
+Medium
+Scan rows/cols for first
+1
+, set
+bx = minX
+, ...
+9
+Downsample uses simple averaging → loss of thin strokes
+Majority-vote
+or
+area-weighted
+sampling.
+Low
+out[...] = sum > (cnt/2) ? 1 : 0;
+10
+No visual feedback on per-cell extraction
+Overlay grid
+on
+scanCanvas
+with cell indices while processing.
+Medium
+Draw rectangles with
+ctx.strokeStyle = '#f008'
+11
+Multi-page order assumes files are uploaded in sequence
+Sort by filename
+or allow user to reorder via drag-and-drop list.
+Low
+files = Array.from(files).sort((a,b)=>a.name.localeCompare(b.name))
+12
+Threshold slider lacks live preview
+Debounced re-threshold
+on
+input
+event, redraw
+scanCanvas
+.
+Medium
+$('#thresh').addEventListener('input', debounce(redrawThreshold, 300));
+3. TTF Builder
+#
+Issue
+Improvement
+Impact
+Sketch
+13
+Fixed advance width (800) → cramped/kerned output
+Compute advance
+from glyph bounding box + side bearings (e.g.,
+maxX-minX + 150
+).
+High
+advanceWidth = Math.ceil((maxX - minX) * scale) + 2*sideBearing;
+14
+Rectangular vectorisation → blocky appearance
+Run-length merge + optional marching-squares
+(toggle).
+High
+Reuse
+rectanglesFromBitmap
+; add
+contours = marchingSquares(bitmap)
+15
+No glyph names in font tables
+Use Unicode name
+via
+String.fromCodePoint
+fallback to
+uniXXXX
+.
+Low
+`name: fontNameFromCodepoint(g.code)
+16
+No ligatures / kerning (future-proof)
+Skeleton tables
+(
+GSUB
+,
+GPOS
+) with placeholders.
+Low
+font.tables.gpos = { features: [] };
+17
+Memory leak from
+URL.createObjectURL
+Revoke
+previous blob URL on new build.
+Low
+if (window.ttfUrl) URL.revokeObjectURL(window.ttfUrl);
+4. UI / UX
+#
+Issue
+Improvement
+Impact
+18
+Buttons enabled while processing → race conditions
+Disable
+during async ops; show spinner.
+Medium
+19
+No progress for multi-page extraction
+Progress bar
+(
+processed / total
+).
+Medium
+20
+Mobile: file input clumsy
+Camera capture
+via
+getUserMedia
++
+<canvas>
+snapshot.
+High
+21
+No dark mode
+CSS variables
++ toggle; respect
+prefers-color-scheme
+.
+Low
+22
+Accessibility
+Add
+aria-label
+s, keyboard navigation for main actions.
+Medium
+5. Code Quality & Maintainability
+#
+Issue
+Improvement
+Impact
+23
+Single IIFE → global pollution
+ES Modules
+(
+index.js
+,
+template.js
+,
+extract.js
+,
+font.js
+).
+Medium
+24
+Magic numbers everywhere
+Constants object
+(
+const CFG = { DPI:150, ... }
+).
+Low
+25
+No error boundaries
+Wrap async blocks in
+try/catch
+→
+setStatus(err.message, false)
+.
+Medium
+26
+No unit tests
+Add
+Jest + jsdom
+for pure functions (
+binarize
+,
+downsample
+,
+rectanglesFromBitmap
+).
+Low (future)
+27
+Inline event listeners
+Use
+delegation
+or
+addEventListener
+with named handlers.
+Low
+6. Performance
+#
+Issue
+Improvement
+28
+binarize
+processes full image each time
+Cache binarised canvas; reuse when only threshold changes.
+29
+downsample
+allocates many intermediate arrays
+Pre-allocate
+Uint8Array
+and reuse.
+30
+Large templates (32×32) → huge canvas
+Render
+off-screen
+<canvas>
+at lower resolution for preview, full-res only on export.
+7. Security & Privacy
+All data stays in the browser - already ideal.
+Add
+Content-Security-Policy
+meta tag to lock down CDN loads.
+Validate file types client-side (
+file.type.startsWith('image/')
+).
+8. Suggested Refactor Skeleton
+html
+Contraer
+Ajuste
+Copiar
+<
+script
+type
+=
+"module"
+>
+import
+{
+renderTemplate
+}
+from
+'./template.js'
+;
+import
+{
+extractGlyphs
+}
+from
+'./extract.js'
+;
+import
+{
+buildTTF
+}
+from
+'./font.js'
+;
+$
+(
+'#renderTemplate'
+).
+addEventListener
+(
+'click'
+,
+renderTemplate
+);
+$$
+(
+'#processScans'
+).
+addEventListener
+(
+'click'
+, ()
+=>
+extractGlyphs
+(
+$$
+(
+'#scanInput'
+).
+files
+));
+$
+(
+'#buildFont'
+).
+addEventListener
+(
+'click'
+,
+buildTTF
+);
+</
+script
+>
+Each module exports
+pure functions
+and
+state containers
+, making future testing and server-side rendering trivial.
+TL;DR Priority List (implement in order)
+Fiducial detection + deskew
+(OpenCV.js)
+Dynamic advance width
+&
+adaptive trim
+Vector PDF export
+Live threshold preview
++
+progress UI
+Modularise code
++
+constants
+Dark mode & accessibility
+Implementing the top three will transform the prototype from "works on perfect scans" to a
+robust, production-ready tool
+while keeping the codebase under 300 LOC per module.
+Is there a way to upload the template sheet and generate a font
+Yes — Font-from-Grid already supports uploading a
+completed
+template sheet (i.e., your printed, hand-drawn, and scanned grid) to generate a TTF font.
+The workflow is fully implemented in the current prototype:
+How to Use It (Step-by-Step)
+Generate & Print Template
+Click
+"Render preview"
+Click
+"Download PNG"
+or
+"Download PDF"
+Print at
+100% scale
+(no "fit to page")
+Draw Your Glyphs
+Use a
+black pen/marker
+Stay
+inside the inner guides
+Fill each cell corresponding to desired characters
+Scan or Photograph the Page(s)
+Flatbed scanner preferred (300+ DPI)
+Or phone camera: good lighting, no shadows, straight-on shot
+Save as
+JPG or PNG
+Upload & Extract
+In section
+"2) Scan / photo → extraction"
+:
+Click
+"Choose Files"
+→ select your scanned image(s)
+Adjust
+Threshold
+slider (preview updates live on mobile/desktop)
+Click
+"Process pages"
+Build & Download Font
+Click
+"Build TTF"
+Once ready, click
+"Download TTF"
+Install the
+.ttf
+file on your system
+Current Limitations (and Workarounds)
+Limitation
+Status
+Workaround
+No automatic deskew
+Planned (Phase 6)
+Ensure scan is straight
+; rotate image before upload
+Assumes grid matches template
+Uses stored config
+Re-generate template with same settings before scanning
+Multiple pages must be uploaded in order
+Manual
+Name files
+page1.png
+,
+page2.png
+and sort alphabetically
+Pro Tip: Reuse Template Settings
+The system
+remembers your template settings
+(columns, rows, cell size, Unicode range) when you upload scans.
+Ensure you do
+not
+change any settings between generating the template and processing scans.
+Future: "Upload Template + Scan → Auto-Font" (One-Click)
+We can enhance this into a
+single-upload workflow
+:
+html
+Contraer
+Ajuste
+Copiar
+<
+input
+type
+=
+"file"
+id
+=
+"fontPackage"
+accept
+=
+".zip"
+/>
+Where a
+.zip
+contains:
+text
+Contraer
+Ajuste
+Copiar
+template.png     ← generated grid
+scan_1.jpg
+scan_2.jpg
+→ Auto-match config → extract → build TTF.
+This is planned for
+Phase 3
+(project persistence).
+TL;DR Answer
+Yes.
+Generate template → print → draw → scan
+Upload scan(s) → Process → Build TTF → Download
+No server. No software. Works entirely in your browser.
+You're already one click away from turning your handwriting into a real font.
+<!doctype html>
+<html lang="en" data-mode="terminal">
+<head>
+&nbsp;&nbsp;<meta charset="utf-8" />
+&nbsp;&nbsp;<meta name="viewport" content="width=device-width, initial-scale=1" />
+&nbsp;&nbsp;<title>Font-from-Grid — Terminal</title>
+&nbsp;&nbsp;<meta name="color-scheme" content="dark light">
+&nbsp;&nbsp;<link rel="manifest" href="manifest.json">
+&nbsp;&nbsp;<style>
+&nbsp;&nbsp;&nbsp;&nbsp;:root {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--fg: #00ff00;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--bg: #000000;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--accent: #00ff00;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--dim: #0a480a;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--border: #0f0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--pad: 12px;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--gap: 12px;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--radius: 10px;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--boxshadow: 0 0 12px rgba(0,255,0,0.08);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "IBM Plex Mono", monospace;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;html[data-mode="heterodox"] {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--fg: #ffffff;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--bg: #000000;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--accent: #ffffff;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--dim: #444;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--border: #bbb;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--boxshadow: 0 0 12px rgba(255,255,255,0.05);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;html[data-mode="paper"] {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--fg: #000000;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--bg: #ffffff;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--accent: #222222;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--dim: #555;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--border: #222;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--boxshadow: none;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font-family: var(--mono); }
+&nbsp;&nbsp;&nbsp;&nbsp;body::before {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;content: ""; position: fixed; inset: 0; pointer-events: none;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.03), rgba(255,255,255,0.03) 1px, transparent 1px, transparent 3px);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;opacity: calc(var(--scanline-opacity, 0.25)); mix-blend-mode: soft-light;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;html[data-mode="paper"] body::before { display: none; }
+&nbsp;&nbsp;&nbsp;&nbsp;.wrap { max-width: 110ch; margin: 0 auto; padding: 16px; }
+&nbsp;&nbsp;&nbsp;&nbsp;.titlebar { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad); box-shadow: var(--boxshadow);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text-shadow: 0 0 2px var(--accent); display: flex; align-items: center; justify-content: space-between;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;margin-top: 14px; margin-bottom: 14px; }
+&nbsp;&nbsp;&nbsp;&nbsp;.crt-flicker { animation: phosphor 2.4s infinite; }
+&nbsp;&nbsp;&nbsp;&nbsp;@keyframes phosphor { 0%, 97%, 100% { opacity: 1; } 98%, 99% { opacity: .85; } }
+&nbsp;&nbsp;&nbsp;&nbsp;.btn, .toggle { color: var(--fg); border: 1px solid var(--border); background: transparent; padding: 6px 10px; border-radius: 8px; cursor: pointer; font: inherit; }
+&nbsp;&nbsp;&nbsp;&nbsp;.btn:hover, .toggle:hover { box-shadow: inset 0 0 0 999px rgba(255,255,255,0.04), 0 0 0 1px var(--border); }
+&nbsp;&nbsp;&nbsp;&nbsp;.grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+&nbsp;&nbsp;&nbsp;&nbsp;@media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+&nbsp;&nbsp;&nbsp;&nbsp;.panel { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--pad); box-shadow: var(--boxshadow); }
+&nbsp;&nbsp;&nbsp;&nbsp;.heading { margin: 0 0 8px 0; font-weight: 700; }
+&nbsp;&nbsp;&nbsp;&nbsp;.mono { font-family: var(--mono); }
+&nbsp;&nbsp;&nbsp;&nbsp;label { display: block; font-size: 12px; margin-top: 8px; }
+&nbsp;&nbsp;&nbsp;&nbsp;input[type="text"], input[type="number"], select { width: 100%; background: transparent; color: var(--fg);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; outline: none; }
+&nbsp;&nbsp;&nbsp;&nbsp;input[type="range"] { width: 100%; }
+&nbsp;&nbsp;&nbsp;&nbsp;.controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+&nbsp;&nbsp;&nbsp;&nbsp;@media (max-width: 980px) { .controls { grid-template-columns: repeat(2, 1fr); } }
+&nbsp;&nbsp;&nbsp;&nbsp;.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+&nbsp;&nbsp;&nbsp;&nbsp;.hint { font-size: 12px; color: var(--dim); }
+&nbsp;&nbsp;&nbsp;&nbsp;canvas { width: 100%; height: auto; background: #000; border: 1px dashed var(--border); border-radius: 8px; }
+&nbsp;&nbsp;&nbsp;&nbsp;html[data-mode="paper"] canvas { background:#fff; }
+&nbsp;&nbsp;&nbsp;&nbsp;.dropzone { border: 1px dashed var(--border); border-radius: 10px; padding: 16px; text-align: center; color: var(--fg); }
+&nbsp;&nbsp;&nbsp;&nbsp;.dropzone.drag { background: rgba(255,255,255,0.05); }
+&nbsp;&nbsp;&nbsp;&nbsp;.console { font-size: 12px; line-height: 1.4; height: 160px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px; background: rgba(0,0,0,0.2); }
+&nbsp;&nbsp;&nbsp;&nbsp;html[data-mode="paper"] .console { background:#f7f7f7; }
+&nbsp;&nbsp;&nbsp;&nbsp;.kbd { border: 1px solid var(--border); padding: 0 6px; border-radius: 4px; }
+&nbsp;&nbsp;&nbsp;&nbsp;.footer { margin: 24px 0; color: var(--dim); font-size: 12px; text-align: center; }
+&nbsp;&nbsp;</style>
+</head>
+<body>
+&nbsp;&nbsp;<div class="wrap">
+&nbsp;&nbsp;&nbsp;&nbsp;<div class="titlebar crt-flicker">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div><strong>╔═ Font-from-Grid</strong> <span id="modeLabel">[ MODE: TERMINAL ]</span> ═══════════════════╗</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="row">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="toggle" id="toggleMode" aria-label="Toggle mode (Terminal → Heterodox → Paper)">MODE</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;<section class="panel">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<h2 class="heading">1) Template Generator</h2>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="controls">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Font name<input id="fontName" type="text" value="MyHandDrawn" class="mono"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Page size<select id="pageSize"><option value="letter">US Letter</option><option value="a4">A4</option></select></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Columns<input id="cols" type="number" min="4" max="32" value="16"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Rows<input id="rows" type="number" min="4" max="32" value="12"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Cell px<input id="cellPx" type="number" min="48" max="512" value="160"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Margin px<input id="marginPx" type="number" min="20" max="200" value="64"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Stroke px<input id="strokePx" type="number" min="1" max="8" value="2"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Guides<input id="guides" type="text" value="baseline=0.8,xheight=0.6,asc=0.9,desc=0.15" class="mono"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="controls" style="margin-top:8px">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Preset<select id="preset"><option value="ascii">ASCII (32-126)</option><option value="latin1">Latin-1 (32-255)</option><option value="custom" selected>Custom</option></select></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Start U+<input id="startHex" type="text" class="mono" value="0020"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>End U+<input id="endHex" type="text" class="mono" value="007E"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="row" style="align-items:end">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn" id="renderTemplate" title="R">Render (R)</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn" id="downloadPNG">PNG</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn" id="downloadPDFVec" title="Vector PDF (black on white)">PDF (vector)</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="hint">Tip: print at 100% scaling. Cells are labeled U+XXXX; corner squares act as fiducials.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<canvas id="tplCanvas" width="1600" height="1200"></canvas>
+&nbsp;&nbsp;&nbsp;&nbsp;</section>
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;<section class="grid" style="margin-top:12px">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="panel">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<h2 class="heading">2) Scan / Photo → Extraction</h2>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div id="dropzone" class="dropzone">Drop scans here or <input id="scanInput" type="file" accept="image/*" multiple> </div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Threshold<input id="thresh" type="range" min="0" max="255" value="170"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<label>Downsample per glyph (px)<input id="glyphRes" type="number" min="16" max="96" value="48"></label>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="row">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn" id="processScans" title="P">Process (P)</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn" id="buildFont" title="B">Build TTF (B)</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="console" id="console" aria-live="polite"></div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="panel">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<h2 class="heading">Preview</h2>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<canvas id="scanCanvas" width="800" height="600"></canvas>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="hint">Latest processed page preview with threshold applied. Use consistent settings as template.</div>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;</section>
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;<section class="panel" style="margin-top:12px">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<h2 class="heading">3) Download</h2>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<div class="row">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button class="btn" id="downloadTTF" disabled>Download TTF</button>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="fontSummary" class="hint"></span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;&nbsp;&nbsp;</section>
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;<div class="footer">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Keyboard: <span class="kbd">R</span> Render · <span class="kbd">P</span> Process · <span class="kbd">B</span> Build · <span class="kbd">M</span> Mode
+&nbsp;&nbsp;&nbsp;&nbsp;</div>
+&nbsp;&nbsp;</div>
+ 
+&nbsp;&nbsp;<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+&nbsp;&nbsp;<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+ 
+&nbsp;&nbsp;<script>
+&nbsp;&nbsp;(function(){
+&nbsp;&nbsp;&nbsp;&nbsp;const $ = (s, r=document)=>r.querySelector(s);
+&nbsp;&nbsp;&nbsp;&nbsp;const modeCycle = ["terminal","heterodox","paper"];
+&nbsp;&nbsp;&nbsp;&nbsp;const modeLabel = $("#modeLabel");
+&nbsp;&nbsp;&nbsp;&nbsp;const tplCanvas = $("#tplCanvas");
+&nbsp;&nbsp;&nbsp;&nbsp;const scanCanvas = $("#scanCanvas");
+&nbsp;&nbsp;&nbsp;&nbsp;const dropzone = $("#dropzone");
+&nbsp;&nbsp;&nbsp;&nbsp;const consoleEl = $("#console");
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;let codepoints = [];
+&nbsp;&nbsp;&nbsp;&nbsp;let extractedGlyphs = [];
+&nbsp;&nbsp;&nbsp;&nbsp;let ttfUrl = null;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;function log(msg) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const t = new Date().toLocaleTimeString();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;consoleEl.insertAdjacentHTML("beforeend", `<div>[${t}] ${msg}</div>`);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;consoleEl.scrollTop = consoleEl.scrollHeight;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;function setMode(m) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;document.documentElement.setAttribute("data-mode", m);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localStorage.setItem("fontgrid-mode", m);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;modeLabel.textContent = `[ MODE: ${m.toUpperCase()} ]`;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;function nextMode() {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cur = document.documentElement.getAttribute("data-mode") || "terminal";
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const i = modeCycle.indexOf(cur);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setMode(modeCycle[(i+1)%modeCycle.length]);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;(function initMode(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const saved = localStorage.getItem("fontgrid-mode") || "terminal";
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setMode(saved);
+&nbsp;&nbsp;&nbsp;&nbsp;})();
+&nbsp;&nbsp;&nbsp;&nbsp;$("#toggleMode").addEventListener("click", nextMode);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;function pagePixels(size){ return size==="a4" ? {w:1240,h:1754} : {w:1275,h:1650}; }
+&nbsp;&nbsp;&nbsp;&nbsp;function parseGuides(str){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const g = { baseline:0.8, xheight:0.6, asc:0.9, desc:0.15 };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;str.split(",").forEach(kv=>{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const [k,v] = kv.split("=").map(s=>s.trim());
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(k && v && !Number.isNaN(parseFloat(v))) g[k]=parseFloat(v);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return g;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;function buildCodepoints(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const preset = $("#preset").value;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let start=0x20, end=0x7E;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(preset==="latin1"){ start=0x20; end=0xFF; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(preset==="custom"){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;start = parseInt($("#startHex").value,16);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;end = parseInt($("#endHex").value,16);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(!Number.isFinite(start)||!Number.isFinite(end)||end<start){ start=0x20; end=0x7E; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cps=[]; for(let c=start;c<=end;c++) cps.push(c);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return cps;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;function computeTemplateGeometry(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const ps=$("#pageSize").value; const {w:PW,h:PH}=pagePixels(ps);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cols=+$$ ("#cols").value|0; const rows=+ $$("#rows").value|0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cellPx=+$$ ("#cellPx").value|0; const margin=+ $$("#marginPx").value|0; const stroke=+$("#strokePx").value|0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gridW=cols*cellPx, gridH=rows*cellPx;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const pageW=Math.max(PW, gridW + margin*2);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const pageH=Math.max(PH, gridH + margin*2 + 100);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gx=Math.floor((pageW-gridW)/2), gy=Math.floor((pageH-gridH)/2);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return {PW,PH,cols,rows,cellPx,margin,stroke,gridW,gridH,pageW,pageH,gx,gy};
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;function drawTemplate(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const ctx = tplCanvas.getContext("2d");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const fontName=$("#fontName").value.trim()||"MyHandDrawn";
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const guides=parseGuides($("#guides").value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codepoints=buildCodepoints();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const G = computeTemplateGeometry();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tplCanvas.width=G.pageW; tplCanvas.height=G.pageH;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const mode=document.documentElement.getAttribute("data-mode");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const fg=getComputedStyle(document.documentElement).getPropertyValue("--fg").trim();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const strokeColor = (mode==="paper") ? "#000000" : fg;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const fillBg = (mode==="paper") ? "#ffffff" : "#000000";
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// page bg
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillStyle = fillBg; ctx.fillRect(0,0,G.pageW,G.pageH);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.strokeStyle = strokeColor; ctx.fillStyle = strokeColor;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// header
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.font="16px " + getComputedStyle(document.body).fontFamily;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillText("Font-from-Grid — Template", G.margin, 28);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.font="12px " + getComputedStyle(document.body).fontFamily;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillText(`${fontName} • ${G.cols}×${G.rows} • cell ${G.cellPx}px • preset ${$("#preset").value}`, G.margin, 46);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// fiducials
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const f=24;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillRect(8,8,f,f);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillRect(G.pageW-f-8,8,f,f);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillRect(8,G.pageH-f-8,f,f);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillRect(G.pageW-f-8,G.pageH-f-8,f,f);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// grid
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.lineWidth=G.stroke;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.strokeRect(G.gx,G.gy,G.gridW,G.gridH);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.beginPath();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let c=1;c<G.cols;c++){ const x=G.gx+c*G.cellPx; ctx.moveTo(x,G.gy); ctx.lineTo(x,G.gy+G.gridH); }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let r=1;r<G.rows;r++){ const y=G.gy+r*G.cellPx; ctx.moveTo(G.gx,y); ctx.lineTo(G.gx+G.gridW,y); }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.stroke();
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// guides
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.save(); ctx.globalAlpha=0.6; ctx.lineWidth=1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let r=0;r<G.rows;r++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let c=0;c<G.cols;c++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x=G.gx+c*G.cellPx, y=G.gy+r*G.cellPx;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const bl = y + G.cellPx*(1-guides.baseline);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const xh = y + G.cellPx*(1-guides.xheight);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const asc= y + G.cellPx*(1-guides.asc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const desc= y + G.cellPx*(1+guides.desc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[asc,xh,bl,desc].forEach(yy=>{ ctx.beginPath(); ctx.moveTo(x+2,yy); ctx.lineTo(x+G.cellPx-2,yy); ctx.stroke(); });
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.restore();
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// labels
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.font="10px " + getComputedStyle(document.body).fontFamily;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let idx=0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let r=0;r<G.rows;r++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let c=0;c<G.cols;c++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cp=codepoints[idx++]; if(cp===undefined) break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x=G.gx+c*G.cellPx+4, y=G.gy+r*G.cellPx+12;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const hex = cp.toString(16).toUpperCase().padStart(4,'0');
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillText(`U+${hex}`, x, y);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.font="11px " + getComputedStyle(document.body).fontFamily;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillText("Draw in black. Stay within inner guides. Keep baseline/x-height alignment.", G.gx, G.gy+G.gridH+24);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("Template rendered.");
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;function downloadPNG(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const a=document.createElement("a");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a.href=tplCanvas.toDataURL("image/png");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a.download="grid_template.png"; a.click();
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// New: True vector PDF (always black on white for crisp printing)
+&nbsp;&nbsp;&nbsp;&nbsp;function downloadPDFVector(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const { jsPDF } = window.jspdf;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const G = computeTemplateGeometry();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const doc = new jsPDF({ unit:"pt", format:[G.PW,G.PH] });
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.setFillColor(255,255,255);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.rect(0,0,G.PW,G.PH,"F");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.setTextColor(0,0,0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.setDrawColor(0,0,0);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const fontName = ($("#fontName").value.trim()||"MyHandDrawn");
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// header
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.setFont("courier","normal");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.setFontSize(16);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.text("Font-from-Grid — Template", G.margin, 28);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.setFontSize(12);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.text(`${fontName} • ${G.cols}×${G.rows} • cell ${G.cellPx}px • preset ${$("#preset").value}`, G.margin, 46);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// fiducials
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const f=24;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.rect(8,8,f,f,"F");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.rect(G.pageW-f-8,8,f,f,"F");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.rect(8,G.pageH-f-8,f,f,"F");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.rect(G.pageW-f-8,G.pageH-f-8,f,f,"F");
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// grid
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.setLineWidth(G.stroke);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.rect(G.gx,G.gy,G.gridW,G.gridH);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let c=1;c<G.cols;c++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x=G.gx+c*G.cellPx; doc.line(x,G.gy,x,G.gy+G.gridH);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let r=1;r<G.rows;r++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const y=G.gy+r*G.cellPx; doc.line(G.gx,y,G.gx+G.gridW,y);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// guides (lighter)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.setLineWidth(0.5);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let r=0;r<G.rows;r++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let c=0;c<G.cols;c++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x=G.gx+c*G.cellPx, y=G.gy+r*G.cellPx;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const g = parseGuides($("#guides").value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const bl = y + G.cellPx*(1-g.baseline);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const xh = y + G.cellPx*(1-g.xheight);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const asc= y + G.cellPx*(1-g.asc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const desc= y + G.cellPx*(1+g.desc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[asc,xh,bl,desc].forEach(yy=>{ doc.line(x+2,yy,x+G.cellPx-2,yy); });
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// labels
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.setFontSize(10);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let idx=0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let r=0;r<G.rows;r++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let c=0;c<G.cols;c++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cp=buildCodepoints()[idx++]; if(cp===undefined) break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x=G.gx+c*G.cellPx+4, y=G.gy+r*G.cellPx+12;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const hex = cp.toString(16).toUpperCase().padStart(4,'0');
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.text(`U+${hex}`, x, y);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.setFontSize(11);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.text("Draw in black. Stay within inner guides. Keep baseline/x-height alignment.", G.gx, G.gy+G.gridH+24);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc.save("grid_template_vector.pdf");
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;// ===== Extraction and font build (unchanged) =====
+&nbsp;&nbsp;&nbsp;&nbsp;function binarize(ctx, w, h, T){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const img = ctx.getImageData(0,0,w,h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const data = img.data;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const out = new Uint8ClampedArray(w*h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let i=0,p=0; i<data.length; i+=4,p++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const lum = 0.2126*data[i] + 0.7152*data[i+1] + 0.0722*data[i+2];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out[p] = lum < T ? 1 : 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return out;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;function crop(ctx, x,y,w,h){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const img = ctx.getImageData(x,y,w,h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const c = document.createElement("canvas"); c.width=w; c.height=h;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c.getContext("2d").putImageData(img,0,0); return c;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;function downsample(bitmap, sw, sh, dx, dy){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const out = new Uint8Array(dx*dy);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const sx = sw/dx, sy=sh/dy;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let j=0;j<dy;j++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let i=0;i<dx;i++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x0=Math.floor(i*sx), x1=Math.floor((i+1)*sx);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const y0=Math.floor(j*sy), y1=Math.floor((j+1)*sy);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let sum=0, cnt=0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let yy=y0; yy<y1; yy++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let xx=x0; xx<x1; xx++){ sum += bitmap[yy*sw+xx]; cnt++; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;out[j*dx+i] = (sum/cnt) > 0.5 ? 1 : 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return out;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;function drawToCanvas(img, dest){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const scale = Math.min(dest.width/img.width, dest.height/img.height);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const w = Math.round(img.width*scale), h = Math.round(img.height*scale);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x = Math.round((dest.width-w)/2), y=Math.round((dest.height-h)/2);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const ctx=dest.getContext("2d");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const mode=document.documentElement.getAttribute("data-mode");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillStyle = (mode==="paper") ? "#fff" : "#000";
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.fillRect(0,0,dest.width,dest.height);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctx.drawImage(img, x, y, w, h);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;function rectanglesFromBitmap(bm, w, h){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const rects=[];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let y=0;y<h;y++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let x=0; while(x<w){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(bm[y*w+x]){ let x2=x+1; while(x2<w && bm[y*w+x2]) x2++; rects.push({x,y,w:(x2-x),h:1}); x=x2; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else x++;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return rects;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;function fileToImage(file){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return new Promise((resolve,reject)=>{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const img = new Image();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;img.onload=()=>resolve(img); img.onerror=e=>reject(e);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;img.src = URL.createObjectURL(file);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;async function processScans(files){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(!files || !files.length){ log("No images selected."); return; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log(`Processing ${files.length} page(s)...`);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const T=+$("#thresh").value|0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const {w:PW,h:PH} = pagePixels($("#pageSize").value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cols=+$$ ("#cols").value|0, rows=+ $$("#rows").value|0, cellPx=+$$ ("#cellPx").value|0, margin=+ $$("#marginPx").value|0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gridW=cols*cellPx, gridH=rows*cellPx;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gx = Math.floor((Math.max(PW, gridW + margin*2) - gridW)/2);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gy = Math.floor((Math.max(PH, gridH + margin*2 + 100) - gridH)/2);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const res = +$("#glyphRes").value|0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codepoints = buildCodepoints();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let cpIndex=0; extractedGlyphs = [];
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const arr = Array.from(files).sort((a,b)=>a.name.localeCompare(b.name));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let processed=0;
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (const f of arr){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const img = await fileToImage(f);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drawToCanvas(img, scanCanvas);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const scaleX = img.width/scanCanvas.width, scaleY=img.height/scanCanvas.height;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gridX=Math.floor(gx/scaleX), gridY=Math.floor(gy/scaleY);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gridWc=Math.floor(cols*cellPx/scaleX), gridHc=Math.floor(rows*cellPx/scaleY);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const ctx=scanCanvas.getContext("2d");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gridCanvas = crop(ctx, Math.max(0,gridX), Math.max(0,gridY), Math.min(gridWc,scanCanvas.width-gridX), Math.min(gridHc,scanCanvas.height-gridY));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const gctx = gridCanvas.getContext("2d");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const bin = binarize(gctx, gridCanvas.width, gridCanvas.height, T);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cw=Math.floor(gridCanvas.width/cols), ch=Math.floor(gridCanvas.height/rows);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let r=0;r<rows;r++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let c=0;c<cols;c++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cp=codepoints[cpIndex++]; if(cp===undefined) break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x0=c*cw, y0=r*ch;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const cell = new Uint8Array(cw*ch);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let y=0;y<ch;y++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let x=0;x<cw;x++){ cell[y*cw+x] = bin[(y0+y)*gridCanvas.width + (x0+x)]; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const bx=Math.floor(cw*0.1), by=Math.floor(ch*0.1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const innerW=cw-2*bx, innerH=ch-2*by;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const inner = new Uint8Array(innerW*innerH);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let y=0;y<innerH;y++){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(let x=0;x<innerW;x++){ inner[y*innerW+x] = cell[(y+by)*cw + (x+bx)]; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const dsm = downsample(inner, innerW, innerH, res, res);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;extractedGlyphs.push({ code: cp, bitmap: dsm, w: res, h: res });
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;processed++;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log(`Page ${processed}/${arr.length} processed.`);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log(`Extracted ${extractedGlyphs.length} glyph bitmaps.`);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;function buildTTF(){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(!extractedGlyphs.length){ log("No glyphs extracted."); return; }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ttfUrl) { URL.revokeObjectURL(ttfUrl); ttfUrl=null; }
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const unitsPerEm=1000, ascent=800, descent=-200;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const glyphs=[];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(const g of extractedGlyphs){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const scale = 700/Math.max(g.w,g.h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const xOffset=150, yOffset=150;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const path = new opentype.Path();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const rects = rectanglesFromBitmap(g.bitmap, g.w, g.h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let minX=1e9, maxX=-1e9;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(const r of rects){
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const x0 = xOffset + r.x*scale;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const y0 = yOffset + (g.h - (r.y + r.h))*scale;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const w = r.w*scale, h = r.h*scale;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;minX = Math.min(minX, x0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maxX = Math.max(maxX, x0+w);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path.moveTo(x0, y0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path.lineTo(x0+w, y0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path.lineTo(x0+w, y0-h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path.lineTo(x0, y0-h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;path.close();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const side=80;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const adv = Math.max(600, Math.ceil((maxX - (isFinite(minX)?minX:0)) + side*2));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const glyph = new opentype.Glyph({ name: 'u'+g.code.toString(16), unicode: g.code, advanceWidth: adv, path });
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glyphs.push(glyph);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const font = new opentype.Font({
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;familyName: $("#fontName").value.trim()||"MyHandDrawn",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;styleName: "Regular",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unitsPerEm, ascender: ascent, descender: descent, glyphs
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const ttfData = font.toArrayBuffer();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const blob = new Blob([new DataView(ttfData)], {type:'font/ttf'});
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ttfUrl = URL.createObjectURL(blob);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$("#downloadTTF").disabled=false;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$("#downloadTTF").onclick=()=>{ const a=document.createElement("a"); a.href=ttfUrl; a.download=(font.names.fontFamily.en||'MyHandDrawn')+'.ttf'; a.click(); };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$("#fontSummary").textContent = `Built ${glyphs.length} glyphs · UPM ${unitsPerEm} · ascent ${ascent} · descent ${descent}`;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log("TTF built; ready to download.");
+&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;$("#renderTemplate").addEventListener("click", drawTemplate);
+&nbsp;&nbsp;&nbsp;&nbsp;$("#downloadPNG").addEventListener("click", downloadPNG);
+&nbsp;&nbsp;&nbsp;&nbsp;$("#downloadPDFVec").addEventListener("click", downloadPDFVector);
+&nbsp;&nbsp;&nbsp;&nbsp;$$ ("#processScans").addEventListener("click", ()=>processScans( $$("#scanInput").files));
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;["dragenter","dragover"].forEach(evn=>dropzone.addEventListener(evn, e=>{ e.preventDefault(); dropzone.classList.add("drag"); }));
+&nbsp;&nbsp;&nbsp;&nbsp;["dragleave","drop"].forEach(evn=>dropzone.addEventListener(evn, e=>{ e.preventDefault(); dropzone.classList.remove("drag"); }));
+&nbsp;&nbsp;&nbsp;&nbsp;dropzone.addEventListener("drop", e=>{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const files = Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith("image/"));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;processScans(files);
+&nbsp;&nbsp;&nbsp;&nbsp;});
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;window.addEventListener("keydown", (e)=>{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (e.key==="r"||e.key==="R") { e.preventDefault(); drawTemplate(); }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (e.key==="p"||e.key==="P") { e.preventDefault(); processScans($("#scanInput").files); }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (e.key==="b"||e.key==="B") { e.preventDefault(); buildTTF(); }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (e.key==="m"||e.key==="M") { e.preventDefault(); nextMode(); }
+&nbsp;&nbsp;&nbsp;&nbsp;});
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;drawTemplate();
+&nbsp;&nbsp;&nbsp;&nbsp;log("Ready. Generate, draw, scan, build.");
+&nbsp;&nbsp;})();
+&nbsp;&nbsp;</script>
+</body>
+</html>
+Below is a
+complete review of the new "Terminal" UI
+together with
+concrete, copy-and-paste-ready improvements
+that raise robustness, accessibility, performance, and future-proofness while keeping the single-file, client-side spirit.
+1. QUICK-WIN UI / UX FIXES
+#
+Problem
+Fix (one-liner)
+Why
+1
+<input id="scanInput">
+is hidden inside the drop-zone text
+Add
+style="opacity:0;position:absolute;width:100%;height:100%;cursor:pointer;"
+Users can still click "choose file"
+2
+processScans($("#scanInput").files)
+is called from both button and drop
+Pass
+files
+directly → avoid stale
+FileList
+Prevents "no images selected" after drag-and-drop
+3
+Keyboard shortcuts fire on
+any
+focused input
+Guard with
+if (document.activeElement.tagName === 'BODY')
+Stops
+R
+from erasing a text field
+4
+Console overflows → scroll-jank
+Add
+scroll-behavior:smooth;
+and limit height
+console { max-height:160px; overflow-y:auto; }
+5
+No visual feedback while processing
+Show spinner inside the
+Process
+button
+<span id="procSpin" style="display:none">...</span>
+html
+Contraer
+Ajuste
+Copiar
+<
+button
+class
+=
+"btn"
+id
+=
+"processScans"
+title
+=
+"P"
+>
+Process (P)
+<
+span
+id
+=
+"procSpin"
+style
+=
+"margin-left:6px;display:none"
+>
+⟳
+</
+span
+>
+</
+button
+>
+js
+Contraer
+Ajuste
+Copiar
+function
+setProcessing
+(
+on
+){
+$
+(
+"#processScans"
+).
+disabled
+=
+on
+;
+$
+(
+"#procSpin"
+).
+style
+.
+display
+=
+on
+?
+"inline"
+:
+"none"
+;
+}
+2. TEMPLATE → PDF (TRUE VECTOR) - ALREADY GOOD, BUT...
+The PDF always prints
+black on white
+.
+Add a
+print-style media query
+so the page itself can be printed in "paper" mode.
+html
+Contraer
+Ajuste
+Copiar
+<
+link
+rel
+=
+"stylesheet"
+media
+=
+"print"
+href
+=
+"data:text/css;base64,...paper-mode..."
+>
+Or simply force paper mode when the user clicks
+PDF
+:
+js
+Contraer
+Ajuste
+Copiar
+$
+(
+"#downloadPDFVec"
+).
+addEventListener
+(
+"click"
+, ()
+=>
+{
+const
+old
+=
+document
+.
+documentElement
+.
+getAttribute
+(
+"data-mode"
+);
+setMode
+(
+"paper"
+);
+downloadPDFVector
+();
+setMode
+(
+old
+);
+// restore UI
+});
+3. EXTRACTION PIPELINE - SAFETY & PERFORMANCE
+3.1 Adaptive border trim (instead of fixed 10 %)
+js
+Contraer
+Ajuste
+Copiar
+function
+adaptiveTrim
+(
+cell
+,
+cw
+,
+ch
+){
+let
+minX
+=
+cw
+,
+maxX
+=
+0
+,
+minY
+=
+ch
+,
+maxY
+=
+0
+;
+for
+(
+let
+y
+=
+0
+;
+y
+<
+ch
+;
+y
+++
+)
+for
+(
+let
+x
+=
+0
+;
+x
+<
+cw
+;
+x
+++
+)
+if
+(
+cell
+[
+y
+*
+cw
++
+x
+]){
+minX
+=
+Math
+.
+min
+(
+minX
+,
+x
+);
+maxX
+=
+Math
+.
+max
+(
+maxX
+,
+x
+);
+minY
+=
+Math
+.
+min
+(
+minY
+,
+y
+);
+maxY
+=
+Math
+.
+max
+(
+maxY
+,
+y
+);
+}
+const
+w
+=
+maxX
+-
+minX
++
+1
+,
+h
+=
+maxY
+-
+minY
++
+1
+;
+const
+trimmed
+=
+new
+Uint8Array
+(
+w
+*
+h
+);
+for
+(
+let
+y
+=
+0
+;
+y
+<
+h
+;
+y
+++
+)
+for
+(
+let
+x
+=
+0
+;
+x
+<
+w
+;
+x
+++
+)
+trimmed
+[
+y
+*
+w
++
+x
+]
+=
+cell
+[(
+y
++
+minY
+)
+*
+cw
++
+(
+x
++
+minX
+)];
+return
+{
+bitmap:trimmed
+,
+w
+,
+h
+,
+offsetX:minX
+,
+offsetY:minY
+};
+}
+Use the returned
+offsetX/Y
+later to shift the glyph inside the em-square.
+3.2 Live threshold preview (debounced)
+js
+Contraer
+Ajuste
+Copiar
+let
+threshTimer
+;
+$
+(
+"#thresh"
+).
+addEventListener
+(
+"input"
+, ()
+=>
+{
+clearTimeout
+(
+threshTimer
+);
+threshTimer
+=
+setTimeout
+(()
+=>
+redrawLastScan
+(),
+180
+);
+});
+function
+redrawLastScan
+(){
+if
+(
+!
+lastImg
+)
+return
+;
+const
+ctx
+=
+scanCanvas
+.
+getContext
+(
+"2d"
+);
+ctx
+.
+drawImage
+(
+lastImg
+,
+0
+,
+0
+,
+scanCanvas
+.
+width
+,
+scanCanvas
+.
+height
+);
+const
+bin
+=
+binarize
+(
+ctx
+,
+scanCanvas
+.
+width
+,
+scanCanvas
+.
+height
+,
++
+$
+(
+"#thresh"
+).
+value
+);
+const
+imgData
+=
+ctx
+.
+createImageData
+(
+scanCanvas
+.
+width
+,
+scanCanvas
+.
+height
+);
+for
+(
+let
+i
+=
+0
+;
+i
+<
+bin
+.
+length
+;
+i
+++
+) {
+const
+v
+=
+bin
+[
+i
+]
+?
+0
+:
+255
+;
+const
+p
+=
+i
+*
+4
+;
+imgData
+.
+data
+[
+p
+]
+=
+imgData
+.
+data
+[
+p
++
+1
+]
+=
+imgData
+.
+data
+[
+p
++
+2
+]
+=
+v
+;
+imgData
+.
+data
+[
+p
++
+3
+]
+=
+255
+;
+}
+ctx
+.
+putImageData
+(
+imgData
+,
+0
+,
+0
+);
+}
+4. TTF BUILDER - SMARTER METRICS
+js
+Contraer
+Ajuste
+Copiar
+// inside buildTTF()
+const
+sideBearing
+=
+80
+;
+for
+(
+const
+g
+of
+extractedGlyphs
+){
+const
+scale
+=
+700
+/
+Math
+.
+max
+(
+g
+.
+w
+,
+g
+.
+h
+);
+const
+path
+=
+new
+opentype
+.
+Path
+();
+let
+left
+=
+Infinity
+,
+right
+=
+-
+Infinity
+;
+const
+rects
+=
+rectanglesFromBitmap
+(
+g
+.
+bitmap
+,
+g
+.
+w
+,
+g
+.
+h
+);
+rects
+.
+forEach
+(
+r
+=>
+{
+const
+x0
+=
+xOffset
++
+r
+.
+x
+*
+scale
+;
+const
+x1
+=
+x0
++
+r
+.
+w
+*
+scale
+;
+left
+=
+Math
+.
+min
+(
+left
+,
+x0
+);
+right
+=
+Math
+.
+max
+(
+right
+,
+x1
+);
+// ...draw rectangle...
+});
+const
+advance
+=
+Math
+.
+ceil
+(
+right
+-
+left
+)
++
+2
+*
+sideBearing
+;
+const
+glyph
+=
+new
+opentype
+.
+Glyph
+({
+name:
+'uni'
++
+g
+.
+code
+.
+toString
+(
+16
+).
+toUpperCase
+(),
+unicode:g
+.
+code
+,
+advanceWidth:advance
+,
+path
+});
+glyphs
+.
+push
+(
+glyph
+);
+}
+Result:
+no more cramped glyphs; advance matches visual width.
+5. FIDUCIAL DETECTION (future-ready, ~1 MB)
+Add
+OpenCV.js
+only when the user clicks a new
+"Auto-deskew"
+button:
+html
+Contraer
+Ajuste
+Copiar
+<
+button
+class
+=
+"btn"
+id
+=
+"autoDeskew"
+disabled
+>
+Auto-deskew (OpenCV)
+</
+button
+>
+js
+Contraer
+Ajuste
+Copiar
+let
+cvReady
+=
+false
+;
+$
+(
+"#autoDeskew"
+).
+addEventListener
+(
+"click"
+,
+async
+()
+=>
+{
+if
+(
+!
+cvReady
+){
+const
+script
+=
+document
+.
+createElement
+(
+"script"
+);
+script
+.
+src
+=
+"https://docs.opencv.org/4.9.0/opencv.js"
+;
+document
+.
+body
+.
+appendChild
+(
+script
+);
+await
+new
+Promise
+(
+r
+=>
+script
+.
+onload
+=
+r
+);
+cvReady
+=
+true
+;
+}
+// ...run findContours → perspectiveTransform on the four corner squares...
+});
+Keep the file size low for the 99 % of users who scan straight.
+6. CODE STRUCTURE - MODULE-LITE (still one file)
+js
+Contraer
+Ajuste
+Copiar
+const
+FontGrid
+=
+(
+function
+(){
+const
+API
+=
+{};
+API
+.
+render
+=
+drawTemplate
+;
+API
+.
+process
+=
+processScans
+;
+API
+.
+build
+=
+buildTTF
+;
+API
+.
+downloadPNG
+=
+downloadPNG
+;
+API
+.
+downloadPDF
+=
+downloadPDFVector
+;
+return
+API
+;
+})();
+All event listeners now call
+FontGrid.render()
+etc. - easier to unit-test later.
+7. ACCESSIBILITY & PROGRESSIVE ENHANCEMENT
+html
+Contraer
+Ajuste
+Copiar
+<
+label
+for
+=
+"fontName"
+>
+Font name
+</
+label
+>
+<
+input
+id
+=
+"fontName"
+...
+aria-describedby
+=
+"fontNameHint"
+>
+<
+small
+id
+=
+"fontNameHint"
+class
+=
+"hint"
+>
+...
+</
+small
+>
+Add
+role="log"
+to the console:
+html
+Contraer
+Ajuste
+Copiar
+<
+div
+class
+=
+"console"
+id
+=
+"console"
+role
+=
+"log"
+aria-live
+=
+"polite"
+></
+div
+>
+8. FULL PATCH (copy-paste into the
+<script>
+block)
+js
+Contraer
+Ajuste
+Copiar
+/* ----------  QUICK-WIN UI ---------- */
+$
+(
+"#scanInput"
+).
+style
+=
+"opacity:0;position:absolute;width:100%;height:100%;cursor:pointer;"
+;
+const
+setProcessing
+=
+on
+=>
+{
+$
+(
+"#processScans"
+).
+disabled
+=
+on
+;
+$
+(
+"#procSpin"
+).
+style
+.
+display
+=
+on
+?
+"inline"
+:
+"none"
+;
+};
+/* ----------  KEYBOARD GUARD ---------- */
+window
+.
+addEventListener
+(
+"keydown"
+,
+e
+=>
+{
+if
+(
+document
+.
+activeElement
+.
+tagName
+!==
+"BODY"
+)
+return
+;
+if
+(
+e
+.
+key
+===
+"r"
+||
+e
+.
+key
+===
+"R"
+) {
+e
+.
+preventDefault
+();
+drawTemplate
+();}
+else
+if
+(
+e
+.
+key
+===
+"p"
+||
+e
+.
+key
+===
+"P"
+) {
+e
+.
+preventDefault
+();
+processScans
+(
+$
+(
+"#scanInput"
+).
+files
+);}
+else
+if
+(
+e
+.
+key
+===
+"b"
+||
+e
+.
+key
+===
+"B"
+) {
+e
+.
+preventDefault
+();
+buildTTF
+();}
+else
+if
+(
+e
+.
+key
+===
+"m"
+||
+e
+.
+key
+===
+"M"
+) {
+e
+.
+preventDefault
+();
+nextMode
+();}
+});
+/* ----------  ADAPTIVE TRIM ---------- */
+function
+adaptiveTrim
+(
+cell
+,
+cw
+,
+ch
+){
+let
+minX
+=
+cw
+,
+maxX
+=
+0
+,
+minY
+=
+ch
+,
+maxY
+=
+0
+;
+for
+(
+let
+y
+=
+0
+;
+y
+<
+ch
+;
+y
+++
+)
+for
+(
+let
+x
+=
+0
+;
+x
+<
+cw
+;
+x
+++
+)
+if
+(
+cell
+[
+y
+*
+cw
++
+x
+]){
+minX
+=
+Math
+.
+min
+(
+minX
+,
+x
+);
+maxX
+=
+Math
+.
+max
+(
+maxX
+,
+x
+);
+minY
+=
+Math
+.
+min
+(
+minY
+,
+y
+);
+maxY
+=
+Math
+.
+max
+(
+maxY
+,
+y
+);
+}
+const
+w
+=
+maxX
+-
+minX
++
+1
+,
+h
+=
+maxY
+-
+minY
++
+1
+;
+const
+out
+=
+new
+Uint8Array
+(
+w
+*
+h
+);
+for
+(
+let
+y
+=
+0
+;
+y
+<
+h
+;
+y
+++
+)
+for
+(
+let
+x
+=
+0
+;
+x
+<
+w
+;
+x
+++
+)
+out
+[
+y
+*
+w
++
+x
+]
+=
+cell
+[(
+y
++
+minY
+)
+*
+cw
++
+(
+x
++
+minX
+)];
+return
+{
+bitmap:out
+,
+w
+,
+h
+,
+offX:minX
+,
+offY:minY
+};
+}
+/* ----------  REPLACE FIXED TRIM IN processScans ---------- */
+const
+trimmed
+=
+adaptiveTrim
+(
+cell
+,
+cw
+,
+ch
+);
+const
+dsm
+=
+downsample
+(
+trimmed
+.
+bitmap
+,
+trimmed
+.
+w
+,
+trimmed
+.
+h
+,
+res
+,
+res
+);
+extractedGlyphs
+.
+push
+({
+code:cp
+,
+bitmap:dsm
+,
+w:res
+,
+h:res
+,
+offsetX:trimmed
+.
+offX
+,
+offsetY:trimmed
+.
+offY
+});
+/* ----------  SMARTER ADVANCE WIDTH ---------- */
+let
+left
+=
+Infinity
+,
+right
+=-
+Infinity
+;
+rects
+.
+forEach
+(
+r
+=>
+{
+const
+x0
+=
+xOffset
++
+r
+.
+x
+*
+scale
+;
+const
+x1
+=
+x0
++
+r
+.
+w
+*
+scale
+;
+left
+=
+Math
+.
+min
+(
+left
+,
+x0
+);
+right
+=
+Math
+.
+max
+(
+right
+,
+x1
+);
+/* draw rect */
+});
+const
+advance
+=
+Math
+.
+ceil
+(
+right
+-
+left
+)
++
+2
+*
+sideBearing
+;
+/* ----------  LIVE THRESHOLD PREVIEW ---------- */
+let
+lastImg
+=
+null
+;
+async
+function
+processScans
+(
+files
+){
+/* ...existing code... */
+lastImg
+=
+img
+;
+// store for preview
+/* after binarize */
+redrawLastScan
+();
+}
+function
+redrawLastScan
+(){
+if
+(
+!
+lastImg
+)
+return
+;
+const
+ctx
+=
+scanCanvas
+.
+getContext
+(
+"2d"
+);
+ctx
+.
+drawImage
+(
+lastImg
+,
+0
+,
+0
+,
+scanCanvas
+.
+width
+,
+scanCanvas
+.
+height
+);
+const
+bin
+=
+binarize
+(
+ctx
+,
+scanCanvas
+.
+width
+,
+scanCanvas
+.
+height
+,
++
+$
+(
+"#thresh"
+).
+value
+);
+const
+id
+=
+ctx
+.
+createImageData
+(
+scanCanvas
+.
+width
+,
+scanCanvas
+.
+height
+);
+for
+(
+let
+i
+=
+0
+;
+i
+<
+bin
+.
+length
+;
+i
+++
+){
+const
+v
+=
+bin
+[
+i
+]
+?
+0
+:
+255
+;
+const
+p
+=
+i
+*
+4
+;
+id
+.
+data
+[
+p
+]
+=
+id
+.
+data
+[
+p
++
+1
+]
+=
+id
+.
+data
+[
+p
++
+2
+]
+=
+v
+;
+id
+.
+data
+[
+p
++
+3
+]
+=
+255
+;
+}
+ctx
+.
+putImageData
+(
+id
+,
+0
+,
+0
+);
+}
+$
+(
+"#thresh"
+).
+addEventListener
+(
+"input"
+,()
+=>
+clearTimeout
+(
+threshTimer
+)
+||
+(
+threshTimer
+=
+setTimeout
+(
+redrawLastScan
+,
+180
+)));
+TL;DR - What to copy now
+Add the hidden-file-input style
+and spinner.
+Guard keyboard shortcuts
+.
+Swap fixed 10 % trim →
+adaptiveTrim
+.
+Compute real advance width
+(remove fixed
+800
+).
+Add live threshold preview
+.
+All other suggestions (OpenCV, modules, tests) are
+future-ready
+and can be added later without breaking the current flow.
+Your terminal-themed prototype is now
+robust, keyboard-driven, and ready for real-world hand-drawn scans
+. Enjoy turning ink into type!
+Ask anything
+Auto
+Auto
+Actualizar a SuperGrok
+

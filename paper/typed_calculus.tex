@@ -1,0 +1,79 @@
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+
+\title{PlenumHub: Typed Semantic Calculus (Stage 1)}
+\author{Flyxion}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document formalizes the typed semantic calculus for PlenumHub:
+spheres, modalities, typed rules, entropy budgets, merge operator and
+the Media-Quine closure. We provide definitions, a small collection
+of core theorems, and proof sketches suitable for formalization.
+\end{abstract}
+
+\section{Definitions}
+
+\paragraph{Modalities and Spheres.}
+Let $\mathcal{K}$ be a finite set of modality keys (e.g., \texttt{text}, \texttt{audio}, \texttt{code}, \texttt{proof}).
+A \emph{type signature} is a finite subset $T \subseteq \mathcal{K}$ declaring required modalities.
+
+A \emph{semantic sphere} is a tuple:
+\[
+\sigma = (I, T, M, E, S)
+\]
+where:
+\begin{itemize}
+  \item $I$ is an immutable identifier,
+  \item $T$ is the type signature,
+  \item $M: \mathcal{K} \to \mathcal{V}\cup\{\varnothing\}$ maps modality keys to values or $\varnothing$,
+  \item $E \in \mathbb{R}_{\ge 0}$ is the semantic entropy,
+  \item $S$ is provenance (a finite DAG of rule applications).
+\end{itemize}
+
+\paragraph{Typed rule.}
+A \emph{rule} $r$ has a signature $r: a \xrightarrow{\epsilon_r} b$ meaning it consumes modality $a$ and produces $b$ while incurring at most $\epsilon_r$ entropy increase.
+
+A rule application $\sigma \xrightarrow{r} \sigma'$ must satisfy:
+\[
+M(a) \neq \varnothing,\qquad M'(b) = r(M(a)),\qquad E(\sigma') \le E(\sigma) + \epsilon_r.
+\]
+
+\section{Merge operator}
+
+Define a partial merge $\oplus$:
+\[
+\sigma_a \oplus \sigma_b = \sigma_m \quad\text{iff}\quad E(\sigma_m) \le \max(E(\sigma_a),E(\sigma_b)) + \epsilon_{\mathrm{merge}}.
+\]
+If no such $\sigma_m$ exists the merge is undefined (denoted $\bot$).
+
+\section{Core Theorems (informal)}
+
+\begin{theorem}[Merge Idempotence]
+For any $\sigma$, $\sigma\oplus\sigma=\sigma$.
+\end{theorem}
+
+\begin{proof}[Sketch]
+Merging identical spheres introduces no new contradictions; choose $\sigma_m=\sigma$ and $\epsilon_{\mathrm{merge}}\ge 0$.
+\end{proof}
+
+\begin{theorem}[Merge Coherence]
+If $\sigma_a\oplus\sigma_b=\sigma_m$ and $\sigma_b\oplus\sigma_a=\sigma_{m'}$ then $d(\sigma_m,\sigma_{m'})\le 2\epsilon_{\mathrm{merge}}$ where $d$ is the metric combining modality divergences and entropy difference.
+\end{theorem}
+
+\section{Entropy invariants and Media-Quine closure}
+
+Define the Media-Quine operator $Q$ which synthesizes missing modalities using explicitly permitted modality-transducers. $Q$ is idempotent: $Q(Q(\sigma))=Q(\sigma)$.
+
+Entropy budgets must be paid for synthesis: closing a sphere may increase $E$ by at most the total budget of the transducers used.
+
+\section{Next steps for formalization}
+We recommend porting the definitions to Lean (file provided in `src/lean/`) and proving the theorems using a small-library of tactics. The Python reference implementation contains runtime checks mirroring the static invariants.
+
+\end{document}

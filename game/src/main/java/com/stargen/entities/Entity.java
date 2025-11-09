@@ -12,6 +12,10 @@ public class Entity {
     protected float linearDrag = 0.98f;
     protected float angularDrag = 0.92f;
 
+    protected float health = 100f;
+    protected float radius = 2.0f;
+    protected boolean active = true;
+
     public Entity(Vector3D start){
         this.position = start;
         this.velocity = new Vector3D(0,0,0);
@@ -20,6 +24,7 @@ public class Entity {
     }
 
     public void update(float dt){
+        if (!active) return;
         // drag
         velocity = velocity.multiply(linearDrag);
         rotationVelocity = new Vector3D(
@@ -42,4 +47,14 @@ public class Entity {
 
     public Vector3D getPosition(){ return position; }
     public Vector3D getOrientation(){ return orientation; }
+
+    public void takeDamage(float dmg){
+        health -= dmg;
+        if (health <= 0){ active = false; }
+    }
+    public boolean isActive(){ return active; }
+    public float getRadius(){ return radius; }
+    public void setRadius(float r){ radius = r; }
+    public float getHealth(){ return health; }
+    public void setHealth(float h){ health = h; }
 }
