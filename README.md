@@ -1,21 +1,34 @@
-# Research Projects — RSVP Simulators and Essays
 
-**Repository:** [standardgalactic/research-projects](https://github.com/standardgalactic/research-projects)  
-**Live site:** [standardgalactic.github.io/research-projects/](https://standardgalactic.github.io/research-projects/)
+# RAG Cognitive Stack — Repository
 
-This repository hosts two RSVP-based simulators and their theoretical essays.
+This repository contains a production-ready scaffold implementing the five-persona
+RAG memory system (Archivist, Formalist, Synthesist, Strategist, Curator) plus
+routing, ontology tagging, benchmarks, UI, Dockerization, tests, and a LaTeX paper.
 
-## Contents
-- **Xenobot Swarm Simulator v2.1** – Bio-inspired morphogenetic field simulation.
-- **Stars! RSVP Tech Tree Simulator v2.0** – Civilization-scale thermodynamic evolution.
-- **RSVP Integration Overview** – Formal mapping of RSVP fields to morphogenesis.
-- **Takeoff Trajectories in the Stars! Simulator** – Analysis of RSVP-driven takeoff dynamics.
+**Contents**
+- `memory_routing_schema.json` — JSON Schema for memory routing records.
+- `prompts.py` — Persona prompt templates.
+- `curator.py` — routing implementation and curator logic (simulated LLM).
+- `ontology.py` — vector tagging ontology.
+- `tagger.py` — stub for embedding tagging projection.
+- `route_tests.py` — pytest suite for routing.
+- `benchmark.py` — synthetic failure-mode benchmark.
+- `app.py` — minimal Streamlit UI for adding memories and seeing routing.
+- `samples/` — example `.memory` files.
+- `Dockerfile` and `docker-compose.yml` — containerization.
+- `main.tex` — LaTeX paper draft.
+- `requirements.txt` — Python dependencies.
 
-## Run Locally
+**Usage (development)**
 ```bash
-python3 -m http.server 8080
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pytest
+streamlit run app.py
 ```
 
-Then open:
-- `rsvp-simulators/index.html`
-- `rsvp-simulators/stars.html`
+**Notes**
+- LLM calls are stubbed/simulated. Replace the TODO markers in `curator.py` with real LLM calls (OpenAI/Anthropic/local).
+- Embedding projection functions in `tagger.py` are placeholders; integrate your vector model (sentence-transformers or cloud embeddings) and train regressors to map embeddings to ontology scores.
+

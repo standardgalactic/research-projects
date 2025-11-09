@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RAG Memory Routing Record",
+  "type": "object",
+  "properties": {
+    "memory_id": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "project_phase": {
+          "type": "string",
+          "enum": [
+            "discovery",
+            "preservation",
+            "distillation",
+            "deployment",
+            "maintenance"
+          ]
+        }
+      },
+      "required": [
+        "source",
+        "timestamp"
+      ]
+    },
+    "routing": {
+      "type": "object",
+      "properties": {
+        "primary_owner": {
+          "type": "string",
+          "enum": [
+            "archivist",
+            "formalist",
+            "synthesist",
+            "strategist",
+            "curator"
+          ]
+        },
+        "weights": {
+          "type": "object",
+          "properties": {
+            "archivist": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "formalist": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "synthesist": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "strategist": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "additionalProperties": false,
+          "minProperties": 4
+        },
+        "lifecycle": {
+          "type": "object",
+          "properties": {
+            "retain_until": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "review_in_months": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "prune_if_unused_after_months": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            }
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "primary_owner",
+        "weights",
+        "lifecycle"
+      ]
+    },
+    "curator_meta": {
+      "type": "object",
+      "properties": {
+        "drift_score": {
+          "type": "number"
+        },
+        "last_rebalance": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "alerts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high"
+                ]
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "message"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "memory_id",
+    "content",
+    "metadata",
+    "routing"
+  ]
+}

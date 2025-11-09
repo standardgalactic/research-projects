@@ -1,0 +1,16 @@
+
+import unittest
+from src.ref_impl.spherepop_core import Sphere, Rule, merge
+
+class TestCore(unittest.TestCase):
+    def test_rule_apply_and_merge(self):
+        A = Sphere(id='A', types={'text'}, content={'text': "x"}, entropy=0.1)
+        r = Rule(id='r', src='text', dst='audio', eps=0.02, impl=lambda t: "audio:"+t)
+        B = r.apply(A)
+        self.assertIn('audio', B.types)
+        merged, ent = merge(A, B, eps_merge=0.05)
+        self.assertIsNotNone(merged)
+        self.assertLessEqual(ent, max(A.entropy, B.entropy) + 0.05)
+
+if __name__ == '__main__':
+    unittest.main()

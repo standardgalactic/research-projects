@@ -1,111 +1,111 @@
 package com.stargen.engine;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.stargen.engine.simulation.WorldState;
 import com.stargen.entities.PlayerShip;
-import com.stargen.entities.ai.AIController;
-import com.stargen.entities.weapons.Projectile;
-import com.stargen.graphics.Renderer;
-import com.stargen.graphics.HUDRenderer;
+import com.stargen.entities.ai.AIPathFollower;
 import com.stargen.controls.InputHandler;
+import com.stargen.graphics.HUDRenderer;
+import com.stargen.graphics.RendererBackend;
+import com.stargen.graphics.LWJGLRenderer;
+import com.stargen.world.NavMesh;
+import com.stargen.world.TunnelLevel;
 import com.stargen.math.Vector3D;
-import com.stargen.research.TechTree;
-import com.stargen.world.GalaxyMap;
-import com.stargen.missions.Mission;
+import com.stargen.io.LevelLoader;
+import com.stargen.research.*;
 
 public class GameLoop {
 
-    private PlayerShip playerShip;
-    private final List<Object> entities = new ArrayList<>(); // simple heterogeneous list for demo
-    private InputHandler inputHandler;
-    private Renderer renderer;
-    private HUDRenderer hud;
     private WorldState world;
-    private TechTree techTree;
-    private GalaxyMap galaxy;
-    private Mission currentMission;
+    private PlayerShip player;
+    private InputHandler input;
+    private boolean isRunning = true;
 
-    private boolean isRunning;
-    private final static float TARGET_FPS = 60.0f;
-    private final static long TARGET_FRAME_TIME_NANO = (long)(1_000_000_000L / TARGET_FPS);
-    private long frameCount = 0;
+    // Demo scene
+    private HUDRenderer hud = new HUDRenderer();
+    private AIPathFollower follower;
+    private NavMesh nav;
+    private float hudTimer = 0f;
+    private RendererBackend renderer = null;
+    private TechLogic techLogic = new TechLogic();
+    private TechTree techTree = new TechTree();
+    private TechScreen techScreen;
 
     public GameLoop(){
-        // World & research
+        // RSVP world
         this.world = new WorldState(1.0f, 0.2f, 0.4f);
-        this.techTree = new TechTree(world);
 
         // Player
-        Vector3D start = new Vector3D(0,0,0);
-        this.playerShip = new PlayerShip(start, 50.0f, 2.0f);
-        this.inputHandler = new InputHandler(playerShip);
+        this.player = new PlayerShip(new Vector3D(0,0,0), world);
+        this.input = new InputHandler(player);
 
-        // AI
-        AIController ai1 = new AIController(new Vector3D(100,10,-50), playerShip);
-        entities.add(ai1);
+        // Level load from assets (falls back to empty if error)
+        try {
+            LevelLoader.Result res = LevelLoader.load("assets/levels/level1.txt");
+            this.nav = NavMesh.fromTunnel(res.level);
+            // pick closest nodes to S and G by index heuristic
+            int startNode = 0;
+            int goalNode = Math.max(0, nav.nodes.size()-1);
+            this.follower = new AIPathFollower(new Vector3D(res.sx, res.sy, res.sz), nav);
+            this.follower.follow(startNode, goalNode);
+        } catch (Exception ex){
+            System.out.println("[GameLoop] Level load failed, using empty grid. " + ex);
+            TunnelLevel lvl = new TunnelLevel(10, 6, 10); // empty
+            for (int x=0;x<lvl.W;x++)
+                for (int y=0;y<lvl.H;y++)
+                    for (int z=0;z<lvl.D;z++)
+                        lvl.solid[x][y][z] = false;
+            this.nav = NavMesh.fromTunnel(lvl);
+            this.follower = new AIPathFollower(new Vector3D(1,1,1), nav);
+            int startNode = 0;
+            int goalNode = Math.max(0, nav.nodes.size()-1);
+            this.follower.follow(startNode, goalNode);
+        }
 
-        // Galaxy & mission
-        this.galaxy = new GalaxyMap(8, world);
-        this.currentMission = Mission.stabilizeNode(galaxy, 0);
+        // Tech screen
+        this.techScreen = new TechScreen(techLogic, techTree, world);
 
-        // Rendering
-        this.renderer = new Renderer(960, 540);
-        this.hud = new HUDRenderer();
+        // Optional LWJGL renderer
+        if ("lwjgl".equalsIgnoreCase(System.getProperty("renderer", ""))){
+            LWJGLRenderer l = new LWJGLRenderer();
+            l.init();
+            l.setWorld(world);
+            l.setTechScreen(techScreen);
+            renderer = l;
+        }
 
-        this.isRunning = true;
-
-        System.out.println("StarGen initialized.");
-    }
-
-    private void applyRSVPFlightCoupling(){
-        // Increase handling instability as entropy rises (S ↑ => wobble ↑, thrust ↓)
-        float S = world.getEntropy();
-        float phi = world.getPhi();
-        float wobble = Math.min(0.6f, 0.05f * S);
-        float thrustScale = Math.max(0.5f, 1.0f - 0.03f * S) * (0.8f + 0.02f * phi);
-        playerShip.setHandling(wobble, thrustScale);
+        System.out.println("[GameLoop] Demo initialized: NavMesh nodes=" + nav.nodes.size());
     }
 
     public void run(){
         long last = System.nanoTime();
-        while (isRunning) {
+        while (isRunning){
             long now = System.nanoTime();
-            float dt = (now - last) / 1e9f;
+            float dt = (now - last) / 1_000_000_000.0f;
             last = now;
-            frameCount++;
 
-            // 1) World RSVP tick
+            // Input and physics
+            input.processInput(dt);
+            player.update(dt);
+            follower.update(dt);
+
+            // RSVP world tick
             world.tick(dt);
-            applyRSVPFlightCoupling();
 
-            // 2) Input & updates
-            inputHandler.processInput(dt);
-            playerShip.update(dt);
-            for (Object o : entities) {
-                if (o instanceof AIController) ((AIController)o).update(dt);
-                if (o instanceof Projectile) ((Projectile)o).update(dt);
+            // Periodic HUD (once per ~1s)
+            hudTimer += dt;
+            if (hudTimer >= 1.0f){
+                hud.draw(world);
+                hudTimer = 0f;
             }
 
-            // 3) Mission hook (affects world or nodes)
-            if (currentMission != null) currentMission.tick(dt);
-
-            // 4) Render & HUD
-            renderer.renderScene(playerShip);
-            hud.drawTelemetry(world, playerShip);
-
-            // 5) Demo: occasionally unlock a tech
-            if (frameCount == 600) techTree.unlock("Efficient Supply Routing");
-            if (frameCount == 1200) techTree.unlock("Constitutional Safety Layer");
-
-            // 6) sleep to target FPS
-            long sleepMs = (TARGET_FRAME_TIME_NANO - (System.nanoTime() - now)) / 1_000_000;
-            if (sleepMs > 0){
-                try { Thread.sleep(sleepMs); } catch (InterruptedException e){ Thread.currentThread().interrupt(); }
+            if (renderer != null){
+                renderer.setCamera(player.getPosition(), player.getOrientation());
+                renderer.drawWorldTick();
             }
-            if (frameCount > 1800) isRunning = false; // auto-exit demo
+
+            try { Thread.sleep(16); } catch(InterruptedException ie){ Thread.currentThread().interrupt(); }
         }
+        if (renderer != null) renderer.shutdown();
     }
 
     public static void main(String[] args){
