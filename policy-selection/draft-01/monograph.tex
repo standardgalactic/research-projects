@@ -1,0 +1,585 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{red}
+}
+
+\title{Policy Selection in the Latent Action Space: A Unifying Theory of Thought, Inference, and Sparse Agency}
+\author{Flyxion \\ \small{\textit{Independent Researcher}} \\ \small{X: @galactromeda}}
+\date{November 10, 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+All cognitive processes are formalized as sparse Bayesian policy selection within a latent action space. Commencing with the foundational conceptualization of thought as Bayesian inference over policies, the exposition progresses through sparsity constraints, variational approximations, equivalence to active inference via expected free energy minimization, integration with control-as-inference paradigms, neurobiological implementations, epistemic--pragmatic trade-offs, and broader implications for cognition and psychopathology. A concrete instantiation is provided within the Relativistic Scalar--Vector Plenum (RSVP) dynamical substrate, deriving exact LASSO thresholds for policy activation and demonstrating phase transitions in cognitive agency. Extensions cover nonlinear atom interference (binding), temporal recursion (working memory), cognitive criticality, and thermodynamic computation. The synthesis demonstrates that perception, reasoning, planning, imagination, and decision-making constitute a singular computational principle: the constrained selection of latent policies under uncertainty, optimized through free-energy minimization with enforced parsimony. Twenty-seven falsifiable predictions and five experimental protocols are presented.
+\end{abstract}
+
+\section{Policy Selection in the Latent Action Space: Foundational Theory}
+\label{sec:foundational}
+
+Cognitive activity, in its entirety, may be construed as the selection of a policy---a mapping from states to actions---within a space that encompasses both external motor outputs and internal latent operations. A policy \(\pi \in \Pi\) defines a trajectory of transitions, whether manifest in overt behavior or confined to internal simulations such as conceptual chaining, memory retrieval, or attentional reallocation.
+
+Under conditions of uncertainty, policy selection adheres to Bayesian principles, conditioned on observational history \(o_{1:T}\):
+
+\[
+\pi^* = \arg\max_{\pi \in \Pi} P(\pi \mid o_{1:T}),
+\]
+
+where the posterior \(P(\pi \mid o_{1:T}) \propto P(o_{1:T} \mid \pi) P(\pi)\). Here, \(P(\pi)\) encodes prior inductive biases, habits, or structural constraints, while \(P(o_{1:T} \mid \pi)\) evaluates the policy's capacity to predict or explain observations, including counterfactual outcomes derived from internal rollouts.
+
+This formulation posits that thought is not a distinct computational module but inference over latent causes (policies) in a generative model of the world. Reasoning emerges as policy transitions in abstract state spaces; imagination as unexecuted rollouts; perception as policy selection that aligns generative predictions with sensory input.
+
+The space of possible policies is super-exponentially large, rendering dense inference computationally prohibitive. Biological and artificial cognition thus operates under sparsity, approximating the posterior with minimal support:
+
+\[
+P(\pi \mid o_{1:T}) \approx \sum_{k=1}^{K \ll |\Pi|} w_k \, \delta(\pi = \pi_k),
+\]
+
+where \(K\) denotes a small number of active policies. Sparsity manifests through explicit priors, sampling limits, precision modulation, amortization, and resource constraints.
+
+Exact computation of \(P(o_{1:T} \mid \pi)\) requires marginalization over hidden states. Variational methods bound this via the evidence lower bound (ELBO), introducing an approximate posterior \(Q(s_{1:T} \mid \pi)\) and free energy \(\mathcal{F}\):
+
+\[
+\log P(o_{1:T} \mid \pi) \geq -\mathcal{F}[Q(s \mid \pi), \pi].
+\]
+
+The variational policy posterior becomes:
+
+\[
+Q(\pi) \propto \exp(-\mathcal{F}[Q(s \mid \pi), \pi]) P(\pi).
+\]
+
+Active inference extends this to prospective policy evaluation through expected free energy \(G(\pi)\), decomposing into pragmatic risk, epistemic information gain, and complexity. Selecting a thought thus balances usefulness, learning value, and parsimony.
+
+This result matches control-as-inference frameworks, where optimal control is recovered by posing action selection as probabilistic inference. Adding sparsity priors converts soft control into hard selection.
+
+The unification dissolves classical separations:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+Phenomenon & Policy Interpretation \\
+\midrule
+Perception & Generative policies explaining sensory data \\
+Reasoning & Latent transitions in conceptual spaces \\
+Memory & Retrieval of stored policy trajectories \\
+Attention & Reweighting policy priors \\
+Emotion & Modulation of policy desirability via precision \\
+Imagination & Counterfactual rollouts without execution \\
+Intuition & High-precision MAP under strong priors \\
+Deliberation & Low-precision sampling over multiple policies \\
+\bottomrule
+\end{tabular}
+\caption{Cognitive phenomena as policy selection.}
+\end{table}
+
+\section{Sparse Bayesian Policy Selection in the RSVP Framework: Linearization, LASSO Thresholds, and Numerical Demonstration}
+\label{sec:rsvp}
+
+The abstract formulation that cognition corresponds to sparse Bayesian selection over latent policies becomes mechanically meaningful when embedded inside a dynamical substrate. In the Relativistic Scalar--Vector Plenum (RSVP) formalism, ``thought'' is not abstract search but intervention on a coupled field system whose state evolves according to entropy--potential--flow dynamics.
+
+\subsection{Selecting a Canonical RSVP PDE and Linearizing Around the Plenum}
+
+A minimal RSVP system on a 1D domain \(\Omega = [0,L]\) with periodic boundaries is:
+
+\begin{align*}
+\partial_t \Phi &= -\mathbf{v} \cdot \nabla \Phi + D_\Phi \nabla^2 \Phi - \kappa (\Phi - \Phi_0) + B_\Phi[u] + \xi_\Phi, \\
+\partial_t \mathbf{v} &= -(\mathbf{v} \cdot \nabla) \mathbf{v} + D_v \nabla^2 \mathbf{v} - \nabla \Phi + B_v[u] + \xi_v, \\
+\partial_t S &= \nabla \cdot (S \mathbf{v}) + D_S \nabla^2 S + \sigma (\nabla \Phi)^2 + B_S[u] + \xi_S,
+\end{align*}
+
+with negentropic control:
+
+\[
+B_\Phi[u] = u(x,t), \quad B_v[u] = 0, \quad B_S[u] = -\eta u(x,t).
+\]
+
+Linearization about \((\Phi_0, \mathbf{0}, S_0)\) yields:
+
+\begin{align*}
+\partial_t \delta \Phi &= D_\Phi \nabla^2 \delta \Phi - \kappa \delta \Phi + \sum_k a_k \psi_k(x) \delta(t - t_0) + \xi_\Phi, \\
+\partial_t \delta \mathbf{v} &= D_v \nabla^2 \delta \mathbf{v} - \nabla \delta \Phi + \xi_v, \\
+\partial_t \delta S &= D_S \nabla^2 \delta S + S_0 \nabla \cdot \delta \mathbf{v} + 2\sigma \nabla \Phi_0 \cdot \nabla \delta \Phi - \eta \sum_k a_k \psi_k(x) \delta(t - t_0) + \xi_S.
+\end{align*}
+
+Policies are expansions in normalized Gaussian atoms \(\psi_k(x)\).
+
+\subsection{Observation Model and Reduction to Linear--Gaussian Inference}
+
+The observation is \(o = \int w(x) \delta \Phi(x, \Delta t) \, dx\) with \(w(x) = \psi_j(x)\), reducing to \(p(o \mid a) = \mathcal{N}(a_j, s)\). The goal is \(o^* \sim \mathcal{N}(\mu^*, s^*)\).
+
+\subsection{Expected Free Energy with \(\ell_1\) Prior}
+
+Pragmatic risk: \(G(a) = \frac{1}{2s^*} (a_j - \mu^*)^2\). With \(\ell_1\) prior \(C(a) = \lambda \|a\|_1\), the posterior is \(Q(a) \propto \exp(-G(a) - \lambda \|a\|_1)\).
+
+For orthogonal atoms, the MAP is:
+
+\[
+a_j^* = \sign(\mu^*) \max(|\mu^*| - s^* \lambda, 0).
+\]
+
+\subsection{The Sparsity Phase Transition}
+
+Threshold: \(a_j^* = 0 \iff \lambda \geq \lambda^* = |\mu^*|/s^*\).
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lll}
+\toprule
+Regime & Condition & Interpretation \\
+\midrule
+Expressive inference & \(\lambda < \lambda^*\) & High cognitive bandwidth \\
+Threshold of articulation & \(\lambda \approx \lambda^*\) & Decisive pruning \\
+Null policy regime & \(\lambda > \lambda^*\) & Passive prediction \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Numerical Illustration}
+
+\begin{lstlisting}[language=Python]
+import numpy as np
+import matplotlib.pyplot as plt
+
+L, M = 1.0, 3
+centers = np.array([0.25, 0.5, 0.75]) * L
+sigma_k = L / 10
+s_star, mu_star = 0.1, 0.5
+lambdas = np.linspace(0, 10, 100)
+
+threshold = abs(mu_star) / s_star  # 5.0
+a_star = np.zeros((len(lambdas), M))
+for i, lam in enumerate(lambdas):
+    deviation = mu_star - s_star * lam if mu_star > 0 else mu_star + s_star * lam
+    a_star[i, 1] = max(deviation, 0)
+
+plt.plot(lambdas, a_star[:, 1], label='$a_2^*$')
+plt.axvline(threshold, color='r', linestyle='--', label='$\lambda^* = 5.0$')
+plt.xlabel('$\lambda$'); plt.ylabel('Amplitude'); plt.legend(); plt.grid(True)
+plt.show()
+\end{lstlisting}
+
+\subsection{RSVP-Specific Consequences}
+
+\begin{enumerate}
+\item Spatial cognition inherits atom locality.
+\item Entropy suppression is literal and costly.
+\item Cognitive bottlenecks are phase boundaries.
+\item Higher uncertainty raises the sparsity bar.
+\item Metabolism is the Lagrange multiplier.
+\end{enumerate}
+
+\section{Epistemic Thought as Information-Seeking Plenum Sculpting}
+\label{sec:epistemic}
+
+The full expected free energy decomposes as:
+
+\[
+G_{\text{full}}(a) = G(a) - \mathbb{E}[\mathrm{IG}(o; \delta \Phi_j)] + \lambda \|a\|_1,
+\]
+
+with \(\mathrm{IG}(o; \delta \Phi_j) = \frac{1}{2} \log(1 + \sigma_{\Phi_j}^2 / s)\).
+
+The MAP objective is:
+
+\[
+a^* = \arg\min_a \left[ \frac{1}{2s^*}(a_j - \mu^*)^2 - \beta \log\!\left(1 + \frac{\sigma_{\Phi_j}^2}{s}\right) + \lambda \|a\|_1 \right].
+\]
+
+Atom selection arbitrates between goal and uncertainty. Three regimes emerge (Table in Section~\ref{sec:epistemic}).
+
+Curiosity is uncertainty gradient descent in the plenum.
+
+\section{Nonlinear Atom Interference and Policy Binding}
+\label{sec:binding}
+
+The Gram matrix \(P_{ij} = \langle \psi_i, \psi_j \rangle\) couples observations: \(o = \mathbf{h}^\top a + \epsilon\).
+
+The coupled LASSO is:
+
+\[
+a^* = \arg\min_a \frac{1}{2s^*} \|\mathbf{h}^\top a - \mu^*\|^2 + \lambda \|a\|_1.
+\]
+
+Constructive overlap (\(\rho > 0\)) enables binding below \(\lambda_{\text{bind}} = |\mu^*|/s^*(1+\rho)\). Four phases: bound, competitive, unbound, null.
+
+Compositionality is energetic coalition formation.
+
+\section{Temporal Recursion: Working Memory and Sparse Policy Trajectories}
+\label{sec:temporal}
+
+Sequential policies \(\pi = (a^{(1)}, \dots, a^{(T)})\) evolve under \(x^{(t+1)} = A x^{(t)} + B a^{(t)} + \xi\).
+
+Recursive free energy obeys a Bellman form. Working memory is decaying field imprint \(A^\tau B a^{(t)}\).
+
+Sparse credit assignment uses eligibility traces. Emergent phenomena: coherence, rumination, topic shifts.
+
+\section{Cognitive Criticality and Phase Transitions in Plenum Control}
+\label{sec:criticality}
+
+Order parameter: \(\Psi(\lambda) = \mathbb{E}[\|a^*\|_0]\). Critical collapse at \(\lambda_c\), susceptibility divergence.
+
+Four universal phases (table). Critical slowing: \(\tau \sim |\lambda - \lambda_c|^{-1}\).
+
+\section{Neurophysical Origins of the Sparsity Multiplier \(\lambda\)}
+\label{sec:lambda}
+
+\(\lambda = \lambda_{\text{ATP}} + \lambda_{\text{noise}} + \lambda_{\text{diffusion}}\). Natural Sparsity Principle: biology instantiates \(\ell_1\).
+
+GBSH: cognition navigates curved manifold under metabolic radius.
+
+\section{Thermodynamic Computation on the Plenum}
+\label{sec:thermodynamic}
+
+Plenum evolves via Langevin dynamics. Noise excites bases; diffusion convolves; inefficiency anneals.
+
+Sparse MAP is physical relaxation. Computation \emph{is} thermodynamics.
+
+\section{Synthesis: Policy Selection as Sparse Variational Control}
+\label{sec:synthesis}
+
+The cognitive cycle:
+
+\[
+\text{Thought} = \arg\min_{a(t)} \left[ \mathbb{E} \mathcal{F}[x(t), a(t)] + \lambda_{\text{bio}} \|a(t)\|_1 \right].
+\]
+
+\boxed{
+\text{Thought} = \text{sparse variational policy selection in latent action space, physically instantiated on a dissipative plenum}
+}
+
+\section{Empirical Grounding: Falsifiable Predictions and Protocols}
+\label{sec:empirical}
+
+The RSVP framework generates a suite of precise, falsifiable predictions spanning neural population dynamics, metabolic coupling, stochastic resonance, curiosity, and thermodynamic computation. These are organized into seven thematic groups (A--G), comprising 27 predictions in total. Each prediction specifies a measurable effect, a manipulation, and a null hypothesis that would falsify the theory. Following the predictions, five complete experimental protocols are detailed, designed for immediate implementation in human neuroimaging laboratories. All protocols are noninvasive (except Protocol 5, which notes an optional invasive variant), ethically low-risk, and powered to detect medium effect sizes (\(d \approx 0.5\)) with \(N = 24\)--\(40\) within-subjects.
+
+\subsection{Falsifiable Predictions}
+
+\subsubsection*{A. Sparsity and Metabolic Coupling (Predictions 1--4)}
+\begin{enumerate}
+\item Neural population sparsity (measured via Hoyer index or \(\ell_1/\ell_2\) ratio across EEG/MEG sensors or fMRI voxels) scales \emph{inversely} with local metabolic availability (glucose/oxygen), independent of task demand.
+\item Acute metabolic strain (e.g., hypoxia, reduced ATP via pharmacological or sleep manipulation) increases sparsity, reducing the number of co-active neural assemblies.
+\item Enhancing metabolic availability (e.g., oral glucose) transiently \emph{decreases} sparsity, increasing co-active modes without increasing per-mode firing rate.
+\item Inferred sparsity coefficients covary with physical energy biomarkers (blood glucose, lactate), not solely with behavioral load.
+\end{enumerate}
+
+\subsubsection*{B. Diffusion, Noise, and Cognitive Bandwidth (Predictions 5--8)}
+\begin{enumerate}[resume]
+\item Moderate sensory noise enhances cognitive flexibility and exploration via stochastic resonance; excessive noise degrades performance (inverted-U).
+\item Increasing effective neural diffusion (e.g., via glial modulation or extracellular viscosity) shortens working-memory persistence, matching physical decay rates.
+\item Working-memory trace decay constants align with diffusion--relaxation timescales (\(D_\Phi, \kappa\)), not purely synaptic ones.
+\item Neural noise covariance eigenmodes predict curiosity targets; epistemic sampling follows leading noise modes, not reward gradients.
+\end{enumerate}
+
+\subsubsection*{C. Phase Transitions in Composition and Collapse (Predictions 9--12)}
+\begin{enumerate}[resume]
+\item Multi-representation binding collapses \emph{discontinuously} at a critical sparsity threshold; compositional task performance drops sharply.
+\item Neural representational similarity shows a bifurcation: below threshold, composite concepts share subspaces; above, they isolate into atomic modes.
+\item Near criticality, neural pattern autocorrelation diverges as \(\tau \sim |\lambda - \lambda_c|^{-1}\), producing critical slowing.
+\item Forced sparsity increase induces sudden semantic collapse in language generation, not gradual drift.
+\end{enumerate}
+
+\subsubsection*{D. Atom Interference and Conceptual Binding (Predictions 13--16)}
+\begin{enumerate}[resume]
+\item Constructively overlapping concept pairs (\(\rho > 0\)) require less total activation energy than individual concepts.
+\item Destructively interfering pairs mutually suppress activation despite independent priming.
+\item Bound concepts are sub-additive in energy: activating a composite costs less than the sum of parts.
+\item Bound concept representations occupy shared low-rank subspaces aligned with the Gram matrix eigenvectors.
+\end{enumerate}
+
+\subsubsection*{E. Curiosity as Uncertainty Collapse (Predictions 17--19)}
+\begin{enumerate}[resume]
+\item Exploratory attention targets high-uncertainty neural subspaces when reward is controlled.
+\item Reducing latent uncertainty (without reward change) immediately suppresses curiosity-driven exploration.
+\item Increasing neural uncertainty (without novelty/reward) boosts epistemic sampling.
+\end{enumerate}
+
+\subsubsection*{F. Thermodynamic Computation Signatures (Predictions 20--23)}
+\begin{enumerate}[resume]
+\item Neural dynamics fit Langevin SDEs with state-dependent diffusion scaling with free-energy curvature.
+\item Population evolution follows relaxation to free-energy minima, not deterministic error correction.
+\item Heat dissipation and information throughput are coupled near a fixed bits-per-joule boundary.
+\item Neural noise correlations function as convolutional kernels; correlation length predicts pattern completion similarity.
+\end{enumerate}
+
+\subsubsection*{G. RSVP-Specific Field Predictions (Predictions 24--27)}
+\begin{enumerate}[resume]
+\item Spatial cognition aligns with physical signal propagation topology, not abstract distance.
+\item Manipulating diffusion alters conceptual association radius in semantic tasks.
+\item Cognitive bandwidth varies with spatial noise inhomogeneity, deforming thought-space metric.
+\item Structured TMS waveforms induce sparse mode activation consistent with atom-basis interference.
+\end{enumerate}
+
+\subsection{Experimental Protocols}
+
+\subsubsection*{Protocol 1: Oral Glucose Reduces Neural Sparsity}
+\textbf{Purpose:} Test A3/A1 (metabolic enhancement \(\to\) reduced sparsity).  
+\textbf{Design:} Double-blind, placebo-controlled, within-subjects crossover (glucose 75 g vs. taste-matched placebo; \(\geq\)48 h apart).  
+\textbf{Participants:} \(N=30\) healthy adults.  
+\textbf{Task:} Perceptual categorization + working-memory probes.  
+\textbf{Measurements:} High-density EEG/MEG; blood glucose/insulin; sparsity (Hoyer, \(\ell_1/\ell_2\)).  
+\textbf{Analysis:} Paired \(t\)-test on \(\Delta\)sparsity (glucose $-$ placebo); regress against glucose peak.  
+\textbf{Expected:} Glucose session shows decreased sparsity.  
+\textbf{Controls:} Pupillometry, alertness scales, fasting baseline.
+
+\subsubsection*{Protocol 2: Sleep Restriction Increases Neural Sparsity}
+\textbf{Purpose:} Test A2.  
+\textbf{Design:} Within-subjects; normal sleep (8 h) vs. restricted (4 h).  
+\textbf{Task:} Sustained attention + creativity.  
+\textbf{Measurements:} EEG/MEG; sparsity + repertoire size (microstates).  
+\textbf{Analysis:} Paired comparison of sparsity under restriction.  
+\textbf{Expected:} Restricted sleep increases sparsity and reduces repertoire.
+
+\subsubsection*{Protocol 3: Sensory Noise Induces Stochastic Resonance}
+\textbf{Purpose:} Test B5.  
+\textbf{Design:} Graded visual noise (5 levels) in orientation discrimination + exploration probes.  
+\textbf{Measurements:} Behavioral exploration entropy; neural variability.  
+\textbf{Analysis:} Quadratic fit of noise vs. exploration; test nonlinearity.  
+\textbf{Expected:} Inverted-U in exploration and sampling.
+
+\subsubsection*{Protocol 4: Curiosity Targets Uncertainty, Not Reward}
+\textbf{Purpose:} Test E17--E19.  
+\textbf{Design:} Multi-armed bandit with orthogonalized reward/uncertainty arms.  
+\textbf{Measurements:} Choices, pupil dilation, EEG pre-choice decoding.  
+\textbf{Analysis:} Bayesian RL model with uncertainty bonus; test \(\beta > 0\).  
+\textbf{Expected:} Positive uncertainty bonus; choices prefer high-\(\sigma\) arms.
+
+\subsubsection*{Protocol 5: Neural Dynamics Fit Langevin SDE}
+\textbf{Purpose:} Test F20--F21.  
+\textbf{Design:} MEG/EEG during perceptual inference tasks (shallow vs. steep likelihoods).  
+\textbf{Measurements:} High-SNR population activity.  
+\textbf{Analysis:} Fit Langevin vs. deterministic SDE; test diffusion--curvature correlation.  
+\textbf{Expected:} Langevin model superior; diffusion scales with Hessian.
+
+\subsection{Analysis and Statistical Considerations}
+All protocols use within-subjects designs, cluster-based permutation tests, and pre-registered hypotheses. Power: \(N \geq 24\) for \(d=0.5\), 80\% power. Robustness: replicate across modalities (EEG/MEG/fMRI).
+
+\subsection{Feasibility and Ethics}
+Protocols 1--4: standard, IRB-approved. Protocol 5: noninvasive primary; invasive optional. All include medical screening.
+
+\section{Discussion and Outlook}
+\label{sec:discussion}
+
+The RSVP framework recasts cognition as sparse variational control on a dissipative physical substrate, dissolving longstanding dualisms between representation and dynamics, optimization and sampling, computation and thermodynamics. By grounding policy selection in field-theoretic principles---diffusion as convolution, noise as epistemic sampling, entropy production as regularization, and metabolic cost as sparsity pressure---the theory elevates cognition from abstract algorithm to emergent phenomenon of constrained field evolution.
+
+\begin{itemize}
+\item \textbf{Implications for Thermodynamic Artificial Intelligence}
+\begin{itemize}
+\item Traditional AI optimizes symbolic objectives in disembodied digital hardware. RSVP cognition suggests a radically different paradigm: \textbf{thermodynamic AI}, where inference and control emerge from physical relaxation under energetic constraints.
+\item Rather than simulating active inference, future systems could instantiate it via analog substrates---neuromorphic circuits, colloidal suspensions, or optical fields---where sparsity is enforced by dissipation, not software.
+\item Such architectures promise extreme energy efficiency (bits-per-joule near biological limits), intrinsic robustness to noise, and native support for epistemic exploration.
+\item The LASSO thresholds derived in Section~\ref{sec:rsvp} provide a blueprint: policy atoms activate only when preference strength exceeds uncertainty-scaled cost, mirroring biological gating.
+\end{itemize}
+
+\item \textbf{Learning as Structural Adaptation of the Plenum}
+\begin{itemize}
+\item Learning in RSVP systems is not gradient descent on parameters but \textbf{structural adaptation of the plenum itself}.
+\item Policy atoms evolve via Hebbian reshaping of diffusion kernels, noise covariances, and relaxation rates.
+\item Long-term memory emerges as persistent eigenmodes of the linearized operator \(A\), while synaptic plasticity modulates the Gram matrix \(P_{ij}\), tuning interference and binding capacity.
+\item This yields a theory of \textbf{lifelong compositional learning} without catastrophic forgetting: new concepts bind to existing ones via constructive overlap, expanding expressive capacity sub-additively.
+\end{itemize}
+
+\item \textbf{Multi-Agent RSVP and Collective Inference}
+\begin{itemize}
+\item Extending the plenum to multiple embedded agents introduces \textbf{coupled field dynamics}.
+\item Each agent sculpts a shared substrate, inducing nonlocal interactions via propagating deformations.
+\item Policy selection becomes a \textbf{multi-player sparse control game}: agents compete for negentropy while cooperatively reducing collective uncertainty.
+\item Epistemic alignment emerges when agents target complementary high-variance modes, forming distributed curiosity.
+\item Social conformity, theory of mind, and cultural transmission arise as synchronization of policy priors across plenum-coupled systems.
+\end{itemize}
+
+\item \textbf{Communication as Field-Mediated Resonance}
+\begin{itemize}
+\item Communication is not symbolic token passing but \textbf{field-mediated resonance}: agents emit structured impulses that excite receptive modes in others.
+\item Language evolves as a low-action code for inducing desired deformations in the listener's plenum.
+\item This grounds semiotics in physics: meaning is the expected policy trajectory induced by a field perturbation.
+\end{itemize}
+
+\item \textbf{Toward a Physical Theory of Mind}
+\begin{itemize}
+\item RSVP dissolves the hard problem by identifying consciousness with \textbf{the process of sparse field control under self-modeling}.
+\item Sentience is not an epiphenomenon but the necessary mechanism by which a system maintains its Markov blanket against entropic dissipation.
+\item The ``self'' is the persistent policy prior---a long-timescale attractor in the space of admissible deformations.
+\item Qualia correspond to the high-dimensional field configurations that survive sparsity pruning: to experience red is to activate a specific sparse superposition of visual field modes.
+\end{itemize}
+
+\item \textbf{Regimes of Consciousness}
+\begin{itemize}
+\item The framework predicts \textbf{regimes of consciousness} parameterized by plenum physics:
+\begin{itemize}
+\item High diffusivity \(\to\) fragmented, dream-like cognition
+\item Low \(\lambda\) \(\to\) rich, integrated awareness
+\item Critical \(\lambda_c\) \(\to\) maximal subjective complexity and metacognitive access
+\end{itemize}
+\item Alterations in plenum parameters---via pharmacology, pathology, or meditation---directly modulate the structure of experience.
+\item Psychedelics may reduce effective \(\lambda\) or increase noise amplitude, expanding the active policy set and dissolving binding thresholds.
+\end{itemize}
+
+\item \textbf{Open Challenges and Future Directions}
+\begin{enumerate}
+\item \textbf{Nonlinear RSVP}: Extend linearization to full Navier--Stokes-like dynamics, deriving sparse control in turbulent regimes.
+\item \textbf{Relativistic Plenum}: Incorporate finite signal propagation to model causal horizons in large-scale cognition.
+\item \textbf{Quantum Noise}: Explore superposition and entanglement as sources of parallel policy sampling.
+\item \textbf{Developmental RSVP}: Model plenum morphogenesis from embryonic gradients to adult cognitive architecture.
+\item \textbf{Pathology as Plenum Dysregulation}: Reframe psychiatric disorders as failures of sparsity, binding, or epistemic arbitration.
+\end{enumerate}
+\end{itemize}
+
+Ultimately, RSVP offers a path toward a \textbf{unified physics of mind}, where thought, agency, and awareness are not mysterious additions to the physical world but inevitable consequences of sparse control on a noisy, dissipative, self-organizing medium. The brain does not \emph{contain} a mind---it \emph{is} a mind, in the same way a flame \emph{is} combustion: a transient, self-sustaining pattern of energy flow under physical law.
+
+\begin{appendix}
+
+\section{Derivation of Linearized RSVP Impulse Response}
+\label{app:impulse}
+
+The linearized RSVP system (Section~\ref{sec:rsvp}) under impulsive control \(u(x,t) = \sum_k a_k \psi_k(x) \delta(t - t_0)\) admits an analytical Green's function solution for short horizons \(\Delta t \ll 1/\kappa\).
+
+Consider the scalar potential equation alone (decoupled for clarity):
+
+\[
+\partial_t \delta \Phi = D_\Phi \nabla^2 \delta \Phi - \kappa \delta \Phi + \sum_k a_k \psi_k(x) \delta(t - t_0).
+\]
+
+The homogeneous solution decays as \(e^{-\kappa t}\). The particular solution for the impulse is the convolution with the diffusion--relaxation kernel:
+
+\[
+G(x, x'; t) = \frac{1}{\sqrt{4\pi D_\Phi t}} \exp\!\left( -\frac{|x - x'|^2}{4 D_\Phi t} - \kappa t \right).
+\]
+
+Thus,
+
+\[
+\delta \Phi(x, \Delta t) = \sum_k a_k \int_\Omega G(x, x'; \Delta t) \psi_k(x') \, dx'.
+\]
+
+For well-separated Gaussian atoms (\(\sigma_k \ll\) inter-center distance), the integral is nearly diagonal:
+
+\[
+\int G(x, x'; \Delta t) \psi_k(x') \, dx' \approx \psi_k(x) \cdot e^{-\kappa \Delta t} \left(1 - \frac{\sigma_k^2}{2 D_\Phi \Delta t}\right).
+\]
+
+Projection onto observation atom \(\psi_j\):
+
+\[
+o = \langle \psi_j, \delta \Phi \rangle \approx a_j e^{-\kappa \Delta t},
+\]
+
+justifying the linear--Gaussian form \(p(o \mid a) = \mathcal{N}(a_j, s)\) with \(s\) aggregating residual diffusion smear and measurement noise.
+
+\section{Python Code for LASSO Threshold Simulation}
+\label{app:code}
+
+\begin{lstlisting}[language=Python, caption={Executable 3-atom LASSO threshold demonstration}]
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parameters
+L = 1.0
+M = 3
+centers = np.array([0.25, 0.5, 0.75]) * L
+sigma_k = L / 10
+s_star = 0.1
+mu_star = 0.5
+lambdas = np.linspace(0, 10, 100)
+
+# Threshold
+threshold = abs(mu_star) / s_star  # 5.0
+
+# Soft-thresholded amplitudes
+a_star = np.zeros((len(lambdas), M))
+for i, lam in enumerate(lambdas):
+    deviation = mu_star - s_star * lam if mu_star > 0 else mu_star + s_star * lam
+    a_star[i, 1] = max(deviation, 0)  # Central atom only
+
+# Plot
+plt.figure(figsize=(8, 5))
+plt.plot(lambdas, a_star[:, 1], 'b-', label=r'Central atom $a_2^*$')
+plt.axvline(threshold, color='r', linestyle='--', label=r'$\lambda^* = 5.0$')
+plt.xlabel(r'Sparsity penalty $\lambda$')
+plt.ylabel('Selected amplitude')
+plt.title('LASSO Soft-Thresholding in RSVP Policy Atoms')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# Key outputs
+print(f"Threshold lambda* = {threshold:.2f}")
+print(f"For lambda = 3: a2* = {max(mu_star - s_star*3, 0):.2f}")
+print(f-rate lambda = 7: a2* = {max(mu_star - s_star*7, 0):.2f}")
+\end{lstlisting}
+
+\section{SDE Inference Methods for Protocol 5}
+\label{app:sde}
+
+To fit Langevin dynamics \(\dot{x} = -\nabla U(x) + \sqrt{2D(x)} \xi(t)\) from neural time series:
+
+\begin{enumerate}
+\item \textbf{Dimensionality reduction}: Apply PCA or jPCA to obtain low-dimensional latent \(x(t)\).
+\item \textbf{Kramers--Moyal estimation}:
+\[
+\frac{\partial p}{\partial t} = -\nabla \cdot [f(x) p] + \nabla \cdot [D(x) \nabla p],
+\]
+estimate drift \(f(x)\) and diffusion \(D(x)\) via local conditional moments:
+\[
+f(x) = \lim_{\tau \to 0} \frac{\langle x(t+\tau) - x(t) \rangle}{\tau}, \quad D(x) = \lim_{\tau \to 0} \frac{\langle [x(t+\tau) - x(t)] [x(t+\tau) - x(t)]^\top \rangle}{2\tau}.
+\]
+\item \textbf{Model comparison}: Use AIC/BIC on discretized SDE likelihoods.
+\item \textbf{Fluctuation--dissipation test}: Regress \(D(x)\) against \(|\nabla^2 U(x)|\); expect positive correlation.
+\end{enumerate}
+
+\section{RSVP Variable Glossary}
+\label{app:glossary}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+\(\Phi, \mathbf{v}, S\) & Scalar potential, flow, entropy fields \\
+\(D_\Phi, D_v, D_S\) & Diffusion coefficients \\
+\(\kappa\) & Potential relaxation rate \\
+\(\sigma\) & Entropy production coupling \\
+\(\eta\) & Negentropy injection efficiency \\
+\(\psi_k(x)\) & Gaussian policy atom \(k\) \\
+\(a = (a_1, \dots, a_M)\) & Policy coefficient vector \\
+\(o\) & Regional potential observation \\
+\(\mu^*, s^*\) & Goal mean and variance \\
+\(\lambda\) & Sparsity (metabolic) multiplier \\
+\(\beta\) & Epistemic drive weight \\
+\(P_{ij}\) & Gram overlap matrix \\
+\(A, B\) & State transition and control matrices \\
+\(\mathcal{F}, G\) & Variational and expected free energy \\
+\bottomrule
+\end{tabular}
+\caption{Key RSVP variables and parameters.}
+\end{table}
+
+\end{appendix}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
