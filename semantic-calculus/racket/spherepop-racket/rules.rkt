@@ -1,0 +1,43 @@
+#lang racket
+(require "core.rkt" racket/string racket/bytevector)
+(provide text->proof text->audio simple-merge-impl)
+
+(define (text->proof s)
+  (let ((t (hash-ref (sphere-modalities s) 'text #f)))
+    (if (not t) (error "no text")
+        (let* ((p (string-append "PROOF:" (format "~a" t)))
+               (s2 (make-sphere (sphere-type s)
+                                #:modalities (hash-copy (sphere-modalities s))
+                                #:internal-phi (sphere-internal-phi s)
+                                #:boundary (sphere-boundary s)
+                                #:entropy (sphere-entropy s))))
+          (hash-set! (sphere-modalities s2) 'proof p)
+          (values s2 0.02 0.5)))))
+
+(define (text->audio s)
+  (let ((t (hash-ref (sphere-modalities s) 'text #f)))
+    (if (not t) (error "no text")
+        (let* ((b (string->bytes/utf-8 (format "~a" t)))
+               (s2 (make-sphere (sphere-type s)
+                                #:modalities (hash-copy (sphere-modalities s))
+                                #:internal-phi (sphere-internal-phi s)
+                                #:boundary (sphere-boundary s)
+                                #:entropy (sphere-entropy s))))
+          (hash-set! (sphere-modalities s2) 'audio b)
+          (values s2 0.01 0.2)))))
+
+(define (simple-merge-impl a b)
+  (let* ((m1 (sphere-modalities a)) (m2 (sphere-modalities b))
+         (keys (remove-duplicates (append (hash-keys m1) (hash-keys m2))))
+         (m (make-hash)))
+    (for ([k keys])
+      (let ((v1 (hash-ref m1 k #f)) (v2 (hash-ref m2 k #f)))
+        (cond [(and v1 v2 (string? v1) (string? v2))
+               (hash-set! m k (string-append v1 "\n" v2))]
+              [v1 (hash-set! m k v1)]
+              [v2 (hash-set! m k v2)])))
+    (let ((phi (hash-union (sphere-internal-phi a) (sphere-internal-phi b) +)))
+      (let ((s (make-sphere (sphere-type a) #:modalities m #:internal-phi phi
+                            #:boundary (append (sphere-boundary a) (sphere-boundary b))
+                            #:entropy (+ (sphere-entropy a) (sphere-entropy b)))))
+        (values s -0.05 0.8)))))
