@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SPHEREPOP CALCULUS: POP OPERATOR ILLUSTRATED - PLAYCOSM EDITION</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="@galactromeda">
+    <meta name="description" content="Interactive illustration of the pop operator using Barbie and Age of Empires in the Playcosm.">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23000"/><circle cx="20" cy="20" r="1" fill="%23fff" opacity="0.8"/><circle cx="80" cy="40" r="1.5" fill="%23fff" opacity="0.6"/><circle cx="50" cy="70" r="1" fill="%23fff" opacity="0.9"/><circle cx="30" cy="90" r="0.8" fill="%23fff" opacity="0.7"/></svg>') repeat;
+            background-attachment: fixed;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        .stars {
+            position: fixed;
+            top: 0; left: 0; width: 10px; height: 10px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 8px white;
+            animation: twinkle 3s infinite alternate;
+            z-index: -1;
+        }
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 25px;
+            background: rgba(0, 0, 20, 0.8);
+            border: 3px double #00ffff;
+            border-radius: 15px;
+            box-shadow: 0 0 30px #00ffff, inset 0 0 20px #001133;
+        }
+        h1 {
+            color: #00ffff;
+            text-align: center;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #ff00ff;
+            font-size: 2.8em;
+            margin: 10px 0;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { text-shadow: 0 0 10px #00ffff; }
+            50% { text-shadow: 0 0 25px #00ffff, 0 0 40px #ff00ff; }
+        }
+        .blink {
+            animation: blink 1s steps(5, start) infinite;
+        }
+        @keyframes blink {
+            to { visibility: hidden; }
+        }
+        .marquee {
+            background: #001133;
+            padding: 10px;
+            text-align: center;
+            color: #ff00ff;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ff00ff;
+            margin: 15px 0;
+        }
+        .diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .sphere {
+            width: 180px;
+            height: 180px;
+            margin: 20px;
+            border: 3px solid #00ffff;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 50, 100, 0.4);
+            box-shadow: 0 0 20px #00ffff;
+            position: relative;
+            transition: all 0.5s;
+        }
+        .sphere:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 40px #ff00ff;
+        }
+        .sphere .interior {
+            font-size: 0.8em;
+            color: #ff00ff;
+            text-align: center;
+            padding: 5px;
+            max-width: 80%;
+        }
+        .sphere .boundary {
+            font-size: 0.7em;
+            color: #00ff00;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-top: 5px;
+        }
+        .pop-arrow {
+            font-size: 3em;
+            color: #ff00ff;
+            margin: 0 20px;
+            animation: pulse-arrow 2s infinite;
+        }
+        @keyframes pulse-arrow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+        .merged {
+            background: rgba(100, 0, 50, 0.6);
+            border-color: #ff00ff;
+        }
+        .cost {
+            text-align: center;
+            color: #00ff00;
+            font-family: 'Courier New';
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+        .step {
+            background: rgba(0, 20, 50, 0.6);
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #00ffff;
+            border-radius: 0 8px 8px 0;
+        }
+        .step h3 {
+            color: #ff00ff;
+            margin-top: 0;
+        }
+        .footnote {
+            font-size: 0.8em;
+            color: #00aa00;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin: 40px 0 20px;
+            color: #0066aa;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+
+<!-- DYNAMIC STARS -->
+<script>
+    for(let i = 0; i < 200; i++) {
+        const star = document.createElement('div');
+        star.className = 'stars';
+        star.style.left = Math.random() * 100 + 'vw';
+        star.style.top = Math.random() * 100 + 'vh';
+        star.style.width = star.style.height = Math.random() * 3 + 'px';
+        star.style.animationDelay = Math.random() * 5 + 's';
+        star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        document.body.appendChild(star);
+    }
+</script>
+
+<div class="container">
+
+    <h1 class="blink">SPHEREPOP CALCULUS: POP OPERATOR ILLUSTRATED</h1>
+    <p style="text-align:center; font-weight:bold; color:#ff00ff;">PLAYCOSM EXAMPLE: BARBIE + AGE OF EMPIRES → SHALLOW GAMIFICATION</p>
+    <p style="text-align:center;">@galactromeda • CA • NOV 10 2025 19:31 AST</p>
+
+    <div class="marquee">
+        ★ POP IN ACTION: INTERIOR PRUNED • BOUNDARY FLATTENED • SIMULATION ELASTICITY LOST ★
+    </div>
+
+    <!-- STEP 1: INITIAL SPHERES -->
+    <div class="step">
+        <h3>STEP 1: TWO PLAYCOSM SPHERES (PRE-POP)</h3>
+        <div class="diagram">
+            <!-- BARBIE SPHERE -->
+            <div class="sphere">
+                <div class="interior">
+                    <strong>I:</strong> Social role play<br>
+                    Peer feedback loops<br>
+                    Outfit as identity<br>
+                    Tacit status signaling
+                </div>
+                <div class="boundary">
+                    <strong>B:</strong> styleDoll(), swapOutfit()
+                </div>
+                <p style="margin:5px 0 0; font-size:0.7em; color:#00ff00;">H_boundary = HIGH</p>
+            </div>
+
+            <div class="pop-arrow">→</div>
+
+            <!-- AGE OF EMPIRES SPHERE -->
+            <div class="sphere">
+                <div class="interior">
+                    <strong>I:</strong> Strategic timing<br>
+                    Resource pacing<br>
+                    Build order intuition<br>
+                    Emergent goals
+                </div>
+                <div class="boundary">
+                    <strong>B:</strong> manageResources(), buildCity()
+                </div>
+                <p style="margin:5px 0 0; font-size:0.7em; color:#00ff00;">H_boundary = HIGH</p>
+            </div>
+        </div>
+        <div class="cost">
+            cost = C_friction(merge) - λ H_boundary<br>
+            λ = 0.1 → merge possible but costly
+        </div>
+    </div>
+
+    <!-- STEP 2: PRIVILEGE GATE + SHALLOW GAMIFICATION TRIGGER -->
+    <div class="step">
+        <h3>STEP 2: SHALLOW GAMIFICATION APPLIES HIGH-λ POP</h3>
+        <p style="text-align:center; color:#ff00ff;">Privilege gate enables premium "Social Strategy Pack" DLC</p>
+        <div class="diagram">
+            <div class="sphere merged">
+                <div class="interior">
+                    <strong>I (PRUNED):</strong><br>
+                    <strike>Social role play</strike><br>
+                    <strike>Strategic timing</strike><br>
+                    → Only "points per action"
+                </div>
+                <div class="boundary">
+                    <strong>B (FLATTENED):</strong> earnBadge(), viewLeaderboard()
+                </div>
+                <p style="margin:5px 0 0; font-size:0.7em; color:#ff0000;">H_boundary → 0</p>
+            </div>
+        </div>
+        <div class="cost">
+            λ = 100 → H_boundary penalty dominates<br>
+            pop selects: <code>argmin cost = leaderboard system</code>
+        </div>
+    </div>
+
+    <!-- STEP 3: RESULT -->
+    <div class="step">
+        <h3>STEP 3: RESULT → NON-EXPANDING SHARD</h3>
+        <p style="text-align:center;">From Playcosm Section 6: "They simulate control, not sovereignty"</p>
+        <div class="diagram">
+            <div style="text-align:center; width:100%;">
+                <div style="display:inline-block; background:rgba(50,0,0,0.6); padding:20px; border:2px solid #ff0000; border-radius:15px;">
+                    <p style="margin:0; color:#ff0000; font-weight:bold;">NON-EXPANDING SHARD</p>
+                    <p style="margin:5px 0; font-size:0.8em;">No platform escalation<br>No meta-renegotiation<br>Static KPIs only</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMAL SUMMARY -->
+    <div class="step">
+        <h3>FORMAL POP OPERATION</h3>
+        <div style="background:rgba(0,0,0,0.5); padding:15px; border-radius:8px; font-family:'Courier New'; color:#00ff00;">
+            <p>pop(Barbie, AoE) = M where:</p>
+            <p>B_M = {earnBadge(), viewLeaderboard()} ⊆ B_Barbie ∪ B_AoE</p>
+            <p>I_M = {points per action} ⊂ I_Barbie ∪ I_AoE</p>
+            <p>H_boundary(M) ≤ H_boundary(Barbie) + H_boundary(AoE) - Δ</p>
+            <p>Δ = "tacit social timing" + "emergent strategy"</p>
+            <p style="color:#ff00ff;">→ Semantic dropout: Goodhart collapse</p>
+        </div>
+    </div>
+
+    <div class="footnote">
+        *Playcosm Section 6: Shallow gamification creates non-expanding shards lacking simulation elasticity.<br>
+        *Spherepop: High-λ pop regime → H_boundary → 0
+    </div>
+
+    <div class="footer">
+        <p>© 2025 @galactromeda • CA • SPHEREPOP CALCULUS VISUALIZED</p>
+        <p><a href="index.html" style="color:#00ffff;">← BACK TO ARCHIVE</a></p>
+    </div>
+
+</div>
+
+</body>
+</html>
