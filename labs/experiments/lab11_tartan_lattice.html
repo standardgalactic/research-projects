@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lab 11 – TARTAN Lattice</title>
+  <link rel="stylesheet" href="../css/retro.css" />
+  <script src="../js/common.js" defer></script>
+  <script defer>
+  let frameIndex = 0;
+  let frames = [];
+  async function loadFrames(){
+    // try to load precomputed frames until one fails
+    let i = 0;
+    while(true){
+      const fname = `../data/lab11/frame_${String(i).padStart(3,'0')}.json`;
+      try{
+        const resp = await fetch(fname);
+        if(!resp.ok) break;
+        const js = await resp.json();
+        frames.push(js);
+        i++;
+      }catch(e){
+        break;
+      }
+    }
+    console.log("Lab11 frames loaded:", frames.length);
+    draw();
+  }
+  function draw(){
+    const canvas = document.getElementById('tartanCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(frames.length===0) return;
+    const f = frames[frameIndex % frames.length];
+    const N = Math.sqrt(f.nodes.length);
+    const cellW = canvas.width / N;
+    const cellH = canvas.height / N;
+
+    // draw nodes
+    for(const n of f.nodes){
+      const x = (n.j+0.5)*cellW;
+      const y = (n.i+0.5)*cellH;
+      const v = Math.tanh(n.energy);
+      const g = Math.floor((v*0.5+0.5)*255);
+      ctx.fillStyle = `rgb(0,${g},80)`;
+      ctx.beginPath();
+      ctx.arc(x,y,4,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    // draw edges
+    for(const e of f.edges){
+      const x1 = (e.j+0.5)*cellW;
+      const y1 = (e.i+0.5)*cellH;
+      const x2 = (e.l+0.5)*cellW;
+      const y2 = (e.k+0.5)*cellH;
+      const t = Math.abs(e.tension);
+      const w = 0.5 + 2*Math.min(1, Math.abs(t));
+      ctx.strokeStyle = 'rgba(0,255,160,0.8)';
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(x1,y1);
+      ctx.lineTo(x2,y2);
+      ctx.stroke();
+    }
+
+    frameIndex++;
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('DOMContentLoaded', loadFrames);
+  </script>
+</head>
+<body>
+<div class="lab-layout">
+  <nav class="lab-nav">
+    <h1>RSVP://LABS</h1>
+    <div class="lab-tagline">Lab 11 – TARTAN Lattice</div>
+    <div class="nav-links">
+      <a href="../index.html" onclick="nav('../index.html'); return false;">_back_to_hub</a><br/>
+    </div>
+  </nav>
+  <main class="lab-main">
+    <h1>Lab 11 – TARTAN Lattice</h1>
+    <p class="lab-tagline">
+      Nodes = objects; edges = morphisms. Python writes JSON frames, this page weaves them into a CRT lattice.
+    </p>
+    <section style="display:flex;gap:16px;">
+      <div class="canvas-wrapper">
+        <canvas id="tartanCanvas" width="480" height="320"></canvas>
+      </div>
+      <div class="controls">
+        <p><small>To drive this lab, run <code>python python/lab11_tartan.py</code> to generate <code>data/lab11/frame_*.json</code>, then reload.</small></p>
+      </div>
+    </section>
+    <section>
+      <div class="log">
+        Edges thicken where naturality tension accumulates; nodes brighten as energy concentrates.
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

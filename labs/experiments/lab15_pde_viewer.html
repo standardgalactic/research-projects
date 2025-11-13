@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lab 15 – RSVP PDE Viewer</title>
+  <link rel="stylesheet" href="../css/retro.css" />
+  <script src="../js/common.js" defer></script>
+  <script defer>
+  let frames = [];
+  let idx = 0;
+  let potential = 'quadratic';
+
+  async function loadFrames(){
+    frames = [];
+    idx = 0;
+    let i=0;
+    while(true){
+      const fname = `../data/lab15/${potential}/frame_${String(i).padStart(3,'0')}.json`;
+      try{
+        const resp = await fetch(fname);
+        if(!resp.ok) break;
+        frames.push(await resp.json());
+        i++;
+      }catch(e){ break; }
+    }
+    draw();
+  }
+
+  function draw(){
+    const canvas = document.getElementById('pdeCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(frames.length===0) return;
+    const f = frames[idx % frames.length];
+    const NX = f.width;
+    const NY = f.height;
+    const cellW = canvas.width / NX;
+    const cellH = canvas.height / NY;
+
+    let vmin=Infinity,vmax=-Infinity;
+    for(let y=0;y<NY;y++){
+      for(let x=0;x<NX;x++){
+        const v = f.field[y][x];
+        if(v<vmin)vmin=v;
+        if(v>vmax)vmax=v;
+      }
+    }
+    const span = (vmax-vmin)||1;
+
+    for(let y=0;y<NY;y++){
+      for(let x=0;x<NX;x++){
+        const v = f.field[y][x];
+        const t = (v - vmin)/span;
+        const g = Math.floor(t*255);
+        ctx.fillStyle = `rgb(0,${g},80)`;
+        ctx.fillRect(x*cellW,y*cellH,cellW+1,cellH+1);
+      }
+    }
+    idx++;
+    requestAnimationFrame(draw);
+  }
+
+  function changePot(sel){
+    potential = sel.value;
+    loadFrames();
+  }
+
+  window.addEventListener('DOMContentLoaded', loadFrames);
+  </script>
+</head>
+<body>
+<div class="lab-layout">
+  <nav class="lab-nav">
+    <h1>RSVP://LABS</h1>
+    <div class="lab-tagline">Lab 15 – PDE Viewer</div>
+    <div class="nav-links">
+      <a href="../index.html" onclick="nav('../index.html'); return false;">_back_to_hub</a><br/>
+    </div>
+  </nav>
+  <main class="lab-main">
+    <h1>Lab 15 – RSVP PDE Viewer</h1>
+    <p class="lab-tagline">
+      Scalar field Φ evolving under D∇²Φ − V'(Φ). Choose potential, run Python, then scrub frames.
+    </p>
+    <section style="display:flex;gap:16px;">
+      <div class="canvas-wrapper">
+        <canvas id="pdeCanvas" width="320" height="320"></canvas>
+      </div>
+      <div class="controls">
+        <label>potential:
+          <select onchange="changePot(this)">
+            <option value="quadratic">quadratic</option>
+            <option value="double_well">double_well</option>
+          </select>
+        </label>
+        <p><small>Generate frames with e.g.:</small></p>
+        <pre><small>python python/lab15_pde_viewer.py  # quadratic
+python python/lab15_pde_viewer.py  # then edit call for double_well</small></pre>
+      </div>
+    </section>
+    <section>
+      <div class="log">
+        With quadratic V, the field decays to a smooth zero. With a double well, domains form and persist—RSVP’s toy domain walls.
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

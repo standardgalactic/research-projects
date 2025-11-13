@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Lab 40 — Observer Holography II: Bayesian Perception</title>
+  <link rel="stylesheet" href="../css/retro.css">
+  <script src="../js/common.js" defer></script>
+  <script>
+  async function loadFrame() {
+    const log = document.getElementById('log');
+    const canvas = document.getElementById('view');
+    const ctx = canvas.getContext('2d');
+    log.textContent = "Loading frame…";
+
+    try {
+      const resp = await fetch("../data/lab40_observer_bayes/frame_000.json");
+      if (!resp.ok) {
+        log.textContent = "No data yet. Run: python python/lab40_observer_bayes.py (or your lab driver) to generate frames.";
+        return;
+      }
+      const data = await resp.json();
+      log.textContent = JSON.stringify(data, null, 2);
+
+      // simple placeholder visualization: green noise modulated by time
+      const w = canvas.width, h = canvas.height;
+      const img = ctx.createImageData(w, h);
+      const t = data.t || 0.0;
+      for (let y=0; y<h; y++) {
+        for (let x=0; x<w; x++) {
+          const i = (y*w + x) * 4;
+          const v = (Math.sin(0.02*x + 0.03*y + t) * 0.5 + 0.5) * 255;
+          img.data[i] = 0;
+          img.data[i+1] = v;
+          img.data[i+2] = 60;
+          img.data[i+3] = 255;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+    } catch (e) {
+      log.textContent = "Error loading frame: " + e;
+    }
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    loadFrame();
+    document.getElementById('reload').addEventListener('click', loadFrame);
+  });
+  </script>
+</head>
+<body class="fade-in">
+<div class="lab-layout">
+  <nav class="lab-nav">
+    <h1>RSVP://LABS</h1>
+    <div class="lab-tagline">Lab 40 — Observer Holography II: Bayesian Perception</div>
+    <a href="../index.html" onclick="nav('../index.html');return false;">_back_to_hub</a>
+  </nav>
+  <main class="lab-main">
+    <h1>Lab 40 — Observer Holography II: Bayesian Perception</h1>
+    <p class="lab-tagline">Bayesian priors sculpt what the observer ‘sees’ in the plenum.</p>
+    <section style="display:flex;gap:16px;align-items:flex-start;">
+      <div class="canvas-wrapper">
+        <canvas id="view" width="360" height="240"></canvas>
+      </div>
+      <div class="controls">
+        <p><small>This viewer expects JSON frames in:<br>
+        <code>data/lab40_observer_bayes/frame_000.json</code></small></p>
+        <p><small>Typical workflow:<br>
+        1. Implement <code>init/step/frame</code> in <code>python/lab40_observer_bayes.py</code>.<br>
+        2. Run your lab driver to generate frames.<br>
+        3. Hit “reload” below.</small></p>
+        <button id="reload">reload frame</button>
+      </div>
+    </section>
+    <section>
+      <div id="log" class="log">Awaiting data…</div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

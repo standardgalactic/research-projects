@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lab 13 – Ethical Gradient Flow</title>
+  <link rel="stylesheet" href="../css/retro.css" />
+  <script src="../js/common.js" defer></script>
+  <script defer>
+  let trajectory = null;
+  async function loadTraj(){
+    try{
+      const resp = await fetch('../data/lab13/trajectory.json');
+      if(!resp.ok) return;
+      trajectory = await resp.json();
+      draw();
+    }catch(e){
+      console.log('no trajectory yet');
+    }
+  }
+  function draw(){
+    const canvas = document.getElementById('egfCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(!trajectory) return;
+    const pts = trajectory.points;
+    if(pts.length===0) return;
+
+    // compute bounds
+    let xmin=Infinity,xmax=-Infinity,ymin=Infinity,ymax=-Infinity;
+    for(const [t,x,y] of pts){
+      if(x<xmin) xmin=x;
+      if(x>xmax) xmax=x;
+      if(y<ymin) ymin=y;
+      if(y>ymax) ymax=y;
+    }
+    const pad = 0.2;
+    xmin-=pad;xmax+=pad;ymin-=pad;ymax+=pad;
+
+    function toScreen(x,y){
+      const sx = (x-xmin)/(xmax-xmin||1)*canvas.width;
+      const sy = canvas.height - (y-ymin)/(ymax-ymin||1)*canvas.height;
+      return [sx,sy];
+    }
+
+    ctx.strokeStyle = '#33ff99';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    pts.forEach((p,i)=>{
+      const [sx,sy] = toScreen(p[1],p[2]);
+      if(i===0) ctx.moveTo(sx,sy);
+      else ctx.lineTo(sx,sy);
+    });
+    ctx.stroke();
+
+    const [sx,sy] = toScreen(pts[pts.length-1][1], pts[pts.length-1][2]);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(sx,sy,4,0,Math.PI*2);
+    ctx.fill();
+  }
+  window.addEventListener('DOMContentLoaded', loadTraj);
+  </script>
+</head>
+<body>
+<div class="lab-layout">
+  <nav class="lab-nav">
+    <h1>RSVP://LABS</h1>
+    <div class="lab-tagline">Lab 13 – Ethical Gradient Flow</div>
+    <div class="nav-links">
+      <a href="../index.html" onclick="nav('../index.html'); return false;">_back_to_hub</a><br/>
+    </div>
+  </nav>
+  <main class="lab-main">
+    <h1>Lab 13 – Ethical Gradient Flow</h1>
+    <p class="lab-tagline">
+      Trajectory of (self x, system y) descending a moral potential surface V(x,y).
+    </p>
+    <section style="display:flex;gap:16px;">
+      <div class="canvas-wrapper">
+        <canvas id="egfCanvas" width="360" height="260"></canvas>
+      </div>
+      <div class="controls">
+        <p><small>Run <code>python python/lab13_ethical_flow.py</code> to regenerate <code>data/lab13/trajectory.json</code>.</small></p>
+        <p><small>Adjust λ in the Python file to tilt the moral landscape.</small></p>
+      </div>
+    </section>
+    <section>
+      <div class="log">
+        Early segments show chaotic search; later, the path homes in on a basin where ∇V ≈ 0—your ethical attractor.
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
