@@ -1,0 +1,99 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Lab 38 — Dissipative Morphogenesis 2.0</title>
+  <style>
+    body { background:#000; color:#0f0; font-family:monospace; }
+    .row { display:flex; gap:12px; }
+    canvas {
+      border:1px solid #0f0;
+      image-rendering:pixelated;
+    }
+    pre {
+      max-height:220px;
+      overflow:auto;
+      border:1px solid #0f0;
+      padding:4px;
+    }
+  </style>
+</head>
+<body>
+<h1>Lab 38 — Dissipative Morphogenesis 2.0</h1>
+<button onclick="loadFrame()">reload frame_000.json</button>
+<div class="row">
+  <div>
+    <div>U field</div>
+    <canvas id="U" width="256" height="256"></canvas>
+  </div>
+  <div>
+    <div>V field (pattern)</div>
+    <canvas id="V" width="256" height="256"></canvas>
+  </div>
+  <pre id="log">no data yet</pre>
+</div>
+<script>
+function drawHeatmap(canvas, data2d, palette){
+  const rows = data2d.length;
+  const cols = data2d[0].length;
+  canvas.width = cols;
+  canvas.height = rows;
+  canvas.style.width = "320px";
+  canvas.style.height = "320px";
+  const ctx = canvas.getContext('2d');
+  let min = Infinity, max = -Infinity;
+  for (let y=0;y<rows;y++){
+    for (let x=0;x<cols;x++){
+      const v = data2d[y][x];
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+  }
+  const img = ctx.createImageData(cols,rows);
+  for (let y=0;y<rows;y++){
+    for (let x=0;x<cols;x++){
+      const v = data2d[y][x];
+      let t = (v - min) / (max - min + 1e-6);
+      t = Math.max(0, Math.min(1, t));
+      const i = (y*cols+x)*4;
+      let r,g,b;
+      if (palette === 'green'){
+        r = 0;
+        g = Math.floor(255*t);
+        b = 0;
+      } else {
+        // amber-ish
+        r = Math.floor(200*t);
+        g = Math.floor(150*t);
+        b = 0;
+      }
+      img.data[i] = r;
+      img.data[i+1] = g;
+      img.data[i+2] = b;
+      img.data[i+3] = 255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+}
+async function loadFrame(){
+  const log = document.getElementById('log');
+  try{
+    const resp = await fetch('../data/lab38/frame_000.json');
+    if(!resp.ok){
+      log.textContent = 'no frame_000.json yet for lab38 (run lab38.py or run_all.py)';
+      return;
+    }
+    const data = await resp.json();
+    log.textContent = 't = ' + data.t.toFixed(2) +
+                      '\nU/V stats will come from field values.';
+    drawHeatmap(document.getElementById('U'), data.U, 'green');
+    drawHeatmap(document.getElementById('V'), data.V, 'amber');
+  }catch(e){
+    log.textContent = 'error: '+e;
+  }
+}
+window.onload = loadFrame;
+</script>
+</body>
+</html>

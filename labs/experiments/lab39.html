@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Lab 39</title>
+  <style>
+    body {
+      background:#000;
+      color:#0f0;
+      font-family:monospace;
+    }
+    canvas {
+      border:1px solid #0f0;
+      image-rendering:pixelated;
+    }
+    pre {
+      max-height:200px;
+      overflow:auto;
+      border:1px solid #0f0;
+      padding:4px;
+    }
+  </style>
+</head>
+<body>
+<h1>Lab 39</h1>
+<canvas id="view" width="256" height="256"></canvas>
+<button onclick="loadFrame()">reload</button>
+<pre id="log">no data yet</pre>
+<script>
+async function loadFrame(){
+  const log = document.getElementById('log');
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d');
+  try {
+    const resp = await fetch('../data/lab39/frame_000.json');
+    if (!resp.ok) {
+      log.textContent = 'no frame_000.json yet for lab39';
+      return;
+    }
+    const data = await resp.json();
+    log.textContent = JSON.stringify(data, null, 2);
+    // draw simple green gradient modulated by time if available
+    const w = canvas.width, h = canvas.height;
+    const img = ctx.createImageData(w,h);
+    const t = data.t || 0.0;
+    for (let y=0;y<h;y++) {
+      for (let x=0;x<w;x++) {
+        const i = (y*w+x)*4;
+        const v = Math.floor((Math.sin(0.02*x+0.03*y+t)*0.5+0.5)*255);
+        img.data[i]=0;
+        img.data[i+1]=v;
+        img.data[i+2]=0;
+        img.data[i+3]=255;
+      }
+    }
+    ctx.putImageData(img,0,0);
+  } catch(e) {
+    log.textContent = 'error: '+e;
+  }
+}
+window.onload = loadFrame;
+</script>
+</body>
+</html>

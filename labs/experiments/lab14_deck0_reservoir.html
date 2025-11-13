@@ -1,0 +1,97 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lab 14 – Deck-0 Entropy Reservoir</title>
+  <link rel="stylesheet" href="../css/retro.css" />
+  <script src="../js/common.js" defer></script>
+  <script defer>
+  let series = null;
+  async function loadSeries(){
+    try{
+      const resp = await fetch('../data/lab14/timeseries.json');
+      if(!resp.ok) return;
+      series = await resp.json();
+      draw();
+    }catch(e){
+      console.log('no series yet');
+    }
+  }
+  function draw(){
+    const canvas = document.getElementById('d0Canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(!series) return;
+    const pts = series.series;
+    if(pts.length===0) return;
+
+    const tmin = pts[0][0];
+    const tmax = pts[pts.length-1][0];
+    let Emin=Infinity,Emax=-Infinity;
+    for(const [t,Ev,Eh] of pts){
+      if(Ev<Emin)Emin=Ev;
+      if(Eh<Emin)Emin=Eh;
+      if(Ev>Emax)Emax=Ev;
+      if(Eh>Emax)Emax=Eh;
+    }
+    const pad = 0.1;
+    Emin = Math.max(0,Emin-pad);
+    Emax += pad;
+
+    function sx(t){ return (t-tmin)/(tmax-tmin||1)*canvas.width; }
+    function sy(E){ return canvas.height - (E-Emin)/(Emax-Emin||1)*canvas.height; }
+
+    // visible
+    ctx.strokeStyle = '#33ff99';
+    ctx.beginPath();
+    pts.forEach(([t,Ev,Eh],i)=>{
+      const x = sx(t), y = sy(Ev);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    // hidden
+    ctx.strokeStyle = '#228866';
+    ctx.beginPath();
+    pts.forEach(([t,Ev,Eh],i)=>{
+      const x = sx(t), y = sy(Eh);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+  }
+  window.addEventListener('DOMContentLoaded', loadSeries);
+  </script>
+</head>
+<body>
+<div class="lab-layout">
+  <nav class="lab-nav">
+    <h1>RSVP://LABS</h1>
+    <div class="lab-tagline">Lab 14 – Deck-0 Reservoir</div>
+    <div class="nav-links">
+      <a href="../index.html" onclick="nav('../index.html'); return false;">_back_to_hub</a><br/>
+    </div>
+  </nav>
+  <main class="lab-main">
+    <h1>Lab 14 – Deck-0 Entropy Reservoir (Python)</h1>
+    <p class="lab-tagline">
+      Time-series of visible vs hidden energy; Deck 0 slowly eats structure and occasionally feeds it back.
+    </p>
+    <section style="display:flex;gap:16px;">
+      <div class="canvas-wrapper">
+        <canvas id="d0Canvas" width="420" height="220"></canvas>
+      </div>
+      <div class="controls">
+        <p><small>Run <code>python python/lab14_deck0_reservoir.py</code> to regenerate <code>data/lab14/timeseries.json</code>.</small></p>
+        <p><small>Adjust k, eps, and noise amplitude in Python to explore different leak regimes.</small></p>
+      </div>
+    </section>
+    <section>
+      <div class="log">
+        Green trace: visible deck. Dark trace: Deck 0. Watch for slow convergence vs persistent oscillation.
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

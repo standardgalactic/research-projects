@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lab 12 – Semantic Field Horizon</title>
+  <link rel="stylesheet" href="../css/retro.css" />
+  <script src="../js/common.js" defer></script>
+  <script defer>
+  let frames = [];
+  let idx = 0;
+  async function loadFrames(){
+    let i=0;
+    while(true){
+      const fname = `../data/lab12/frame_${String(i).padStart(3,'0')}.json`;
+      try{
+        const resp = await fetch(fname);
+        if(!resp.ok) break;
+        frames.push(await resp.json());
+        i++;
+      }catch(e){
+        break;
+      }
+    }
+    console.log("Lab12 frames:", frames.length);
+    draw();
+  }
+  function draw(){
+    const canvas = document.getElementById('semCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(frames.length===0) return;
+    const f = frames[idx % frames.length];
+    const NX = f.width;
+    const NY = f.height;
+    const cellW = canvas.width / NX;
+    const cellH = canvas.height / NY;
+
+    for(let y=0;y<NY;y++){
+      for(let x=0;x<NX;x++){
+        const v = f.field[y][x];
+        const t = Math.tanh(v);
+        const g = Math.floor((t*0.5+0.5)*255);
+        ctx.fillStyle = `rgb(0,${g},60)`;
+        ctx.fillRect(x*cellW,y*cellH,cellW+1,cellH+1);
+      }
+    }
+    idx++;
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('DOMContentLoaded', loadFrames);
+  </script>
+</head>
+<body>
+<div class="lab-layout">
+  <nav class="lab-nav">
+    <h1>RSVP://LABS</h1>
+    <div class="lab-tagline">Lab 12 – Semantic Field Horizon</div>
+    <div class="nav-links">
+      <a href="../index.html" onclick="nav('../index.html'); return false;">_back_to_hub</a><br/>
+    </div>
+  </nav>
+  <main class="lab-main">
+    <h1>Lab 12 – Semantic Field Horizon (2D)</h1>
+    <p class="lab-tagline">
+      Diffusion plus global smoothing; negentropic islands spread and fade into a uniform horizon.
+    </p>
+    <section style="display:flex;gap:16px;">
+      <div class="canvas-wrapper">
+        <canvas id="semCanvas" width="320" height="320"></canvas>
+      </div>
+      <div class="controls">
+        <p><small>Run <code>python python/lab12_semantic_field.py</code> to generate <code>data/lab12/frame_*.json</code>, then reload.</small></p>
+      </div>
+    </section>
+    <section>
+      <div class="log">
+        Bright patches are low-entropy islands. As frames advance, they dissolve into the semantic background.
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

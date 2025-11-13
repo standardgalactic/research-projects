@@ -1,0 +1,118 @@
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Lab 31 — Functor Field Collisions</title>
+  <style>
+    body {
+      background:#000;
+      color:#0f0;
+      font-family:monospace;
+    }
+    .wrap {
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+    }
+    canvas {
+      border:1px solid #0f0;
+      image-rendering:pixelated;
+    }
+    pre {
+      max-height:260px;
+      overflow:auto;
+      border:1px solid #0f0;
+      padding:4px;
+      background:rgba(0,0,0,0.9);
+    }
+    .scanlines::before {
+      content:"";
+      pointer-events:none;
+      position:fixed;
+      left:0;top:0;right:0;bottom:0;
+      background:linear-gradient(rgba(0,0,0,0) 50%,rgba(0,0,0,0.25) 50%);
+      background-size:100% 2px;
+      mix-blend-mode:multiply;
+      opacity:0.5;
+    }
+  </style>
+</head>
+<body class="scanlines">
+<h1>Lab 31 — Functor Field Collisions</h1>
+<button onclick="loadFrame()">reload frame_000.json</button>
+<span id="meta"></span>
+<div class="wrap">
+  <canvas id="field" width="256" height="256"></canvas>
+  <pre id="log">no data yet</pre>
+</div>
+<script>
+function drawField(ctx, data2d){
+  const rows = data2d.length;
+  const cols = data2d[0].length;
+  const w = cols, h = rows;
+  const canvas = ctx.canvas;
+  canvas.width = w;
+  canvas.height = h;
+  canvas.style.width = "384px";
+  canvas.style.height = "384px";
+
+  let min = Infinity, max = -Infinity;
+  for (let y=0;y<rows;y++){
+    for (let x=0;x<cols;x++){
+      const v = data2d[y][x];
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+  }
+  const img = ctx.createImageData(w,h);
+  for (let y=0;y<h;y++){
+    for (let x=0;x<w;x++){
+      const v = data2d[y][x];
+      let t = (v - min) / (max - min + 1e-6);
+      t = Math.max(0, Math.min(1, t));
+      const i = (y*w+x)*4;
+      // green intensity; blue edge hint
+      img.data[i]   = 0;
+      img.data[i+1] = Math.floor(64 + 191*t);
+      img.data[i+2] = Math.floor(32 + 64*(1-t));
+      img.data[i+3] = 255;
+    }
+  }
+  ctx.putImageData(img,0,0);
+}
+
+async function loadFrame(){
+  const log = document.getElementById('log');
+  const meta = document.getElementById('meta');
+  const canvas = document.getElementById('field');
+  const ctx = canvas.getContext('2d');
+  try{
+    const resp = await fetch('../data/lab31/frame_000.json');
+    if (!resp.ok){
+      log.textContent = 'no frame_000.json yet for lab31 (run lab31.py or run_all.py)';
+      return;
+    }
+    const data = await resp.json();
+    log.textContent = JSON.stringify({t:data.t,collision_energy:data.collision_energy}, null, 2);
+    meta.textContent = '  t=' + data.t.toFixed(2) +
+                       '   collision_energy=' + data.collision_energy.toExponential(3);
+    const FA = data.F_A;
+    const FB = data.F_B;
+    const diff = [];
+    for (let y=0;y<FA.length;y++){
+      const row = [];
+      for (let x=0;x<FA[0].length;x++){
+        row.push(FA[y][x] - FB[y][x]);
+      }
+      diff.push(row);
+    }
+    drawField(ctx, diff);
+  }catch(e){
+    log.textContent = 'error: '+e;
+  }
+}
+window.onload = loadFrame;
+</script>
+</body>
+</html>
