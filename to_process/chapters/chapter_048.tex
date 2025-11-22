@@ -1,0 +1,196 @@
+\chapter{The Polyxan Structural Kernel}
+\label{ch:48}
+
+The Polyxan Structural Kernel (PSK) is the discrete, algebraic core of HYDRA.
+Where the RSVP Flow Engine (Chapter~47) governs continuous semantic dynamics, the PSK governs discrete structural evolution:
+\begin{itemize}
+    \item hypergraph rewriting,
+    \item curvature reduction,
+    \item quine stabilization,
+    \item normal-form convergence.
+\end{itemize}
+
+The PSK is the executable manifestation of the EHR rewriting system of Part~II, lifted to the verified implementation setting of Part~V and integrated with the modal correctness framework of Part~IV.
+
+This chapter defines the kernel, its verified semantics, its invariants, and its interaction with RSVP flow, culminating in the Structural Normalization Theorem.
+
+\section{Definition of the Structural Kernel}
+
+\begin{definition}[Polyxan Structural Kernel]\label{def:PSK}
+The \emph{Polyxan Structural Kernel} is the verified operator
+\[
+\mathsf{PSK} : \mathsf{PolyxGraph} \longrightarrow \mathsf{PolyxGraph}
+\]
+implementing one structural update according to the EHR calculus:
+\[
+\mathsf{PSK}(\mathcal{G}) =
+\begin{cases}
+\mathsf{extract}(\mathcal{G}), & \text{if an extraction redex exists},\\[4pt]
+\mathsf{hoist}(\mathcal{G}),    & \text{if a hoisting redex exists},\\[4pt]
+\mathsf{reduce}_r(\mathcal{G}), & \text{if a curvature-reducing rule $r$ applies},\\[4pt]
+\mathcal{G},                    & \text{if $\mathcal{G}$ is quine-stable}.
+\end{cases}
+\]
+Thus the kernel is \emph{deterministic}, \emph{total}, and \emph{curvature-descending}.
+\end{definition}
+
+\section{Verified Rewriting Semantics}
+
+Let the verified rewrite relation be:
+\[
+\mathcal{G} \xRightarrow{\mathsf{PSK}} \mathcal{G}'.
+\]
+
+\begin{definition}[Verified Structural Step]\label{def:verified-PSK}
+A step $\mathcal{G}\!\xRightarrow{\mathsf{PSK}}\!\mathcal{G}'$ is \emph{verified} if:
+\begin{enumerate}
+    \item it is an EHR step: $\mathcal{G}' = \mathsf{PSK}(\mathcal{G})$,
+    \item it satisfies modal correctness:
+    \[
+    \Box_{\mathrm{Polyx}}(\mathcal{G}'),
+    \]
+    \item it strictly decreases discrete curvature unless already quine-stable:
+    \[
+    \kappa(\mathcal{G}') < \kappa(\mathcal{G})
+    \quad\text{or}\quad
+    \mathcal{G}' \cong \mathcal{G}.
+    \]
+\end{enumerate}
+\end{definition}
+
+\section{Curvature Descent}
+
+\begin{theorem}[Discrete Lyapunov Descent]\label{thm:48-descent}
+Every PSK step strictly decreases Polyxan curvature unless the state is quine-stable:
+\[
+\kappa(\mathsf{PSK}(\mathcal{G})) < \kappa(\mathcal{G})
+\qquad\Longleftrightarrow\qquad
+\mathcal{G} \notin \mathrm{Quine}.
+\]
+\end{theorem}
+
+\begin{proof}
+Extraction eliminates curvature-neutral subcomplexes.
+Hoisting merges parallel edges, decreasing structural redundancy.
+Each reduction rule $r$ satisfies $\Delta_r\kappa < 0$ by definition (Chapter~25).
+If no redex exists, the graph is quine-stable and curvature cannot be decreased.
+\end{proof}
+
+Thus PSK is the discrete analogue of curvature–gradient descent.
+
+\section{Entropy Alignment and Tag Stability}
+
+A Polyxan hypergraph carries tag entropy $\mathcal{H}_{\mathrm{tag}}[\mathcal{G}]$.  
+Structural updates must preserve alignment with the RSVP entropy field (Ch.~31--32).
+
+\begin{theorem}[Entropy Alignment Invariant]\label{thm:48-entropy}
+Let $\iota:\mathrm{Inc}(\mathcal{G})\to\mathcal{M}$ be the current embedding.  
+Then PSK preserves the entropy-alignment invariant:
+\[
+S\circ\iota' \;=\; \mathcal{H}_{\mathrm{tag}}[\mathsf{PSK}(\mathcal{G})],
+\]
+where $\iota'$ is the harmonic extension of $\iota$ to the rewritten structure.
+\end{theorem}
+
+\begin{proof}
+Extraction: removes a curvature-neutral subcomplex, leaving all tag entropies unchanged.  
+Hoisting: identifies parallel strands with equal tag entropy.  
+Reduction: replaces a high-entropy configuration with its canonical lower-entropy pattern whose tag entropy is defined to match the RSVP field after the rewrite (Chapter~33).  
+\end{proof}
+
+Thus entropy alignment is stable under discrete operations.
+
+\section{Quine Stability as a Normal Form}
+
+\begin{theorem}[Structural Normalization Theorem]\label{thm:48-normal}
+Iterated application of PSK reaches a unique normal form:
+\[
+\exists N < \infty:\ \mathsf{PSK}^N(\mathcal{G}) \in \mathrm{Quine},
+\]
+and uniqueness holds modulo synthetic duality:
+\[
+\mathsf{PSK}^N(\mathcal{G})
+\cong
+\mathsf{PSK}^N(\mathcal{G}')
+\quad\Longleftrightarrow\quad
+\mathcal{G} \simeq_{\mathbb{D}} \mathcal{G}'.
+\]
+\end{theorem}
+
+\begin{proof}
+Curvature strictly decreases at each step (Thm.~\ref{thm:48-descent}) and is bounded below by the minimal quine curvature (Ch.~25), ensuring finite-time termination.  
+Uniqueness follows from confluence of the EHR system and preservation of tag-entropy constraints.  
+Duality equivalence follows from the reconstruction theory of Chapter~62.
+\end{proof}
+
+Thus quine-stable objects are exactly Polyxan normal forms.
+
+\section{Modal Correctness}
+
+\begin{theorem}[Modal Safety of PSK]\label{thm:48-modal}
+\[
+\Box_{\mathrm{Polyx}}(\mathcal{G})
+\quad\Longrightarrow\quad
+\Box_{\mathrm{Polyx}}\bigl(\mathsf{PSK}(\mathcal{G})\bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+$\Box_{\mathrm{Polyx}}$ asserts stability under all EHR steps.  
+Since PSK performs exactly one EHR step per application, and each such step satisfies the modal predicate, closure follows.
+\end{proof}
+
+Thus PSK is a pure, safe, verified structural operator.
+
+\section{Interoperation with the RSVP Flow Engine}
+
+\begin{theorem}[Structural--Flow Commutation]\label{thm:48-commute}
+For any configuration,
+\[
+\mathsf{PSK}\circ\mathsf{RFE}
+\;\simeq\;
+\mathsf{RFE}\circ\mathsf{PSK}
+\qquad\text{up to the duality functor }\mathbb{D}.
+\]
+\end{theorem}
+
+\begin{proof}
+RFE decreases continuous curvature; PSK decreases discrete curvature.  
+Under the duality of Chapter~62, the reductions correspond, hence the two operators commute up to duality isomorphism.
+\end{proof}
+
+This allows HYDRA to fuse continuous and discrete dynamics.
+
+\section{Structural Stability Under GPU Execution}
+
+\begin{theorem}[GPU-Stable Discrete Rewriting]\label{thm:48-gpu}
+The GPU implementation of PSK preserves:
+\begin{enumerate}
+    \item curvature descent,
+    \item entropy alignment,
+    \item quine convergence,
+    \item modal correctness,
+    \item commutation with RFE.
+\end{enumerate}
+Thus discrete and continuous kernels are GPU-coherent.
+\end{theorem}
+
+\begin{proof}
+All items follow from the Verified GPU Discrete-Kernel Theorems of Chapter~44 combined with preservation of EHR semantics under parallel execution.
+\end{proof}
+
+\section{Final Cadence}
+
+The Polyxan Structural Kernel is the algebraic heart of HYDRA:
+
+\begin{quote}
+\textbf{
+It collapses structure downward,
+burns curvature away,
+and delivers every hypergraph to its quine core.
+}
+\end{quote}
+
+It is not merely a rewriting system.
+It is a \emph{verified path toward discrete meaning}.
+

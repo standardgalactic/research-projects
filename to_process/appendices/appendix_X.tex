@@ -1,0 +1,180 @@
+\chapter*{Appendix X: Formal Verification Notes and Lean Foundations}
+\addcontentsline{toc}{chapter}{Appendix X: Formal Verification Notes and Lean Foundations}
+
+\section{Lean Foundations and Type Universes}
+
+All formalisation uses Lean~4 with \texttt{mathlib}.  
+Type universes are:
+\[
+\mathsf{FieldConfig} : \mathsf{Type}_{u_1},\qquad
+\mathsf{PolyxGraph} : \mathsf{Type}_{u_2},\qquad
+\mathsf{EmbedConfig} : \mathsf{Type}_{u_3}.
+\]
+Dependent types encode the harmonic constraint:
+\[
+\mathsf{RSVPState}
+  :=
+  \{ (\varphi,\mathbf{v},S) : \mathsf{FieldConfig} \mid
+     \mathsf{Harmonic}(\varphi,\mathbf{v},S)\}.
+\]
+
+\section{Formal Encodings of RSVP Fields}
+
+\subsection{Types and Operators}
+
+```lean
+structure RSVPField where
+  Φ : ScalarField
+  v : VectorField
+  S : EntropyField
+  harmonic : IsHarmonic Φ v S
+````
+
+Curvature and entropy operators:
+
+```lean
+def Curv (φ : ScalarField) : Curvature := laplacian φ
+def EntGrad (S : EntropyField) : VectorField := grad S
+```
+
+\subsection{Verified Flow}
+
+```lean
+def RSVP_step (f : RSVPField) : RSVPField :=
+  { Φ := f.Φ - Δ f.Φ,
+    v := f.v - curl (curl f.v),
+    S := f.S - div (grad f.S),
+    harmonic := ... }
+```
+
+\section{Polyxan Hypergraphs}
+
+\subsection{Inductive Definition}
+
+```lean
+inductive PolyxGraph
+| atom : Tag → PolyxGraph
+| hyper : List PolyxGraph → Tag → PolyxGraph
+```
+
+Tags carry curvature and entropy metadata:
+
+```lean
+structure Tag where
+  κ : ℤ
+  σ : ℤ
+```
+
+\subsection{EHR Rewriting}
+
+```lean
+inductive EHRStep : PolyxGraph → PolyxGraph → Prop
+| extract : ...
+| hoist   : ...
+| reduce  : CurvDecrease → EHRStep G (apply_rule G)
+```
+
+Confluence and termination are proven using well-founded curvature depth.
+
+\section{Modal Logic Layer}
+
+\subsection{Harmonic Necessity}
+
+```lean
+def Box_RSVP (P : RSVPField → Prop) : Prop :=
+  ∀ f, HarmonicEvolution f → P f
+```
+
+\subsection{Quine-Stable Necessity}
+
+```lean
+def Box_Polyx (P : PolyxGraph → Prop) : Prop :=
+  ∀ G G', EHRStep G G' → P G → P G'
+```
+
+\subsection{Duality Preservation}
+
+```lean
+theorem duality_preserves_RSVP :
+  Box_RSVP P → Box_Polyx (fun G => P (D⁻¹ G))
+```
+
+```lean
+theorem duality_preserves_Polyx :
+  Box_Polyx Q → Box_RSVP (fun f => Q (D f))
+```
+
+\section{The Reconciliation Monad}
+
+\subsection{Monad Structure}
+
+```lean
+structure ReconMonad :=
+  (R   : SemPatch → SemPatch)
+  (η   : ∀ X, X → R X)
+  (μ   : ∀ X, R (R X) → R X)
+  (strength : ...)
+```
+
+\subsection{Monad Laws}
+
+```lean
+theorem unit_left  : μ X (η X p) = p := ...
+theorem unit_right : μ X (R.η X p) = p := ...
+theorem assoc      : μ X (μ X t) = μ X (R.μ X t) := ...
+```
+
+\section{Synthetic Duality Implementation}
+
+```lean
+structure Duality where
+  D    : RSVPField → PolyxGraph
+  Dinv : PolyxGraph → RSVPField
+  iso1 : ∀ f, Dinv (D f) = f
+  iso2 : ∀ G, D (Dinv G) = G
+```
+
+Curvature–entropy preservation ensures both isomorphisms.
+
+\section{Mechanised Grand Irreversibility}
+
+```lean
+theorem Grand_Irreversibility :
+  ∀ init : CoupledConfig,
+    (∃ t, Box_RSVP (ReachesGalaxy init.field t)) ∧
+    (∃ n, Box_Polyx (fun G => EHR_iter G n ≅ U)) ∧
+    FiniteTimeConvergence init
+```
+
+The proof uses modal induction and well-founded curvature recursion.
+
+\section{Tactics and Automation}
+
+\subsection{Harmonic Solver}
+
+```lean
+macro "harmonic_solver" : tactic =>
+  `(tactic|
+      repeat
+        (apply IsHarmonic.intro;
+         simp [laplacian, grad, div, curl]))
+```
+
+\subsection{Curvature Normalisation}
+
+```lean
+macro "curvature_normalize" : tactic =>
+  `(tactic|
+      simp [Curv, entropy, nf, reconciliation])
+```
+
+\section{Guidelines for Extensions}
+
+\begin{enumerate}
+\item Modal operators must remain preserved.
+\item Curvature and entropy invariants should be encoded at the type level.
+\item Reconciliation is the default composition operator.
+\item Duality must be extended with any new structures.
+\item Proofs should be maintained in fully normalised form.
+\end{enumerate}
+

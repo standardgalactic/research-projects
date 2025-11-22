@@ -1,0 +1,220 @@
+\chapter{Embedding Numerics: Stratified Solvers for $\iota : \mathcal{G} \to \mathcal{M}$}
+\label{ch:74}
+
+\section{Premise}
+
+The embedding $\iota : \mathrm{Inc}(\mathcal{G}) \hookrightarrow \mathcal{M}$ 
+is not merely a mathematical abstraction.  
+It is the \emph{computational bridge} through which:
+
+\begin{itemize}
+\item discrete Polyxan structure $\mathcal{G}$,
+\item continuous RSVP fields $(\Phi,\mathbf{v},S)$,
+\item spectral curvature $\mathcal{R}$,
+\item entropy $S$,
+\end{itemize}
+
+interact during execution.
+
+The embedding evolves by the geometric flow
+\[
+ \partial_t \iota
+   = \Delta_{\mathrm{Inc}} \iota
+     - \beta \bigl(\mathcal{R}\circ\iota - \mathcal{H}_0[\mathcal{G}]\bigr)\nabla\mathcal{R}
+     - \gamma \bigl(S\circ\iota - \mathcal{H}_{\mathrm{tag}}[\mathcal{G}]\bigr)\nabla S,
+\]
+derived in Chapter~\ref{ch:32}.  
+This chapter constructs the computational machinery for solving this flow on real hardware:
+
+\begin{enumerate}
+\item a stratified spatial discretization of $\mathrm{Inc}(\mathcal{G})$,
+\item numerical evaluation of curvature and entropy mismatches,
+\item stable implicit--explicit time-stepping,
+\item handle-detection and topology–rewrite callbacks,
+\item and harmonization with the Rewrite Scheduler (Ch.~\ref{ch:73}).
+\end{enumerate}
+
+\section{Stratified Representation of the Incidence Complex}
+
+The incidence complex has mixed dimension:
+\[
+  \mathrm{Inc}(\mathcal{G}) = 
+   \mathcal{V} \;\sqcup\; \mathcal{E} \;\sqcup\; \mathcal{F} \;\sqcup \cdots
+\]
+(vertices, hyperedges, higher cells).
+
+For computation we treat each stratum separately.
+
+\subsection{0–cells (vertices)}
+
+Vertices are embedded as points:
+\[
+ \iota(v_i) \in \mathcal{M}.
+\]
+
+Local neighbourhood:
+\[
+ U_i = \{\,v_j \mid e \text{ contains } v_i,v_j\,\}.
+\]
+
+\subsection{1–cells (hyperedges)}
+
+Each hyperedge $e$ is represented by a polyline or Bézier segment
+\[
+ \iota(e) = (p_0,\dots,p_k).
+\]
+
+\subsection{2–cells and higher}
+
+Faces or higher cells are triangulated using the embedding–pullback metric:
+\[
+ g_{ab}^{\text{pull}} = \partial_a \iota^i\, \partial_b \iota^j \, g_{ij}.
+\]
+
+This allows Laplace–Beltrami discretization on each stratum.
+
+\section{Discrete Laplace–Beltrami Operator on the Incidence Complex}
+
+The operator $\Delta_{\mathrm{Inc}}$ acts differently on each stratum.
+
+\subsection{Vertices}
+
+Use the cotangent Laplacian:
+\[
+ (\Delta \iota)_i
+   = \frac{1}{2A_i}
+     \sum_{j\in U_i} (\cot\alpha_{ij} + \cot\beta_{ij})(\iota_j - \iota_i),
+\]
+with $A_i$ the mixed Voronoi area.
+
+\subsection{Hyperedges}
+
+Edges use a 1D Laplacian with tension term:
+\[
+ (\Delta_e \iota)(s)
+   = \partial_s^2 \iota(s) 
+     - \frac{\partial_s \|\partial_s \iota\|^2}
+            {2\,\|\partial_s \iota\|^2}\,\partial_s \iota(s).
+\]
+
+\subsection{Higher cells}
+
+On faces, apply the FEM stiffness matrix built from
+$g_{ab}^{\text{pull}}$.
+
+\section{Curvature and Entropy Mismatch Evaluation}
+
+At each embedded point $x = \iota(\sigma)$ for cell $\sigma$:
+\[
+ \delta\mathcal{R}(x) := \mathcal{R}(x) - \mathcal{H}_0[\mathcal{G}],
+\]
+\[
+ \delta S(x) := S(x) - \mathcal{H}_{\mathrm{tag}}[\mathcal{G}].
+\]
+
+Gradients are taken from the RSVP field solver (Ch.~\ref{ch:72}):
+\[
+ \nabla\mathcal{R}(x)
+ ,\qquad 
+ \nabla S(x)
+\]
+interpolated on the embedding.
+
+\section{Time-Stepping the Embedding Flow}
+
+The flow contains:
+\[
+ \Delta_{\mathrm{Inc}}\iota 
+  \quad\text{(stiff term)},\qquad
+  - \beta(\cdot)\nabla\mathcal{R}
+  - \gamma(\cdot)\nabla S
+ \quad\text{(non-stiff drift)}.
+\]
+
+We use an IMEX scheme:
+\[
+ \frac{\iota^{n+1} - \iota^n}{\Delta t}
+   = \Delta_{\mathrm{Inc}} \iota^{n+1}
+     + f(\iota^n),
+\]
+with drift
+\[
+ f(\iota)
+   = -\beta\,\delta\mathcal{R}(\iota)\,\nabla\mathcal{R}
+     -\gamma\,\delta S(\iota)\,\nabla S.
+\]
+
+Solving for $\iota^{n+1}$ requires one linear solve per stratum.
+
+\section{Topology Change Detection}
+
+Topology change occurs when:
+\begin{enumerate}
+\item two vertices satisfy 
+      $\|\iota(v_i)-\iota(v_j)\| < \varepsilon_{\text{merge}}$;
+\item curvature on an edge blows up  
+      $\|\partial_s\iota\|^{-1} > \varepsilon_{\text{snap}}$;
+\item the Jacobian of a face embedding approaches zero.
+\end{enumerate}
+
+When detected, a callback triggers an EHR rewrite with an event certificate (Ch.~\ref{ch:73}).
+
+\section{Coupling to the Rewrite Scheduler}
+
+Whenever rewriting occurs:
+\begin{enumerate}
+\item \textbf{Remove} collapsed strata from $\mathrm{Inc}(\mathcal{G})$.
+\item \textbf{Insert} new strata from $R$ in the rewrite $L \leftarrow K \to R$.
+\item \textbf{Reinitialize} $\iota$ on new cells via harmonic extension:
+\[
+ \Delta_{\mathrm{Inc}} \iota_{\text{new}} = 0
+\]
+with Dirichlet boundary on $K$.
+\item \textbf{Continue} the IMEX solver with updated geometry.
+\end{enumerate}
+
+\section{Stability Guarantees}
+
+\begin{theorem}[Stability of the Embedding Solver]
+For $\Delta t \le C \, h^2$ (mesh size $h$),  
+the IMEX scheme is unconditionally stable on each stratum  
+and preserves curvature-priority descent.
+\end{theorem}
+
+\begin{theorem}[Finite-Time Regularity]
+The stratified solver produces a piecewise-smooth embedding  
+for all $t < T_{\mathrm{collapse}}$  
+and triggers exact topology changes at $T_{\mathrm{collapse}}$.
+\end{theorem}
+
+\section{Interpretability of Embedding Updates}
+
+Each update $\iota^{n+1}$ includes a certificate:
+\[
+  \mathsf{Cert}_{\iota}(n)
+   := \bigl(\Delta_{\mathrm{Inc}}, f, \delta\mathcal{R}, \delta S \bigr),
+\]
+mirroring the classifier for discrete rewrites.
+This allows the verification layer (Part~IV)
+to reconstruct:
+\begin{itemize}
+\item the origin of each movement,
+\item curvature and entropy drivers,
+\item and justification for every topology change.
+\end{itemize}
+
+\section{Final Cadence}
+
+The Embedding Solver is the computational realization of the statement:
+
+\begin{quote}
+\emph{Geometry acts on syntax.  
+Syntax reacts on geometry.  
+Numerics make their unity executable.}
+\end{quote}
+
+With this chapter, the Semantic Execution Engine gains its complete geometric half.
+Coupled with the Rewrite Scheduler (Ch.~\ref{ch:73}),
+it now evolves meaning faithfully, reversibly,  
+and with full interpretability across discrete and continuous domains.
+

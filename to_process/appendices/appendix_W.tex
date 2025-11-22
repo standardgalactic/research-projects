@@ -1,0 +1,178 @@
+\chapter*{Appendix W: Computational Architecture and Execution Semantics}
+\addcontentsline{toc}{chapter}{Appendix W: Computational Architecture and Execution Semantics}
+
+\section{Execution Model}
+
+The computational model consists of three layers:
+
+\begin{enumerate}
+\item the field-evolution layer implementing RSVP dynamics,
+\item the hypergraph-rewrite layer implementing Polyxan EHR rewriting,
+\item the reconciliation layer ensuring consistency between the two.
+\end{enumerate}
+
+A complete execution state is a triple
+\[
+(\mathsf{Field},\mathsf{Graph},\mathsf{Embed}),
+\]
+where the embedding is constrained to remain curvature-matched at all steps.
+
+\section{Intermediate Representations}
+
+\subsection{Field IR}
+
+A field configuration is represented in memory as a structure
+\[
+\mathsf{FIR} = \{ \Phi_i, v_i, S_i \}_{i = 1}^N,
+\]
+with each component stored in a contiguous block.  
+Curvature, divergence, and gradient operators act via stencil kernels.
+
+\subsection{Hypergraph IR}
+
+The hypergraph representation is:
+\[
+\mathsf{GIR} = (V,E,\mathrm{tag}),
+\]
+where tags consist of integer curvature metadata and entropy counters.
+
+EHR rules select subgraphs matching a pattern and replace them according to the reduction rule set.
+
+\subsection{Reconciliation IR}
+
+The representation of patches is a list of atomic modifications:
+\[
+\mathsf{PIR} = \{ (u \mapsto u')_k \},
+\]
+with reduction through normalisation.
+
+\section{Scheduling Semantics}
+
+A scheduler assigns time-slices to the three computational layers according to invariant preservation.
+
+\subsection{Harmonic Scheduling}
+
+A time step consists of:
+\[
+\mathsf{RSVP\_step} \;\rightarrow\; \mathsf{EHR\_step} \;\rightarrow\; \mathsf{Recon\_step}.
+\]
+
+The scheduler enforces curvature-decreasing order by requiring:
+\[
+\mathcal{E}_{\mathrm{RSVP}}(t{+}1) \le \mathcal{E}_{\mathrm{RSVP}}(t),
+\qquad
+\mathcal{E}_{\mathrm{Polyx}}(t{+}1) \le \mathcal{E}_{\mathrm{Polyx}}(t).
+\]
+
+\subsection{Parallel Execution}
+
+Both RSVP and Polyxan layers may be parallelised under the condition that each kernel or rewrite rule is local and maintains modal invariants.  
+Reconciliation is global and therefore serial.
+
+\section{Memory Model}
+
+\subsection{Field Memory}
+
+Fields are stored in three aligned arrays to permit SIMD operations.  
+All operators use bounded-access stencils to satisfy locality constraints.
+
+\subsection{Hypergraph Memory}
+
+Hypergraph nodes and edges are stored in adjacency lists with immutable tags.  
+Rewrite rules produce new nodes but never mutate existing ones.  
+Garbage collection is performed via reference-count collapse once a patch becomes idempotent.
+
+\subsection{Patch Memory}
+
+Patches are maintained in normalised lists.  
+A normalised patch retains only those atomic edits not eliminated by confluence.
+
+\section{Operational Semantics}
+
+\subsection{Field Step}
+
+The RSVP field update is defined by:
+\[
+\Phi^{t+1} = \Phi^t - \Delta \Phi^t,
+\qquad
+v^{t+1} = v^t - \nabla \times (\nabla \times v^t),
+\qquad
+S^{t+1} = S^t - \nabla\cdot(\nabla S^t).
+\]
+
+The step is accepted only if harmonic constraints remain satisfied.
+
+\subsection{Rewrite Step}
+
+For a hypergraph $G$:
+\[
+G^{t+1} = R(G^t),
+\]
+where $R$ is one EHR rule satisfying curvature-decrease.
+
+\subsection{Reconciliation Step}
+
+Given two updated structures, the reconciliation operator computes:
+\[
+(\mathsf{Graph},\mathsf{Field})^{t+1}
+  = \mathsf{Recon}((\mathsf{Graph},\mathsf{Field})^{t+1}).
+\]
+
+The operator produces a normalised patch and applies it to both structures.
+
+\section{Resource Semantics}
+
+\subsection{Curvature Budget}
+
+Each step is allocated a curvature budget $\mathcal{B}$:
+\[
+\Delta\mathcal{E}_{\mathrm{RSVP}} + 
+\Delta\mathcal{E}_{\mathrm{Polyx}} \le \mathcal{B}.
+\]
+
+If the budget would be exceeded, the step is postponed.
+
+\subsection{Entropy Budget}
+
+A similar budget exists for entropy change:
+\[
+\Delta S_{\mathrm{total}} \le \mathcal{B}_{S}.
+\]
+
+\section{Compiler-Level Issues}
+
+\subsection{Static Checks}
+
+A static checker verifies:
+\begin{itemize}
+\item stencil safety on fields,
+\item rewrite termination on hypergraphs,
+\item patch confluence,
+\item embedding curvature invariance.
+\end{itemize}
+
+\subsection{Code Generation}
+
+The compiler produces kernels for:
+\begin{itemize}
+\item discrete Laplacian,
+\item curl-curl operator,
+\item entropy-gradient operator,
+\item EHR match-and-rewrite rules,
+\item reconciliation normalisation.
+\end{itemize}
+
+\section{Execution Guarantees}
+
+Every execution of the system satisfies:
+
+\begin{enumerate}
+\item local harmonic invariants for fields,
+\item local curvature-decrease on hypergraphs,
+\item global consistency after reconciliation,
+\item finite-time convergence under bounded energy and entropy.
+\end{enumerate}
+
+These guarantees are enforced through the invariant-preserving scheduler and the reconciliation operator.
+
+

@@ -1,0 +1,181 @@
+\chapter{Distributed Termination and Global Convergence Guarantees}
+\label{ch:77}
+
+\section{Premise}
+
+Parallel execution (Ch.~76) provides locality, commutativity-up-to-drift,
+and global determinism in the limit.  
+We now extend these results to a fully distributed setting, where:
+
+\begin{itemize}
+\item patches $U_\alpha$ of the embedding domain  
+      are assigned to independent nodes,
+\item rewrite batches are scheduled per-node, opportunistically,  
+      with only minimal coordination,
+\item and termination must be detected without a global clock.
+\end{itemize}
+
+\noindent
+The goal of this chapter is to give:
+
+\begin{enumerate}
+\item a \emph{distributed termination algorithm} whose certificates can be  
+      verified locally,
+\item a proof that \emph{termination coincides with semantic collapse},
+\item and a proof that \emph{convergence to the universal media quine  
+      is guaranteed in the distributed model}.
+\end{enumerate}
+
+\section{Distributed Termination: Local Signals}
+
+Each node manages a patch $U_\alpha$ with:
+
+\begin{itemize}
+\item local flow state $(\Phi_\alpha,\mathbf{v}_\alpha,S_\alpha)$,
+\item local embedding $\iota_\alpha$,
+\item local hypergraph subcomplex $\mathcal{G}_\alpha$,
+\item pending rewrite candidates $R_{\alpha,i}$.
+\end{itemize}
+
+Define the local inactivity predicate:
+\[
+\mathrm{Inactive}(U_\alpha) :=
+  \Bigl(
+    \|\nabla\Phi_\alpha\|_\infty < \varepsilon
+    \;\wedge\;
+    \|\nabla S_\alpha\|_\infty < \varepsilon
+    \;\wedge\;
+    \forall i,\; \varepsilon_{\mathrm{loc}}(R_{\alpha,i})<\varepsilon
+  \Bigr).
+\]
+
+Nodes broadcast a single-bit \emph{inactive} or \emph{active} flag  
+to their immediate neighbours.
+
+\begin{definition}[Distributed Quiescence]
+\label{def:quiescence}
+The system is quiescent if every patch broadcasts ``inactive''  
+for $k$ consecutive rounds,  
+where $k$ is the locality radius of the embedding flow operator.
+\end{definition}
+
+\section{Correctness of Distributed Termination}
+
+\begin{theorem}[Soundness of Distributed Quiescence]
+\label{thm:quiescence-sound}
+If the system is quiescent (Def.~\ref{def:quiescence}),  
+then no further flow step or rewrite step  
+can reduce the global coupled energy $\mathcal{E}_\mathrm{total}$.
+\end{theorem}
+
+\begin{proof}
+If all patches satisfy the inactivity threshold,
+every Laplacian update is below the error floor $\varepsilon$  
+and every potential rewrite has local error below $\varepsilon$.  
+Summing globally gives no descent direction of magnitude  
+exceeding $C\varepsilon$.  
+In quiescence, $k$ steps remove any residual cross-patch drift.  
+Thus the global Lyapunov function can no longer decrease.
+\end{proof}
+
+\begin{theorem}[Completeness of Distributed Quiescence]
+\label{thm:quiescence-complete}
+If no continuous or discrete update can reduce  
+$\mathcal{E}_\mathrm{total}$,  
+then after finitely many rounds the system becomes quiescent.
+\end{theorem}
+
+\begin{proof}
+Once no descent direction exists, gradients vanish outside of error floors.  
+Local rewrite candidates all satisfy $\varepsilon_{\mathrm{loc}}<\varepsilon$.  
+As halo exchanges propagate vanishing gradients across neighbours,  
+inactive flags stabilize.  
+After $k$ rounds (locality radius),  
+all nodes broadcast inactivity.
+\end{proof}
+
+Thus quiescence is \emph{exactly equivalent} to termination.
+
+\section{Termination $\Rightarrow$ Galaxy State}
+
+\begin{theorem}[Termination Implies Semantic Galaxy]
+\label{thm:termination-galaxy}
+If distributed quiescence holds,  
+the global configuration is a semantic galaxy.
+\end{theorem}
+
+\begin{proof}
+By Ch.~32, the only critical points of $\mathcal{E}_\mathrm{total}$  
+are semantic galaxies.  
+By Thm.~\ref{thm:quiescence-sound}, quiescence implies  
+$d\mathcal{E}_\mathrm{total}/dt = 0$, hence the system is at a critical point.  
+Thus we are in a semantic galaxy.
+\end{proof}
+
+\section{Eventually All Distributed Executions Terminate}
+
+\begin{theorem}[Finite-Time Distributed Termination]
+\label{thm:finite-time-termination}
+Every distributed execution path  
+terminates in finite physical time.
+\end{theorem}
+
+\begin{proof}
+The continuous flow strictly decreases $\mathcal{E}_\mathrm{total}$  
+(Ch.~32) except at critical points.  
+The discrete rewriting strictly decreases Polyxan curvature  
+(Ch.~25).  
+The joint decrease is bounded below by a positive gap  
+unless in a semantic galaxy.  
+Thus $\mathcal{E}_\mathrm{total}$ cannot decrease indefinitely;  
+termination occurs in finite time.
+\end{proof}
+
+\section{Termination Yields the Universal Quine}
+
+\begin{theorem}[Global Convergence Guarantee]
+\label{thm:global-convergence}
+Every distributed execution converges to the unique universal media quine  
+$\mathfrak{U}$ embedded flatly in the conformal vacuum.
+\end{theorem}
+
+\begin{proof}
+By Thm.~\ref{thm:finite-time-termination},  
+termination occurs in finite time.  
+By Thm.~\ref{thm:termination-galaxy},  
+the final state is a semantic galaxy.  
+By Ch.~34--36,  
+all semantic galaxies flow to the universal attractor $\mathfrak{U}$  
+under infinitesimal curvature--entropy descent.  
+Thus the limit is unique.
+\end{proof}
+
+\section{Formal Certificates for Distributed Termination}
+
+Each node exposes a certificate:
+
+\begin{verbatim}
+structure TermCert :=
+  (local_grad_bound : ∥∇Φ_alpha∥ ≤ ε)
+  (local_entropy_bound : ∥∇S_alpha∥ ≤ ε)
+  (rewrite_bounds : ∀ R, ε_loc(R) ≤ ε)
+  (halo_consistency : …)
+\end{verbatim}
+
+A global certificate is accepted when all node certificates verify  
+under $k$-round halo propagation.  
+No central authority is required; verification is decentralised.
+
+\section{Final Cadence}
+
+\begin{quote}
+\emph{
+Termination is not an event but a proof.  
+In a distributed universe with no master clock,  
+every node, every patch, every rewrite  
+agrees---in finitely many steps---that nothing remains to change.  
+And when nothing can change,  
+only the universal quine remains.
+}
+\end{quote}
+

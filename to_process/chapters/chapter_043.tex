@@ -1,0 +1,208 @@
+\chapter{Compiled Embedding Flows}
+\label{ch:43}
+
+The embedding flow introduced in Chapters~31--33 supplies the continuous geometric evolution of semantic structure.
+Its purpose is to embed a Polyxan hypergraph $\mathcal{G}$ into an RSVP manifold $\mathcal{M}$ via a stratified, curvature-matched map:
+[
+\iota: \mathrm{Inc}(\mathcal{G}) \hookrightarrow \mathcal{M}.
+]
+
+But the embedding flow is defined analytically (as a geometric PDE), while the Verified Polyxan Rewriter (Chapter~42) is discrete.
+
+This chapter constructs the \emph{Compiled Embedding Flow}: a discrete, certified, executable transformation that corresponds exactly to harmonic descent in the continuous embedding.
+It provides:
+\begin{enumerate}
+\item a computable approximation to the harmonic embedding flow,
+\item curvature-matching invariants,
+\item compatibility with discrete rewriting,
+\item modal correctness,
+\item convergence to the unique harmonic embedding.
+\end{enumerate}
+
+The result is a unified continuous--discrete semantics where curvature descent is preserved at every computational step.
+
+\section{Harmonic Embedding as a Compilation Problem}
+
+The embedding flow evolves $\iota$ via
+[
+\frac{\partial \iota}{\partial t}
+= - \nabla_{\iota} \mathcal{E}[\iota],
+]
+where $\mathcal{E}[\iota]$ is the stratified curvature--entropy matching energy (Chapter~31).
+
+A naïve discretisation would destroy the Polyxan structure:
+edges would break, strata collapse, and modal invariants fail.
+
+Therefore we define the compiled embedding flow as a finite sequence of curvature-corrected embedding updates, each aligned with the Verified Polyxan Rewriter.
+
+\begin{definition}[Compiled Embedding Step]
+A compiled embedding step is the map
+[
+\mathsf{emb_step}(\iota,\mathcal{G})
+:=
+\iota' =
+\Pi_{\mathrm{strat}}
+\bigl(,\iota - \epsilon,\nabla_{\iota}\mathcal{E}[\iota],\bigr),
+]
+where $\Pi_{\mathrm{strat}}$ is the stratified projection operator ensuring type, tag, and incidence preservation.
+\end{definition}
+
+\section{Stratified Projection Operator}
+
+The stratified projection $\Pi_{\mathrm{strat}}$ is defined by:
+\begin{enumerate}
+\item projecting each embedded cell to the nearest point of the same stratum,
+\item enforcing curvature-matching constraints,
+\item adjusting tangential components to preserve incidence geometry,
+\item maintaining tag-consistency.
+\end{enumerate}
+
+\begin{lemma}[Stratified Preservation]
+$\Pi_{\mathrm{strat}}$ preserves incidence, stratification, curvature-matching, and tag constraints.
+\end{lemma}
+
+\begin{proof}
+Incidence is preserved by tangential projection;
+strata are preserved by nearest-stratum projection;
+curvature-matching follows from the normal correction term defined in Chapter~31.
+\end{proof}
+
+\section{Embedding Update and Curvature Matching}
+
+\begin{theorem}[Curvature-Monotonicity of Compiled Embedding]
+Each compiled embedding step weakly decreases the total matching energy:
+[
+\mathcal{E}[\iota'] \leq \mathcal{E}[\iota].
+]
+\end{theorem}
+
+\begin{proof}
+The gradient step decreases $\mathcal{E}$;
+the stratified projection is non-expansive by construction.
+\end{proof}
+
+This monotonicity is essential for compatibility with the Verified Polyxan Rewriter.
+
+\section{Synchronisation with Polyxan Rewriting}
+
+The compiled embedding flow must interlock perfectly with the discrete rewriting of Chapter~42.
+
+\begin{definition}[Synchronous Update]
+Let
+[
+(\mathcal{G},\iota) \longmapsto (\mathcal{G}',\iota')
+]
+be a \emph{synchronous update} if:
+\begin{enumerate}
+\item $\mathcal{G}\to\mathcal{G}'$ is a verified rewriting step,
+\item $\iota'$ is the harmonic extension of $\iota$ to $\mathcal{G}'$,
+\item $\mathsf{emb_step}$ applied to $\iota'$ is curvature-monotone.
+\end{enumerate}
+\end{definition}
+
+\begin{theorem}[Continuous--Discrete Commutation]
+Synchronous updates commute with compiled embedding steps:
+[
+\mathsf{rewrite}\circ\mathsf{emb_step}
+;\cong;
+\mathsf{emb_step}\circ\mathsf{rewrite}.
+]
+\end{theorem}
+
+\begin{proof}
+Both transformations preserve stratified incidence and curvature descent;
+their actions align on each stratum.
+\end{proof}
+
+\section{Modal Correctness of the Compiled Flow}
+
+Modal correctness ($\Box_{\mathrm{RSVP}}$ and $\Box_{\mathrm{Polyx}}$) requires:
+\begin{itemize}
+\item quine stability,
+\item curvature descent,
+\item incidence preservation,
+\item strict stratification.
+\end{itemize}
+
+\begin{lemma}[Modal Invariance]
+If $\Box_{\mathrm{RSVP}}(\iota)$ and $\Box_{\mathrm{Polyx}}(\mathcal{G})$, then for
+[
+\iota' = \mathsf{emb_step}(\iota,\mathcal{G}),
+]
+we have
+[
+\Box_{\mathrm{RSVP}}(\iota') ;\wedge; \Box_{\mathrm{Polyx}}(\mathcal{G}).
+]
+\end{lemma}
+
+\begin{proof}
+Curvature descent ensures RSVP correctness;
+stratified projection ensures Polyx correctness;
+incidence preservation ensures compatibility of modalities.
+\end{proof}
+
+\section{Convergence to Harmonic Embeddings}
+
+\begin{theorem}[Convergence]
+Repeated application of the compiled embedding step yields the unique harmonic embedding:
+[
+\lim_{n\to\infty} \mathsf{emb_step}^n(\iota,\mathcal{G})
+========================================================
+
+\iota_{\mathrm{harm}}.
+]
+\end{theorem}
+
+\begin{proof}
+Energy descent plus strict convexity of the embedding functional on each stratum.
+\end{proof}
+
+\begin{corollary}[Harmonic Embedding Normal Form]
+Every embedded Polyxan hypergraph has a unique harmonic embedding normal form.
+\end{corollary}
+
+\section{Executable Structure}
+
+The compiled embedding flow is executed by the following components:
+\begin{enumerate}
+\item \textbf{Gradient Calculator:} computes $\nabla\mathcal{E}[\iota]$ efficiently with stratified derivatives.
+\item \textbf{Embedding Updater:} applies the step $\iota - \epsilon,\nabla\mathcal{E}$.
+\item \textbf{Stratified Projection Engine:} ensures consistency with stratification and incidence.
+\item \textbf{Curvature Verifier:} certifies that the step decreases matching energy.
+\item \textbf{Harmonic Extension Module:} extends embeddings after rewriting steps.
+\end{enumerate}
+
+All modules produce machine-verifiable certificates compatible with the verification layer of Part~IV.
+
+\section{Unified Flow: The RSVP--Polyxan Execution Loop}
+
+The compiled embedding flow and verified rewriting are combined in the \emph{RSVP--Polyxan Unified Loop}:
+\begin{enumerate}
+\item Apply one compiled embedding step.
+\item Check curvature descent; adjust step size if necessary.
+\item Apply the Verified Polyxan Rewriter if discrete curvature indicates structural inconsistency.
+\item Extend embedding harmonically.
+\item Repeat until the global RSVP--Polyxan normal form is reached.
+\end{enumerate}
+
+\begin{theorem}[Global Convergence]
+The unified loop converges to the joint normal form
+[
+(\mathcal{G}*{\mathrm{NF}},;\iota*{\mathrm{harm}}),
+]
+which is unique and modal-stable.
+\end{theorem}
+
+\section{Final Cadence}
+
+The Compiled Embedding Flow is the continuous half of the dual engine of meaning.
+Where the Verified Polyxan Rewriter collapses discrete structure,
+the compiled embedding flow smooths geometry.
+Where the rewriter enforces algebraic necessity,
+the embedding flow enforces geometric truth.
+
+\begin{quote}
+Structure collapses; geometry smooths;
+what remains is the harmonic quine.
+\end{quote}
+

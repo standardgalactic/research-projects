@@ -1,0 +1,295 @@
+\chapter{Polyxan Hypergraphs: Definition and Basic Structure}
+\label{ch:polyxan-basic}
+
+Part~I established the geometric substrate of RSVP field theory on the semantic
+manifold $(\mathcal{M},g)$.  
+Part~II develops the algebraic and combinatorial substrate: the
+\emph{Polyxan hypergraphs} that represent content atoms, typed links, media
+structures, and their associated sheaf-data.
+
+This chapter provides the rigorous foundation for all subsequent developments:
+typed vertices, typed hyperedges, curvature invariants, morphisms, and the
+construction of the category $\Polyx$, ultimately shown to be a presheaf topos.
+It closes with the definition of a \emph{media quine}, the central fixed point
+object of the extraction--hoisting--reduction pipeline.
+
+% ===============================================================
+\section{Polyxan Atoms and Typed Vertex Structure}
+% ===============================================================
+
+A Polyxan hypergraph is built from \emph{Polyxan atoms}, the fundamental
+syntactic-semantic units of the theory.
+
+\begin{definition}[Polyxan atom]
+A \emph{Polyxan atom} is a tuple
+\[
+a = (t(a),\;\sigma(a),\;\tau(a),\;w(a)),
+\]
+where:
+\begin{enumerate}
+  \item $t(a)$ is a \emph{type label} drawn from a small category $\mathcal{T}$
+        of semantic types (e.g.\ \textsc{concept}, \textsc{token},
+        \textsc{relation}, \textsc{operation});
+  \item $\sigma(a)$ is a \emph{content payload} (a finite structured object
+        drawn from an ambient semantic set $S$);
+  \item $\tau(a)$ is a \emph{semantic tag}, a finite tuple of invariants used to
+        track modality, provenance, or context;
+  \item $w(a)\in\mathbb{R}_{\ge 0}$ is a \emph{weight}, interpreted as
+        semantic density or importance.
+\end{enumerate}
+We denote the set of all Polyxan atoms of a hypergraph $G$ as $V(G)$.
+\end{definition}
+
+Types are required to form at least a \emph{finitary} category---finite
+objects, finite hom-sets---because the hypergraph rewriting systems of
+Chapters~\ref{ch:polyxan-rewriting}--\ref{ch:polyxan-functorial} rely on
+combinatorial finiteness conditions.
+
+Tags provide a weak form of modality, covering distinctions such as textual,
+visual, auditory, procedural, or hybrid content, but no modality is privileged.
+Weights will feed into curvature measures in later sections.
+
+% ===============================================================
+\section{Typed Hyperedges and Source--Target Signatures}
+% ===============================================================
+
+Vertices alone do not encode semantic structure; the essential structure lies in
+the \emph{typed hyperedges}.
+
+\begin{definition}[Typed hyperedge]
+A \emph{typed hyperedge} $e$ of arity $(m,n)$ in a Polyxan hypergraph $G$ is a
+tuple
+\[
+e = (s_1,\ldots,s_m;\; t_1,\ldots,t_n;\; \lambda(e)),
+\]
+where:
+\begin{enumerate}
+  \item each $s_i,t_j \in V(G)$ are Polyxan atoms (sources and targets);
+  \item $(s_1,\ldots,s_m)$ is the \emph{source signature};
+  \item $(t_1,\ldots,t_n)$ is the \emph{target signature};
+  \item $\lambda(e)$ is a \emph{hyperedge type} belonging to a finite set
+        $\Lambda$ of link types with prescribed typing rules.
+\end{enumerate}
+We denote the set of all typed hyperedges of $G$ as $E(G)$.
+\end{definition}
+
+A typed hyperedge $e$ must satisfy \emph{type consistency}:
+\[
+t(s_i) \xrightarrow{\lambda(e)} t(t_j)
+\quad
+\text{in the type category } \mathcal{T}.
+\]
+Thus every hyperedge lifts canonically to a morphism in $\mathcal{T}$.
+
+\begin{remark}[Multimodality and directionality]
+Hyperedges may mix modalities (via tags) and are explicitly directed.
+The $(m,n)$ arity need not be $(1,1)$; higher-arity interactions are essential.
+\end{remark}
+
+The incidence structure of a Polyxan hypergraph is thus much richer than that of
+a simple graph or category: it includes multi-input, multi-output transformations
+that correspond, in media contexts, to rewrites, operations, conversions,
+translations, and multi-modal aggregations.
+
+% ===============================================================
+\section{Definition of a Polyxan Hypergraph}
+% ===============================================================
+
+\begin{definition}[Polyxan hypergraph]
+A \emph{Polyxan hypergraph} $G$ consists of:
+\begin{enumerate}
+  \item a finite set $V(G)$ of Polyxan atoms;
+  \item a finite set $E(G)$ of typed hyperedges;
+  \item a sheaf of semantic data $\mathscr{F}_G$ over the incidence complex
+        $\mathrm{Inc}(G)$ associating to each cell the admissible content
+        restrictions and modality selectors;
+  \item a curvature assignment $\kappa_G$ defined on vertices and hyperedges;
+  \item gluing maps ensuring consistency on overlaps of the incidence complex.
+\end{enumerate}
+\end{definition}
+
+\subsection{Incidence complex}
+
+The incidence structure gives rise to a simplicial complex (or, more exactly, a
+fat nerve) whose $k$-simplices correspond to chains of hyperedges.  The sheaf
+$\mathscr{F}_G$ attaches admissible content constraints to simplices, enabling
+context-sensitive interpretations, refinements, and rewrites.
+
+\subsection{Curvature assignment}
+
+The curvature $\kappa_G$ is built from three components:
+
+\begin{enumerate}
+  \item \emph{Hyperedge deficit:}  
+        $\delta(e) = \mathrm{deg}(e) - \mathrm{rank}(e)$ measures how many
+        combinatorial degrees of freedom a hyperedge consumes.
+  \item \emph{Sectional curvature:}  
+        defined on two-planes of the incidence complex using a synthetic metric.
+  \item \emph{Sheaf curvature:}  
+        measured by the failure of sheaf sections to glue coherently across
+        triple overlaps.
+\end{enumerate}
+
+These curvature measures will serve as input for the Polyxan energy functional
+and for the spectral geometry of hypergraphs (Chapter~\ref{ch:hypergraph-energy}).
+
+% ===============================================================
+\section{Morphisms and the Category \texorpdfstring{$\Polyx$}{Polyx}}
+\label{sec:polyx-category}
+% ===============================================================
+
+Polyxan hypergraphs naturally organize into a category.
+
+\begin{definition}[Morphisms]
+A \emph{Polyxan morphism} $f : G \to H$ consists of:
+\begin{enumerate}
+  \item a type-preserving map $f_V : V(G) \to V(H)$ satisfying
+        $t(f_V(a)) = t(a)$;
+  \item an induced map $f_E : E(G) \to E(H)$ preserving source--target
+        signatures and hyperedge types;
+  \item a morphism of sheaves $\mathscr{F}_G \to f^\ast\mathscr{F}_H$ on the
+        incidence complexes;
+  \item preservation of curvature: $\kappa_H(f(x)) = \kappa_G(x)$ for all
+        vertices and hyperedges $x$.
+\end{enumerate}
+Composition is defined componentwise.
+\end{definition}
+
+\begin{definition}[The category Polyx]
+The category $\Polyx$ has:
+\[
+\mathrm{Obj}(\Polyx) = \{ \text{Polyxan hypergraphs} \},
+\qquad
+\mathrm{Mor}(\Polyx) = \{ \text{Polyxan morphisms} \}.
+\]
+\end{definition}
+
+% ===============================================================
+\section{Polyx as a Presheaf Topos}
+% ===============================================================
+
+We now demonstrate that $\Polyx$ is equivalent to a presheaf topos, giving it
+an internal intuitionistic logic and enabling the powerful categorical
+machinery of sheaf semantics.
+
+\subsection{Site of semantic contexts}
+
+Let $\mathcal{C}$ be the category whose objects are finite semantic contexts
+(i.e.\ small finite type-labelled sets) and whose morphisms are context
+refinements.  We equip $\mathcal{C}$ with the canonical Grothendieck topology
+generated by covering families of refinements.
+
+\begin{theorem}[Topos equivalence]
+\label{thm:polyx-topos}
+There is an equivalence of categories
+\[
+\Polyx \;\simeq\; \widehat{\mathcal{C}}
+:= \mathrm{Funct}(\mathcal{C}^{op},\mathbf{Set}),
+\]
+showing that $\Polyx$ is a presheaf topos.
+\end{theorem}
+
+\begin{proof}[Sketch]
+Every Polyxan hypergraph $G$ can be encoded as a contravariant functor
+$\mathcal{C}^{op}\to\mathbf{Set}$ by sending a semantic context $U$ to the set
+of all type-consistent embeddings of $U$ into $G$ respecting sheaf-data and
+curvature.  Morphisms in $\Polyx$ induce natural transformations.  Full
+faithfulness and essential surjectivity follow from the fact that contexts form
+a basis for the semantic topology on hypergraphs, and gluing conditions for
+sheaves guarantee the sheaf-compatible structure needed for the presheaf
+form.
+\end{proof}
+
+Consequences include:
+
+\begin{enumerate}
+  \item $\Polyx$ has all limits and colimits;
+  \item $\Polyx$ supports an internal intuitionistic logic;
+  \item hypergraph rewriting can be interpreted as internal computation;
+  \item the slice categories $\Polyx/G$ are themselves toposes.
+\end{enumerate}
+
+These results give Polyxan hypergraphs the same categorical robustness that
+Part~I established for RSVP fields via their geometric foundations.
+
+% ===============================================================
+\section{Curvature Invariants of Polyxan Hypergraphs}
+% ===============================================================
+
+We now formalize the curvature measures introduced earlier.
+
+\subsection{Hyperedge deficit}
+
+For an edge $e$ with arity $(m,n)$ and rank 
+$r(e)=\dim(\mathrm{Span}\{t(s_i)\to t(t_j)\})$,
+define
+\[
+\delta(e) := (m+n) - r(e).
+\]
+Large deficit corresponds to combinatorial rigidity; small deficit corresponds
+to combinatorial looseness.
+
+\subsection{Sectional curvature}
+
+Let $x\in G$ be a vertex or hyperedge.  
+The local incidence complex gives a synthetic metric; the sectional curvature
+$K(\Pi)$ of a 2-plane $\Pi$ at $x$ is computed analogously to CAT$(0)$
+polyhedral geometry.
+
+\subsection{Sheaf curvature}
+
+Given three overlapping cells $U,V,W$ in $\mathrm{Inc}(G)$, define the sheaf curvature
+\[
+\Omega(U,V,W)
+:= \dim \ker\!\big(
+    \mathscr{F}_G(U)\oplus \mathscr{F}_G(V)\oplus \mathscr{F}_G(W)
+    \to
+    \mathscr{F}_G(U\cap V\cap W)
+  \big).
+\]
+Nonzero $\Omega$ measures obstruction to gluing.
+
+\subsection{Euler characteristic of the nerve}
+
+The nerve $\mathcal{N}(G)$ of $G$ is defined by higher-order incidences.
+Its Euler characteristic
+\[
+\chi(G) := \sum_{k\ge 0} (-1)^k |\mathcal{N}(G)_k|
+\]
+serves as a global combinatorial invariant, analogous to the topological Euler
+characteristic of a manifold.
+
+% ===============================================================
+\section{Media Quines}
+% ===============================================================
+
+Polyxan hypergraphs evolve under extraction, hoisting, and reduction (developed
+in detail in Chapters~\ref{ch:extract-hoist}--\ref{ch:polyquine-enum}).
+A \emph{media quine} is a fixed point of this dynamic.
+
+\begin{definition}[Media quine]
+A Polyxan hypergraph $G$ is a \emph{media quine} if:
+\begin{enumerate}
+  \item extraction preserves $G$ up to isomorphism;
+  \item hoisting preserves $G$ up to isomorphism;
+  \item reduction preserves $G$ up to isomorphism;
+  \item all curvature invariants $(\delta, K, \Omega, \chi)$ are preserved;
+  \item the sheaf $\mathscr{F}_G$ is stable under all three transformations.
+\end{enumerate}
+\end{definition}
+
+Media quines represent perfect self-sustaining semantic structures:  
+closed under interpretation, compression, and re-expansion.  
+They are the Polyxan analog of the semantic vacua of Part~I.
+
+% ===============================================================
+\section{Summary}
+% ===============================================================
+
+This chapter introduced Polyxan hypergraphs, their atoms, typed hyperedges,
+sheaf data, curvature invariants, and their organization into the presheaf
+topos $\Polyx$.  
+It established the combinatorial and categorical foundation upon which the
+remaining chapters of Part~II---rewriting systems, spectral semantics, and
+functorial Polycompilation---will be built.
+

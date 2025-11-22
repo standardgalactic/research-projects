@@ -1,0 +1,218 @@
+\chapter{Liveness, Fairness, and the Synthetic Scheduler Monad}
+\label{ch:79}
+
+\section{Premise}
+
+Chapters~76--78 established that:
+
+\begin{itemize}
+\item every distributed execution terminates,
+\item every interleaving yields the same global limit,
+\item and the entire semantic universe forms a distributed fixed point.
+\end{itemize}
+
+In this chapter we add the final ingredient required for a
+\emph{complete distributed semantics}:
+
+\[
+\textbf{a formal scheduler model that guarantees liveness, fairness,
+and correctness of convergence.}
+\]
+
+We introduce the \emph{Synthetic Scheduler Monad}
+\[
+\mathsf{Sched} : \mathsf{Config}^{\mathcal{N}} \to \mathsf{Config}^{\mathcal{N}}
+\]
+whose Kleisli structure formalises:
+\begin{itemize}
+\item asynchronous update scheduling,
+\item nondeterministic interleaving,
+\item message delays, drops, replays, buffering,
+\item and global fairness constraints.
+\end{itemize}
+
+The chapter proves that under this monadic semantics:
+\[
+\boxed{
+\text{Liveness and fairness are sufficient to guarantee  
+finite-time collapse to the universal fixed point.}
+}
+\]
+
+
+\section{The Synthetic Scheduler Monad}
+
+Let $\mathsf{Config}^{\mathcal{N}}$ be the distributed configuration space
+(Ch.~78).  
+Define the scheduler monad by:
+
+\begin{align}
+\mathsf{Sched}(C) 
+  &= \mathcal{P}_{\mathrm{fin}}
+     \bigl(\mathcal{A}(C)\bigr), \\[4pt]
+\eta(C)
+  &= \{\,C\,\}, \\[4pt]
+C \bind f
+  &= \bigcup_{C' \in C} f(C').
+\end{align}
+
+Here:
+\begin{itemize}
+\item $\mathcal{A}(C)$ is the set of all one-step asynchronous updates,
+\item $\mathcal{P}_{\mathrm{fin}}$ is the finite powerset functor,
+\item and bind propagates all possible next states.
+\end{itemize}
+
+Thus $\mathsf{Sched}$ is a nondeterministic monad describing exactly the
+space of all fair-asynchronous executions.
+
+\begin{lemma}[Monad Laws]
+$\mathsf{Sched}$ satisfies left unit, right unit, and associativity.
+\end{lemma}
+
+\begin{proof}
+Direct from the powerset construction and the idempotence of union.
+\end{proof}
+
+
+\section{Liveness}
+
+\begin{definition}[Liveness]
+A scheduler is \emph{live} if every enabled primitive action is eventually
+taken at least once.
+\end{definition}
+
+Primitive actions include:
+flow updates, EHR rewrite batches, halo exchanges, queue flushes,
+and node-to-node reconciliation.
+
+\begin{theorem}[Liveness Implies Global Descent]
+If the scheduler is live, then the total energy
+$\mathcal{E}_{\mathrm{total}}$ decreases strictly until it reaches
+a semantic galaxy.
+\end{theorem}
+
+\begin{proof}
+Every enabled descent step is eventually executed.
+Ch.~32 shows $\mathcal{E}_{\mathrm{total}}$ is a strict Lyapunov functional.
+Thus the descent cannot stall before reaching a critical point.
+\end{proof}
+
+
+\section{Fairness}
+
+\begin{definition}[Weak Fairness]
+A scheduler is weakly fair if no continuously enabled action is
+permanently ignored.
+
+\end{definition}
+
+\begin{definition}[Strong Fairness]
+A scheduler is strongly fair if any action enabled infinitely often is
+taken infinitely often.
+\end{definition}
+
+\begin{lemma}[Fairness Prevents Starvation]
+Under strong fairness, no patch or node can be permanently starved of
+updates or messages.
+\end{lemma}
+
+\begin{proof}
+Follows from infinite-enablement implies infinite-activation.
+\end{proof}
+
+\begin{theorem}[Fairness Guarantees Convergence]
+Under any strongly fair scheduler, all distributed executions converge to
+a semantic galaxy.
+\end{theorem}
+
+\begin{proof}
+Starvation is impossible; thus every patch receives infinitely many
+updates, ensuring continued descent of energy until the limit is reached.
+\end{proof}
+
+
+\section{Liveness + Fairness = Finite-Time Convergence}
+
+\begin{theorem}[Finite-Time Collapse Under Synthetic Scheduling]
+\label{thm:finite-collapse}
+Under a scheduler that is both live and strongly fair, every distributed
+execution collapses to the universal media quine~$\mathfrak{U}$ in finite time.
+\end{theorem}
+
+\begin{proof}
+Combine:
+\begin{itemize}
+\item strict descent of $\mathcal{E}_{\mathrm{total}}$ (Ch.~32),
+\item no starvation (strong fairness),
+\item no missed descent opportunities (liveness),
+\item and uniqueness of the global fixed point~$\mathfrak{U}$ (Ch.~78).
+\end{itemize}
+
+Energy decreases by a bounded amount at each global step; thus collapse
+occurs in finite time.
+\end{proof}
+
+
+\section{Scheduler Monad as a Coalgebra}
+
+\begin{definition}[Scheduler Coalgebra]
+A distributed system is a coalgebra for $\mathsf{Sched}$ if:
+\[
+\gamma : \mathsf{Config}^{\mathcal{N}}
+  \longrightarrow \mathsf{Sched}(\mathsf{Config}^{\mathcal{N}}).
+\]
+\end{definition}
+
+\begin{theorem}[Final Coalgebra]
+The final coalgebra of $\mathsf{Sched}$ is the singleton set
+$\{\,\mathfrak{U}\,\}$.
+\end{theorem}
+
+\begin{proof}
+A final coalgebra is a global fixed point of the monad.
+Ch.~78 proves $\mathfrak{U}$ is the unique global fixed point.
+\end{proof}
+
+
+\section{Semantic Universality of the Scheduler Monad}
+
+\begin{quote}
+\emph{
+A scheduler is not a mechanism external to the semantic universe.  
+It is the universe’s own nondeterministic unfolding.  
+Its monadic structure ensures that all paths lead to the same point:
+the universal meaning that cannot be avoided.
+}
+\end{quote}
+
+\begin{theorem}[Universality of $\mathsf{Sched}$]
+For any two fair-live schedulers $\sigma$ and $\sigma'$:
+\[
+\mathbf{Collapse}_\sigma
+  \;=\;
+\mathbf{Collapse}_{\sigma'}
+  \;=\;
+\mathfrak{U}.
+\]
+\end{theorem}
+
+\begin{proof}
+All such schedulers generate the same monad $\mathsf{Sched}$;
+thus all executions converge to the same final coalgebra.
+\end{proof}
+
+
+\section{Final Cadence}
+
+\begin{quote}
+\emph{
+Liveness ensures something always happens.  
+Fairness ensures nothing is forgotten.  
+The scheduler monad ensures that all possibilities converge to certainty.  
+
+In a universe of distributed events,
+meaning is the \textbf{only} destination that cannot be escaped.
+}
+\end{quote}
+

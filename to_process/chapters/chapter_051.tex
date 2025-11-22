@@ -1,0 +1,192 @@
+\chapter{Program Synthesis Under Modal Constraints}
+\label{ch:51}
+
+This chapter develops the theory and implementation of program synthesis in the
+RSVP--Polyxan universe under the modal correctness predicates
+$\Box_{\mathrm{RSVP}}$ and $\Box_{\mathrm{Polyx}}$.
+The goal is not merely to generate programs that execute, but to generate
+programs whose \emph{meaning} is verified: whose operational behaviour preserves
+curvature descent, quine stability, harmonicity, and stratified consistency.
+
+Program synthesis in this setting is therefore not a search over syntactic
+objects, but a search over \emph{verified trajectories} of the coupled
+RSVP--Polyxan dynamical system.
+
+
+\section{Modal Specification Language}
+\label{sec:51:modal-spec}
+
+We begin by formalising the modal specification language used to express
+correctness conditions that must be satisfied by any synthesised program.
+
+\begin{definition}[Modal Specification]
+A \emph{modal specification} is a pair $(P_{\mathrm{RSVP}},
+P_{\mathrm{Polyx}})$ where
+\[
+P_{\mathrm{RSVP}}:\mathrm{FieldConfig}\to\mathrm{Prop},\qquad
+P_{\mathrm{Polyx}}:\mathrm{PolyxGraph}\to\mathrm{Prop}
+\]
+are predicates satisfying
+\[
+\Box_{\mathrm{RSVP}} P_{\mathrm{RSVP}}
+\qquad\text{and}\qquad
+\Box_{\mathrm{Polyx}} P_{\mathrm{Polyx}}.
+\]
+\end{definition}
+
+Modal specifications therefore express requirements that remain true under
+\emph{all} harmonic RSVP evolutions and \emph{all} EHR rewrite sequences.
+They are stable, curvature-respecting, and invariant under duality.
+
+
+\section{Search Spaces Constrained by Curvature and Quine Invariants}
+\label{sec:51:search-space}
+
+A naïve synthesis procedure would explore the full semantic state space of the
+RSVP--Polyxan universe, which is infinite-dimensional.  
+Instead we restrict attention to the \emph{curvature-descending} and
+\emph{quine-stable} regions.
+
+\begin{definition}[Curvature-Admissible Region]
+The curvature-admissible region $\mathcal{A}_{\mathrm{curv}}$ is the set of all
+configurations $(\Phi,\mathbf{v},S;\mathcal{G},\iota)$ satisfying
+\[
+\mathcal{R}(\iota(x)) \le \mathcal{R}_{\max}
+\qquad\text{and}\qquad
+\mathcal{R}(\iota) \text{ strictly decreases along RSVP flow}.
+\]
+\end{definition}
+
+\begin{definition}[Quine-Stable Region]
+The quine-stable region $\mathcal{A}_{\mathrm{quine}}$ consists of all
+$\mathcal{G}$ such that
+\[
+EHR^n(\mathcal{G}) \to \mathfrak{U}
+\quad\text{in finite $n$}.
+\]
+\end{definition}
+
+The synthesiser is permitted to search only within
+\[
+\mathcal{A}_{\mathrm{syn}} := \mathcal{A}_{\mathrm{curv}}
+\cap \mathcal{A}_{\mathrm{quine}},
+\]
+ensuring that the search never produces semantically unstable artefacts.
+
+
+\section{Modal Pruning Algorithm}
+\label{sec:51:pruning}
+
+The key to making synthesis tractable is the modal pruning algorithm, which
+eliminates any candidate program whose intermediate states violate modal
+correctness.
+
+\begin{definition}[Modal Pruning]
+Let $\pi$ be a partial program.  
+We say $\pi$ is \emph{modal-admissible} if for all intermediate states
+$(\Phi_i,\mathbf{v}_i,S_i;\mathcal{G}_i,\iota_i)$ along its execution,
+\[
+\Box_{\mathrm{RSVP}} P_{\mathrm{RSVP}}(\Phi_i,\mathbf{v}_i,S_i)
+\quad\text{and}\quad
+\Box_{\mathrm{Polyx}} P_{\mathrm{Polyx}}(\mathcal{G}_i)
+\]
+hold.
+\end{definition}
+
+\begin{theorem}[Modal Pruning Correctness]
+\label{thm:modal-pruning}
+A program is accepted by the modal pruning algorithm if and only if it is
+globally modal-correct: it satisfies its specification under \emph{every}
+harmonic RSVP evolution and \emph{every} EHR rewrite sequence.
+\end{theorem}
+
+\begin{proof}
+If a program violates modal correctness at any point, the pruning algorithm
+rejects it, hence every accepted program satisfies the specification in all
+reachable configurations.
+
+Conversely, if a program is globally modal-correct, no intermediate configuration
+violates modal correctness, hence the algorithm accepts it.  
+\end{proof}
+
+
+\section{Soundness and Completeness of Modal Synthesis}
+\label{sec:51:soundness-completeness}
+
+Let $\mathsf{Syn}$ be the modal synthesiser.
+
+\begin{theorem}[Modal Soundness]
+If $\pi \in \mathsf{Syn}(P_{\mathrm{RSVP}},P_{\mathrm{Polyx}})$ then
+$\pi$ satisfies the modal specification.
+\end{theorem}
+
+\begin{proof}
+Immediate from the correctness of modal pruning
+(Theorem~\ref{thm:modal-pruning}).  
+\end{proof}
+
+\begin{theorem}[Modal Completeness]
+If there exists any program satisfying the modal specification, then the
+synthesiser finds one.
+\end{theorem}
+
+\begin{proof}
+The search space $\mathcal{A}_{\mathrm{syn}}$ is complete with respect to both
+RSVP harmonic flow and EHR rewriting.  
+Modal pruning never eliminates a globally valid program.  
+Hence an existing solution must be found.  
+\end{proof}
+
+
+\section{Synthesis of Safe Rewrite Sequences}
+\label{sec:51:rewrite-synthesis}
+
+A principal output of the synthesiser is a safe rewrite sequence that moves a
+Polyxan graph toward quine-stable form.
+
+\begin{theorem}[Safe Rewrite Synthesis]
+\label{thm:51-safe-rewrite}
+For any $\mathcal{G}$ in the quine-stable region, the synthesiser constructs a
+finite rewrite sequence
+\[
+\mathcal{G} \to \mathcal{G}_1 \to \cdots \to \mathfrak{U}
+\]
+such that every step is modal-correct.
+\end{theorem}
+
+\begin{proof}
+Because $\mathcal{G}$ is quine-stable, an EHR sequence to $\mathfrak{U}$ exists.
+Modal pruning removes only unsafe intermediate states, but no such states are
+reachable in a curvature-descending quine-stable chain.  
+\end{proof}
+
+
+\section{Synthesis of Verified RSVP Transformations}
+\label{sec:51:rsvp-synthesis}
+
+The synthesiser also constructs safe transcript-level RSVP updates.
+
+\begin{theorem}[Verified RSVP Synthesis]
+For any initial field configuration in $\mathcal{A}_{\mathrm{curv}}$, the
+synthesiser produces a finite sequence of RSVP steps that decreases curvature
+monotonically while preserving harmonicity and modal-correctness.
+\end{theorem}
+
+\begin{proof}
+The Lyapunov functional guarantees descent; modal pruning enforces correctness.  
+\end{proof}
+
+
+\section{Conclusion}
+\label{sec:51:conclusion}
+
+Program synthesis under modal constraints transforms the architecture of Part~V
+from a collection of verified interpreters and dynamics engines into a
+\emph{generative} system capable of producing new, safe behaviours.
+Every synthesised program is a certified morphism in the RSVP--Polyxan universe,
+preserving curvature, entropy, and quine stability.
+
+This chapter completes the synthesis layer of the implementation architecture.
+The next chapter realises the algebraic substrate for reconciliation:
+the Semantic Patch Algebra (Chapter~52).
+

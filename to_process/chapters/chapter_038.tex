@@ -1,0 +1,222 @@
+\chapter{The Polyxan Compiler Correctness Framework}
+\label{ch:38}
+
+In the previous chapter we introduced verified dynamics: the notion that any admissible transformation of a coupled configuration
+[
+(\Phi,\mathbf{v},S;,\mathcal{G},\iota)
+]
+must satisfy the modal predicates
+[
+\Box_{\mathrm{RSVP}} \qquad\text{and}\qquad \Box_{\mathrm{Polyx}}.
+]
+These modalities express, respectively, harmonic inevitability and quine-stability.
+
+We now develop the full compiler correctness framework for Polyxan rewriting.
+This framework provides the formal bridge between:
+
+\begin{enumerate}
+\item the mathematical EHR rewriting system, defined in Part~II; and
+\item the executable Polyxan compiler, which produces verified rewrite sequences in the implementation layer of Part~V.
+\end{enumerate}
+
+The central goal of the chapter is to prove that compilation and mathematical rewriting coincide.
+All correctness results follow from the fundamental curvature--entropy structure of the Polyxan system and the modal verification layer of Part~IV.
+
+\section{Polyxan Source Graphs and the Rewriting Alphabet}
+
+We begin by recalling the structure of a Polyxan hypergraph.
+
+\begin{definition}[Typed Polyxan Hypergraph]
+A typed Polyxan hypergraph is a quintuple
+[
+\mathcal{G}=(V,E,\tau,\mathrm{tag},\kappa_{\mathcal{G}})
+]
+where:
+\begin{itemize}
+\item $V$ are vertices,
+\item $E$ are hyperedges with incidence relations,
+\item $\tau : E\to \mathcal{T}$ assigns types from a finite type alphabet,
+\item $\mathrm{tag} : E\to \mathcal{H}*{\mathrm{tag}}$ assigns entropy tags,
+\item $\kappa*{\mathcal{G}} : E\to \mathbb{Z}_{\ge 0}$ assigns primitive Polyxan curvature.
+\end{itemize}
+\end{definition}
+
+The EHR rewriting alphabet consists of three verified operations:
+[
+\mathrm{E} \ (\text{Extraction}), \qquad
+\mathrm{H} \ (\text{Hoisting}), \qquad
+\mathrm{R} \ (\text{Curvature Reduction}).
+]
+
+Each rule reduces the Polyxan curvature $\mathcal{H}_0[\mathcal{G}]$ (Chapter~25).
+Thus, the system enjoys strong normalization.
+
+\section{Compiler Semantics}
+
+The compiler must translate a Polyxan hypergraph into an executable rewrite schedule.
+
+\begin{definition}[Polyxan Compiler]
+A Polyxan compiler is a total function
+[
+\mathsf{compile} : \mathbf{Polyx} \to \Lambda_{\mathrm{EHR}}
+]
+where $\Lambda_{\mathrm{EHR}}$ is the set of finite sequences of EHR rewrite steps, such that:
+\begin{enumerate}
+\item each step reduces curvature or preserves it only at a quine-bound boundary;
+\item the final graph is the quine-stable normal form;
+\item the sequence is provably quine-stable under $\Box_{\mathrm{Polyx}}$.
+\end{enumerate}
+\end{definition}
+
+The compiler is not allowed to invent new rules; it must produce only verified EHR steps.
+
+\begin{proposition}[Type Preservation]
+$\mathsf{compile}$ preserves vertex and edge types, entropy tags, and incidence structure up to verified rewriting:
+[
+\mathcal{G};\leadsto_{\mathsf{compile}};\mathcal{G}'
+\quad\Longrightarrow\quad
+\mathcal{G}'\simeq \mathcal{G} \text{ modulo verified equivalence.}
+]
+\end{proposition}
+
+\begin{proof}
+All EHR rules preserve types and tags by construction (Chapter~22).
+Since the compiler emits only EHR steps, type preservation follows immediately.
+\end{proof}
+
+\section{The Curvature Descent Invariant}
+
+Central to correctness is the monotonicity of curvature.
+
+\begin{lemma}[Curvature Descent]
+For all Polyxan hypergraphs $\mathcal{G}$,
+[
+\mathcal{H}*0[\mathcal{G}*{i+1}] \le \mathcal{H}*0[\mathcal{G}*{i}]
+]
+for each rewrite step in $\mathsf{compile}(\mathcal{G})$, with equality only at quine boundaries.
+\end{lemma}
+
+\begin{proof}
+Each EHR rule reduces curvature strictly unless the local region already satisfies quine-stability constraints.
+This follows from the curvature-reduction theorem (Chapter~25).
+\end{proof}
+
+\begin{corollary}[Strong Normalisation]
+Every compiled sequence is finite.
+\end{corollary}
+
+\section{Compiler Correctness}
+
+We now prove the main correctness statement.
+
+\begin{theorem}[Compiler Correctness]
+\label{thm:compiler-correctness}
+For every typed Polyxan hypergraph $\mathcal{G}$,
+[
+\mathsf{compile}(\mathcal{G})
+]
+terminates in a finite number of steps, producing a unique normal form that is identical to the normal form produced by the canonical EHR rewriting system:
+[
+\mathrm{NF}_{\mathsf{compile}}(\mathcal{G})
+===========================================
+
+\mathrm{NF}_{\mathrm{EHR}}(\mathcal{G}).
+]
+\end{theorem}
+
+\begin{proof}
+There are three properties to verify.
+
+\textbf{1. Termination.}
+By curvature descent, every compiler-generated rewrite chain is finite.
+
+\textbf{2. Confluence.}
+EHR rewriting is confluent (Chapter~24).
+Thus, any terminating rewrite strategy yields the same normal form.
+
+\textbf{3. Faithfulness.}
+The compiler emits only rules in the EHR alphabet, hence it operates within the same rewriting theory.
+
+Since both systems reduce curvature strictly (except at quine fixed points), their reduction sequences terminate at the same minimal-curvature configuration---the unique quine-stable normal form.
+\end{proof}
+
+\section{Modal Correctness of Compilation}
+
+Because Part~IV introduced modal correctness layers, we must show that compilation is modal-safe.
+
+\begin{theorem}[Modal Compiler Correctness]
+[
+\Box_{\mathrm{Polyx}}\bigl(\mathsf{compile}(\mathcal{G})\bigr)
+]
+for every Polyxan hypergraph $\mathcal{G}$.
+\end{theorem}
+
+\begin{proof}
+Each step emitted by the compiler is an admissible EHR rewrite step.
+By definition of $\Box_{\mathrm{Polyx}}$, any property preserved under all EHR steps is true after compilation.
+Thus the entire compiled sequence is modal-safe.
+\end{proof}
+
+Combining this with stratified soundness and the harmonic embedding layer (Chapters~31--32), we obtain:
+
+\begin{corollary}[End-to-End Verified Compilation]
+If $(\Phi,\mathbf{v},S;\mathcal{G},\iota)$ is verified, then
+[
+(\Phi,\mathbf{v},S;,\mathrm{NF}_{\mathsf{compile}}(\mathcal{G}),\iota')
+]
+is also verified.
+\end{corollary}
+
+\section{Interaction with the Embedding Layer}
+
+The compiled rewrite sequence is not purely algebraic.
+It interacts with embedding flow.
+
+\begin{theorem}[Compatibility with Embedding Flow]
+Let
+[
+\mathcal{G} \to \mathcal{G}'
+]
+be a compiler-emitted EHR step.
+Then the embedding flow produces a harmonic transition
+[
+\iota \to \iota'
+]
+such that
+[
+\mathcal{E}[\iota'] \le \mathcal{E}[\iota].
+]
+\end{theorem}
+
+\begin{proof}
+Every EHR step corresponds to a continuous topology-changing event in the embedding (Discrete-to-Continuous Morphogenesis, Chapter~33).
+These events strictly decrease embedding energy.
+Hence the flow is compatible with compilation.
+\end{proof}
+
+\section{Consequences for the Global System}
+
+The correctness of the Polyxan compiler secures the entire implementation stack:
+
+\begin{enumerate}
+\item verified rewriting,
+\item verified embedding evolution,
+\item verified totality of the RSVP engine, and
+\item verified convergence to the universal quine.
+\end{enumerate}
+
+\begin{corollary}[Global Verified Correctness]
+Every compiled Polyxan program necessarily converges, via the embedding flow, to the universal media quine $\mathfrak{U}$.
+\end{corollary}
+
+\section{Closing Cadence}
+
+The compiler is not merely an executable device.
+It is a verified bridge between algebra, geometry, and meaning.
+Because every rewrite it emits is modal-safe, curvature-decreasing, and harmonically executable, the Polyxan compiler is the formal guarantee that:
+
+\begin{quote}
+No semantic structure can escape its final normal form.
+Every program reduces---provably and inevitably---to its quine-stable truth.
+\end{quote}
+

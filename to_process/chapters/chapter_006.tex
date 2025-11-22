@@ -1,0 +1,290 @@
+\chapter{Typed Morphisms, Spans, and Polyxan Rewriting}
+\label{ch:polyxan-rewriting}
+
+Chapter~\ref{ch:polyxan-basic} introduced Polyxan hypergraphs as typed,
+tagged, sheaf-valued, curvature-bearing combinatorial structures.  This chapter
+develops their morphisms, spans, rewriting systems, and reduction theory.
+These provide the algebraic machinery underlying the Polycompiler and the
+media-quine attractor of Part~II.
+
+% ===============================================================
+\section{Typed Morphisms Revisited}
+% ===============================================================
+
+We recall that a Polyxan morphism $f : G \to H$ is type-preserving, curvature-preserving, and induces a morphism of sheaves on the incidence complexes.  We now refine this definition to include interface embeddings essential for rewriting.
+
+\begin{definition}[Typed mono]
+A morphism $m : K \hookrightarrow G$ in $\Polyx$ is a \emph{typed mono} if
+$m$ is injective on vertices and hyperedges and reflects types:
+\[
+t(m(a)) = t(a), \qquad \lambda(m(e)) = \lambda(e).
+\]
+Typed monos serve as \emph{interfaces} for rewrite rules.
+\end{definition}
+
+Typed monos correspond to semantic substructures that can be matched,
+extracted, or replaced.
+
+% ===============================================================
+\section{Spans, Cospans, and the Double Category PolyxSpan}
+% ===============================================================
+
+\subsection{Spans of Polyxan hypergraphs}
+
+\begin{definition}[Span]
+A \emph{span} in $\Polyx$ is a diagram
+\[
+L \xleftarrow{\;\ell\;} K \xrightarrow{\;r\;} R,
+\]
+where $\ell,r$ are typed monos.  $K$ is the \emph{interface}.
+\end{definition}
+
+$K$ represents the part of $L$ to be rewritten, and $R$ the replacement.
+
+\subsection{Cospans}
+
+Dually:
+
+\begin{definition}[Cospan]
+A \emph{cospan} is a diagram
+\[
+L \xrightarrow{\;\ell'\;} C \xleftarrow{\;r'\;} R,
+\]
+with typed monos $\ell',r'$.
+\end{definition}
+
+Cospans will appear later when we interpret Polyxan rewrites as semantic
+\emph{coalescence} or structural \emph{fusion} operations.
+
+\subsection{Double category}
+
+\begin{theorem}
+The data of Polyxan hypergraphs, typed morphisms, spans, and cospans forms a
+strict double category
+\[
+\PolyxSpan,
+\]
+whose objects are Polyxan hypergraphs, horizontal 1-morphisms are spans,
+vertical 1-morphisms are typed morphisms, and 2-cells are commuting diagrams
+of interface-preserving maps.
+\end{theorem}
+
+\begin{proof}[Sketch]
+Horizontal composition of spans uses fibered products
+\[
+(L \xleftarrow{\ell} K \xrightarrow{r} R)
+\circ
+(R \xleftarrow{\ell'} K' \xrightarrow{r'} S)
+:=
+L \xleftarrow{\ell\circ\pi_1} K \times_R K' \xrightarrow{r'\circ \pi_2} S
+\]
+and vertical composition uses ordinary composition of typed morphisms.
+Compatibility of sources and targets follows from preservation of type and
+curvature.  The interchange law holds by construction of fibered products in
+the presheaf topos equivalent to $\Polyx$ (Theorem~\ref{thm:polyx-topos}).
+\end{proof}
+
+PolyxSpan is the categorical home of rewriting.
+
+% ===============================================================
+\section{Typed Rewrite Rules}
+% ===============================================================
+
+\begin{definition}[Rewrite rule]
+A \emph{typed rewrite rule} is a span
+\[
+L \xleftarrow{\;\ell\;} K \xrightarrow{\;r\;} R,
+\]
+where:
+\begin{enumerate}
+  \item $L$ is the \emph{left-hand side};
+  \item $R$ is the \emph{right-hand side};
+  \item $K$ is the \emph{interface}, embedded into $L$ and $R$ via typed monos.
+\end{enumerate}
+\end{definition}
+
+Given an embedding $m : L \to G$, a match of $L$ in $G$, a rewrite replaces
+$m(L)$ by $m(K)$ glued to $R$, provided sheaf and curvature constraints hold.
+
+\begin{definition}[Polyxan rewriting step]
+A rewriting step is a pushout in $\Polyx$:
+\[
+\begin{tikzcd}
+K \ar[r,"r"] \ar[d,"\ell"'] & R \ar[d] \\
+L \ar[r] & G'
+\end{tikzcd}
+\]
+where $G'$ is the hypergraph obtained by replacing $L$ with $R$ along $K$.
+\end{definition}
+
+% ===============================================================
+\section{Sesquicategory of Polyxan Rewriting Systems}
+% ===============================================================
+
+Rewrite rules assemble into a sesquicategory (2-category without identity
+2-cells).
+
+\begin{definition}[Sesquicategory Rewrite(Polyx)]
+Objects: Polyxan hypergraphs.  
+1-morphisms: finite sequences of rewrite steps.  
+2-cells: commutation diagrams between rewrite sequences induced by interface
+maps.
+\end{definition}
+
+\begin{theorem}[Church–Rosser Lemma]
+If a rewrite system is locally confluent and terminating, then it is confluent:
+whenever $G \to^\ast H_1$ and $G \to^\ast H_2$, there exists $J$ with
+$H_1 \to^\ast J$ and $H_2 \to^\ast J$.
+\end{theorem}
+
+\begin{theorem}[Newman's Lemma]
+If a rewrite system is terminating and locally confluent, it is globally
+confluent.
+\end{theorem}
+
+Both will hold for the reduction systems defined below.
+
+% ===============================================================
+\section{The Extraction–Hoisting–Reduction Cycle}
+% ===============================================================
+
+Rewriting in Polyx is driven by a canonical cycle of operations.
+
+\subsection{Extraction}
+
+Given $G$, extraction removes syntactically redundant or curvature-neutral
+substructures, producing a simplified $G_{\mathrm{ext}}$.  
+Formally, extraction is a functor
+\[
+\mathsf{Ext}: \Polyx \to \Polyx,
+\]
+defined by eliminating subobjects whose sheaf sections are contractible and
+whose curvature contribution is zero.
+
+\subsection{Hoisting}
+
+Hoisting reorganizes hyperedges by raising low-level representations to more
+abstract equivalents.  It is a functor
+\[
+\mathsf{Hoist}: \Polyx \to \Polyx,
+\]
+preserving sheaf data and hyperedge types, but collapsing unnecessary modality
+distinctions.
+
+\subsection{Reduction}
+
+Reduction applies curvature-decreasing rewrite rules.  
+Formally,
+\[
+\mathsf{Red}: \Polyx \to \Polyx
+\]
+is defined by repeatedly applying a finite set of rewrite rules
+$\{L_i \leftarrow K_i \rightarrow R_i\}$ chosen to strictly reduce a curvature
+measure.
+
+\subsection{Canonical endofunctor}
+
+\begin{definition}[EHR endofunctor]
+The \emph{extraction–hoisting–reduction cycle} is the endofunctor
+\[
+\mathsf{EHR} := \mathsf{Red} \circ \mathsf{Hoist} \circ \mathsf{Ext}
+: \Polyx \to \Polyx.
+\]
+\end{definition}
+
+EHR governs Polyxan evolution and Polycompiler convergence.
+
+% ===============================================================
+\section{Termination via Curvature Decrease}
+% ===============================================================
+
+The curvature assignment $\kappa_G$ defines a height function on $\Polyx$.
+
+\begin{theorem}[Curvature-decreasing termination]
+If every reduction rule strictly decreases at least one curvature invariant
+(hyperedge deficit, sectional curvature, sheaf curvature, or nerve Euler
+characteristic), then all reduction sequences terminate.
+\end{theorem}
+
+\begin{proof}[Sketch]
+The curvature tuple
+\[
+\vec{\kappa}(G) := (\sum_e \delta(e),\; \sum_x |K_x|,\; \sum_{U,V,W} \Omega(U,V,W),\; \chi(G))
+\]
+takes values in $\mathbb{N}^4$ with lexicographic order.  
+Reduction strictly decreases $\vec{\kappa}(G)$, hence no infinite descending
+chain exists.
+\end{proof}
+
+This is the discrete analogue of the Lyapunov monotonicity established for
+RSVP fields.
+
+% ===============================================================
+\section{Polyxan Energy and Media-Quine Critical Points}
+% ===============================================================
+
+\begin{definition}[Polyxan energy]
+Define
+\[
+\mathcal{E}[G] :=
+\sum_{e\in E(G)} \delta(e)
+\;+\;
+\sum_{x\in G} |K_x|
+\;+\;
+\sum_{U,V,W} \Omega(U,V,W)
+\;+\;
+|\chi(G)|,
+\]
+a scalar energy functional on $\Polyx$.
+\end{definition}
+
+\begin{theorem}
+$\mathsf{EHR}$ decreases $\mathcal{E}[G]$ strictly unless $G$ is a media quine.
+\end{theorem}
+
+Thus media quines are precisely the critical points of $\mathcal{E}$.
+
+% ===============================================================
+\section{Unique Normal Forms}
+% ===============================================================
+
+\begin{theorem}[Polyxan Unique Normal Form Theorem]
+For every finite Polyxan hypergraph $G$, the reduction system defined by
+$\mathsf{EHR}$ is terminating and confluent.  
+Thus $G$ has a unique normal form $G^\ast$ satisfying
+\[
+G \;\to^\ast\; G^\ast,
+\qquad
+\mathsf{EHR}(G^\ast) = G^\ast.
+\]
+Moreover, $G^\ast$ is a media quine.
+\end{theorem}
+
+\begin{proof}[Sketch]
+Termination follows from curvature decrease.  
+Local confluence is verified by checking overlaps of extraction, hoisting, and
+reduction rules.  
+Newman's Lemma then implies global confluence.  
+Thus every $G$ reduces uniquely to a fixed point $G^\ast$, which must satisfy
+$\mathsf{EHR}(G^\ast)=G^\ast$, hence is a media quine.
+\end{proof}
+
+% ===============================================================
+\section{Summary}
+% ===============================================================}
+
+This chapter developed the algebraic and rewrite-theoretic machinery of Polyxan
+hypergraphs:
+\begin{itemize}
+  \item spans and cospans forming the double category $\PolyxSpan$;
+  \item typed rewrite rules via $L\leftarrow K\to R$;
+  \item the sesquicategory of rewriting systems and confluence theorems;
+  \item the extraction--hoisting--reduction cycle as an endofunctor on $\Polyx$;
+  \item curvature-decreasing termination and the Polyxan energy functional;
+  \item the Polyxan Unique Normal Form Theorem identifying media quines as the
+        canonical fixed points.
+\end{itemize}
+
+These structures constitute the algebraic engine that powers the entire
+Polycompiler architecture, and they prepare the ground for the spectral,
+sheaf-theoretic, and categorical analyses of the chapters that follow.

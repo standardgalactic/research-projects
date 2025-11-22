@@ -1,0 +1,369 @@
+\chapter{Simulation Architecture for Semantic Galaxies}
+\label{ch:simulation-architecture}
+
+This chapter develops a complete computational framework for simulating
+the RSVP--Polyxan dynamical system introduced in
+Chapters~\ref{ch:embedding-flow}--\ref{ch:global-galaxy-maps}.
+We treat the model as a \emph{physical analogue}: 
+an interacting field--hypergraph--sheaf system whose evolution is governed
+by geometric partial differential equations (PDEs), 
+gradient flows on embeddings, and cohomological obstructions.
+
+The goal of this chapter is to formalize a scalable simulation engine
+that implements:
+
+\begin{enumerate}
+  \item the \emph{embedding flows}
+        $\dot\iota = -\delta\mathcal{F}/\delta\iota$,
+  \item the \emph{field evolution PDEs} for $(\Phi,\mathbf{v},S)$,
+  \item the \emph{sheaf cohomology computations} that detect global semantic inconsistencies,
+  \item and the \emph{feedback mechanisms} by which cohomology
+        influences and stabilizes embedding dynamics.
+\end{enumerate}
+
+The resulting architecture is modular, parallelizable, and numerically stable.
+
+
+% ============================================================
+\section{Mathematical Structure of the Simulation}
+% ============================================================
+
+A simulation state at time $t$ is a tuple
+\[
+  \mathcal{X}(t)
+  :=
+  \Big(
+    \iota_t : \mathcal{G}\to\mathcal{M},\;
+    \Phi_t,\mathbf{v}_t,S_t,\;
+    \Gamma_t,\;
+    \mathfrak{o}(\iota_t)
+  \Big),
+\]
+where:
+
+\begin{itemize}
+  \item $\mathcal{G}$ is the Polyxan hypergraph (finite or countable),
+  \item $\iota_t$ is the embedding into $\mathcal{M}$,
+  \item $(\Phi_t,\mathbf{v}_t,S_t)$ are RSVP fields on the discretized manifold,
+  \item $\Gamma_t$ is a local galaxy map (partial or global),
+  \item $\mathfrak{o}(\iota_t)$ is the obstruction class in sheaf cohomology.
+\end{itemize}
+
+The update of $\mathcal{X}(t)$ is governed by three coupled dynamical laws:
+
+\begin{align*}
+  \dot{\iota}_t &= - \frac{\delta \mathcal{F}}{\delta \iota}, \\
+  \partial_t (\Phi,\mathbf{v},S)
+    &= \mathcal{D}(\Phi,\mathbf{v},S) + \mathcal{J}(\iota), \\
+  \mathfrak{o}(\iota_t)
+    &= \mathrm{cohomology}(\iota_t, \mathcal{F},\mathscr{S}).
+\end{align*}
+
+Each term is formalized below.
+
+
+% ============================================================
+\section{Discretization of the Manifold and Hypergraph}
+% ============================================================
+
+\subsection{Manifold Discretization}
+
+We discretize $\mathcal{M}$ using one of:
+
+\begin{itemize}
+  \item a simplicial mesh,
+  \item a structured finite-difference grid,
+  \item or a point cloud with neighborhood graph (for large scales).
+\end{itemize}
+
+Each mesh node carries:
+
+\[
+  \Big(\Phi(n),\mathbf{v}(n),S(n)\Big)
+  \qquad n\in\mathcal{M}_h,
+\]
+and geometric coordinates $x(n)\in\mathbb{R}^d$.
+
+Finite differences, finite elements, or spectral methods provide approximations
+to:
+
+\[
+  \nabla,\quad \nabla^2,\quad \nabla\cdot\mathbf{v},\quad \mathrm{Ric}(g).
+\]
+
+
+\subsection{Hypergraph Representation}
+
+The Polyxan hypergraph is encoded as:
+
+\[
+  \mathcal{G} = (V,E,w,m,\rho^\*),
+\]
+where:
+
+\begin{itemize}
+  \item $V$ is the set of nodes (atoms),
+  \item $E$ is the set of hyperedges (relations),
+  \item $w$ is semantic mass,
+  \item $m$ is curvature mass (from Chapter~\ref{ch:typed-hypergraphs}),
+  \item $\rho^\*$ is target density.
+\end{itemize}
+
+Local neighborhoods $U\subseteq\mathcal{G}$ form a cover for Čech cohomology.
+
+
+\subsection{Embedding Storage}
+
+An embedding is stored as a map:
+
+\[
+  \iota: V \to \mathcal{M}_h,
+\]
+where each hypergraph node maps to a manifold node or barycentric coordinates.
+
+Embedding evolution requires:
+
+\[
+  \dot\iota(v) \in T_{\iota(v)}\mathcal{M},
+\]
+approximated using the discrete tangent space of the mesh.
+
+
+% ============================================================
+\section{RSVP Field PDEs}
+% ============================================================
+
+Field evolution is governed by the RSVP equations (Ch.~\ref{ch:rsvp-fields})
+in discretized form:
+
+\begin{align}
+  \partial_t \Phi &= \nabla_h^2 \Phi 
+                     + \gamma \nabla_h\cdot\mathbf{v} 
+                     + J_{\Phi}^{(H)}
+                     + \text{dissipation}, \\[0.2em]
+  \partial_t S &= \beta \nabla_h \cdot (S^{-1}\nabla_h S)
+                + J_S^{(H)}, \\[0.2em]
+  \partial_t \mathbf{v}
+    &= -\nabla_h \Phi
+       + J_{\mathbf{v}}^{(H)}.
+\end{align}
+
+The hypergraph-derived sources $J^{(H)}$ are computed from:
+
+\[
+  J_\Phi^{(H)}(x(n))
+  =
+  \sum_{v\in V}
+    m(v)\, \delta_{n,\iota(v)}.
+\]
+
+A standard explicit time-marching scheme is:
+
+\[
+  \Psi_{t+\Delta t}(n)
+    = \Psi_{t}(n)
+    + \Delta t\, \mathcal{D}(\Psi_t)(n)
+    + \Delta t\,\mathcal{J}(\iota_t)(n),
+\]
+where $\Psi=(\Phi,\mathbf{v},S)$.
+
+
+% ============================================================
+\section{Embedding Gradient Flow}
+% ============================================================
+
+Recall the embedding energy:
+
+\[
+  \mathcal{F}
+    = \mathcal{E}_{\mathrm{RSVP}}
+    + \mathcal{E}_{\mathrm{curv}}
+    + \mathcal{E}_{\mathrm{dens}}
+    + \mathcal{E}_{\mathrm{sheaf}}.
+\]
+
+The discrete gradient flow is:
+
+\[
+  \iota_{t+\Delta t}(v)
+  =
+  \iota_t(v)
+  - \Delta t\,
+    \left(
+      \frac{\delta\mathcal{E}_{\mathrm{RSVP}}}{\delta\iota(v)}
+      +
+      \frac{\delta\mathcal{E}_{\mathrm{curv}}}{\delta\iota(v)}
+      +
+      \frac{\delta\mathcal{E}_{\mathrm{dens}}}{\delta\iota(v)}
+      +
+      \frac{\delta\mathcal{E}_{\mathrm{sheaf}}}{\delta\iota(v)}
+    \right).
+\]
+
+In mesh form:
+
+\begin{align*}
+  \frac{\delta\mathcal{E}_{\mathrm{RSVP}}}{\delta\iota(v)}
+    &= w_v \nabla_h\mathcal{L}_{\mathrm{RSVP}}(\iota(v)), \\[0.3em]
+  \frac{\delta\mathcal{E}_{\mathrm{curv}}}{\delta\iota(v)}
+    &= 2\alpha_v H\,\partial H/\partial\iota(v), \\[0.3em]
+  \frac{\delta\mathcal{E}_{\mathrm{dens}}}{\delta\iota(v)}
+    &= 2\beta_v(\rho_\iota(v)-\rho^\*(v))\partial\rho_\iota/\partial\iota(v).
+\end{align*}
+
+The sheaf term is handled in the next section.
+
+
+% ============================================================
+\section{Cohomology, Galaxy Maps, and Feedback}
+% ============================================================
+
+\subsection{Local Sheaf Evaluation}
+
+For each neighborhood $U_i$ in a cover:
+
+\begin{itemize}
+  \item restrict Polyxan sheaf $\mathcal{F}(U_i)$,
+  \item restrict RSVP sheaf $\mathscr{S}(\iota(U_i))$,
+  \item compute mismatch via candidate galaxy map $\Gamma_{U_i}$.
+\end{itemize}
+
+\subsection{Čech Complex Construction}
+
+Construct cochains:
+
+\[
+  c^k_{i_0\cdots i_k}
+  \in \mathscr{S}\big(\iota(U_{i_0}\cap\cdots\cap U_{i_k})\big),
+\]
+assembled into the Čech complex.
+
+Compute obstruction class:
+
+\[
+  \mathfrak{o}(\iota)
+  =
+  [\delta c],
+\]
+where $\delta$ is the Čech coboundary.
+
+\subsection{Feedback to Embeddings}
+
+Define sheaf inconsistency energy:
+
+\[
+  \mathcal{E}_{\mathrm{sheaf}}
+  =
+  \sum_{U_i}
+    \gamma_{U_i}\,
+    \|c^1_{i,j}\|^2
+  + \sum_{U_i,U_j,U_k}
+    \gamma'_{i,j,k}\,
+    \|c^2_{i,j,k}\|^2.
+\]
+
+Variation yields:
+
+\[
+  \frac{\delta\mathcal{E}_{\mathrm{sheaf}}}{\delta\iota(v)}
+  =
+  \sum_{U_i\ni v}
+    \gamma_{U_i}\,
+    \frac{\partial c^{1}_{i,j}}{\partial \iota(v)}
+  +
+  \sum_{U_i\ni v}
+    \gamma'_{i,j,k}\,
+    \frac{\partial c^{2}_{i,j,k}}{\partial \iota(v)}.
+\]
+
+Embedding flow is driven toward configurations minimizing cohomological defects.
+
+
+% ============================================================
+\section{Numerical Stability and Parallelization}
+% ============================================================
+
+\subsection{Stability}
+
+Gradient flows require:
+
+\[
+  \Delta t < \frac{2}{\lambda_{\max}},
+\]
+where $\lambda_{\max}$ is the maximum eigenvalue of the Hessian of $\mathcal{F}$.
+
+Field PDEs require analogous CFL conditions.
+
+\subsection{Parallelization}
+
+All major components parallelize:
+
+\begin{itemize}
+  \item RSVP PDEs over mesh nodes,
+  \item hypergraph embedding updates over nodes $v\in V$,
+  \item Čech cohomology over neighborhoods $U_i$.
+\end{itemize}
+
+GPU acceleration is effective for:
+
+\begin{itemize}
+  \item field Laplacians,
+  \item convolution-like smoothing operators,
+  \item sparse matrix operations for cohomology.
+\end{itemize}
+
+
+% ============================================================
+\section{Interpretation 3 (Semantic) Layer}
+% ============================================================
+
+Although this chapter treats the simulation as a physical-analogue system,
+the *same architecture* implements cognitive or semantic evolution:
+
+\begin{itemize}
+  \item RSVP fields become semantic potentials,
+  \item Polyxan hypergraph nodes represent cognitive atoms,
+  \item embeddings represent semantic placement in meaning-space,
+  \item obstruction classes represent conceptual incoherence,
+  \item gradient flows represent conceptual refinement.
+\end{itemize}
+
+Thus Interpretation~1 and Interpretation~3 share identical mathematics.
+
+
+% ============================================================
+\section{Simulation Loop Summary}
+% ============================================================
+
+At each time step:
+
+\begin{enumerate}
+\item Compute $\delta\mathcal{F}/\delta \iota$ for all $v\in V$.
+\item Update embeddings $\iota \gets \iota - \Delta t\,\delta\mathcal{F}/\delta\iota$.
+\item Update RSVP fields via discretized PDEs.
+\item Compute Čech cochains and obstruction class.
+\item Update $\mathcal{E}_{\mathrm{sheaf}}$ and feed back to embeddings.
+\item Optionally visualize fields, embeddings, and obstruction maps.
+\end{enumerate}
+
+This defines the engine for semantic galaxy morphogenesis.
+
+
+% ============================================================
+\section{Summary}
+% ============================================================
+
+This chapter provided a complete simulation architecture for the RSVP--Polyxan
+system, including:
+
+\begin{itemize}
+  \item discretization of manifold, fields, and hypergraphs,
+  \item embedding gradient flows,
+  \item RSVP PDE solvers,
+  \item sheaf cohomology and obstruction feedback,
+  \item numerical stability and parallelization,
+  \item and a unified simulation loop.
+\end{itemize}
+
+Chapter~\ref{ch:nbody} will implement these ideas in an N-body
+scheme and analyze emergent structure formation in semantic galaxies.

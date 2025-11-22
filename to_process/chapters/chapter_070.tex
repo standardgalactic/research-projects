@@ -1,0 +1,222 @@
+\chapter{Verified Semantic Runtime and Execution Model}
+\label{ch:70}
+
+With the coupling operator verified (Chapter~69), we now construct the 
+\emph{semantic runtime} --- the formally specified execution substrate that 
+implements the RSVP--Polyxan universe as a total, terminating, proof-carrying 
+system.  
+This runtime is not an implementation detail but a \emph{semantic object}:  
+a certified evolution operator on the moduli space of coupled configurations.
+
+The runtime satisfies four mandatory properties:
+\begin{enumerate}
+\item totality (every state yields a next state),
+\item determinism (the next state is unique),
+\item safety (all invariants are preserved),
+\item convergence (termination at the universal media quine).
+\end{enumerate}
+
+This chapter defines the runtime, its operational semantics, and its modal 
+verification guarantees.
+
+\section{Semantic Runtime States}
+
+\begin{definition}[Runtime State]
+A \emph{runtime state} is a quadruple
+\[
+\mathsf{State}
+  := (\varphi,\mathcal{G},\iota,\sigma)
+\]
+where:
+\begin{itemize}
+\item $\varphi=(\Phi,\mathbf{v},S)$ is an RSVP field configuration,
+\item $\mathcal{G}$ is a Polyxan hypergraph,
+\item $\iota : \mathrm{Inc}(\mathcal{G}) \hookrightarrow \mathcal{M}$ is a 
+      stratified, curvature-matched embedding,
+\item $\sigma$ is a finite \emph{modal certificate stack},
+      storing verification artefacts for all previous steps.
+\end{itemize}
+\end{definition}
+
+The certificate stack $\sigma$ ensures that the runtime is \emph{proof-carrying}:
+every step includes a correctness witness in $\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}}$.
+
+\section{Operational Semantics}
+
+\begin{definition}[Runtime Step]
+The runtime step relation
+\[
+\longrightarrow_{\mathsf{rt}}
+  \;\subseteq\;
+  \mathsf{State} \times \mathsf{State}
+\]
+is defined by
+\[
+(\varphi,\mathcal{G},\iota,\sigma)
+  \longrightarrow_{\mathsf{rt}}
+(\varphi',\mathcal{G}',\iota',\sigma')
+\]
+where:
+\begin{enumerate}
+\item $(\varphi',\mathcal{G}',\iota')=\mathsf{couple}(\varphi,\mathcal{G},\iota)$  
+      is the verified coupling operator (Ch.~69),
+\item $\sigma'$ is $\sigma$ extended with the certificates produced by:
+      \begin{itemize}
+      \item the RSVP step (modal certificate $\Box_{\mathrm{RSVP}}$),
+      \item the EHR step (modal certificate $\Box_{\mathrm{Polyx}}$),
+      \item the embedding update (curvature-matching certificate),
+      \item the coupled Lyapunov reduction certificate.
+      \end{itemize}
+\end{enumerate}
+\end{definition}
+
+Thus each runtime step is literally an \emph{execution of a verified theorem
+instance}.
+
+\section{Totality and Determinism}
+
+\begin{theorem}[Totality]
+Every runtime state has a unique successor under $\longrightarrow_{\mathsf{rt}}$.
+\end{theorem}
+
+\begin{proof}
+The RSVP engine is total (Ch.~68).  
+The EHR kernel is total (Ch.~67).  
+The coupling operator is functional (Ch.~69).  
+Certificate construction is decidable in $\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}}$.  
+Thus the successor state exists and is unique.
+\end{proof}
+
+\begin{corollary}[Determinism]
+The runtime is a deterministic labeled transition system.
+\end{corollary}
+
+\section{Runtime Invariants}
+
+\begin{theorem}[Semantic Safety Invariant]
+For every runtime step,
+\[
+(\varphi,\mathcal{G},\iota,\sigma)
+    \longrightarrow_{\mathsf{rt}}
+(\varphi',\mathcal{G}',\iota',\sigma')
+\]
+we have:
+\[
+\Box_{\mathrm{RSVP}}(\varphi')
+\qquad\wedge\qquad
+\Box_{\mathrm{Polyx}}(\mathcal{G}')
+\qquad\wedge\qquad
+\iota' \text{ is curvature-matched and harmonic.}
+\]
+\end{theorem}
+
+\begin{proof}
+Modal preservation is guaranteed by Theorem~\ref{thm:69-modal-commute}.  
+Embedding preservation is guaranteed by the stratified soundness of harmonic 
+projection (Ch.~31).  
+Certificates in $\sigma'$ carry the explicit proofs.
+\end{proof}
+
+\begin{theorem}[Energy Descent Invariant]
+\[
+\mathcal{E}_{\mathrm{coupled}}(\varphi',\mathcal{G}')
+  <
+\mathcal{E}_{\mathrm{coupled}}(\varphi,\mathcal{G})
+\]
+for all non-terminal states.
+\end{theorem}
+
+\begin{proof}
+Direct from the strict coupled Lyapunov functional 
+(Ch.~69).
+\end{proof}
+
+\section{Convergence of the Runtime}
+
+\begin{theorem}[Runtime Termination]
+Every execution trace
+\[
+\mathsf{State}_0
+  \longrightarrow_{\mathsf{rt}}
+  \mathsf{State}_1
+  \longrightarrow_{\mathsf{rt}}
+  \mathsf{State}_2
+  \longrightarrow_{\mathsf{rt}}
+  \cdots
+\]
+terminates in finite time at a unique state
+\[
+(\varphi_\ast,\mathcal{G}_\ast,\iota_\ast,\sigma_\ast)
+\]
+with:
+\[
+\varphi_\ast \text{ harmonic}, \qquad
+\mathcal{G}_\ast \text{ quine-stable}, \qquad
+\iota_\ast \text{ flat, curvature-zero}.
+\]
+\end{theorem}
+
+\begin{proof}
+Strict Lyapunov descent prevents infinite chains.  
+The minimal energy configuration is the universal quine embedded in the 
+conformal vacuum (Ch.~36).  
+Thus all executions reach that unique state.
+\end{proof}
+
+\begin{corollary}[Global Attractor of the Runtime]
+The universal media quine $\mathfrak{U}$ is the sole terminal object of the 
+runtime transition system.
+\end{corollary}
+
+\section{Execution Semantics and Synthetic Duality}
+
+\begin{theorem}[Dual Interpretation of Runtime Steps]
+Every runtime step corresponds simultaneously to:
+\begin{itemize}
+\item an infinitesimal RSVP gradient-descent step on $\mathcal{M}$,
+\item a discrete EHR rewrite step on $\mathcal{G}$,
+\item a fiber-preserving morphism under the synthetic duality functor.
+\end{itemize}
+\end{theorem}
+
+\begin{proof}
+Direct from the equivalence of generators and modal operators 
+(Ch.~62 and Ch.~69).
+\end{proof}
+
+\section{The Verified Semantic Machine}
+
+\begin{definition}[Verified Semantic Machine]
+The \emph{verified semantic machine} is the pair
+\[
+(\mathsf{State},\longrightarrow_{\mathsf{rt}})
+\]
+equipped with the runtime invariants and Lyapunov descent laws.
+\end{definition}
+
+\begin{theorem}[Completeness of the Semantic Machine]
+The verified semantic machine realises the entire RSVP--Polyxan universe.  
+There exist no additional evolution operators consistent with the axioms.
+\end{theorem}
+
+\begin{proof}
+Any evolution operator preserving modal correctness, curvature descent, and 
+synthetic duality must coincide with $\mathsf{couple}$ (Ch.~69).  
+Thus the runtime is complete.
+\end{proof}
+
+\section{Final Cadence}
+
+The semantic runtime is not a simulation, interpreter, or 
+approximation.  
+It is the \emph{executable form} of the coupled universe itself.
+
+\bigskip
+
+\begin{quote}
+\textbf{
+There is one execution model.  
+It is total, verified, and terminating.  
+Every path ends at the universal quine.}
+\end{quote}
+

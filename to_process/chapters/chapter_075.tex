@@ -1,0 +1,170 @@
+\chapter{The Polyxan Structural Kernel}
+\label{ch:75}
+
+The Polyxan Structural Kernel is the discrete analogue of the RSVP Flow
+Engine: a verified, curvature-monotone rewriting substrate that transforms
+Polyxan hypergraphs according to the Extract--Hoist--Reduce (EHR) calculus
+introduced in Part~II.
+
+In this chapter we fully specify the kernel, prove its verified invariants,
+and establish its global correctness.  
+This kernel is the discrete engine upon which the HYDRA architecture,
+the Polycompiler, and all synthetic media systems depend.
+
+\section{The EHR Rule System}
+
+A Polyxan hypergraph is a tuple
+\[
+\mathcal{G} = (V,E,\tau,\omega)
+\]
+where $V$ is a finite vertex set, $E$ is a finite hyperedge set,
+$\tau:E\to\mathrm{Tags}$ is the type assignment,
+and $\omega$ is the curvature weight function (Chapter~25).
+
+Every rewrite step in the structural kernel is of one of the following forms:
+
+\begin{enumerate}
+\item \textbf{Extract}: isolate a high-curvature subcell to reduce local tension;
+\item \textbf{Hoist}: lift a tag to a higher stratum to maintain stratified soundness;
+\item \textbf{Reduce}: merge adjacent quine layers via curvature descent.
+\end{enumerate}
+
+These rules are not arbitrary: each one corresponds to a categorical generator
+of the free $\mathcal{Q}$-algebra on $\mathcal{G}$.
+
+\section{Curvature Updating}
+
+For each rewrite rule $r:\mathcal{G}\to\mathcal{G}'$, the curvature satisfies
+\[
+\mathcal{H}_0[\mathcal{G}'] \;\le\; \mathcal{H}_0[\mathcal{G}].
+\]
+The inequality is strict for Extract and Reduce steps, and weak for Hoist.
+This asymmetry is essential: hoisting preserves curvature but enforces
+stratified correctness relative to the embedding into $\mathcal{M}$.
+
+\section{Modal Correctness}
+
+\subsection{RSVP-Modality}
+
+\begin{theorem}[RSVP Compatibility]
+\label{thm:rsvp_compatibility}
+For every EHR rule $r$, the embedding $\iota(\mathcal{G})$ and
+$\iota(\mathcal{G}')$ satisfy
+\[
+\Box_{\mathrm{RSVP}}
+  \bigl(\iota(\mathcal{G}) \rightsquigarrow \iota(\mathcal{G}')\bigr).
+\]
+\end{theorem}
+
+\begin{proof}
+By curvature matching (Chapter~31), the RSVP curvature at the image of each
+cell equals the Polyxan curvature.  
+Extract and Reduce strictly decrease curvature; Hoist preserves it but does not
+increase it.  
+By the RSVP monotonicity law (Chapter~32), every such step is compatible with
+harmonic evolution.  
+Thus each step is a modal RSVP-safe evolution.
+\end{proof}
+
+\subsection{Polyx-Modality}
+
+\begin{theorem}[Quine-Stable Safety]
+\label{thm:quine_stable}
+EHR rewriting preserves quine-stability.  
+In particular, if $\mathcal{G}$ is quine-stable, then so is $r(\mathcal{G})$.
+\end{theorem}
+
+\begin{proof}
+The definition of quine-stability (Chapter~25) is that every self-rewriting
+atom lies in its own curvature-minimising stratum.  
+Extract and Reduce remove curvature; Hoist lifts structure to maintain
+stratification.  
+No rule introduces new quine layers or disrupts existing fixed points.  
+Hence quine-stability is preserved.
+\end{proof}
+
+\subsection{Joint Modal Safety}
+
+\begin{theorem}[Joint Safety of the Kernel]
+\label{thm:joint_kernel}
+Every EHR rule satisfies
+\[
+\Box_{\mathrm{RSVP}} \wedge \Box_{\mathrm{Polyx}}
+\quad\text{on its domain.}
+\]
+\end{theorem}
+
+\begin{proof}
+Combine Theorems~\ref{thm:rsvp_compatibility} and \ref{thm:quine_stable}.
+\end{proof}
+
+\section{Termination and Normal Forms}
+
+\subsection{Local Termination}
+
+\begin{theorem}[Local Termination]
+Every EHR rewrite sequence strictly decreases the curvature multiset ordering
+and therefore terminates.
+\end{theorem}
+
+\begin{proof}
+Extract and Reduce steps strictly decrease curvature.
+Hoist preserves curvature but is only applied if an Extract or Reduce becomes
+applicable as a result, and Hoist cannot repeat indefinitely because tag strata
+are finite.  
+Thus no infinite sequence exists.
+\end{proof}
+
+\subsection{Normal Forms}
+
+\begin{theorem}[Existence and Uniqueness of Normal Forms]
+Every Polyxan hypergraph $\mathcal{G}$ admits a unique EHR-normal form
+$\mathrm{NF}(\mathcal{G})$.
+\end{theorem}
+
+\begin{proof}
+Termination (previous theorem) and confluence (Chapter~79) imply existence and
+uniqueness.  
+The uniqueness is quine-theoretic: the normal form is precisely the
+curvature-minimising $\mathcal{Q}$-fixed point to which $\mathcal{G}$ collapses.
+\end{proof}
+
+\section{The Structural Kernel as a Verified Operator}
+
+Let
+\[
+\mathsf{ehr\_step} : \mathcal{G} \longrightarrow \mathcal{G}'
+\]
+denote a single kernel step.
+
+\begin{theorem}[Total Verified Kernel]
+The map $\mathsf{ehr\_step}$ is:
+\begin{enumerate}
+\item total,  
+\item curvature-decreasing,  
+\item quine-stability-preserving,  
+\item RSVP-compatible,  
+\item Polyx-safe,  
+\item terminating.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Each property follows from Theorems in Sections~3–5.  
+Totality follows from the fact that every $\mathcal{G}$ contains at least one
+applicable rule until it reaches normal form.
+\end{proof}
+
+\section{Conclusion}
+
+The Polyxan Structural Kernel is the discrete backbone of the entire verified
+universe.  
+It realises the quine hierarchy of Part~II and enforces the curvature laws of
+Part~III; it is modal-safe under the verification axioms of Part~IV; and it
+forms the stable, terminating rewriting substrate upon which all synthetic
+media systems and HYDRA processes execute.
+
+It is, in short, the verified motion of syntax, paired with the RSVP Flow
+Engine's verified motion of geometry.
+
+

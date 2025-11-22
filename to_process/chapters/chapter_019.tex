@@ -1,0 +1,189 @@
+\chapter{Semantic Types, Tags, and Typed Morphisms}
+\label{ch:semantic-types}
+
+This chapter formalizes the \emph{typing system} underlying Polyxan hypergraphs, together with the morphisms and rewrite rules that preserve semantic consistency. Building on Chapter~\ref{ch:polyxan-atoms}, we introduce semantic types, tag refinements, and typed morphisms; these form the foundation for type-aware rewrites, constraint propagation, and Polycompiler correctness (Chapter~\ref{ch:polycompiler}).
+
+% ============================================================
+\section{Semantic Types and Type Assignments}
+% ============================================================
+
+Let $\mathcal{G} = (V,E)$ be a Polyxan hypergraph (Chapter~\ref{ch:polyxan-atoms}), where $V$ is the set of content atoms and $E$ is the set of hyperedges encoding relations.
+
+\begin{definition}[Semantic Type]
+A \emph{semantic type} is an element of a type category $\mathbf{Type}$, assigned to all vertices and hyperedges:
+\[
+\mathrm{type} : V \cup E \to \mathbf{Type}.
+\]
+Types encode compositional constraints, inheritance, semantic roles, and permitted relational patterns.
+\end{definition}
+
+\begin{example}
+Vertices might have types
+\[
+\texttt{Matter},\quad \texttt{Energy},\quad \texttt{Field},
+\]
+while hyperedges could have types such as
+\[
+\texttt{causes},\quad \texttt{interactsWith},\quad \texttt{encodes}.
+\]
+\end{example}
+
+These assignments enforce both structural and semantic validity across the Polyxan hypergraph.
+
+% ============================================================
+\section{Tags as Type Refinements}
+% ============================================================
+
+\begin{definition}[Semantic Tag]
+A \emph{tag} is a refinement of a semantic type, drawn from a tag set $\mathbf{Tag}$ equipped with a projection to the base type:
+\[
+\mathrm{tag}: V \cup E \to \mathbf{Tag},
+\qquad
+\pi_\tau : \mathbf{Tag} \to \mathbf{Type}.
+\]
+Tags encode subtyping information, contextual attributes, epistemic metadata, or runtime embeddings.
+\end{definition}
+
+\begin{remark}
+Tags often record simulation-relevant metadata:
+confidence scores, domain embeddings, temporal qualifiers, symbolic lineage, or cross-modal annotations.
+\end{remark}
+
+Type compatibility requires:
+\[
+\pi_\tau(\mathrm{tag}(x)) = \mathrm{type}(x),
+\]
+ensuring every tag refines a compatible semantic type.
+
+% ============================================================
+\section{Typed Morphisms}
+% ============================================================
+
+A structure-preserving mapping between typed Polyxan hypergraphs must also maintain semantic types and tags.
+
+\begin{definition}[Typed Hypergraph Morphism]
+Let $\mathcal{G}=(V,E)$ and $\mathcal{G}'=(V',E')$ be typed Polyxan hypergraphs with type/tag assignments $\mathrm{type},\mathrm{tag}$ and $\mathrm{type}',\mathrm{tag}'$.  
+A \emph{typed morphism} is a pair of functions:
+\[
+f_V : V \to V',
+\qquad
+f_E : E \to E',
+\]
+such that:
+
+\begin{enumerate}
+\item \textbf{Structure preservation:}  
+For each hyperedge $e = \{v_1,\dots,v_k\} \in E$,
+\[
+f_E(e) = \{f_V(v_1),\dots,f_V(v_k)\} \in E'.
+\]
+
+\item \textbf{Type refinement:}  
+For all $x \in V \cup E$,
+\[
+\mathrm{type}(x) \;\le_{\mathbf{Type}}\; \mathrm{type}'(f(x)),
+\]
+where $\le_{\mathbf{Type}}$ is the refinement relation in $\mathbf{Type}$.
+
+\item \textbf{Tag consistency:}  
+Tag refinements satisfy
+\[
+\mathrm{tag}(x) \;\le_{\mathbf{Tag}}\; \mathrm{tag}'(f(x)),
+\]
+and the projections match the type constraints.
+\end{enumerate}
+\end{definition}
+
+\begin{example}
+A vertex of type \texttt{Matter} with tag \texttt{Electron} may map to a vertex tagged \texttt{SubatomicParticle}, provided:
+\[
+\texttt{Electron} \le_{\mathbf{Tag}} \texttt{SubatomicParticle}
+\quad\text{and}\quad
+\texttt{Matter} \le_{\mathbf{Type}} \texttt{Matter}.
+\]
+\end{example}
+
+Typed morphisms guarantee semantic safety under transformation.
+
+% ============================================================
+\section{Functorial Type Assignments}
+% ============================================================
+
+Type assignments extend functorially across Polyxan morphisms:
+\[
+\mathrm{type} : \mathbf{Polyxan} \to \mathbf{TypeCat},
+\]
+where $\mathbf{Polyxan}$ is the category of Polyxan hypergraphs with typed morphisms.
+
+Functoriality implies:
+
+\begin{itemize}
+\item type preservation under composition:
+\[
+f, g \text{ typed} \;\Longrightarrow\; g \circ f \text{ typed},
+\]
+\item identity morphisms are trivially typed,
+\item type-based constraints propagate through every rewrite and transformation.
+\end{itemize}
+
+This categorical foundation is essential for correctness of Polycompiler pipelines.
+
+% ============================================================
+\section{Typed Rewriting Rules}
+% ============================================================
+
+Typed rewriting rules constrain allowable transformations.
+
+\begin{definition}[Typed Rewrite Rule]
+A typed rewrite rule is a span of typed hypergraphs:
+\[
+L \xleftarrow{\ell} K \xrightarrow{r} R,
+\]
+where $L$ is the left-hand pattern, $R$ is the replacement, and $K$ is the interface.  
+A rewrite may be applied to $\mathcal{G}$ when a typed morphism
+\[
+m: L \to \mathcal{G}
+\]
+exists that respects all structure, type, and tag constraints.
+\end{definition}
+
+Typed rewrites guarantee:
+\begin{itemize}
+\item \emph{type preservation} under substitution,
+\item \emph{tag-order consistency} under refinement,
+\item \emph{semantic stability} under Polyxan evolution,
+\item safe rewrites in Polycompiler passes.
+\end{itemize}
+
+% ============================================================
+\section{Applications to Polycompilation and Semantic Verification}
+% ============================================================
+
+Types and typed morphisms are central to:
+
+\begin{itemize}
+\item Polycompiler extraction/hoisting (Chapter~\ref{ch:polycompiler-algorithms}),
+\item semantic invariants under deterministic or stochastic rewriting,
+\item type-based constraint propagation across recursive hypergraphs,
+\item coinductive proofs of infinite Polyxan processes (Chapter~\ref{ch:theorems}),
+\item improved search, indexing, and retrieval of semantic atoms.
+\end{itemize}
+
+Typed rewriting provides the correctness backbone of the entire Polycompiler architecture.
+
+% ============================================================
+\section{Summary}
+% ============================================================
+
+This chapter established:
+
+\begin{itemize}
+\item a formal typing system for vertices and hyperedges,
+\item tagging as a refinement structure with type projection,
+\item typed morphisms preserving structure, type, and tag assignments,
+\item a functorial perspective ensuring compositional invariants,
+\item typed rewrite rules for safe, semantically consistent transformations,
+\item and applications to Polycompiler correctness and verification.
+\end{itemize}
+
+This semantic type system forms the substrate for spans, co-spans, rewrite calculi, and self-rewriting atoms in forthcoming chapters.

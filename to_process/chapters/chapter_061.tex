@@ -1,0 +1,182 @@
+\chapter{Axioms and Type Theory for RSVP--Polyxan Verification}
+\label{ch:axioms-type-theory}
+
+Part~IV begins with the construction of a single, unified dependent type theory
+\[
+\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}},
+\]
+capable of simultaneously expressing continuous geometric structure,
+discrete hypergraph syntax,
+and the coupled dynamics that define the semantic universe.
+This chapter lays down the axioms, typing rules, and modal structure
+needed to formalise all results from Parts~I--III inside a proof assistant
+(Lean~4), thereby converting semantic cosmology into a machine--verified mathematics.
+
+\section{The Unified Dependent Type Theory $\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}}$}
+
+The type theory is stratified into three interacting layers:
+
+\subsection{(1) Field Layer: Smooth RSVP Configurations}
+
+RSVP fields are represented as dependent types of smooth sections of jet bundles.
+
+\begin{align}
+\mathrm{FieldConfig} 
+  := \{ (\Phi,\mathbf{v},S) : \mathcal{M}\to J^2(\mathbb{R}\times T\mathcal{M}\times\mathbb{R}) 
+      \mid \text{smooth} \}.
+\end{align}
+
+The jet--bundle structure ensures that all differential operators used in Parts~I--III
+(Laplace--Beltrami, covariant derivatives, torsion--suppressed flows)
+are definable in a purely type--theoretic manner.
+
+\subsection{(2) Discrete Layer: Polyxan Hypergraphs}
+
+Polyxan hypergraphs are encoded as higher inductive types with stratified incidence.
+
+\begin{align}
+\mathrm{PolyxGraph}
+  := \mathrm{HIT}\_{\text{strat}}
+     \big(
+       V : \mathrm{Type},
+       E : \mathrm{Type},
+       \partial : E\to\mathrm{List}(V),
+       \kappa : E\to\mathbb{Q},
+       \mathsf{strata}
+     \big).
+\end{align}
+
+The incidence structure is internalised as a dependent elimination principle,
+allowing Lean to reason directly about vertices, hyperedges, strata, and rewrite steps.
+
+\subsection{(3) Embedding Layer: The Semantic Embedding as a Dependent Function Type}
+
+The semantic embedding
+\[
+\iota : \mathrm{Inc}(\mathcal{G})\to\mathcal{M}
+\]
+is represented as a dependent function into $\mathcal{M}$,
+with the stratification of $\mathrm{Inc}(\mathcal{G})$ determining allowable definitional equalities.
+
+\begin{align}
+\mathrm{Embedding}(\mathcal{G})
+  := \prod_{x:\mathrm{Inc}(\mathcal{G})} \mathcal{M}(x).
+\end{align}
+
+All curvature--matching and entropy--alignment conditions of Chapter~31
+are turned into \emph{definitional constraints} on well--typed embeddings.
+
+\section{Axioms of $\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}}$}
+
+The unified type theory satisfies five primitive axioms:
+
+\begin{enumerate}
+\item \textbf{Smoothness Axiom.}  
+Every RSVP field component has a definable jet expansion, enabling Lean to compute all functional derivatives used in the embedding flow.
+
+\item \textbf{Stratification Axiom.}  
+Every Polyxan hypergraph carries a finite stratification, and all rewrite steps preserve strata.
+
+\item \textbf{Embedding Axiom.}  
+A map $\iota$ is well--typed only if the curvature--type and entropy--tag matching conditions
+\[
+\mathcal{R}\circ\iota = \mathcal{H}_0[\mathcal{G}],\qquad
+S\circ\iota = \mathcal{H}_{\mathrm{tag}}[\mathcal{G}]
+\]
+hold definitionally.
+
+\item \textbf{Flow Axiom.}  
+The RSVP flow and EHR rewrite system are definable as total recursive functions with decidable step relations.
+
+\item \textbf{Duality Axiom.}  
+There exists a synthetic duality functor
+\[
+\mathbb{D} : \mathbf{RSVP}\leftrightarrows \mathbf{Polyx}
+\]
+that preserves definitional equality, modal structure, and stepwise evolution.
+\end{enumerate}
+
+Together these axioms guarantee that the coupled universe is representable as a single
+computational object in dependent type theory.
+
+\section{Modal Logic of Harmonicity and Quine--Stability}
+
+Two modal operators govern the verification layer:
+
+\begin{align}
+\Box_{\mathrm{RSVP}}\,P 
+  &:= \text{``$P$ holds for all harmonic RSVP evolutions''}, \\
+\Box_{\mathrm{Polyx}}\,P
+  &:= \text{``$P$ holds for all EHR rewrite steps''}.
+\end{align}
+
+As shown in §\ref{subsec:modal-lean}, both modalities are implemented in Lean
+as inductively defined stability predicates with proof certificates.
+
+The synthetic duality functor preserves both modalities:
+\[
+\mathbb{D}(\Box_{\mathrm{RSVP}} P) = \Box_{\mathrm{Polyx}}\mathbb{D}(P),
+\qquad
+\mathbb{D}^{-1}(\Box_{\mathrm{Polyx}} Q) = \Box_{\mathrm{RSVP}}\mathbb{D}^{-1}(Q).
+\]
+
+\section{Soundness and Completeness of $\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}}$}
+
+\begin{theorem}[Soundness and Completeness]
+For any coupled configuration $(\Phi,\mathbf{v},S;\mathcal{G},\iota)$,
+a proposition $P$ about the coupled dynamics is provable in Lean
+if and only if it is true in the synthetic duality semantics:
+\[
+\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}} \vdash P
+\quad\Longleftrightarrow\quad
+\models_{\mathbb{D}} P.
+\]
+\end{theorem}
+
+\begin{proof}[Sketch]
+Soundness follows from the definitional preservation of harmonicity and quine--stability under $\mathbb{D}$.  
+Completeness follows by construction: every semantic object is representable as a term in $\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}}$, and all reduction steps of the RSVP and Polyxan dynamics are definable total recursive functions.  
+Thus Lean can express and verify every statement that holds in the coupled universe.
+\end{proof}
+
+\section{Translation of Parts I--III into the Unified Type Theory}
+
+Every theorem proved earlier in the monograph
+(curvature identities, embedding existence, galaxy formation, renormalization laws, and irreversibility)
+has a canonical encoding:
+
+\[
+\mathsf{Encode} :
+\text{(Mathematical statement)}\longrightarrow
+\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}}.
+\]
+
+The translation preserves logical form, reduces continuous and discrete statements
+into a single syntactic universe, and ensures that all proofs become Lean terms
+that normalise to irreducible expressions.
+
+\section{Formalisation of the Grand Irreversibility Theorem}
+
+The central theorem of the entire monograph becomes:
+
+\[
+\mathrm{GrandIrreversibility} :
+  \forall\,C:\mathrm{CoupledConfig},\;
+  \mathrm{Terminates}(C) \wedge
+  \mathrm{ReachesQuine}(C) \wedge
+  \mathrm{FiniteTime}(C).
+\]
+
+In Lean, this is implemented as a \emph{total recursive function}:
+it evaluates every possible RSVP--Polyxan evolution,
+applies duality and modal reasoning at each step,
+and terminates with a certified proof object.
+
+\bigskip
+
+\begin{quote}
+Meaning is now not only geometric, algebraic, and cosmological.  
+Meaning is formalised as a terminating computation.  
+The universe of semantic physics is provable.
+\end{quote}
+

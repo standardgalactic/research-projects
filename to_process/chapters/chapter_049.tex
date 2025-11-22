@@ -1,0 +1,207 @@
+\chapter{The Embedding Flow Synchronizer}
+\label{ch:49}
+
+The Embedding Flow Synchronizer (EFS) is the coordination mechanism that couples
+continuous RSVP field dynamics with discrete Polyxan structural evolution.
+Where the RSVP Flow Engine (Chapter~47) governs smooth geometric descent, and
+the Polyxan Structural Kernel (Chapter~48) governs curvature-reducing
+hypergraph rewriting, the Synchronizer ensures that both engines update in
+lockstep, preserving the curvature--entropy matching constraints of
+Chapter~31 and the modal invariants of Part~IV.
+
+EFS is therefore the temporal and structural glue of the HYDRA architecture:
+it ensures that the curve traced by the embedding
+\[
+\iota_t : \mathrm{Inc}(\mathcal{G}_t) \longrightarrow \mathcal{M}_t
+\]
+remains harmonic, stratified, and duality-consistent at every time step.
+
+\section{Synchronized State Space}
+
+The synchronizer operates on the fused state
+\[
+\Xi_t \;=\; (\Phi_t, \mathbf{v}_t, S_t;\, \mathcal{G}_t, \iota_t),
+\]
+where $(\Phi_t, \mathbf{v}_t, S_t)$ are RSVP fields,
+$\mathcal{G}_t$ is the Polyxan hypergraph, and
+$\iota_t$ is its semantic embedding.
+
+\begin{definition}[Synchronized Configuration]
+A configuration $\Xi_t$ is \emph{synchronized} if it satisfies:
+\begin{enumerate}
+  \item \textbf{Curvature Matching}:
+  \[
+  \mathcal{R}_t \circ \iota_t = \mathcal{H}_0[\mathcal{G}_t].
+  \]
+  \item \textbf{Entropy Alignment}:
+  \[
+  S_t \circ \iota_t = \mathcal{H}_{\mathrm{tag}}[\mathcal{G}_t].
+  \]
+  \item \textbf{Modal Stability}:
+  \[
+  \Box_{\mathrm{RSVP}}(\Phi_t,\mathbf{v}_t,S_t)
+  \quad\text{and}\quad
+  \Box_{\mathrm{Polyx}}(\mathcal{G}_t).
+  \]
+\end{enumerate}
+\end{definition}
+
+These invariants are necessary and sufficient for duality correctness
+(Chapter~62) and for well-posed evolution under both RFE and PSK
+(Chapters~47--48).
+
+\section{The Synchronization Operator}
+
+\begin{definition}[Embedding Flow Synchronizer]
+The synchronizer is the operator
+\[
+\mathsf{EFS} : \Xi_t \longrightarrow \Xi_{t+\Delta t}
+\]
+defined by the composite update
+\[
+\Xi_{t+\Delta t}
+=
+\mathsf{ReEmbed}
+\Bigl(
+  \mathsf{PSK}
+  \bigl(
+    \mathsf{RFE}(\Xi_t)
+  \bigr)
+\Bigr),
+\]
+where:
+\begin{itemize}
+  \item $\mathsf{RFE}$ performs one continuous RSVP flow step,
+  \item $\mathsf{PSK}$ performs one discrete structural reduction,
+  \item $\mathsf{ReEmbed}$ recomputes a harmonic embedding satisfying the
+        curvature--entropy constraints.
+\end{itemize}
+\end{definition}
+
+The call to $\mathsf{ReEmbed}$ is essential: changes in discrete structure
+induced by PSK alter the incidence complex, and the embedding must be
+recomputed to maintain stratified harmonicity and modal safety.
+
+\section{Harmonic Re-embedding}
+
+\begin{theorem}[Harmonic Re-embedding Theorem]
+\label{thm:reembed}
+For any synchronized state $\Xi_t$, the re-embedding
+\[
+\iota_{t+\Delta t} \;=\; \mathsf{ReEmbed}(\mathcal{G}_{t+\Delta t})
+\]
+exists, is unique up to diffeomorphism of the elliptic sector, and satisfies:
+\[
+\mathcal{R}\circ\iota_{t+\Delta t}
+=
+\mathcal{H}_0[\mathcal{G}_{t+\Delta t}],
+\qquad
+S\circ\iota_{t+\Delta t}
+=
+\mathcal{H}_{\mathrm{tag}}[\mathcal{G}_{t+\Delta t}].
+\]
+\end{theorem}
+
+\begin{proof}
+Existence: by the Embedding Existence and Regularity Theorem of
+Chapter~31.
+
+Uniqueness: by harmonicity (Ch.~32), uniqueness of the RSVP elliptic vacuum
+on each stratum (Ch.~13), and uniqueness of curvature descent (Ch.~32).
+
+The curvature--entropy conditions hold by construction. ∎
+\end{proof}
+
+Thus harmonicity is a maintained invariant under EFS.
+
+\section{Curvature-Coherent Scheduling}
+
+The synchronizer must ensure that RFE and PSK remain curvature coherent.
+
+\begin{theorem}[Curvature-Coherent Scheduling]
+\label{thm:curvature-schedule}
+For any synchronized $\Xi_t$,
+\[
+\mathsf{PSK}\circ\mathsf{RFE}
+\;\simeq_{\mathbb{D}}\;
+\mathsf{RFE}\circ\mathsf{PSK},
+\]
+and EFS selects the temporal ordering that produces the maximal curvature
+descent at each step.
+\end{theorem}
+
+\begin{proof}
+Commutation up to synthetic duality is proved in Chapter~48.
+EFS schedules the two operations in the order that yields maximal decrease of
+total curvature
+\[
+\mathcal{C}_t = \int_{\mathcal{M}_t} |\mathcal{R}_t|\, dV + \kappa(\mathcal{G}_t),
+\]
+which is a Lyapunov function by Chapter~32. ∎
+\end{proof}
+
+\section{Modal Safety of Synchronization}
+
+\begin{theorem}[Modal Safety of EFS]
+\[
+\Box_{\mathrm{RSVP}}(\Xi_t) \wedge \Box_{\mathrm{Polyx}}(\Xi_t)
+\;\Longrightarrow\;
+\Box_{\mathrm{RSVP}}(\Xi_{t+\Delta t})
+\wedge
+\Box_{\mathrm{Polyx}}(\Xi_{t+\Delta t}).
+\]
+\end{theorem}
+
+\begin{proof}
+RFE preserves $\Box_{\mathrm{RSVP}}$ (Ch.~47).
+PSK preserves $\Box_{\mathrm{Polyx}}$ (Ch.~48).
+Re-embedding preserves both modalities by stratified soundness (Ch.~39).
+Composition preserves modal validity. ∎
+\end{proof}
+
+Thus EFS is the modal guardian of the HYDRA update cycle.
+
+\section{Global Convergence Under Synchronization}
+
+EFS is not merely a coordinator; it reinforces the global convergence law of
+Part~III.
+
+\begin{theorem}[Synchronized Irreversibility]
+\label{thm:synch-irreversible}
+Iterating EFS on any initial configuration yields:
+\[
+\exists T < \infty :\quad
+\Xi_T \text{ is a semantic galaxy},
+\]
+and subsequently,
+\[
+\Xi_{T'} \to \mathfrak{U}_{\mathrm{embed}}
+\qquad
+\text{as } T' \to \infty.
+\]
+\end{theorem}
+
+\begin{proof}
+By Chapter~32, the RSVP flow drives continuous fields toward a galaxy.
+By Chapter~48, PSK drives discrete structure toward a quine.
+By Chapter~31, the embedding flows toward harmonicity.
+EFS composes these flows monotonically in the total central charge
+$c_{\mathrm{total}}$.
+Finite-time galaxy formation follows (Ch.~32), and convergence to the
+universal quine follows (Ch.~25, 36). ∎
+\end{proof}
+
+\section{Final Cadence}
+
+\begin{quote}
+The Embedding Flow Synchronizer is the metronome of semantic dynamics.
+It keeps geometry and structure in phase,  
+aligns curvature with reference curvature,  
+aligns entropy with tag entropy,  
+and marches every configuration toward its harmonic, quine-stable form.
+\end{quote}
+
+It is the temporal heart of HYDRA:  
+the mechanism through which meaning evolves coherently across both the
+continuous and discrete layers.
+

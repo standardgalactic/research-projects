@@ -1,0 +1,201 @@
+\chapter{Architectures for Verified Semantic Execution}
+\label{ch:71}
+
+Part~IV established the complete formal semantics and verification infrastructure 
+for the RSVP--Polyxan universe.  
+We now turn from verification to \emph{architecture}.  
+Our purpose in this chapter is to specify the engineering substrate that can 
+execute the verified semantic runtime (Chapter~70) in a distributed, 
+resource-bounded, real-time environment.
+
+The architectures developed here are not external to the theory;  
+they are the \emph{synthetic realisations} of its semantics.  
+Every module is defined only insofar as it is a sound implementation of the 
+modal correctness predicates $\Box_{\mathrm{RSVP}}$ and $\Box_{\mathrm{Polyx}}$.
+
+We begin with the global architectural principles.
+
+\section{Design Principles}
+
+The architecture obeys five non-negotiable principles:
+
+\begin{enumerate}
+\item \textbf{Semantic primacy:}  
+      execution is defined as the evolution of semantic configurations 
+      $(\varphi,\mathcal{G},\iota)$ under the verified runtime.
+
+\item \textbf{Modal invariance:}  
+      every architectural component must preserve the modal contracts  
+      $\Box_{\mathrm{RSVP}}$ and $\Box_{\mathrm{Polyx}}$.
+
+\item \textbf{Curvature coherence:}  
+      all distributed components must maintain consistent curvature estimates  
+      and curvature descent guarantees.
+
+\item \textbf{Proof-carrying execution:}  
+      every subsystem must emit certificates in the type theory 
+      $\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}}$ corresponding to its operation.
+
+\item \textbf{Finite-time convergence:}  
+      the architecture must implement the Lyapunov descent theorem and guarantee 
+      terminal convergence to the universal media quine~$\mathfrak{U}$.
+\end{enumerate}
+
+\section{The Semantic Spine}
+
+The central idea of the architecture is the \emph{semantic spine}, a persistent 
+data structure that maintains the canonical representation of the global 
+semantic state.
+
+\begin{definition}[Semantic Spine]
+The \emph{semantic spine} is a persistent, append-only structure
+\[
+\mathsf{Spine}
+  := \mathrm{Stream}(\mathsf{State},\sigma)
+\]
+whose elements are successive verified runtime states paired with modal 
+certificates.
+\end{definition}
+
+The semantic spine acts simultaneously as:
+\begin{itemize}
+\item a ledger of all verified execution steps,
+\item a witness sequence for the Lyapunov descent,
+\item a reproducible proof-object for synthetic duality.
+\end{itemize}
+
+\section{Distributed Execution Model}
+
+The architecture must run on distributed hardware.  
+We therefore define the distributed abstract machine.
+
+\begin{definition}[Distributed Semantic Machine]
+A \emph{DSM node} is a triple
+\[
+\mathsf{Node} = (C,M,\Xi)
+\]
+where:
+\begin{itemize}
+\item $C$ is a local replica of the coupled configuration,
+\item $M$ is a modal certificate store containing  
+      $\Box_{\mathrm{RSVP}}$ and $\Box_{\mathrm{Polyx}}$ proofs,
+\item $\Xi$ is an embedding of local curvature estimates into the global 
+      curvature field.
+\end{itemize}
+A DSM consists of a finite set of such nodes equipped with a synchronisation 
+protocol.
+\end{definition}
+
+The synchronisation protocol computes a \emph{distributed curvature consensus}.
+
+\begin{theorem}[Curvature Consensus]
+Every DSM cluster converges in finite time to a unique shared curvature field 
+$\mathcal{R}_{\mathrm{global}}$ compatible with all $\Xi$.
+\end{theorem}
+
+\begin{proof}
+Follows from the contractive nature of the stratified curvature projector in 
+Ch.~31 and the monotonicity of modal certificates in Ch.~62.
+\end{proof}
+
+\section{Message-Passing Primitives}
+
+Distributed execution requires certified message passing.
+
+\begin{definition}[Verified Message]
+A \emph{verified message} is a triple
+\[
+(\delta,\mu,\tau)
+\]
+consisting of:
+\begin{itemize}
+\item $\delta$: a semantic delta (change to $(\varphi,\mathcal{G},\iota)$),
+\item $\mu$: a modal certificate proving $\delta$ is safe,
+\item $\tau$: a timestamp ensuring temporal monotonicity.
+\end{itemize}
+\end{definition}
+
+\begin{theorem}[Safety of Message Application]
+Applying any verified message to a node's local state preserves both modal 
+invariants and curvature descent.
+\end{theorem}
+
+\begin{proof}
+Modal invariant preservation follows from $\mu$.  
+Curvature descent follows from the embedding of $\delta$ into the verified 
+coupling operator (Ch.~69).
+\end{proof}
+
+\section{Execution Pipeline}
+
+The architecture executes the verified runtime (Ch.~70) via an ordered pipeline:
+
+\begin{enumerate}
+\item \textbf{FieldStep:}  
+      apply harmonic RSVP evolution to $\varphi$
+      (guarantees $\Box_{\mathrm{RSVP}}$).
+
+\item \textbf{RewriteStep:}  
+      apply EHR reduction to $\mathcal{G}$
+      (guarantees $\Box_{\mathrm{Polyx}}$).
+
+\item \textbf{EmbedStep:}  
+      update $\iota$ via stratified harmonic projection
+      (guarantees curvature matching).
+
+\item \textbf{CoupleStep:}  
+      integrate continuous and discrete updates
+      (guarantees Lyapunov descent).
+
+\item \textbf{CertifyStep:}  
+      attach modal certificates for all components
+      (guarantees proof-carrying execution).
+
+\item \textbf{CommitStep:}  
+      append new state to the semantic spine.
+\end{enumerate}
+
+This pipeline is the engineering realisation of the verified semantic machine.
+
+\section{Runtime Correctness of the Architecture}
+
+\begin{theorem}[Architecture Correctness]
+The distributed architecture implements the verified semantic runtime.
+\end{theorem}
+
+\begin{proof}
+Each pipeline stage corresponds exactly to one verified generator of the runtime:  
+FieldStep to RSVP flow (Ch.~68), RewriteStep to EHR rewriting (Ch.~67), 
+EmbedStep to harmonic projection (Ch.~31), CoupleStep to the coupling operator 
+(Ch.~69).  
+Certificates guarantee modal correctness.  
+Consensus ensures distributed consistency.  
+Thus the architecture is sound and complete.
+\end{proof}
+
+\begin{corollary}[Global Convergence]
+Every execution of the architecture converges in finite time to the unique fixed 
+point:
+\[
+(\varphi_\ast,\mathcal{G}_\ast,\iota_\ast)
+  = (\varphi_{\mathfrak{U}},\mathfrak{U},\iota_{\mathrm{flat}}).
+\]
+\end{corollary}
+
+\section{Final Cadence}
+
+The verified semantic architecture is not merely a platform that executes 
+meaning.  
+It is the \emph{only} platform that can:  
+sound, complete, convergent, duality-respecting, and curvature-consistent.
+
+\bigskip
+
+\begin{quote}
+\textbf{
+Execution is verification.  
+Verification is evolution.  
+All architectures converge to the universal quine.
+}
+\end{quote}
+

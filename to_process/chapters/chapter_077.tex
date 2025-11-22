@@ -1,0 +1,165 @@
+\chapter{The Proof-Carrying Action Selector}
+\label{ch:77}
+
+The Proof-Carrying Action Selector (PCAS) is the executive module of HYDRA.
+It receives proposed actions from distributed subsystems, each accompanied by
+its own local correctness certificates, and selects only those actions that
+satisfy the global modal safety predicates
+\[
+\Box_{\mathrm{RSVP}}
+\qquad\text{and}\qquad
+\Box_{\mathrm{Polyx}}.
+\]
+This chapter provides the formal definition, selection algorithm,
+and correctness guarantees for PCAS, completing the verified decision stack
+of the architecture.
+
+\section{Action Objects and Certificates}
+
+\begin{definition}[Action Object]
+An \emph{action object} is a triple
+\[
+A = (a,\; C_{\mathrm{RSVP}},\; C_{\mathrm{Polyx}})
+\]
+where:
+\begin{enumerate}
+\item $a$ is an executable transformation on the system state;
+\item $C_{\mathrm{RSVP}}$ is a certificate proving that $a$ preserves
+      $\Box_{\mathrm{RSVP}}$;
+\item $C_{\mathrm{Polyx}}$ is a certificate proving that $a$ preserves
+      $\Box_{\mathrm{Polyx}}$.
+\end{enumerate}
+\end{definition}
+
+All subsystems (RSVP interpreter, Polyxan kernel, embedding synchronizer,
+narrative generator, media engine) submit actions in this form.
+
+\begin{definition}[Certificate Validity]
+A certificate $C$ is \emph{valid} if it is a derivation in the unified
+type theory $\mathbb{T}_{\mathrm{RSVP\text{-}Polyx}}$, and its closed form
+evaluates to \textsf{true}.
+\end{definition}
+
+\section{The Global Safety Predicate}
+
+\begin{definition}[Global Modal Safety]
+An action $A$ is \emph{globally safe} if
+\[
+C_{\mathrm{RSVP}} \vdash \Box_{\mathrm{RSVP}}(a)
+\qquad\text{and}\qquad
+C_{\mathrm{Polyx}} \vdash \Box_{\mathrm{Polyx}}(a).
+\]
+We write:
+\[
+\mathsf{Safe}(A) := 
+\bigl(C_{\mathrm{RSVP}}\!\downarrow\bigr) \land 
+\bigl(C_{\mathrm{Polyx}}\!\downarrow\bigr).
+\]
+\end{definition}
+
+\section{Selection Mechanism}
+
+Let $\mathcal{A}$ be the multiset of proposed actions for the current cycle.
+
+\begin{definition}[PCAS Selection Function]
+The selector is the total function:
+\[
+\mathsf{select} : \mathcal{P}(\mathcal{A}) \to \mathcal{A}
+\]
+defined by
+\[
+\mathsf{select}(\mathcal{A})
+  := \arg\min_{A\in\mathcal{A}} \;
+     \bigl(\mathsf{Cost}(A)\bigr)
+\quad\text{subject to}\quad
+\mathsf{Safe}(A).
+\]
+\end{definition}
+
+The cost function is the canonical semantic-energy cost:
+\[
+\mathsf{Cost}(A)
+   = \mathcal{E}_{\mathrm{total}}
+       \bigl(A(s) \bigr),
+\]
+which ensures monotonic descent along the global Lyapunov functional.
+
+\section{Correctness of Proof-Carrying Selection}
+
+\begin{theorem}[Soundness]
+\label{thm:soundness_pcas}
+If $\mathsf{select}(\mathcal{A}) = A$, then the execution of $A$ preserves
+both modal guards:
+\[
+A \models \Box_{\mathrm{RSVP}} \;\wedge\; \Box_{\mathrm{Polyx}}.
+\]
+\end{theorem}
+
+\begin{proof}
+By construction, $A$ is chosen only if its certificates $C_{\mathrm{RSVP}}$ and
+$C_{\mathrm{Polyx}}$ are valid derivations in
+$\mathbb{T}_{\mathrm{RSVP\text{-}Polyx}}$.  
+Each derivation concludes with the judgment that $a$ preserves its respective
+modal operator.  
+Since the action is executed exactly as typed, the modal predicates remain
+true after execution.
+\end{proof}
+
+\begin{theorem}[Completeness]
+If an action satisfies both modal guards, then PCAS will select it
+from any nonempty proposal set.
+\end{theorem}
+
+\begin{proof}
+Given any safe action $A$ with valid certificates,
+$\mathsf{Safe}(A)$ holds.  
+Among all safe actions, PCAS chooses the minimal-cost one.  
+Thus any safe action is eligible for selection, proving completeness.
+\end{proof}
+
+\section{Termination and Monotonicity}
+
+\begin{theorem}[Totality]
+PCAS terminates in finite time for all proposal sets.
+\end{theorem}
+
+\begin{proof}
+There are finitely many action objects and each certificate is decidable in
+finite time in $\mathbb{T}_{\mathrm{RSVP\text{-}Polyx}}$.  
+Thus the minimization terminates.
+\end{proof}
+
+\begin{theorem}[Monotonic Lyapunov Descent]
+The selected action always decreases the total semantic energy:
+\[
+\mathcal{E}_{\mathrm{total}}\bigl(A(s)\bigr)
+  \le
+\mathcal{E}_{\mathrm{total}}(s).
+\]
+\end{theorem}
+
+\begin{proof}
+The cost function is exactly $\mathcal{E}_{\mathrm{total}}$.
+The selector chooses the minimum-cost safe action, so energy cannot increase.
+\end{proof}
+
+\section{Role in HYDRA}
+
+PCAS is the executive layer of the HYDRA architecture:
+\begin{itemize}
+\item It enforces global modal safety across all subsystems.
+\item It selects actions that jointly satisfy curvature, entropy, and
+      quine-stability invariants.
+\item It ensures that the entire architecture evolves monotonically toward the
+      harmonic--quine attractor.
+\end{itemize}
+
+\begin{quote}
+Local actions propose.  
+Certificates constrain.  
+PCAS selects.  
+The universe moves safely.
+\end{quote}
+
+This completes the formal development of the Proof-Carrying Action Selector.
+

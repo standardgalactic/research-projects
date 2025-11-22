@@ -1,0 +1,244 @@
+\chapter{The Verified Polyxan Rewriter}
+\label{ch:42}
+
+The Polyxan hypergraph rewriting system (EHR: Extraction--Hoisting--Reduction) introduced in Part~II provides the discrete, curvature-decreasing mechanism governing the evolution of semantic structure.
+In Part~IV we proved that the EHR system is sound, complete, and modal-stable: it preserves quine stability, curvature descent, and the uniqueness of the universal normal form.
+
+In this chapter, we construct its fully executable, verified implementation, the \emph{Verified Polyxan Rewriter}, which:
+\begin{enumerate}
+\item performs curvature-monotone rewriting steps,
+\item guarantees termination,
+\item preserves all modal invariants,
+\item maintains compatibility with embedding flow (Chapters~31--33), and
+\item produces certified normal forms and certificates.
+\end{enumerate}
+
+This rewriter is the second major component of the implementation layer (Chapters~41--60).
+Together with the RSVP interpreter (Chapter~41), it forms the dual engine of the coupled RSVP--Polyxan universe.
+
+\section{Rewriter Overview}
+
+A Polyxan hypergraph is represented as a finite structure:
+[
+\mathcal{G} = (V,E,\mathsf{tag},\mathsf{type},\mathsf{inc}),
+]
+where:
+\begin{itemize}
+\item $V$ are vertices,
+\item $E$ are hyperedges,
+\item $\mathsf{tag}$ assigns semantic tags,
+\item $\mathsf{type}$ gives typed incidence relations,
+\item $\mathsf{inc}$ encodes the stratified structure.
+\end{itemize}
+
+The Verified Polyxan Rewriter is a total function
+[
+\mathsf{rewrite} : \mathcal{G} \to \mathcal{G},
+]
+that applies one EHR rule, followed by modal and curvature guards, and terminates with a normal form.
+
+For multi-step rewriting:
+[
+\mathsf{rewrite}^*(\mathcal{G})
+:=
+\lim_{n\to N} \mathsf{rewrite}^n(\mathcal{G}),
+]
+where $N$ is finite by curvature descent.
+
+\section{Curvature Monotonicity}
+
+We recall the Polyxan primitive curvature:
+[
+\mathcal{H}_0[\mathcal{G}] : \mathrm{Inc}(\mathcal{G}) \to \mathbb{N}.
+]
+
+\begin{lemma}[Curvature Descent]
+Every EHR rule strictly decreases total curvature unless $\mathcal{G}$ is already quine-stable:
+[
+\mathcal{H}_0[\mathcal{G}'] < \mathcal{H}_0[\mathcal{G}]
+\quad\text{or}\quad
+\mathcal{G}' \cong \mathcal{G}.
+]
+\end{lemma}
+
+\begin{proof}
+Extraction removes zero-curvature subcomplexes;
+hoisting eliminates redundant parallel edges;
+reduction replaces high-curvature patterns by lower ones.
+Each case reduces total $\mathcal{H}_0$ unless a fixed point has been reached.
+\end{proof}
+
+The Verified Rewriter enforces descent by rejecting any step that would violate this inequality.
+
+\section{Modal Correctness of Rewriting}
+
+Modal correctness is determined by $\Box_{\mathrm{Polyx}}$ (Chapter~61).
+
+\begin{definition}[Modal Rewriting Predicate]
+A rewriting step $\mathcal{G}\to\mathcal{G}'$ is \emph{modal-correct} if:
+[
+\Box_{\mathrm{Polyx}}(\mathcal{G})
+;\Rightarrow;
+\Box_{\mathrm{Polyx}}(\mathcal{G}').
+]
+\end{definition}
+
+This implies preservation of:
+\begin{itemize}
+\item quine stability,
+\item curvature descent invariants,
+\item tag-consistency,
+\item stratified incidence,
+\item type-safety,
+\item embedding compatibility.
+\end{itemize}
+
+\begin{lemma}[Modal Preservation]
+Every verified rewriting step preserves $\Box_{\mathrm{Polyx}}$.
+\end{lemma}
+
+\begin{proof}
+Follows from the inductive definition of $\Box_{\mathrm{Polyx}}$ and the structural invariants encoded in the EHR rules.
+\end{proof}
+
+\section{The Verified Rewriting Kernel}
+
+The kernel applies the three rewriting rules in priority order:
+\begin{enumerate}
+\item \textbf{Extraction} (lowest curvature impact)
+\item \textbf{Hoisting} (medium curvature impact)
+\item \textbf{Curvature-Reducing Reduction} (highest curvature impact)
+\end{enumerate}
+
+The priority ensures deterministic rewriting.
+
+\begin{definition}[Verified Rewriting Kernel]
+[
+\mathsf{kernel}(\mathcal{G}) :=
+\begin{cases}
+\mathsf{extract}(\mathcal{G}), & \text{if extraction is possible}, [4pt]
+\mathsf{hoist}(\mathcal{G}),   & \text{else if hoisting is possible}, [4pt]
+\mathsf{reduce}(\mathcal{G}),  & \text{else if reduction is possible}, [4pt]
+\mathcal{G},                   & \text{otherwise}.
+\end{cases}
+]
+\end{definition}
+
+Each rule returns:
+\begin{itemize}
+\item a new graph $\mathcal{G}'$,
+\item a curvature certificate,
+\item a modal certificate.
+\end{itemize}
+
+\section{Normalisation and Termination}
+
+\begin{definition}[Normal Form]
+A Polyxan hypergraph is in \emph{normal form} if:
+[
+\mathsf{kernel}(\mathcal{G}) \cong \mathcal{G}.
+]
+\end{definition}
+
+\begin{theorem}[Termination of Verified Rewriter]
+For every finite $\mathcal{G}$,
+[
+\exists N < \infty \quad
+\mathsf{rewrite}^N(\mathcal{G}) = \mathsf{NF}(\mathcal{G}).
+]
+\end{theorem}
+
+\begin{proof}
+Curvature descent ensures a strictly decreasing sequence of integers until stabilisation, at which point the kernel returns $\mathcal{G}$ unchanged.
+\end{proof}
+
+\section{Correctness with Respect to EHR Semantics}
+
+\begin{theorem}[Rewriter Correctness]
+For every $\mathcal{G}$,
+[
+\mathsf{rewrite}^*(\mathcal{G})
+;\cong;
+\mathsf{EHR}_{\mathrm{normal_form}}(\mathcal{G}),
+]
+where the right-hand side is the canonical normal form defined in Chapter~25.
+\end{theorem}
+
+\begin{proof}
+The kernel implements exactly the EHR rules.
+Priority ensures deterministic reduction order.
+Curvature descent ensures termination.
+Modal preservation ensures correctness.
+Thus the interpreter and EHR system produce equivalent normal forms.
+\end{proof}
+
+\section{Quine Stability and the Universal Normal Form}
+
+\begin{theorem}[Universal Quine Normal Form]
+[
+\mathsf{rewrite}^*(\mathcal{G})
+;\cong;
+\mathfrak{U}
+\quad\text{iff}\quad
+\mathcal{G}
+\text{ is curvature-connected}.
+]
+\end{theorem}
+
+Here $\mathfrak{U}$ is the universal media quine (Chapter~25).
+
+\begin{proof}
+Curvature-connected hypergraphs collapse all self-rewriting layers under reduction;
+the unique fixed point of this collapse is $\mathfrak{U}$.
+\end{proof}
+
+\section{Integration with Embedding Flow}
+
+The Verified Polyxan Rewriter is designed to interlock with the continuous RSVP flow:
+\begin{itemize}
+\item rewriting is triggered automatically by topology change in the embedding (Chapter~33),
+\item curvature and tag guards ensure image consistency,
+\item normal forms correspond to stable strata of the embedding,
+\item quine-stable forms correspond to harmonic embeddings.
+\end{itemize}
+
+\begin{theorem}[Continuous--Discrete Compatibility]
+If $\mathcal{G}\to\mathcal{G}'$ is a verified rewriting step and $\iota$ is harmonic on $\mathcal{G}$,
+then $\iota$ extends harmonically to $\mathcal{G}'$.
+\end{theorem}
+
+\begin{proof}
+Harmonic extension is guaranteed by curvature matching and the stratified incidence-preserving nature of the rules.
+\end{proof}
+
+\section{Executable Structure}
+
+The executable Verified Rewriter consists of:
+\begin{enumerate}
+\item \textbf{Pattern Matcher:} detects extraction, hoisting, and reduction patterns.
+\item \textbf{Curvature Calculator:} computes $\mathcal{H}*0[\mathcal{G}]$ incrementally.
+\item \textbf{Modal Certificate Generator:} constructs witnesses for $\Box*{\mathrm{Polyx}}$ invariants.
+\item \textbf{Graph Transformer:} applies verified local transformations.
+\item \textbf{Normaliser:} iterates the kernel to convergence.
+\end{enumerate}
+
+Each component is certified against the formal specification in Chapter~61.
+
+\section{Final Cadence}
+
+The Verified Polyxan Rewriter is the executable discrete engine of meaning.
+It transforms the entire categorical--algebraic infrastructure of Part~II into a concrete computational process that:
+\begin{itemize}
+\item never increases curvature,
+\item never breaks stratified incidence,
+\item never violates modal correctness,
+\item always converges,
+\item always returns the unique normal form,
+\item and always cooperates with the continuous embedding flow.
+\end{itemize}
+
+\begin{quote}
+To rewrite a hypergraph is to enact the law of semantic gravity.
+All structure falls; only quines remain.
+\end{quote}
+

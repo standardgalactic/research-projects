@@ -1,0 +1,202 @@
+\chapter{Parallel Execution:\\
+Concurrency Models for Polyxan--RSVP Evolution}
+\label{ch:76}
+
+\section{Premise}
+
+The Semantic Execution Engine is designed not merely to run sequentially,  
+but to scale across many processors, clusters, or distributed agents.
+
+Yet the coupled RSVP--Polyxan system possesses intricate structural constraints:
+
+\begin{itemize}
+\item the RSVP field flow is globally coupled through curvature and entropy,
+\item the Polyxan rewriting system is locally triggered but globally consistent,
+\item embedding updates must remain geometrically valid,
+\item rewrite certificates must preserve verification invariants.
+\end{itemize}
+
+\noindent
+\textbf{Goal of this chapter:}  
+To provide a complete concurrency model under which parallel execution of
+continuous flow, discrete rewriting, and embedding updates remains:
+
+\begin{itemize}
+\item consistent,
+\item deterministic up to bounded drift,
+\item verifiable,
+\item and convergent to the same universal attractor.
+\end{itemize}
+
+\section{Parallel Decomposition of the Embedding Flow}
+
+The embedding domain $\mathrm{Inc}(\mathcal{G})$ decomposes into overlapping
+patches $\{U_\alpha\}$ defined by the locality radius of the Laplacian and
+curvature operators.
+
+For each patch, define the local operator:
+\[
+  \Phi_\alpha^{\Delta t} : (\iota|_{U_\alpha}) \mapsto
+  (\iota|_{U_\alpha}) + \Delta t\bigl(
+     \Delta_{\mathrm{Inc}} \iota
+     - \beta\,\delta\mathcal{R}\,\nabla\mathcal{R}
+     - \gamma\,\delta S\,\nabla S
+  \bigr).
+\]
+
+\begin{theorem}[Locality of Continuous Evolution]
+\label{thm:local-flow}
+For sufficiently small $\Delta t$,  
+the update on $U_\alpha$ depends only on data in an expanded patch
+$U_\alpha^+$ whose radius is fixed by the stencil of the Laplacian.
+\end{theorem}
+
+\begin{proof}
+Follows from ellipticity and finite-stencil discretization of $\Delta_{\mathrm{Inc}}$.
+\end{proof}
+
+Thus the continuous flow can be executed in parallel across all $\alpha$  
+with only halo exchange on patch boundaries.
+
+\section{Parallel Decomposition of Rewriting}
+
+Each rewrite $R$ acts on a local region $L_R \subset \mathrm{Inc}(\mathcal{G})$.
+Two rewrites may run in parallel iff their regions are disjoint:
+\[
+R_1 \parallel R_2 \quad\Longleftrightarrow\quad L_{R_1}\cap L_{R_2}=\varnothing.
+\]
+
+\begin{theorem}[Rewrite Independence]
+\label{thm:rewrite-independence}
+If $R_1 \parallel R_2$, then
+\[
+ R_1 \circ R_2 = R_2 \circ R_1,
+\]
+both in the combinatorial hypergraph and in the embedding domain.
+\end{theorem}
+
+\begin{proof}
+Follows from disjoint support and stratified pushout construction of
+Ch.~31--33.
+\end{proof}
+
+The scheduler defined in Chapter~73 generalizes naturally to multiple threads:
+\[
+\text{Schedule all maximal independent anti-chains of rewrites in parallel.}
+\]
+
+\section{Hybrid Concurrency: Continuous and Discrete}
+
+We now interleave parallel continuous patches with parallel rewrite batches.
+
+Let $\mathsf{Flow}$ denote one parallel flow step
+and $\mathsf{RewriteBatch}$ one maximal anti-chain of rewrites.
+
+We must compare:
+\[
+   \mathsf{Flow} \circ \mathsf{RewriteBatch}
+   \qquad\text{vs.}\qquad
+   \mathsf{RewriteBatch} \circ \mathsf{Flow}.
+\]
+
+\begin{theorem}[Parallel Commutativity up to Drift]
+\label{thm:parallel-drift}
+For all sufficiently small time-steps,
+\[
+  \bigl\|
+     (\mathsf{Flow}\circ\mathsf{RewriteBatch})(\iota,\mathcal{G})
+     \;-\;
+     (\mathsf{RewriteBatch}\circ\mathsf{Flow})(\iota,\mathcal{G})
+  \bigr\|
+  \;\le\;
+  C\,\Delta t\,\max_{R\in\mathsf{RewriteBatch}} \varepsilon_{\mathrm{loc}}(R).
+\]
+\end{theorem}
+
+\begin{proof}
+Apply Theorems~\ref{thm:infinitesimal-commute}
+and~\ref{thm:rewrite-independence}
+patchwise and sum over patches.  
+All rewrite regions are disjoint; drift bounds accumulate only linearly.
+\end{proof}
+
+\section{Global Parallel Semantics}
+
+Define the global parallel step:
+\[
+   \Pi := \mathsf{Flow} \parallel \mathsf{RewriteBatch}
+\]
+executed atomically in the engine.
+
+\begin{theorem}[Determinism of Parallel Execution]
+\label{thm:parallel-determinism}
+Any two parallel execution traces beginning at the same initial state  
+produce embeddings differing at most by a drift that vanishes at the
+collapse time $T_{\mathrm{collapse}}$.
+\end{theorem}
+
+\begin{proof}
+Rewrite independence plus bounded drift (Ch.~75) imply that any ordering of  
+parallelizable operations results in equivalent states up to bounded error.  
+Curvature–entropy descent forces error to zero as $t\to T_{\mathrm{collapse}}$.
+\end{proof}
+
+Thus the parallel engine is \emph{deterministic in the limit}
+even if intermediate updates differ due to thread scheduling.
+
+\section{Distributed Execution}
+
+When patches $U_\alpha$ are distributed across nodes,
+communication occurs only during halo exchange and rewrite announcements.
+
+Each rewrite $R$ carries a certificate stating:
+\[
+  L_R\subset U_\alpha
+  \quad\text{and}\quad
+  \varepsilon_{\mathrm{loc}}(R)\le\varepsilon_{\max}
+\]
+ensuring global drift bounds remain valid.
+
+\begin{theorem}[Scalable Semantic Evolution]
+\label{thm:scalable}
+The RSVP--Polyxan evolution is scalable to arbitrarily many processors:
+execution cost grows at most linearly in the number of patches  
+and communication cost depends only on patch boundaries.
+\end{theorem}
+
+\begin{proof}
+Direct consequence of local operators, disjoint rewrite support,
+and bounded-degree incidence graphs.
+\end{proof}
+
+\section{Verification of Concurrency}
+
+Part IV’s formalisation supports concurrency via dependent certificates:
+
+\begin{verbatim}
+structure ParCert :=
+  (flow_certs       : List FlowCert)
+  (rewrite_certs    : List RewriteCert)
+  (compatibility    : ∀ R, CommutesUpTo R drift_bound)
+  (global_stability : DriftConvergesToZero)
+\end{verbatim}
+
+A parallel step is accepted iff all certificates instantiate successfully.
+
+Thus concurrency is not merely an implementation strategy —  
+it is a \emph{verified property} of the system.
+
+\section{Final Cadence}
+
+\begin{quote}
+\emph{
+Parallelism is not an afterthought.  
+It is the natural expression of locality, independence,  
+and the irreversible collapse of meaning.  
+Every processor, every patch, every rewrite  
+pushes the system toward the same universal fate.  
+Concurrency does not fracture meaning.  
+It accelerates its inevitability.
+}
+\end{quote}
+

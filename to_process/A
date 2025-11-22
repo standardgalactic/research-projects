@@ -1,0 +1,103 @@
+import bpy
+import argparse
+import os
+import random
+
+def diffuse_field(field, diff, dt):
+    rows = len(field)
+    cols = len(field[0])
+    out = [[0.0]*cols for _ in range(rows)]
+    for i in range(rows):
+        for j in range(cols):
+            c = field[i][j]
+            up    = field[i-1][j] if i > 0 else c
+            down  = field[i+1][j] if i < rows-1 else c
+            left  = field[i][j-1] if j > 0 else c
+            right = field[i][j+1] if j < cols-1 else c
+            lap = (up + down + left + right - 4*c)
+            out[i][j] = c + diff * dt * lap
+    return out
+
+def update_phi_v_s(phi, v, S, params):
+    dt = params["dt"]
+    phi_d = diffuse_field(phi, params["diff_phi"], dt)
+    v_d   = diffuse_field(v,   params["diff_v"],   dt)
+    S_d   = diffuse_field(S,   params["diff_S"],   dt)
+    rows = len(phi)
+    cols = len(phi[0])
+    phi_next = [[0.0]*cols for _ in range(rows)]
+    v_next   = [[0.0]*cols for _ in range(rows)]
+    S_next   = [[0.0]*cols for _ in range(rows)]
+    lpv = params["lambda_pv"]
+    lpS = params["lambda_pS"]
+    lvS = params["lambda_vS"]
+    for i in range(rows):
+        for j in range(cols):
+            p = phi_d[i][j]
+            vv = v_d[i][j]
+            ss = S_d[i][j]
+            phi_next[i][j] = p + lpv * (vv - p) * dt + lpS * (ss - p) * dt
+            v_next[i][j]   = vv + lpv * (p - vv) * dt + lvS * (ss - vv) * dt
+            S_next[i][j]   = ss + lpS * (p - ss) * dt + lvS * (vv - ss) * dt
+    return phi_next, v_next, S_next
+
+def run_diffusion_coupling_sim(grid, steps, params):
+    def rand_field():
+        return [[random.random() for _ in range(grid)] for _ in range(grid)]
+    phi = rand_field()
+    v   = rand_field()
+    S   = rand_field()
+    history = []
+    for t in range(steps):
+        phi, v, S = update_phi_v_s(phi, v, S, params)
+        flat_phi = [x for row in phi for x in row]
+        flat_v   = [x for row in v   for x in row]
+        flat_S   = [x for row in S   for x in row]
+        def stats(flat):
+            m = sum(flat) / len(flat)
+            var = sum((x - m)**2 for x in flat) / len(flat)
+            return m, var
+        m_phi, var_phi = stats(flat_phi)
+        m_v,   var_v   = stats(flat_v)
+        m_S,   var_S   = stats(flat_S)
+        history.append((t, m_phi, var_phi, m_v, var_v, m_S, var_S))
+    return history
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output', required=True)
+parser.add_argument('--nodes', type=int, default=50)
+    parser.add_argument('--steps', type=int, default=70)
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+    os.makedirs(args.output, exist_ok=True)
+    print("Semantic obstruction scan:", vars(args))
+
+    grid = max(4, int(28))
+    steps = max(1, int(args.steps))
+
+    params = {
+        "diff_phi": 0.12,
+        "diff_v":   0.10,
+        "diff_S":   0.05,
+        "dt":       0.1,
+        "lambda_pv": 0.14,
+        "lambda_pS": 0.12,
+        "lambda_vS": 0.10,
+    }
+
+    history = run_diffusion_coupling_sim(grid, steps, params)
+
+    metrics_path = os.path.join(args.output, "metrics.txt")
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        f.write("t\tm_phi\tvar_phi\tm_v\tvar_v\tm_S\tvar_S\n")
+        for rec in history:
+            line = "\t".join(str(x) for x in rec)
+            f.write(line + "\n")
+
+    bpy.ops.wm.save_mainfile(filepath=os.path.join(args.output, "scene.blend"))
+
+if __name__ == "__main__":
+    main()

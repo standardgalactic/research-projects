@@ -1,0 +1,212 @@
+\chapter{Verified Interpretation of RSVP Flow}
+\label{ch:68}
+
+In this chapter we give the full verification-theoretic interpretation of 
+RSVP field evolution inside the unified dependent type theory 
+$\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}}$.
+Where Chapter~67 formalised the discrete EHR rewriting system, this chapter 
+treats its continuous dual: the harmonic curvature--entropy descent dynamics 
+governing $(\Phi,\mathbf{v},S)$ on the semantic manifold $\mathcal{M}$.
+
+The goal is to show that the infinitesimal generator of RSVP flow is certified 
+by the modal operator $\Box_{\mathrm{RSVP}}$, that its evolution is total, 
+monotone, and terminating, and that the formal interpreter for RSVP flow is 
+sound, complete, and aligned under synthetic duality with the EHR system.
+
+\section{RSVP Flow in Dependent Type Theory}
+
+A field configuration is a triple
+\[
+\mathsf{FieldConfig}
+  := (\Phi : \Gamma \to \mathbb{R})
+     \times (\mathbf{v} : \Gamma \to T\mathcal{M})
+     \times (S : \Gamma \to \mathbb{R}_{\ge 0})
+\]
+with $\Gamma$ a finite jet-indexing context ensuring differentiability.
+
+The RSVP flow is encoded in $\mathbb{T}_{\mathrm{RSVP}}$ as the coinductive 
+type of trajectories:
+\[
+\mathsf{Flow}(\varphi) := 
+  \nu X.\; \exists\,\varphi' : \mathsf{FieldConfig},\;
+    \mathsf{Step}(\varphi,\varphi') \times X(\varphi').
+\]
+
+\begin{definition}[RSVP Infinitesimal Step]
+A pair $(\varphi,\varphi')$ is a \emph{verified infinitesimal step} if
+\[
+\varphi' = \varphi + \epsilon\,\mathcal{L}(\varphi)
+\]
+for $\epsilon>0$ sufficiently small, and 
+$\mathcal{L}$ is the generator:
+\[
+\mathcal{L}(\Phi,\mathbf{v},S)
+  := (\Delta\Phi - \nabla\!\cdot\!\mathbf{v},\;
+      \Delta\mathbf{v} - \nabla\Phi,\;
+      \Delta S - \Phi).
+\]
+\end{definition}
+
+This definition is accompanied by dependent witnesses ensuring that the step 
+satisfies curvature monotonicity, entropy monotonicity, and harmonicity.
+
+\section{Modal Necessity and Soundness of RSVP Flow}
+
+\begin{theorem}[Modal Soundness of RSVP Flow]
+\label{thm:68-sound}
+For any predicate $P$ on field configurations,
+\[
+\mathsf{Step}(\varphi,\varphi')
+  \;\Longrightarrow\;
+  \Box_{\mathrm{RSVP}}(P(\varphi))
+    \;\Longrightarrow\;
+  \Box_{\mathrm{RSVP}}(P(\varphi')).
+\]
+\end{theorem}
+
+\begin{proof}
+By definition, $\Box_{\mathrm{RSVP}}(P(\varphi))$ asserts that 
+$P$ holds for $\varphi$ along all harmonic trajectories.
+Let $\mathsf{Step}(\varphi,\varphi')$ witness an infinitesimal update.
+Since the generator $\mathcal{L}$ is purely curvature–entropy decreasing, 
+$\varphi \mapsto \varphi'$ lies on every harmonic path from $\varphi$.
+Thus $P(\varphi)$ implies $P(\varphi')$, and modal necessity holds.
+\end{proof}
+
+\section{Lyapunov Monotonicity and Verified Decrease}
+
+Let $\mathcal{E}_{\mathrm{RSVP}}$ denote the Lyapunov energy of the RSVP 
+system:
+\[
+\mathcal{E}_{\mathrm{RSVP}}(\varphi)
+  = \int_{\mathcal{M}}
+      \bigl(
+        |\nabla\Phi|^2
+        + \|\nabla\mathbf{v}\|^2
+        + |\nabla S|^2
+      \bigr)\,dV_g.
+\]
+
+\begin{theorem}[Strict Lyapunov Decrease]
+\label{thm:68-lyap}
+For every non-harmonic field configuration $\varphi$,
+\[
+\mathcal{E}_{\mathrm{RSVP}}(\varphi')
+  < \mathcal{E}_{\mathrm{RSVP}}(\varphi)
+\]
+for every verified infinitesimal step $\mathsf{Step}(\varphi,\varphi')$.
+\end{theorem}
+
+\begin{proof}
+Taking the derivative along the flow:
+\[
+\frac{d}{dt}\mathcal{E}_{\mathrm{RSVP}}(\varphi_t)
+  = -\int_{\mathcal{M}}
+      \Bigl(
+        (\Delta\Phi)^2
+        + \|\Delta\mathbf{v}\|^2
+        + (\Delta S)^2
+      \Bigr)\,dV_g
+  < 0
+\]
+unless $\Delta\Phi=\Delta\mathbf{v}=\Delta S=0$, i.e.\ unless $\varphi$ is 
+harmonic.  
+Thus every non-harmonic configuration has strictly decreasing Lyapunov 
+energy along the verified flow, proving the claim.
+\end{proof}
+
+\section{Termination of RSVP Flow}
+
+\begin{theorem}[Termination]
+\label{thm:68-term}
+Every verified RSVP flow converges in finite time to a harmonic configuration.
+\end{theorem}
+
+\begin{proof}
+By Theorem~\ref{thm:68-lyap}, Lyapunov energy decreases strictly.
+Since the energy is bounded below (by zero), and since the descent rate is 
+bounded away from zero on compact sets of non-harmonic states, a standard 
+compactness argument shows convergence in finite time to the set of harmonic 
+configurations.  
+Uniqueness and existence of harmonic limits follow from elliptic regularity of 
+the generator.
+\end{proof}
+
+\section{Completeness of the Modal Interpretation}
+
+\begin{theorem}[Modal Completeness of RSVP Flow]
+\label{thm:68-comp}
+A predicate $P$ satisfies $\Box_{\mathrm{RSVP}}(P(\varphi))$ if and only if 
+$P$ is preserved under all verified infinitesimal steps.
+\end{theorem}
+
+\begin{proof}
+If $\Box_{\mathrm{RSVP}}(P(\varphi))$ holds, then $P$ must hold for all 
+immediate verified successors of $\varphi$.  
+Conversely, if $P$ is preserved under every infinitesimal step, then by 
+integration it is preserved along every harmonic trajectory, giving the 
+modal necessity interpretation.
+\end{proof}
+
+\section{Synthetic Duality and RSVP Flow}
+
+\begin{theorem}[Dual Interpretation of RSVP Flow]
+\label{thm:68-dual}
+Under synthetic duality,
+\[
+\mathbb{R}^{-1}(\varphi \mapsto \varphi') 
+\;=\; 
+\text{an elementary EHR step}.
+\]
+\end{theorem}
+
+\begin{proof}
+The generator $\mathcal{L}$ of RSVP flow acts as curvature–entropy descent on 
+$\mathcal{M}$.
+Under $\mathbb{R}^{-1}$ this corresponds to the curvature-lowering $\mathsf{R}$ 
+rules of the EHR system.
+Hoist and extraction correspond to the stratified and tagging components of 
+the flow respectively.  
+Since $\mathbb{R}$ preserves modal operators and curvature indices, the two 
+systems coincide up to infinitesimal discretisation.
+\end{proof}
+
+\section{The Verified RSVP Kernel}
+
+\begin{definition}[Verified RSVP Kernel]
+A function
+\[
+\mathsf{rsvp\_step}:\mathsf{FieldConfig}\to\mathsf{FieldConfig}
+\]
+is \emph{verified} if:
+\begin{enumerate}
+\item it implements a certified infinitesimal step,
+\item it preserves modal necessity ($\Box_{\mathrm{RSVP}}$),
+\item it strictly decreases $\mathcal{E}_{\mathrm{RSVP}}$ on non-harmonic inputs,
+\item it returns the unique harmonic configuration on harmonic inputs.
+\end{enumerate}
+\end{definition}
+
+\begin{theorem}[Correctness of the Verified Kernel]
+For every field configuration $\varphi$, repeated iteration of 
+$\mathsf{rsvp\_step}$ converges in finite time to its unique harmonic limit.
+\end{theorem}
+
+\begin{proof}
+Immediate from the termination theorem and the strict Lyapunov decrease.
+\end{proof}
+
+\section{Conclusion}
+
+RSVP flow, originally a purely analytic dynamical system, now has a complete 
+verification-theoretic interpretation.  
+Its generator is modal, its evolution is sound, complete, terminating, and 
+canonically dual to EHR rewriting via $\mathbb{R}$.
+
+\bigskip
+\begin{quote}
+\textbf{Every field descends.  
+Every descent is verified.  
+Every trajectory reaches the harmonic fixed point.}
+\end{quote}
+

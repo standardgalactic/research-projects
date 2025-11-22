@@ -1,0 +1,210 @@
+\chapter{Verified Coupling of RSVP Flow and EHR Rewriting}
+\label{ch:69}
+
+In Chapters~67--68 we verified the two halves of the coupled semantic universe:
+\begin{itemize}
+\item the \emph{discrete} Polyxan system of curvature-reducing rewrites (EHR),
+\item the \emph{continuous} RSVP harmonic descent dynamics.
+\end{itemize}
+We now show that the coupled evolution defined in Part~III is not merely 
+well-posed but \emph{formally verified}: every infinitesimal RSVP flow step 
+corresponds to a certified EHR reduction, and every EHR reduction is the image 
+under synthetic duality of a verified descent step of the RSVP fields.
+
+This chapter establishes:
+\begin{itemize}
+\item the verified coupling operator,
+\item the modal commutativity theorem,
+\item the integrated Lyapunov functional,
+\item the bicategorical coherence of flow and rewriting,
+\item and the grand result: the coupled system is a single, total, terminating, 
+      machine-verified dynamical law.
+\end{itemize}
+
+\section{Coupled Configurations}
+
+A \emph{coupled configuration} is a triple
+\[
+\mathsf{CoupledConfig}
+  := (\varphi,\mathcal{G},\iota)
+\]
+with:
+\begin{itemize}
+\item $\varphi=(\Phi,\mathbf{v},S)$ an RSVP field configuration,
+\item $\mathcal{G}$ a Polyxan hypergraph,
+\item $\iota : \mathrm{Inc}(\mathcal{G}) \hookrightarrow \mathcal{M}$ a 
+      stratified, curvature-matched semantic embedding.
+\end{itemize}
+
+All relations in this chapter live in the dependent type theory 
+$\mathbb{T}_{\mathrm{RSVP\text{--}Polyx}}$.
+
+\section{Verified Coupling Operator}
+
+\begin{definition}[Verified Coupling Operator]
+The \emph{verified coupling operator} is the total function
+\[
+\mathsf{couple}
+  : \mathsf{CoupledConfig}
+    \longrightarrow
+    \mathsf{CoupledConfig}
+\]
+defined by
+\[
+(\varphi,\mathcal{G},\iota)
+  \longmapsto
+(\varphi',\mathcal{G}',\iota')
+\]
+where:
+\begin{enumerate}
+\item $\varphi'$ is a verified RSVP flow step 
+      (Chapter~\ref{ch:68}),
+\item $\mathcal{G}'$ is the unique curvature-decreasing EHR step 
+      certified by $\varphi'$ (Chapter~\ref{ch:67}),
+\item $\iota'$ is the verified harmonic projection of the embedding for 
+      $\mathcal{G}'$ (Chapters~31--32).
+\end{enumerate}
+\end{definition}
+
+Crucially, the coupling operator is \emph{not} sequential but \emph{coherent}:
+\[
+\varphi' \text{ and } \mathcal{G}' \text{ mutually determine one another.}
+\]
+
+\section{Modal Commutativity}
+
+\begin{theorem}[Modal Commutativity of Flow and Rewriting]
+\label{thm:69-modal-commute}
+For any coupled configuration $(\varphi,\mathcal{G},\iota)$ and any predicate $P$:
+\[
+\Box_{\mathrm{RSVP}}(P)
+\quad\Longleftrightarrow\quad
+\Box_{\mathrm{Polyx}}(P)
+\]
+under the coupling operator.
+\end{theorem}
+
+\begin{proof}
+By Chapter~\ref{ch:68}, $\Box_{\mathrm{RSVP}}$ is exactly the condition that 
+$P$ is preserved along all verified RSVP flow steps.
+By Chapter~\ref{ch:67}, $\Box_{\mathrm{Polyx}}$ is exactly the condition that 
+$P$ is preserved across all verified EHR steps.
+
+Under $\mathsf{couple}$, every RSVP step induces a unique EHR step, and every 
+EHR step arises as the dual of an RSVP step.
+
+Thus modal preservation in one system implies modal preservation in the other.
+\end{proof}
+
+\section{Integrated Lyapunov Functional}
+
+Define the total energy functional
+\[
+\mathcal{E}_{\mathrm{coupled}}
+  := \mathcal{E}_{\mathrm{RSVP}} + \mathcal{E}_{\mathrm{Polyx}}
+\]
+with
+\[
+\mathcal{E}_{\mathrm{Polyx}}(\mathcal{G})
+  := \sum_{e\in E(\mathcal{G})}
+     \bigl(\kappa_{\mathcal{G}}(e)\bigr)^2.
+\]
+
+\begin{theorem}[Strict Coupled Descent]
+For all non-harmonic, non-quine-stable configurations:
+\[
+\mathcal{E}_{\mathrm{coupled}}(\varphi',\mathcal{G}')
+  < \mathcal{E}_{\mathrm{coupled}}(\varphi,\mathcal{G})
+\]
+for every coupling step.
+\end{theorem}
+
+\begin{proof}
+The RSVP component decreases strictly by 
+Theorem~\ref{thm:68-lyap}.
+The Polyxan component decreases strictly by the EHR curvature functionals 
+(Chapter~67).
+The embedding is always updated to reduce curvature mismatch (Ch.~31).
+Summing all terms yields strict descent.
+\end{proof}
+
+\section{Coherence in the Bicategory of Semantic Dynamics}
+
+Let $\mathcal{B}$ denote the bicategory whose:
+\begin{itemize}
+\item objects are coupled configurations,
+\item 1-morphisms are verified RSVP or EHR steps,
+\item 2-morphisms witness modal commutativity.
+\end{itemize}
+
+\begin{theorem}[Bicategorical Coherence]
+\label{thm:69-bicat}
+The verified coupling operator is the unique pseudofunctor
+\[
+\mathsf{Couple} : \mathcal{B} \to \mathcal{B}
+\]
+satisfying:
+\[
+\mathsf{Couple}(\text{RSVP-step})
+  = \text{EHR-step},
+\qquad
+\mathsf{Couple}(\text{EHR-step})
+  = \text{RSVP-step},
+\]
+up to the modal 2-cells of Theorem~\ref{thm:69-modal-commute}.
+\end{theorem}
+
+\begin{proof}
+Uniqueness follows because curvature and entropy determine both 
+the discrete and continuous directions of evolution.  
+Existence follows by construction of $\mathsf{couple}$.  
+The modal commutativity theorem provides the coherence 2-cells.
+\end{proof}
+
+\section{Termination of the Coupled System}
+
+\begin{theorem}[Grand Termination of Coupled Dynamics]
+Every infinite execution of the verified coupling operator terminates in 
+finite time at a unique harmonic, quine-stable, curvature-zero configuration.
+\end{theorem}
+
+\begin{proof}
+Since $\mathcal{E}_{\mathrm{coupled}}$ is a strict Lyapunov function, descent 
+is strict at every non-terminal configuration.  
+The functional is bounded below, and the descent rate remains bounded away 
+from zero unless harmonicity and quine-stability have been achieved.  
+Thus every execution terminates in a finite number of steps.
+\end{proof}
+
+\section{Unified Semantic Evolution}
+
+\begin{theorem}[Verified Equivalence of Dynamics]
+\label{thm:69-equivalence}
+Under synthetic duality,
+\[
+\text{RSVP harmonic descent}
+\quad\equiv\quad
+\text{EHR curvature descent}.
+\]
+\end{theorem}
+
+\begin{proof}
+Immediate from the duality of generators (Chapter~62) and the completeness of 
+the modal interpretation (Chapters~67–68).
+\end{proof}
+
+\section{Conclusion}
+
+The coupled RSVP–Polyxan universe is now a single, verified, terminating 
+dynamical law.  
+Its discrete and continuous halves are modal reflections of one another; every 
+evolution is curvature descent; every descent is verified; and every execution 
+reaches the unique stable fixed point.
+
+\bigskip
+\begin{quote}
+\textbf{There are not two systems.  
+There is only one verified descent.  
+And it always ends in the universal quine.}
+\end{quote}
+

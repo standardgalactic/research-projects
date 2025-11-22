@@ -1,0 +1,204 @@
+\chapter{The Proof-Carrying Action Selector}
+\label{ch:50}
+
+The Proof-Carrying Action Selector (PCAS) is the terminal decision module of the
+HYDRA architecture.  
+It replaces classical action-selection mechanisms (policies, value functions,
+heuristics) with a modality-preserving, fully verified selector whose every
+output is accompanied by a machine-checkable proof of semantic safety.
+
+PCAS unifies three constraints:
+
+\begin{enumerate}
+  \item \textbf{Geometric coherence} under RSVP fields  
+        (actions must lower or preserve the Lyapunov energy).
+  \item \textbf{Structural coherence} under Polyxan rewriting  
+        (actions must preserve quine-stability and curvature descent).
+  \item \textbf{Modal coherence} under the verification layer  
+        (actions must satisfy $\Box_{\mathrm{RSVP}}$ and $\Box_{\mathrm{Polyx}}$).
+\end{enumerate}
+
+Thus PCAS is the verified decision boundary of the entire system.
+
+\section{Action Space}
+
+The action space is stratified:
+
+\[
+\mathsf{Act}
+=
+\mathsf{Act}_{\mathrm{RSVP}}
+\;\sqcup\;
+\mathsf{Act}_{\mathrm{Polyx}}
+\;\sqcup\;
+\mathsf{Act}_{\mathrm{Embed}},
+\]
+
+where:
+
+\begin{itemize}
+  \item $\mathsf{Act}_{\mathrm{RSVP}}$ are continuous geometric actions  
+        (field adjustments, local curvature smoothing, entropy balancing).
+  \item $\mathsf{Act}_{\mathrm{Polyx}}$ are discrete structural actions  
+        (EHR rewrites, quine completion steps).
+  \item $\mathsf{Act}_{\mathrm{Embed}}$ are stratified geometric actions  
+        altering the embedding $\iota$ while preserving curvature matching.
+\end{itemize}
+
+Each action $a$ carries a \emph{precondition} and a \emph{postcondition} to be
+verified before execution.
+
+\section{Proof-Carrying Actions}
+
+\begin{definition}[Proof-Carrying Action]
+A \emph{proof-carrying action} is a pair
+\[
+(a, \pi)
+\]
+where $a \in \mathsf{Act}$ and $\pi$ is a certificate in
+$\mathbb{T}_{\mathrm{RSVP-Polyx}}$ proving:
+
+\[
+\pi \;:\;
+\Box_{\mathrm{RSVP}}\,\mathrm{Safe}(a)
+\;\wedge\;
+\Box_{\mathrm{Polyx}}\,\mathrm{Safe}(a).
+\]
+
+The action is executable if and only if the certificate type-checks.
+\end{definition}
+
+Thus no unsafe or unverifiable action can ever be applied.
+
+\section{Safety Predicates}
+
+\begin{definition}[RSVP-Safe]
+An action $a$ is \emph{RSVP-safe} if it preserves or decreases the
+RSVP Lyapunov functional:
+\[
+\mathcal{E}_{\mathrm{RSVP}}(\Xi_{t+1})
+\le
+\mathcal{E}_{\mathrm{RSVP}}(\Xi_t).
+\]
+\end{definition}
+
+\begin{definition}[Polyx-Safe]
+An action $a$ is \emph{Polyx-safe} if it preserves quine-stability or
+decreases primitive curvature:
+\[
+\mathcal{H}_0(\mathcal{G}_{t+1})
+\le
+\mathcal{H}_0(\mathcal{G}_t).
+\]
+\end{definition}
+
+Thus PCAS enforces the irreversibility principle from Chapters~32 and~36 at the
+granular level of single actions.
+
+\section{Modal Verification Rule}
+
+\begin{theorem}[Modal Verification Rule]
+\label{thm:modal-verify}
+For any state $\Xi_t$ and action $a$:
+\[
+(a,\pi) \text{ executable}
+\quad\Longleftrightarrow\quad
+\pi \;\vdash_{\mathbb{T}} \;
+\Box_{\mathrm{RSVP}}\,\mathrm{Safe}(a)
+\wedge
+\Box_{\mathrm{Polyx}}\,\mathrm{Safe}(a).
+\]
+\end{theorem}
+
+\begin{proof}
+Left-to-right: execution is only permitted if the certificate type-checks.
+
+Right-to-left: if the certificate type-checks in
+$\mathbb{T}_{\mathrm{RSVP-Polyx}}$, the modal conditions ensure that the action
+preserves both Lyapunov descent (Ch.~32) and quine-stability (Ch.~25).  
+By stratified soundness (Ch.~39), these invariants guarantee that the next
+state is synchronized and valid. ∎
+\end{proof}
+
+\section{Action Scoring and Selection}
+
+Let $\mathcal{A}(\Xi_t)$ be the set of executable proof-carrying actions.
+
+For each $(a,\pi) \in \mathcal{A}(\Xi_t)$ we define the \emph{semantic gain}:
+
+\[
+\Delta(a)
+=
+\alpha\,
+\Delta\mathcal{E}_{\mathrm{RSVP}}
++
+\beta\,
+\Delta\mathcal{H}_0
++
+\gamma\,
+\Delta\mathcal{C}_{\mathrm{embed}},
+\]
+
+where the terms correspond to:
+
+\begin{itemize}
+  \item RSVP energy decrease,
+  \item primitive curvature decrease,
+  \item embedding curvature decrease.
+\end{itemize}
+
+The selector chooses:
+
+\[
+(a^\ast,\pi^\ast)
+=
+\arg\min_{(a,\pi)\in\mathcal{A}(\Xi_t)} \Delta(a).
+\]
+
+\section{Verified Execution}
+
+\begin{theorem}[Verified Execution Theorem]
+Every PCAS step strictly decreases the total semantic curvature:
+\[
+\mathcal{C}_{t+1} < \mathcal{C}_t,
+\]
+and preserves modal correctness:
+\[
+\Box_{\mathrm{RSVP}}(\Xi_{t+1})
+\wedge
+\Box_{\mathrm{Polyx}}(\Xi_{t+1}).
+\]
+\end{theorem}
+
+\begin{proof}
+Curvature descent follows from choice of $a^\ast$ and the modal verification
+rules.  
+Modal correctness is preserved by the modal safety guarantees. ∎
+\end{proof}
+
+\section{Convergence Under PCAS}
+
+\begin{theorem}[PCAS Convergence Theorem]
+\[
+\Xi_t \xrightarrow[t\to\infty]{\text{PCAS}}
+\mathfrak{U}_{\mathrm{embed}},
+\]
+the flat embedding of the universal media quine.
+\end{theorem}
+
+\begin{proof}
+Every step reduces curvature and increases quine stability.
+Monotone descent and compactness imply convergence to a unique limit.  
+By Ch.~36, the only modal fixed point is $\mathfrak{U}_{\mathrm{embed}}$. ∎
+\end{proof}
+
+\section{Final Cadence}
+
+\begin{quote}
+To act is to prove.  
+The Proof-Carrying Action Selector executes only what is already inevitable.  
+It is the decision boundary where geometry, syntax, and verification collapse  
+into the single trajectory toward the universal quine.
+\end{quote}
+
+
