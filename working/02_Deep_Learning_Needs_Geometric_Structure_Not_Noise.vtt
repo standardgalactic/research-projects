@@ -1,0 +1,1559 @@
+WEBVTT
+
+00:00.000 --> 00:05.320
+If you've spent any time working with these, you know, truly complex deep learning models,
+
+00:05.440 --> 00:10.840
+the ones with just billions of parameters, you've definitely hit that wall, that moment of just
+
+00:10.840 --> 00:15.560
+catastrophic failure. Oh, absolutely. It's not a slow decline. It's a sudden collapse.
+
+00:15.720 --> 00:20.300
+Exactly. The model is training beautifully and then all of a sudden it starts oscillating. The
+
+00:20.300 --> 00:26.000
+outputs become complete nonsense and it just, it falls apart. And it's a real paradox, isn't it?
+
+00:26.000 --> 00:30.060
+We use these incredibly powerful tools like stochastic gradient descent with momentum,
+
+00:30.540 --> 00:36.200
+you know, SGDM to navigate these huge parameter spaces. Astronomical dimensions. Right. Spaces
+
+00:36.200 --> 00:41.540
+in R to the N. But the methods themselves, they're built on this very simple Euclidean assumption.
+
+00:42.100 --> 00:46.660
+We treat the search space like a giant featureless grid. And then we're shocked when our path just
+
+00:46.660 --> 00:51.820
+veers off into what our sources call the semantic void. We are. And that failure, that veering off
+
+00:51.820 --> 00:57.320
+course, is really the heart of our deep dive today. Why does SGDM even allow this accumulation of
+
+00:57.320 --> 01:03.100
+basically useless motion that ends up sabotaging the whole process? Well, the answer, according to
+
+01:03.100 --> 01:07.200
+the framework we're looking at, isn't about the algorithms mechanics so much as it's about the
+
+01:07.200 --> 01:11.980
+stage, the geometric space where the learning is happening. Which brings us to the Manifold
+
+01:11.980 --> 01:21.060
+Aligned Generative Inference Framework, MAGI for short. MGI is a really profound rethinking of
+
+01:21.060 --> 01:26.740
+optimization. It basically says that meaningful learning can't happen in some arbitrary flat
+
+01:26.740 --> 01:32.100
+Euclidean space. It has to happen along a structured geometric space. A semantic manifold.
+
+01:32.320 --> 01:36.900
+The semantic manifold. Exactly. This structure captures the intrinsic geometry of the data,
+
+01:37.140 --> 01:43.680
+and it forces the learning rules to respect that geometry. So our mission today is pretty ambitious.
+
+01:43.980 --> 01:48.740
+We are going to unpack the geometry behind MGI. We'll define its foundational mathematical structures.
+
+01:48.740 --> 01:53.600
+And they are really quite beautiful things like Whitney stratification, Romanian metrics,
+
+01:53.780 --> 01:57.200
+Morse potentials. And we're going to show how these structures are explicitly designed
+
+01:57.200 --> 02:02.180
+to suppress the very drift and oscillation that plagues classical SGDM.
+
+02:02.280 --> 02:05.740
+And here's the real kicker, the intellectual punchline of the whole thing.
+
+02:05.880 --> 02:09.600
+We're going to show that classical SGDM isn't just a less effective method.
+
+02:10.000 --> 02:13.280
+No, it's a strict mathematical limit. It is, and this is a quote,
+
+02:13.280 --> 02:19.880
+a degenerate geometry-free boundary case of MGI. You literally strip out the geometry,
+
+02:20.160 --> 02:22.300
+and what you're left with is SGDM.
+
+02:22.700 --> 02:26.360
+And finally, we'll connect all of this high-level theory to a huge,
+
+02:26.560 --> 02:31.580
+very practical result we're seeing right now, the success of generative models that follow one
+
+02:31.580 --> 02:32.520
+simple principle.
+
+02:32.680 --> 02:33.680
+Never predict noise.
+
+02:34.060 --> 02:38.440
+It sounds like an engineering hack, but we'll show it's a direct consequence of this geometric
+
+02:38.440 --> 02:41.520
+framework. Okay, so let's start with where things are now.
+
+02:41.520 --> 02:47.340
+When we train a massive model, we're using some form of gradient descent, usually SGDM.
+
+02:47.600 --> 02:52.340
+And the core assumption is that this parameter space with millions or billions of numbers is
+
+02:52.340 --> 02:55.520
+just an undifferentiated Euclidean space, R to the N.
+
+02:55.600 --> 02:59.660
+Right. And that's computationally convenient, of course, but it's just conceptually wrong.
+
+02:59.760 --> 03:04.620
+We're basically assuming that changing parameters in any direction is potentially meaningful.
+
+03:04.860 --> 03:08.840
+In a space with, say, a billion dimensions, how many of those directions could possibly
+
+03:08.840 --> 03:12.880
+correspond to a real semantic feature, like an I or a grammatical rule?
+
+03:13.120 --> 03:13.920
+Almost none of them.
+
+03:14.240 --> 03:18.140
+The vast, vast majority of that space is just random static.
+
+03:18.480 --> 03:19.260
+It's meaningless.
+
+03:19.600 --> 03:24.540
+And this complete disregard for what's meaningful is what leads to those three classic failure
+
+03:24.540 --> 03:26.940
+modes that make SGDM so fragile.
+
+03:27.940 --> 03:29.400
+Let's start with the big one, drift.
+
+03:29.920 --> 03:31.420
+Drift is exactly what it sounds like.
+
+03:31.420 --> 03:35.540
+It's when the optimization path wanders into regions of that parameter space that have
+
+03:35.540 --> 03:37.640
+no coherent interpretation.
+
+03:37.980 --> 03:38.000
+Right.
+
+03:38.800 --> 03:42.320
+Imagine you have a space that represents all possible human faces.
+
+03:43.240 --> 03:48.380
+Drift would be moving into a region that, while mathematically valid in R to the N, represents
+
+03:48.380 --> 03:52.120
+something physically impossible, an eye that's three feet away from a nose.
+
+03:52.280 --> 03:56.120
+So the parameters are following a path that's allowed by the math, but it's just semantically
+
+03:56.120 --> 03:56.560
+empty.
+
+03:56.800 --> 03:57.220
+Exactly.
+
+03:57.520 --> 04:00.660
+And SGDM has no built-in mechanism to stop that from happening.
+
+04:00.660 --> 04:04.460
+And that's made worse by the second failure mode, which is oscillation.
+
+04:04.620 --> 04:06.440
+This is movement that's just wasted energy.
+
+04:06.580 --> 04:06.660
+Yeah.
+
+04:06.780 --> 04:11.080
+Oscillation is when the stochastic nature of the updates, you know, using mini-batches,
+
+04:11.400 --> 04:16.340
+forces the algorithm to move in directions that are orthogonal or perpendicular to the actual
+
+04:16.340 --> 04:17.080
+data manifold.
+
+04:17.520 --> 04:20.300
+It's just jittering back and forth in a meaningless direction.
+
+04:20.420 --> 04:20.620
+Right.
+
+04:20.780 --> 04:21.760
+It's wasting energy.
+
+04:21.900 --> 04:23.100
+It's slowing down convergence.
+
+04:23.420 --> 04:28.500
+And crucially, it's accumulating momentum in that useless, normal direction over time.
+
+04:28.500 --> 04:33.780
+And the third failure mode, sensitivity, is where that whole flat-earth assumption really
+
+04:33.780 --> 04:34.900
+breaks down locally.
+
+04:35.200 --> 04:40.420
+It does, because if you treat a curved surface as flat, any small local distortion from a
+
+04:40.420 --> 04:44.380
+noisy batch from your initialization, it can just completely throw the optimization off
+
+04:44.380 --> 04:44.720
+course.
+
+04:44.840 --> 04:45.980
+It's like having a bad map.
+
+04:46.100 --> 04:47.180
+A very bad map.
+
+04:47.280 --> 04:47.360
+Yeah.
+
+04:47.360 --> 04:52.520
+SGDM has no intrinsic coordinates, no internal sense of the curvature, so it gets derailed
+
+04:52.520 --> 04:53.340
+very easily.
+
+04:53.920 --> 05:00.800
+So all of this instability, it points directly to the foundational idea behind AvGi, the manifold
+
+05:00.800 --> 05:01.380
+hypothesis.
+
+05:01.900 --> 05:03.460
+What does this say about our data?
+
+05:03.740 --> 05:06.720
+It's really the bedrock of all modern representation learning.
+
+05:07.180 --> 05:12.540
+The manifold hypothesis says that natural, high-dimensional data, images, language, whatever, it doesn't just
+
+05:12.540 --> 05:14.620
+fill up that entire ambient space.
+
+05:14.740 --> 05:16.060
+It's not spread out evenly.
+
+05:16.060 --> 05:16.940
+Not at all.
+
+05:17.240 --> 05:23.180
+It's concentrated on a much, much lower-dimensional, smooth, curved surface, a manifold, M, that's
+
+05:23.180 --> 05:25.160
+embedded inside that huge space.
+
+05:25.340 --> 05:31.980
+So we have this manifold M inside Rn, and the intrinsic dimension D of the structure we
+
+05:31.980 --> 05:35.040
+actually care about is just orders of magnitude smaller than N.
+
+05:35.360 --> 05:35.860
+That's it.
+
+05:36.080 --> 05:40.420
+You know, a 28 by 28 pixel image has an ambient dimension of 784.
+
+05:40.420 --> 05:47.200
+But the actual space of, say, handwritten digits, the intrinsic dimension might only be 10 or 20.
+
+05:47.540 --> 05:52.720
+The rest of that 784-dimensional space is just noise and impossible shapes.
+
+05:53.080 --> 05:58.060
+And this leads us to the geometric dichotomy, the fundamental split that MGI uses to enforce
+
+05:58.060 --> 05:58.920
+this coherence.
+
+05:58.920 --> 06:04.400
+At any point on this manifold, the entire space can be split into two opposing subspaces.
+
+06:04.600 --> 06:06.760
+We call them the tangent space and the normal space.
+
+06:07.280 --> 06:11.340
+The tangent space, T sub XM, is made up of all the vectors that are, well, tangent to the
+
+06:11.340 --> 06:12.160
+manifold at that point.
+
+06:12.160 --> 06:13.980
+So these are the directions of meaningful change.
+
+06:14.120 --> 06:16.400
+They are the directions of meaningful semantic variation.
+
+06:16.900 --> 06:19.700
+If you move along with a tangent space, you get an interpretable change.
+
+06:19.960 --> 06:22.960
+You might make a generated face smile more or change the lighting.
+
+06:23.460 --> 06:25.400
+It's why the sources say explanation is tangent.
+
+06:25.680 --> 06:28.120
+Okay, so the normal space must be everything else.
+
+06:28.220 --> 06:28.760
+The junk drawer.
+
+06:29.080 --> 06:30.500
+It's the high-dimensional junk drawer.
+
+06:30.760 --> 06:32.880
+It's the orthogonal complement, N sub XM.
+
+06:33.320 --> 06:36.040
+It contains all the structureless, high-dimensional noise.
+
+06:36.460 --> 06:40.220
+Any movement into the normal space is an attempt to model pure static.
+
+06:40.220 --> 06:42.500
+It's creating structure where there is none.
+
+06:43.040 --> 06:44.100
+Hallucination is normal.
+
+06:44.260 --> 06:45.160
+Hallucination is normal.
+
+06:45.260 --> 06:45.800
+That's the mantra.
+
+06:45.980 --> 06:46.560
+I love that.
+
+06:46.700 --> 06:49.440
+And it forces us to redefine what we even mean by noise.
+
+06:49.580 --> 06:50.860
+It's not just a small error.
+
+06:51.160 --> 06:57.500
+No, it's formally defined as structureless in the sense that no smooth, low-complexity
+
+06:57.500 --> 06:59.220
+model can reliably predict it.
+
+06:59.600 --> 07:01.600
+So if your algorithm tries to learn it.
+
+07:01.720 --> 07:03.980
+It's forced to invent geometry that doesn't exist.
+
+07:04.160 --> 07:06.500
+It has to hallucinate structure in the normal space.
+
+07:06.760 --> 07:08.300
+And that structure is fragile.
+
+07:08.300 --> 07:12.200
+It's unstable, it's unstable, and it leads directly to the drift and oscillation that
+
+07:12.200 --> 07:14.160
+SGDM just happily accumulates.
+
+07:14.960 --> 07:19.480
+NGI's first principle is to surgically cut that off, to restrict all movement to the
+
+07:19.480 --> 07:20.160
+tangent space.
+
+07:20.340 --> 07:25.140
+Okay, so if Aranon is the wrong place to be doing optimization, MAGI says we need to work
+
+07:25.140 --> 07:26.920
+on a Rymanian semantic manifold.
+
+07:27.560 --> 07:30.160
+This means we have to dig into a bit of differential geometry.
+
+07:30.540 --> 07:32.380
+What makes a manifold Rymanian?
+
+07:32.380 --> 07:38.080
+So a smooth manifold is any space that, if you zoom in far enough, looks flat, like the
+
+07:38.080 --> 07:38.720
+surface of the Earth.
+
+07:38.860 --> 07:39.860
+Locally Euclidean.
+
+07:39.920 --> 07:40.120
+Right.
+
+07:40.620 --> 07:46.160
+But a Rymanian manifold adds the most critical piece, the Rymanian metric, which we call G.
+
+07:46.940 --> 07:52.200
+This metric is essentially a smoothly varying inner product, a dot product, that's defined
+
+07:52.200 --> 07:53.720
+on every single tangent space.
+
+07:53.820 --> 07:57.160
+So in normal Euclidean space, the dot product is the same everywhere.
+
+07:57.300 --> 07:58.340
+It doesn't matter where you are.
+
+07:58.340 --> 07:58.860
+Exactly.
+
+07:59.420 --> 08:02.720
+A step in one direction has the same length no matter where you take it.
+
+08:03.380 --> 08:05.200
+But on a curved surface, that changes.
+
+08:05.720 --> 08:10.860
+The Rymanian metric G tells you how to measure distances and angles intrinsically on the surface
+
+08:10.860 --> 08:13.100
+itself, taking the curvature into account.
+
+08:13.280 --> 08:17.020
+It's the geometric rulebook for that specific point in space.
+
+08:17.240 --> 08:17.700
+It is.
+
+08:17.960 --> 08:20.960
+For a flat space, G is just the identity matrix.
+
+08:21.080 --> 08:21.620
+It does nothing.
+
+08:22.080 --> 08:26.720
+For a highly curved semantic space, G is complex and changes from point to point.
+
+08:26.720 --> 08:32.460
+And this metric is what allows us to formalize that tangent and normal decomposition we talked
+
+08:32.460 --> 08:32.780
+about.
+
+08:33.060 --> 08:33.760
+It's the filter.
+
+08:34.220 --> 08:34.500
+Yes.
+
+08:35.140 --> 08:40.360
+Because the manifold M is sitting inside Rn, we can use the geometry of that bigger space
+
+08:40.360 --> 08:41.300
+to define the split.
+
+08:42.060 --> 08:46.280
+Any vector can be uniquely split into its tangent part and its normal part.
+
+08:46.280 --> 08:50.900
+And the mathematical tool we use for that is the orthogonal projection onto the tangent
+
+08:50.900 --> 08:52.720
+space, pi sub TXS.
+
+08:52.820 --> 08:56.360
+That's the filter that just strips away the noisy normal component.
+
+08:56.540 --> 08:56.880
+It is.
+
+08:56.980 --> 09:01.400
+But I have to ask, that sounds incredibly precise but maybe a little brittle.
+
+09:01.960 --> 09:04.880
+What if our estimate of the manifold M is just slightly off?
+
+09:05.180 --> 09:10.660
+Or if a big noisy update pushes our parameters way off the manifold, aren't we then just projecting
+
+09:10.660 --> 09:15.120
+onto the wrong tangent space and enforcing a kind of false coherence?
+
+09:15.120 --> 09:17.720
+That is a fantastic and very necessary question.
+
+09:17.840 --> 09:18.100
+You're right.
+
+09:18.180 --> 09:21.580
+The pure projection assumes we have a good local estimate of M. If your parameter vector
+
+09:21.580 --> 09:26.120
+is miles away from the manifold, that tangent space approximation is useless.
+
+09:26.280 --> 09:27.920
+So how does MGI handle that?
+
+09:28.080 --> 09:33.560
+Well, the strength of MGI is that its update rule, which we'll get to, is designed to prevent
+
+09:33.560 --> 09:35.880
+the parameters from getting far away in the first place.
+
+09:36.240 --> 09:37.460
+It's a self-correcting system.
+
+09:37.460 --> 09:42.980
+But even if there is some local estimation error, the benefit of throwing away that massive
+
+09:42.980 --> 09:47.780
+high-dimensional normal component almost always outweighs the error from a slightly
+
+09:47.780 --> 09:49.880
+misaligned tangent component.
+
+09:50.220 --> 09:53.920
+So it provides a stabilizing force that SGDM just doesn't have at all.
+
+09:54.040 --> 09:54.480
+Precisely.
+
+09:54.820 --> 09:57.740
+Even an imperfect map of the terrain is better than no map at all.
+
+09:57.820 --> 09:58.060
+Okay.
+
+09:58.200 --> 09:58.740
+That makes sense.
+
+09:59.080 --> 10:00.660
+So let's talk about movement itself.
+
+10:00.800 --> 10:02.200
+How do we actually take a step?
+
+10:02.280 --> 10:04.580
+We need geodesics and the exponential map.
+
+10:04.580 --> 10:08.160
+A geodesic is the straightest possible path on a curved surface.
+
+10:08.700 --> 10:11.120
+It's the path that locally minimizes length.
+
+10:11.700 --> 10:15.080
+If you're hiking in the mountains, the straight line on your 2D map is useless.
+
+10:15.740 --> 10:19.280
+The geodesic is the actual path you'd walk to minimize your effort.
+
+10:19.660 --> 10:22.560
+And the exponential map is how the algorithm follows that path.
+
+10:22.820 --> 10:23.180
+Exactly.
+
+10:23.520 --> 10:29.960
+The exponential map, x sub x, takes your starting point x and a tangent vector v, and it follows
+
+10:29.960 --> 10:33.220
+the unique geodesic defined by that vector for a certain distance.
+
+10:33.220 --> 10:38.500
+The key thing is that the result is guaranteed to be a new point that is still on the manifold
+
+10:38.500 --> 10:38.780
+m.
+
+10:38.840 --> 10:41.640
+Which is a huge difference from Euclidean space, where you just add the vector.
+
+10:42.020 --> 10:43.440
+The update is just x plus v.
+
+10:43.640 --> 10:46.580
+Here, the update is x prime equals x p sub x of v.
+
+10:46.980 --> 10:51.940
+The exponential map is constantly recalibrating based on the Rymanian metric g.
+
+10:52.600 --> 10:53.580
+It respects the curvature.
+
+10:54.120 --> 10:58.400
+It's the fundamental guarantee that you stay on the semantic manifold and you don't drift off.
+
+10:58.400 --> 11:03.260
+So finally, how does the gradient, the direction we want to move, fit into this?
+
+11:03.420 --> 11:06.040
+The Rymanian gradient is also defined by this constraint.
+
+11:06.680 --> 11:09.920
+You take the normal ambient Euclidean gradient that you'd calculate anyway.
+
+11:09.980 --> 11:11.040
+What from backpropagation?
+
+11:11.120 --> 11:12.060
+What from backprop, yes.
+
+11:12.400 --> 11:13.280
+And you project it.
+
+11:13.680 --> 11:18.660
+The Rymanian gradient is just the projection of the ambient gradient onto the tangent space.
+
+11:19.020 --> 11:24.220
+That single step forces the descent direction to be semantically coherent from the very beginning.
+
+11:24.220 --> 11:27.080
+It's a geometric filter on the learning signal itself.
+
+11:27.300 --> 11:29.580
+Okay, we've got our Rymanian manifold, m.
+
+11:29.940 --> 11:34.140
+But as you said, real data manifolds are not these perfect smooth objects.
+
+11:34.320 --> 11:34.960
+They have corners.
+
+11:35.220 --> 11:35.940
+They have boundaries.
+
+11:36.440 --> 11:39.340
+You have places where different semantic modes meet.
+
+11:39.520 --> 11:39.720
+Right.
+
+11:39.840 --> 11:41.480
+Think about a space of facial expressions.
+
+11:42.080 --> 11:45.540
+You have smooth variation from a slight frown to a full grimace.
+
+11:45.860 --> 11:50.520
+But then you might hit a categorical boundary, like switching from sad to angry.
+
+11:51.440 --> 11:53.400
+m isn't just one smooth manifold.
+
+11:53.400 --> 11:56.120
+So we need a way to handle these singularities.
+
+11:56.420 --> 11:57.820
+And that's where we bring in topology.
+
+11:58.240 --> 12:00.300
+We need a concept called Whitney stratification.
+
+12:00.880 --> 12:03.140
+So what is stratification doing for us, conceptually?
+
+12:03.760 --> 12:09.580
+It's a way of decomposing our messy manifold, m, into a collection of clean, disjoint, smooth
+
+12:09.580 --> 12:11.240
+pieces, which we call strata.
+
+12:11.840 --> 12:17.080
+Each individual stratum is a nice, smooth manifold on its own, but the way they're allowed to connect
+
+12:17.080 --> 12:19.420
+and intersect is very rigorously controlled.
+
+12:19.420 --> 12:23.940
+So it's like creating a precise map of all the folds and creases in the data structure.
+
+12:24.200 --> 12:25.060
+A perfect analogy.
+
+12:25.460 --> 12:28.040
+And the first rule of that map is the frontier condition.
+
+12:28.220 --> 12:29.020
+What does that state?
+
+12:29.360 --> 12:30.620
+It sets up the hierarchy.
+
+12:31.180 --> 12:36.300
+It says that if a higher dimensional stratum, say S beta, touches a lower dimensional one,
+
+12:36.400 --> 12:40.760
+S alpha, then S alpha has to lie in the boundary, the closure of S beta.
+
+12:40.980 --> 12:42.280
+So it's a kind of collapse.
+
+12:42.420 --> 12:42.980
+It's a collapse.
+
+12:42.980 --> 12:47.680
+The high dimensional space of all possible chairs might have a boundary that collapses
+
+12:47.680 --> 12:50.140
+onto the lower dimensional stratum of three-legged stools.
+
+12:50.960 --> 12:55.040
+The simpler object has to be contained within the limit of the more complex one.
+
+12:55.100 --> 12:59.100
+That seems critical for managing how the model makes transitions between concepts.
+
+12:59.620 --> 13:01.120
+Now, for the really technical part.
+
+13:01.820 --> 13:05.620
+The Whitney conditions, A and B. Why are these so crucial?
+
+13:05.960 --> 13:09.440
+They're all about making sure the geometry behaves nicely near those boundaries.
+
+13:09.440 --> 13:13.340
+Whitney condition, A, is about the continuity of the tangent planes.
+
+13:13.680 --> 13:13.900
+Okay.
+
+13:14.040 --> 13:18.080
+Imagine you're walking on a big, smooth sheet of paper towards a sharp, clean crease.
+
+13:18.380 --> 13:19.940
+That's your lower dimensional stratum.
+
+13:20.080 --> 13:25.420
+As you get closer and closer to that crease, the tangent planes of the paper have to smoothly tilt
+
+13:25.420 --> 13:30.100
+until they line up with a plane that contains the tangent space of the crease itself.
+
+13:30.280 --> 13:33.940
+So the geometry kind of prepares for the change in dimensionality.
+
+13:34.020 --> 13:35.000
+There are no sudden jumps.
+
+13:35.280 --> 13:36.120
+No sudden jumps.
+
+13:36.120 --> 13:42.120
+It ensures that our projection operator, pi, remains stable and well-defined right up to the boundary.
+
+13:42.920 --> 13:44.880
+And the Whitney condition, B, is even more subtle.
+
+13:45.000 --> 13:46.700
+It's about how secant lines behave.
+
+13:47.000 --> 13:49.500
+A secant line just connects two nearby points, right?
+
+13:49.500 --> 13:49.640
+Right.
+
+13:49.760 --> 13:52.940
+And near a singularity, if the geometry is pathological,
+
+13:53.480 --> 13:56.400
+you could have a situation where the second line between two points
+
+13:56.400 --> 13:59.880
+ends up being totally orthogonal to the lower dimensional stratum,
+
+14:00.240 --> 14:02.300
+even as the points get infinitely close to it.
+
+14:02.300 --> 14:07.720
+That sounds bad. Like the two parts of the space are completely disconnected right at the boundary.
+
+14:08.000 --> 14:12.680
+It's very bad. It creates a kind of geometric vortex where the optimization flow could just break.
+
+14:13.060 --> 14:16.660
+Condition B prevents that. It ensures the second lines smoothly align.
+
+14:17.100 --> 14:22.820
+Together, A and B guarantee that MGI's geometric machinery is robust, even at every single corner increase.
+
+14:22.820 --> 14:28.780
+Okay, so we have this beautifully structured space. Now we need the function that guides the optimization flow on it.
+
+14:29.320 --> 14:33.180
+MGI doesn't use a standard loss function. It uses a stratified Morse potential.
+
+14:33.640 --> 14:36.640
+Why is a simple, smooth loss function not good enough here?
+
+14:36.840 --> 14:42.860
+Because a standard loss function can create what are called degenerate critical points, especially near singularities.
+
+14:42.860 --> 14:46.060
+And a degenerate critical point is what, a big flat area?
+
+14:46.280 --> 14:50.740
+A big flat area, or a very ill-conditioned saddle point where the gradient is zero,
+
+14:51.080 --> 14:53.160
+but the curvature is also zero in some directions.
+
+14:53.540 --> 14:57.040
+The optimization flow can just stall out or become completely unpredictable.
+
+14:57.500 --> 14:59.120
+It's an unstable semantic state.
+
+14:59.320 --> 15:00.780
+And a Morse function fixes this.
+
+15:01.000 --> 15:04.860
+A true Morse function guarantees that all of its critical points are non-degenerate.
+
+15:05.760 --> 15:10.240
+This means the second derivative, the Hessian, is invertible at every critical point.
+
+15:10.320 --> 15:11.020
+What is that bias?
+
+15:11.020 --> 15:16.260
+It means every minimum is a clean, distinct, well-shaped basin of attraction.
+
+15:17.000 --> 15:18.400
+Every saddle point is sharp.
+
+15:18.960 --> 15:22.180
+It gives the landscape a predictable, well-structured flow.
+
+15:23.240 --> 15:27.280
+Morse theory actually connects the topology of the space to the flow of the function on it.
+
+15:27.360 --> 15:30.240
+So a stratified Morse potential just extends that property.
+
+15:30.420 --> 15:32.620
+It's Morse on every single smooth stratum.
+
+15:32.960 --> 15:36.660
+And the way it behaves across the boundaries is compatible with the stratification.
+
+15:37.020 --> 15:37.900
+That's the whole idea.
+
+15:37.900 --> 15:43.080
+The stable outcomes we want the system to find, the coherent semantic states,
+
+15:43.620 --> 15:47.680
+correspond precisely to the non-degenerate minima of this potential, V.
+
+15:48.260 --> 15:50.880
+The landscape itself is engineered for stability.
+
+15:51.260 --> 15:55.260
+And the signal for when we need to jump from one stratum to another, that comes from the gradient.
+
+15:55.260 --> 15:55.780
+Yes.
+
+15:56.540 --> 16:01.840
+The normal component of the ambient gradient, grad perp of V, is no longer just noise to be thrown away.
+
+16:02.160 --> 16:03.820
+It becomes an explicit signal.
+
+16:04.300 --> 16:09.060
+It measures how strongly the potential is trying to pull the representation off the current stratum.
+
+16:09.120 --> 16:10.560
+So if that pull gets too strong.
+
+16:10.600 --> 16:14.200
+It means your current semantic mode, your current stratum, is inadequate.
+
+16:14.620 --> 16:16.640
+It's a geometric signal to reconfigure.
+
+16:17.040 --> 16:17.580
+Time to jump.
+
+16:17.580 --> 16:20.960
+So we have the stage, we have the map, now we need to define the movement.
+
+16:21.400 --> 16:25.460
+And MGI is a discrete version of something called Ramanian heavy ball dynamics.
+
+16:25.660 --> 16:25.880
+Right.
+
+16:26.000 --> 16:29.760
+Which is itself a generalization of the classical momentum method from Polyak.
+
+16:30.080 --> 16:32.220
+It's useful to remember that original idea.
+
+16:32.500 --> 16:37.160
+It was a second order ODE meant to help escape shallow minima in flat space.
+
+16:37.360 --> 16:37.660
+Right.
+
+16:37.740 --> 16:39.080
+The classic heavy ball equation.
+
+16:39.080 --> 16:44.820
+And the Ramanian version just swaps out the standard time derivatives for the covariant derivative.
+
+16:45.560 --> 16:51.860
+The covariant derivative is what correctly accounts for how a tangent vector changes as you move it across a curved surface.
+
+16:52.440 --> 16:55.560
+It makes sure the momentum you're carrying is always geometrically coherent.
+
+16:55.980 --> 16:59.260
+So this brings us to the actual discrete update rule for MGI.
+
+16:59.680 --> 17:01.820
+It happens in two steps inside a given stratum.
+
+17:02.060 --> 17:04.000
+Step one is the velocity update.
+
+17:04.000 --> 17:11.960
+Okay, so the equation is VK plus 1 equals beta times VK plus the projection onto the tangent space of the gradient of V.
+
+17:12.420 --> 17:15.460
+And the really critical part there seems to be the order of operations.
+
+17:15.780 --> 17:16.480
+It's everything.
+
+17:17.080 --> 17:22.880
+The key is that explicit projection, the pi operator, happens before you add the old momentum, the beta VK term.
+
+17:23.340 --> 17:26.280
+You take the new instruction, the gradient, you immediately filter out the noise,
+
+17:26.440 --> 17:31.060
+and only then do you combine that clean, coherent signal with your past momentum.
+
+17:31.060 --> 17:33.900
+So the noise never even gets a chance to enter the momentum loop.
+
+17:34.000 --> 17:35.020
+You kill it at the source.
+
+17:35.160 --> 17:35.900
+You kill it at the source.
+
+17:36.260 --> 17:41.800
+And that guarantees that your new velocity vector, VK plus 1, is tangent-aligned and semantically meaningful.
+
+17:42.340 --> 17:44.680
+Then comes step two, the position update.
+
+17:44.920 --> 17:50.380
+Which is XK plus 1 equals the exponential map at XK of minus eta times VK plus 1.
+
+17:50.500 --> 17:50.720
+Right.
+
+17:50.800 --> 17:53.340
+And here, the magic is the exponential map.
+
+17:53.880 --> 17:56.480
+It ensures the step you take is a geodesic step.
+
+17:56.620 --> 18:01.720
+It guarantees that your new position, SK plus 1, lands squarely back on the manifold down.
+
+18:01.720 --> 18:08.540
+And this combination gives MAGI what the sources call its crucial structural advantage, normal component suppression.
+
+18:08.940 --> 18:11.940
+This is where you can really see the mathematical difference from SGDM.
+
+18:12.060 --> 18:13.260
+Let's make that super explicit.
+
+18:13.480 --> 18:13.580
+Yeah.
+
+18:13.580 --> 18:18.680
+In SGDM, the velocity update just adds the whole raw, unfiltered gradient.
+
+18:18.920 --> 18:21.120
+So the noisy normal component gets in there.
+
+18:21.420 --> 18:27.620
+And because the momentum term carries velocity over from the last step, those normal components just accumulate.
+
+18:27.820 --> 18:28.700
+They build up over time.
+
+18:28.760 --> 18:29.220
+They build up.
+
+18:29.220 --> 18:34.700
+The noise from step one gets amplified by the momentum factor of beta in step two and again in step three and so on.
+
+18:35.040 --> 18:37.640
+That is the mathematical origin of the drift and instability.
+
+18:38.140 --> 18:40.420
+So the momentum in SGDM is a double-edged sword.
+
+18:40.680 --> 18:44.600
+It helps you get over small hills, but it also amplifies any garbage in the signal.
+
+18:45.000 --> 18:45.620
+Perfectly put.
+
+18:46.180 --> 18:50.280
+And the AMGI suppression theorem proves that AMGI structurally avoids this.
+
+18:50.280 --> 18:57.920
+Because the gradient term is projected to have a zero normal component at every single step, the new velocity is always tangential.
+
+18:58.760 --> 19:03.840
+Any tiny bit of normal component you might see after the update doesn't come from accumulated noise.
+
+19:04.140 --> 19:08.540
+It comes from the intrinsic curvature of the manifold itself over that discrete step.
+
+19:08.960 --> 19:11.760
+It's an irreducible geometric effect, not accumulated error.
+
+19:11.880 --> 19:12.300
+Exactly.
+
+19:12.740 --> 19:17.300
+The system is structurally incapable of accumulating that destructive extrinsic noise.
+
+19:17.300 --> 19:22.000
+Okay, but what happens when that normal signal, the grad perp, gets too strong?
+
+19:22.340 --> 19:24.820
+When the system knows its current explanation is wrong?
+
+19:25.120 --> 19:26.760
+That's the stratum transition mechanism.
+
+19:26.980 --> 19:27.100
+Right.
+
+19:27.280 --> 19:36.140
+If the size of that normal gradient gets bigger than some fixed threshold, theta, the system declares the current semantic mode, S-alpha, to be inadequate.
+
+19:36.740 --> 19:37.820
+It needs to reconfigure.
+
+19:38.100 --> 19:39.820
+So it has to jump to a different stratum.
+
+19:39.820 --> 19:51.780
+It finds a new, locally minimal, admissible stratum, S-beta, which just means it jumps to a new mode, usually a simpler or lower-dimensional one, and the jump itself is guaranteed to decrease the potential value, V.
+
+19:52.000 --> 19:54.840
+So the reconfiguration itself is a form of descent.
+
+19:55.260 --> 19:55.960
+It has to be.
+
+19:56.280 --> 20:01.520
+It ensures that this high-level semantic shift is still aligned with the overall optimization goal.
+
+20:01.520 --> 20:09.320
+It moves the system from a complex or unstable state towards a stable, non-degenerate minimum in a new, more appropriate context.
+
+20:09.860 --> 20:12.740
+It connects at the low-level geometry to high-level decision-making.
+
+20:13.200 --> 20:16.180
+I think this next section is where the whole thing really clicks into place.
+
+20:16.660 --> 20:22.080
+We've shown MAGI is better, but the sources argue that SGDM isn't just a different, worse algorithm.
+
+20:22.580 --> 20:26.840
+It is the geometric equivalent of turning all of MAGI's advanced features off.
+
+20:26.840 --> 20:32.700
+This is the MAGI-SGDM equivalence theorem, and it establishes this really strict mathematical hierarchy.
+
+20:33.200 --> 20:38.520
+SGDM is what you get when you're, well, when you're mathematically lazy and just assume the world is flat.
+
+20:38.660 --> 20:43.960
+So we can actually derive SGDM by systematically collapsing all the geometric structures in MAGI.
+
+20:44.220 --> 20:44.600
+We can.
+
+20:44.780 --> 20:51.780
+There are six specific conditions, six assumptions you have to make, and each one is like philosophically deleting a piece of reality.
+
+20:52.000 --> 20:52.920
+Okay, let's walk through them.
+
+20:53.060 --> 20:56.060
+Condition one denies the most basic observation about data.
+
+20:56.060 --> 21:01.560
+Condition one, the manifold is the ambient space, M equals Rn.
+
+21:02.020 --> 21:04.840
+This is a flat-out denial of the manifold hypothesis.
+
+21:05.380 --> 21:10.100
+You're assuming that every single point in your billion-dimensional parameter space is equally meaningful.
+
+21:10.620 --> 21:14.100
+You're removing all the structure that makes data natural.
+
+21:14.280 --> 21:15.960
+And condition two follows right from that.
+
+21:16.160 --> 21:21.540
+Condition two, the stratification is trivial, a single stratum, S0, which is just Rn.
+
+21:21.540 --> 21:29.000
+If the whole space is just one big flat grid, then of course there are no boundaries, no corners, no singularities to worry about.
+
+21:29.260 --> 21:32.160
+You're eliminating the whole idea of semantic reconfiguration.
+
+21:32.320 --> 21:32.640
+Don't.
+
+21:32.760 --> 21:35.240
+Conditions three and four, then remove the fundamental filter.
+
+21:35.380 --> 21:35.640
+Okay.
+
+21:35.800 --> 21:38.440
+Condition three, the tangent space is the whole space.
+
+21:38.860 --> 21:41.860
+And condition four, the tangent projection is the identity.
+
+21:41.860 --> 21:47.980
+If your manifold is the whole space, then the tangent space at any point is also the whole space.
+
+21:48.100 --> 21:49.860
+Which means the normal space is nothing.
+
+21:50.520 --> 21:51.080
+It vanishes.
+
+21:51.220 --> 21:52.620
+The geometric dichotomy is gone.
+
+21:53.060 --> 21:56.440
+There's no longer any distinction between a meaningful move and a hallucinatory one.
+
+21:56.520 --> 22:00.080
+You are mathematically forced to treat noise as if it were a valid signal.
+
+22:00.420 --> 22:00.940
+You have to.
+
+22:01.460 --> 22:05.660
+Then, conditions five and six get rid of curvature and the structure of the loss.
+
+22:05.800 --> 22:06.000
+Right.
+
+22:06.480 --> 22:09.520
+Condition five, the exponential map is just translation.
+
+22:09.520 --> 22:14.080
+Since we're assuming the space is flat, all geodesics are just straight lines.
+
+22:14.720 --> 22:20.180
+So the fancy geometric update, XP sub-X of V, collapses into simple addition, X plus V.
+
+22:20.320 --> 22:23.020
+We lose the ability to move in a way that respects curvature.
+
+22:23.220 --> 22:24.760
+Because we've assumed there is no curvature.
+
+22:25.660 --> 22:30.100
+And finally, condition six, the potential is just any old smooth function.
+
+22:30.520 --> 22:31.820
+We ditch the Morse constraints.
+
+22:32.260 --> 22:38.280
+This brings back the possibility of those nasty degenerate saddles in big flat regions that make optimization so unstable.
+
+22:38.280 --> 22:44.480
+So when you take the MAGI update rule and you apply all six of these geometry-destroying assumptions...
+
+22:44.480 --> 22:46.200
+The projection operator becomes the identity.
+
+22:46.820 --> 22:48.380
+The exponential map becomes addition.
+
+22:48.940 --> 22:51.240
+The Morse potential becomes a generic function F.
+
+22:51.560 --> 22:55.140
+And what you're left with is the exact standard SGDM update rule.
+
+22:55.480 --> 23:01.100
+VK plus 1 equals beta VK plus grav, and XK plus 1 equals SK minus eta VK plus 1.
+
+23:01.220 --> 23:04.900
+It's recovered perfectly as the degenerate least structured boundary case.
+
+23:04.900 --> 23:09.900
+It is. And this gives us a rigorous structural hierarchy of optimization dynamics.
+
+23:10.120 --> 23:13.700
+We're not just comparing apples and oranges. One is a subset of the other.
+
+23:14.240 --> 23:21.960
+The inclusion is strict. You start with basic gradient descent, you add inertia, you get SGDM, but it has no geometric constraints.
+
+23:22.260 --> 23:26.580
+You add geodesic motion, you get Ramanian momentum, but that can't handle singularities.
+
+23:26.580 --> 23:30.900
+And finally, you add stratification and Morse theory, and you get MAGI.
+
+23:31.440 --> 23:35.460
+Each step adds a layer of geometric structure that the previous one lacked.
+
+23:36.000 --> 23:38.520
+AGI is the geometric completion of the whole idea.
+
+23:38.800 --> 23:42.820
+Okay, so this framework has really profound implications for generative models.
+
+23:43.540 --> 23:46.220
+Generative AI is all about creating structure, right?
+
+23:46.660 --> 23:53.740
+But as we've just established, the second it tries to create structure where there is none in that normal space, it's doomed to fail.
+
+23:53.740 --> 23:56.360
+And that leads directly to the core principle from MGI.
+
+23:57.060 --> 23:59.540
+Generative models must never predict noise.
+
+24:00.120 --> 24:02.480
+Which is formalized in the no-noise prediction theorem.
+
+24:02.640 --> 24:04.460
+Right, which is the core alignment criterion.
+
+24:04.700 --> 24:12.180
+It states pretty simply that a generative model is semantically aligned if and only if its updates have a zero component in the normal directions.
+
+24:12.580 --> 24:16.640
+So why is that constraint so absolutely vital for stability?
+
+24:16.640 --> 24:23.220
+Well, think about what happens if a model predicts an update that has a non-zero normal component.
+
+24:24.040 --> 24:28.840
+It is actively trying to push the representation off the manifold of real data.
+
+24:29.100 --> 24:30.220
+It's pushing into the noise.
+
+24:30.400 --> 24:31.440
+It's pushing into the noise.
+
+24:31.640 --> 24:39.640
+And since that normal space is incredibly high dimensional, trying to model it causes the effective dimensionality of your problem to just explode.
+
+24:39.640 --> 24:49.680
+It directly leads to instability, to artifacts, to hallucination, semantic coherence, geometrically demands, tangent-only prediction.
+
+24:50.080 --> 24:54.820
+And this geometric perspective lets us reinterpret some really big recent empirical breakthroughs.
+
+24:55.040 --> 25:01.200
+Let's talk about the success of models like the Just Image Transformers or GT and contrast them with classical diffusion models.
+
+25:01.340 --> 25:07.700
+Right, so classical diffusion models, they work by adding noise to data, then training a network to predict that noise, to predict epsilon.
+
+25:07.700 --> 25:10.320
+So the learning objective itself is focused on the noise.
+
+25:10.700 --> 25:11.220
+Exactly.
+
+25:11.860 --> 25:20.860
+It compels the model to learn a vector field that has to point significantly to the normal space, NXM, in order to predict that noise component.
+
+25:21.520 --> 25:27.880
+Our geometric analysis says that forcing a model to operate in the noise gundal is inherently going to compromise its stability.
+
+25:28.160 --> 25:33.080
+Okay, and then GT comes along, shows this remarkable stability and performance, and it does something totally different.
+
+25:33.080 --> 25:38.200
+It trains the transformer to just predict the clean image X directly.
+
+25:38.440 --> 25:45.240
+And from the MAN-GI perspective, GT succeeded precisely because it enforced an implicit tangent-constrained flow.
+
+25:45.440 --> 25:46.080
+How so?
+
+25:46.240 --> 25:55.320
+By setting the target as the clean image X, which by definition lies on the data manifold M, the loss function naturally encourages updates that stay on or move towards M.
+
+25:55.720 --> 25:59.320
+The residuals, the errors, are naturally forced to lie in the tangent space.
+
+25:59.320 --> 26:05.500
+So the model doesn't need an explicit projection operator. The objective function itself acts as the geometric constraint.
+
+26:05.860 --> 26:08.440
+It accidentally obeyed the fundamental geometric law.
+
+26:09.240 --> 26:11.120
+And the conclusion is pretty stark.
+
+26:11.980 --> 26:15.180
+GT's success isn't primarily about the transformer architecture.
+
+26:15.640 --> 26:24.640
+It's a massive empirical validation that constraining the dynamics to the manifold is more important for stability than just raw scale or architectural tweaks.
+
+26:24.820 --> 26:26.320
+The geometry provides the scaffolding.
+
+26:26.320 --> 26:27.320
+Absolutely.
+
+26:27.320 --> 26:30.140
+So let's bring this all the way back to cognition itself.
+
+26:30.280 --> 26:35.700
+The sources introduced this idea of CLIO functor's cognitive loop via in-situ optimization.
+
+26:36.240 --> 26:40.880
+CLIO is a formal model for that loop of perception to prediction to action.
+
+26:41.540 --> 26:50.600
+And MAN-GI shows that a single cognitive update, a moment of reinterpreting something, can be modeled as one time step of the negative gradient flow on that Morse potential we talked about.
+
+26:50.680 --> 26:52.840
+This is the CLIO Morse correspondence.
+
+26:52.840 --> 26:58.280
+It is. And it means that fundamentally, cognition is Morse theory on a semantic manifold.
+
+26:58.740 --> 27:07.760
+Our stable interpretations of the world, our core concepts, they correspond precisely to the non-degenerate minima of that cognitive potential function.
+
+27:08.320 --> 27:17.120
+The entire process of paying attention, of reaching a stable conclusion about what you're seeing, is governed by these predictable, structured, geometric flows.
+
+27:17.120 --> 27:22.420
+We've gone from the chaos of SGDM to the very precise, structured flow of ABI.
+
+27:23.060 --> 27:26.900
+But before we wrap up, there's one final layer of coherence we need to talk about.
+
+27:27.400 --> 27:36.240
+How does this all hold up when a system is dealing with multiple overlapping contexts at once, like vision and language and motor control, all happening together?
+
+27:36.240 --> 27:39.080
+For that, you need the concept of sheaf coherence.
+
+27:39.640 --> 27:42.000
+Sheaf theory is really the mathematics of consistency.
+
+27:42.480 --> 27:50.160
+When a cognitive system processes different inputs, it creates these local semantic states, a local visual state, a local linguistic state.
+
+27:50.720 --> 27:56.300
+A sheaf is what ensures that these local states can be glued together consistently wherever their contexts overlap.
+
+27:56.300 --> 28:03.760
+So if I'm looking at an apple and reading the word apple, my visual representation and my linguistic representation have to agree on their shared properties.
+
+28:04.220 --> 28:04.660
+They have to.
+
+28:05.080 --> 28:11.460
+And inconsistencies, or what we call semantic obstructions, happen precisely when that global state fails to glue together.
+
+28:12.540 --> 28:19.040
+Mathematically, this failure is measured by something called the first cohomology group, H1, of the semantic sheaf.
+
+28:19.280 --> 28:24.020
+So if H1 is non-zero, it means there's a contradiction somewhere that can't be resolved.
+
+28:24.180 --> 28:25.960
+It means there's a global obstruction, yes.
+
+28:25.960 --> 28:31.000
+Can you give us a more intuitive example of what a semantic obstruction would look like in a generative model?
+
+28:31.180 --> 28:31.340
+Sure.
+
+28:31.500 --> 28:41.440
+Imagine a model gets two conflicting inputs, a visual input of a totally serene, calm lake and a linguistic prompt to generate a violent, raging storm.
+
+28:41.880 --> 28:50.500
+The local semantic state for serene lake and the one for raging storm are defined on overlapping parts of the manifold, but they're completely contradictory.
+
+28:50.960 --> 28:52.040
+So the model has to choose?
+
+28:52.380 --> 28:53.180
+It has to choose.
+
+28:53.180 --> 29:01.140
+If it can't resolve that conflict by cleanly transitioning to a stratum that represents one or the other, then H1 becomes non-zero.
+
+29:01.540 --> 29:04.980
+The model might just hallucinate, trying to merge them in a nonsensical way.
+
+29:05.320 --> 29:08.660
+You'd get a serene lake, but with weird, violent, glitchy textures.
+
+29:08.660 --> 29:17.980
+MBGI, because its updates follow these stable Morse flows, is designed to always move towards consistency and prevent those H1 obstructions from ever forming.
+
+29:17.980 --> 29:21.920
+This framework really does seem to have this incredible unifying power.
+
+29:22.060 --> 29:23.680
+It pulls together all these different fields.
+
+29:23.940 --> 29:24.260
+It does.
+
+29:24.360 --> 29:29.540
+It synthesizes classical optimization, Romanian geometry, Morse theory, and singularity theory.
+
+29:29.700 --> 29:31.940
+It provides the geometric completion for these methods.
+
+29:32.320 --> 29:38.580
+It enforces coherence by demanding that the optimization path respects the actual geometry of the data itself.
+
+29:38.580 --> 29:43.640
+But this is still a theoretical framework, and implementing this stuff in high dimensions is always the challenge.
+
+29:44.240 --> 29:49.400
+What are the big computational hurdles to actually building MBI into a real large-scale system?
+
+29:49.780 --> 29:51.920
+The main challenge is, of course, the computational cost.
+
+29:52.680 --> 30:01.220
+Learning the tangent bundles and calculating those projections in real time for a model with billions of parameters is, right now, fantastically expensive.
+
+30:01.220 --> 30:05.560
+It's not a simple matrix multiply like in SGDM.
+
+30:05.660 --> 30:06.400
+Not even close.
+
+30:07.120 --> 30:16.320
+Second, detecting the stratification, actually finding where all the corners and creases are in your data, is a known mathematically hard problem.
+
+30:16.680 --> 30:19.000
+It can have worst-case exponential complexity.
+
+30:19.160 --> 30:22.660
+So we're trying to discover the physics of the space while the model is learning.
+
+30:22.760 --> 30:23.740
+That's a great way to put it.
+
+30:23.920 --> 30:25.760
+And that discovery might not even be perfect.
+
+30:26.060 --> 30:28.280
+You have to deal with manifold estimation error.
+
+30:28.280 --> 30:35.600
+If your local map of the geometry is a bit off, then every projection and every curvature calculation will be slightly flawed.
+
+30:36.320 --> 30:42.520
+And finally, maybe the hardest problem of all is that for real-world data, the manifold itself might be dynamic.
+
+30:42.740 --> 30:44.800
+It might be changing over time as the system learns.
+
+30:45.040 --> 30:50.400
+MFD, which requires a whole other level of geometric analysis that's still very much an open research area.
+
+30:50.540 --> 30:55.880
+It's clear this has fundamentally changed how we should think about stability and coherence in these systems.
+
+30:55.880 --> 30:58.700
+The key, really, is geometric constraint.
+
+30:58.980 --> 31:06.420
+I think the most profound insight here is that semantic alignment isn't just about tweaking a loss function or throwing more GPUs at the problem.
+
+31:06.640 --> 31:08.700
+It is fundamentally about geometry.
+
+31:09.180 --> 31:20.300
+As long as our models are allowed to predict structure that is orthogonal to the beta manifold, as long as they can move into that normal bundle, they are mathematically destined to hallucinate.
+
+31:20.660 --> 31:23.420
+And the success of something like GT is the proof.
+
+31:23.640 --> 31:24.320
+It's the proof.
+
+31:24.320 --> 31:30.420
+It shows that constraining the geometry is ultimately more powerful than just increasing the computational budget.
+
+31:30.700 --> 31:34.200
+That's a structural insight that really puts the whole architectural debate into perspective.
+
+31:34.420 --> 31:35.660
+So I'll leave you with this final thought.
+
+31:35.760 --> 31:42.480
+Consider the intrinsic dimension of your own field's data, whether that's financial data, medical images, linguistic tokens, whatever it is.
+
+31:42.480 --> 31:58.560
+If you suspect that true underlying dimension is much smaller than the raw dimension you're working with, then how might a MAGI-like geometric constraint revolutionize your models by just commissioners, rigorously eliminating the failure modes that come from trying to model noise?
+
+31:58.560 --> 32:01.900
+That's the question that's going to drive the next decade of AI research.
+
