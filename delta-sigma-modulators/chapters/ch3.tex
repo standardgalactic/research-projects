@@ -1,0 +1,118 @@
+\chapter{Classical Delta--Sigma Modulation}
+
+Classical delta--sigma modulation occupies a central position in analog-to-digital and digital-to-analog conversion because it achieves exceptionally high effective resolution through oversampling and noise shaping. Although the architecture is simple in its canonical form, its behavior emerges from a rich interplay of quantization, feedback, spectral redistribution, and stability properties. The purpose of this chapter is to present the classical theory in rigorous mathematical form while preparing the ground for the geometric and field-theoretic reinterpretation developed in subsequent chapters. The presentation follows the established literature \citep{candy1992oversampling,schreier2005understanding}, while embedding the familiar results within the broader conceptual framework introduced in Chapter~2.
+
+\section*{3.1 Sampling, Quantization, and the Basic Loop}
+
+Consider a continuous-time signal (x(t)) band-limited to frequency (B). Sampling with period (T_s) produces the sequence (u[n] = x(nT_s)). Classical sampling theory dictates that perfect reconstruction is possible if (T_s < 1/(2B)). Delta--sigma modulation deliberately violates this minimal sampling condition by sampling far more frequently. Oversampling is essential because it spreads quantization error across a broader spectral range, creating degrees of freedom in which the error can be redirected.
+
+Quantization is modeled as a nonlinear map (Q : \mathbb{R} \to \Lambda), where ( \Lambda ) is a discrete set. Under conditions of busy input or with appropriate dither, quantization error can be approximated as an additive noise source \citep{widrow1956statistical,jayant1993digital}. Although this approximation conceals important nonlinear effects, it remains the standard starting point for classical analysis. Let the quantization error be defined by
+[
+e[n] = u[n] - y[n],
+]
+where (y[n] = Q(v[n])) is the quantized output of an internal signal (v[n]).
+
+The canonical first-order delta--sigma modulator consists of an integrator in the feedback path. In its simplest discrete-time description,
+[
+x[n+1] = x[n] + u[n] - y[n],
+]
+[
+v[n] = x[n].
+]
+The output is then (y[n] = Q(x[n])). The integrator accumulates the quantization error, providing the essential error-shaping property of the architecture. Even at this elementary level, the modulator exhibits rich nonlinear phenomena arising from the discontinuity of the quantizer. Classical analysis circumvents these difficulties through linearized modeling, which we now review.
+
+\section*{3.2 Linearized Noise-Shaping Theory}
+
+The classical approach models quantization as the addition of white noise:
+[
+y[n] = v[n] + \eta[n],
+]
+where ( \eta[n] ) is the quantization noise. Substituting into the state update gives
+[
+x[n+1] = x[n] + u[n] - v[n] - \eta[n].
+]
+Because (v[n] = x[n]), the internal state simplifies to
+[
+x[n+1] = u[n] - \eta[n].
+]
+Thus the state equals the input minus a low-pass filtered version of quantization noise. The output of the modulator can be expressed in terms of the input and the quantization noise by eliminating the state variable. The standard linearized block diagram yields
+[
+Y(z) = \mathrm{STF}(z) U(z) + \mathrm{NTF}(z) \Eta(z),
+]
+where
+[
+\mathrm{STF}(z) = 1, \qquad \mathrm{NTF}(z) = 1 - z^{-1}.
+]
+The signal is transmitted unchanged through the modulator, while the quantization noise is high-pass filtered. In the frequency domain, the magnitude of the noise transfer function satisfies
+[
+|\mathrm{NTF}(e^{j\omega})| = 2 \sin\left(\frac{\omega}{2}\right).
+]
+Low-frequency noise is attenuated and high-frequency noise is amplified. Oversampling ensures that the amplification at high frequencies does not degrade in-band performance.
+
+Higher-order modulators place additional integrators in the loop. An (L)-th order modulator yields the classical noise transfer function
+[
+\mathrm{NTF}(z) = (1 - z^{-1})^L,
+]
+which provides steeper attenuation in the band of interest at the cost of reduced stability margins. These results form the backbone of classical delta--sigma theory and remain essential in engineering practice, yet they omit the geometric meaning of noise shaping and the thermodynamic implications of entropy redistribution.
+
+\section*{3.3 Spectral Interpretation and Entropy Redistribution}
+
+The noise-shaping property of delta--sigma modulation is most commonly interpreted in terms of spectral energy. The quantization noise is initially spectrally white. After shaping by the noise transfer function, the spectral density of the noise becomes
+[
+S_{yy}(\omega) = |\mathrm{NTF}(e^{j\omega})|^2 S_{\eta\eta}(\omega),
+]
+where (S_{\eta\eta}(\omega)) is the power spectral density of the quantization noise. Oversampling lowers the in-band density by diluting the noise across a broader spectral range. Classical texts point out that increasing the oversampling ratio by a factor of (K) reduces the in-band noise power by roughly (K^{2L+1}) for an (L)-th order modulator \citep{schreier2005understanding}.
+
+In the geometric framework introduced earlier, this phenomenon reflects the transport of entropy to high-frequency modes. Quantization injects entropy at every sampling step, but the loop filter imposes a flow that exports this entropy to spectral regions where it is benign. The shaped spectral density is thus an entropy distribution function. The modulator is a system that continuously reorganizes the entropy of its error field. This interpretation is consistent with the thermodynamic view of dissipative systems \citep{willems1972dissipative} and aligns with the broader principles of entropy minimization in inference and control \citep{friston2019free}.
+
+\section*{3.4 Classical Stability Considerations}
+
+Stability analysis of delta--sigma modulators is notoriously subtle because the quantizer is a discontinuous nonlinearity. Linearized analyses predict stability only under small-signal conditions and often fail when the input signal is large or when the loop filter has aggressive noise-shaping characteristics. Classical stability criteria focus on bounding the internal state (x[n]). The existence of a bounded invariant set ensures that the modulator remains stable. Schreier and Temes emphasize that practical modulators often remain stable under far broader conditions than classical theory predicts \citep{schreier2005understanding}. This empirical robustness is largely responsible for the widespread adoption of the architecture.
+
+From the field-theoretic perspective, stability corresponds to the boundedness of the entropy and vector-flow fields that govern the internal state dynamics. The loop filter must ensure that the divergence of the vector field remains negative in a region containing the state trajectory. This aligns with Lyapunov-based approaches in classical control and with the dissipativity conditions introduced by Willems \citep{willems1972dissipative}. The entropy injected by the quantizer must be compensated by entropy dissipation through the loop filter. Later chapters make this interpretation explicit by constructing entropy-based Lyapunov functions that provide stability guarantees for both classical and manifold-aligned modulators.
+
+\section*{3.5 Nonlinearity, Saturation, and Practical Effects}
+
+Although linearized models offer elegant closed-form expressions for noise shaping, real-world modulators exhibit significant nonlinear behavior. Quantizer saturation can push the internal state into regions where the linearized model is invalid. Idle tones and limit cycles arise when the quantization error exhibits periodic or quasi-periodic structure that resonates with the loop dynamics. Dither is used to break these symmetries by injecting controlled randomness \citep{jayant1993digital}. Continuous-time modulators introduce additional nonlinearities because the loop filter is realized through analog circuits whose transfer functions deviate from the ideal.
+
+These phenomena, traditionally treated as engineering nuisances, acquire new meaning in the geometric and thermodynamic framework. Saturation corresponds to the state escaping the low-curvature region of the manifold where linearized approximations hold. Idle tones correspond to the system settling into periodic orbits that minimize the entropy potential. Dither corresponds to controlled entropy injection that restores ergodic behavior. The geometric interpretation thus transforms practical engineering considerations into natural consequences of the underlying field structure.
+
+\section*{3.6 Higher-Order Structures and Canonical Architectures}
+
+Higher-order delta--sigma modulators introduce additional integrators or loop-filter stages to achieve steeper noise shaping. The classical approach arranges these integrators either in feedforward or feedback configurations, producing canonical structures such as cascade-of-integrators with feedback (CIFB), cascade-of-integrators with feedforward (CIFF), and feedforward or feedback topologies with internal resonators. The general form of an (L)-th order loop filter may be expressed as a difference operator (L(z^{-1})) whose transfer function satisfies
+[
+H(z) = \frac{1}{(1 - z^{-1})^L} \quad \text{or variants thereof.}
+]
+The corresponding noise transfer function becomes
+[
+\mathrm{NTF}(z) = (1 - z^{-1})^L,
+]
+yielding in-band noise power that decreases polynomially with order.
+
+Classical design methodologies emphasize the arrangement of poles and zeros of the loop filter to satisfy stability constraints while maximizing in-band noise attenuation \citep{schreier2005understanding}. However, these classical descriptions do not capture the geometric significance of layering multiple integrators. In the field-theoretic interpretation, cascading integrators corresponds to increasing the order of the smoothing operator acting on the error field. The higher the order, the stronger the effective ``curvature correction'' applied to the entropy distribution. This resembles the behavior of higher-order differential operators in PDEs, where increasing order enhances smoothing but also introduces higher sensitivity to boundary conditions and nonlinearities \citep{arnold1989mathematical}.
+
+As higher-order loop filters become more aggressive, the stability region narrows. This is not merely an artifact of linearization but reflects the deeper geometric fact that stronger curvature corrections introduce more complex interactions with the quantizer's discontinuities. The quantizer injects entropy impulsively, and a high-order smoothing operator may overreact to these impulses, generating divergence in the vector field that drives the internal state. These geometric insights will play a key role in the entropy-based Lyapunov analyses presented later in the book.
+
+\section*{3.7 Multibit Delta--Sigma Modulators}
+
+Many practical delta--sigma modulators employ multi-level quantizers, producing multiple discrete output symbols rather than the single bit of a canonical modulator. The conventional motivation for multibit quantization is to reduce quantization noise and relax stability constraints. A multi-level quantizer reduces the step size of the collapse map, lowering the entropy injected into the error field. This reduction corresponds to a finer discretization of the underlying manifold of possible states.
+
+From the geometric perspective developed in the previous chapters, the discrete set ( \Lambda ) of quantizer outputs forms a tiling of the manifold ( \mathcal{X} ). A single-bit quantizer produces a coarse tiling, forcing the feedback loop to project large collapse errors back onto the manifold via the loop filter. A multibit quantizer increases the resolution of the tiling, thereby reducing the geometric distortion introduced by each collapse. This explains why multibit modulators exhibit greater robustness and less chaotic behavior \citep{candy1992oversampling}.
+
+Moreover, multibit quantizers enable the use of lower-order loop filters to achieve the same in-band noise suppression. In the thermodynamic interpretation, they decrease the entropy gradient that the loop filter must counteract. However, multi-level quantization introduces additional practical concerns, such as element mismatch and harmonic distortion, that require calibration or dynamic element matching. These issues, although technical in nature, also reflect geometric misalignment between the discrete symbolic structure and the smooth manifold of internal states.
+
+\section*{3.8 Classical Design Methodologies}
+
+Classical delta--sigma design relies heavily on linearized analysis and frequency-domain shaping. The process typically begins with the specification of the desired signal bandwidth, oversampling ratio, quantizer resolution, and acceptable noise floor. Designers then choose an NTF that provides sufficient in-band attenuation while remaining realizable and stable. Canonical criteria include placing NTF zeros at (z = 1) to maximize attenuation at low frequencies and ensuring that the poles of the loop filter lie within the unit circle.
+
+In discrete-time design, the Lee criterion provides an empirical stability bound: the maximum magnitude of the NTF should not exceed approximately two for single-bit modulators \citep{schreier2005understanding}. Although widely used, the Lee criterion is fundamentally heuristic. It captures the empirical fact that modulators with excessively large NTF magnitudes exhibit chaotic behavior, but it does not provide a rigorous mathematical explanation.
+
+Classical methodologies also include time-domain simulation to test stability and the use of state-space formulations to design multi-stage architectures. In continuous-time modulators, design must account for loop delay, excess loop phase, and the frequency response of analog components. Despite their practical value, these methodologies do not illuminate the deeper principles that unify stability, noise shaping, signal geometry, and entropy routing. They provide constraints and recipes rather than explanations.
+
+The geometric and entropy-field interpretations developed in this book do not replace classical methodologies but enrich them. They provide a deeper understanding of why certain designs work, why stability margins behave as they do, and how classical heuristics relate to general principles of vector flows and entropy dynamics. This enriched perspective allows design approaches to be extended naturally to manifold-constrained signals, continuous-time fields, multi-channel architectures, and cognitive or active-inference applications.
+
+\section*{3.9 Classical Delta--Sigma Theory as a Special Case of Field Dynamics}
+
+The preceding sections have described the classical theory of delta--sigma modulation in a rigorous and complete manner. When viewed through the geometric and field-theoretic framework introduced in Chapters~1 and~2, the classical results appear as special cases of more general principles. The integrator becomes a smoothing operator on the error field. The quantizer becomes a collapse map that injects entropy. The noise transfer function becomes a spectral representation of entropy routing. Stability becomes a statement about the divergence of a vector field and the boundedness of an entropy-based Lyapunov function.
+
+This reinterpretation lays the groundwork for the entropy-shaping and vector-flow interpretation of delta--sigma modulation introduced in Part~II. Classical theory provides the boundary conditions, the frequency-domain intuition, and the practical design constraints that engineers have refined for decades. The geometric framework extends these insights into a coherent field-theoretic system that unifies quantization, feedback, and stability across physical, cognitive, and computational domains. In the following chapters, this unified perspective will allow delta--sigma modulators to be reinterpreted as thermodynamic flow engines, manifold-aligned inference machines, and derived geometric structures capable of maintaining coherence under continuous symbolic collapse.

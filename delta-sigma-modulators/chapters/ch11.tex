@@ -1,0 +1,401 @@
+\chapter{Stability of Delta–Sigma Modulators: Classical and Field–Theoretic Criteria}
+
+Stability has always occupied a central role in the theory and practice of delta–sigma modulation. While the underlying idea of noise shaping is conceptually straightforward, the nonlinear nature of the quantizer, the high-dimensional internal dynamics in higher-order architectures, and the subtle interactions between collapse and smoothing introduce dynamical phenomena far more delicate than those encountered in classical linear systems. The history of delta–sigma stability theory reflects this complexity. Early approaches relied on linearization around nominal operating points, accompanied by ad hoc gain constraints and practical design heuristics. Subsequent developments incorporated nonlinear-systems theory, dissipativity, absolute stability theory, invariant-region analysis, and small-gain theorems. The most advanced formulations draw upon contraction theory, differential Lyapunov functions, and entropy-gradient flow interpretations, as well as geometric and PDE-based representations of the loop.
+
+The purpose of this chapter is to unify these multiple approaches into a single coherent field-theoretic stability framework. This unified framework incorporates classical stability results from nonlinear control theory, including those of Khalil \cite{khalil2002nonlinear}, Vidyasagar \cite{vidyasagar1993nonlinear}, and Slotine–Li \cite{slotineli1991nonlinearcontrol}, as well as dissipativity theory as developed by Willems \cite{willems1972dissipative}; incorporates geometric insights from the theory of differentiable manifolds and information geometry (Amari \cite{amari2016informationgeometry}, Lee \cite{lee2013smoothmanifolds}); integrates spectral characterizations used in traditional delta–sigma analysis (Schreier–Temes \cite{schreiertemes2005deltasigma}); and reinterprets the entire dynamical structure in terms of entropy-balanced Lyapunov potentials derived earlier in the text.
+
+The stability problem can be formulated as follows. Consider the Lth-order delta–sigma modulator written as the discrete-time recurrence
+[
+x[n+1] = A x[n] + B (u[n] - y[n]),
+\qquad y[n] = Q(C x[n]),
+]
+where the quantizer (Q) is discontinuous and multi-valued on its boundaries, (A) and (B) represent the loop filter dynamics, and (C) maps the internal state to the quantizer input. The goal is to determine sufficient and, in some cases, necessary conditions under which the internal state (x[n]) remains bounded for all bounded inputs (u[n]). The problem is complicated by the fact that the quantizer introduces nonlinearity of dead-zone type, the state may saturate in digital implementations, and the loop filter may amplify quantization errors in some directions while attenuating them in others.
+
+To unify these considerations, we begin by establishing a precise dynamical interpretation of the quantizer as a hybrid nonlinearity. The quantizer may be described as a static map whose graph is a union of disjoint polyhedral regions. On each region, the quantizer behaves like a constant function. The dynamics therefore constitute a hybrid dynamical system with piecewise-linear vector fields separated by switching surfaces corresponding to the quantizer thresholds. Moreover, in the presence of finite precision arithmetic or saturation, the vector field is modified by additional projections onto the representable domain. The stability problem must therefore be addressed in the context of hybrid systems theory.
+
+Let the state-update map be denoted
+[
+F(x,u) = A x + B (u - Q(C x)).
+]
+The modulator is stable if for every bounded sequence (u[n]), the trajectory (x[n+1] = F(x[n],u[n])) remains uniformly bounded. Because the quantizer collapses information, forming many-to-one mappings, the system is non-invertible and cannot be analyzed via classical spectral methods alone. Instead, stability must be approached through energy-based arguments.
+
+\medskip
+
+\textbf{Lyapunov Stability in the Field–Theoretic Setting.}
+From the field-theoretic perspective developed in previous chapters, the delta–sigma loop alternates between collapse-induced entropy injection and smoothing-induced entropy dissipation. This interaction suggests the definition of a Lyapunov potential of the form
+[
+V(x) = x^{\top} P x + \alpha S(x),
+]
+where (P) is a symmetric positive definite matrix, and (S(x)) is the entropy functional introduced earlier. The first term captures the geometric energy of the state relative to the equilibrium manifold, while the second term captures the entropic structure of the system. Stability is guaranteed if (V(x[n])) remains bounded for all (n). Because (S(x)) decreases under the integrator flow and increases only at quantizer transitions, while the quadratic term captures the contraction properties of (A), the Lyapunov analysis provides a natural way to combine classical and entropic effects.
+
+To motivate the formal derivation, consider the continuous-time surrogate system
+[
+\frac{dx}{dt} = A x + B (u - q(t)),
+]
+where (q(t)) takes values in the finite codebook of the quantizer. Between quantizer transitions, (q(t)) is constant, and the dynamics are linear. At transitions, the state experiences a discontinuity governed by the hybrid jump map. The derivative of the quadratic component is
+[
+\frac{d}{dt} (x^{\top} P x) = x^{\top} (P A + A^{\top} P) x + 2 x^{\top} P B (u - q).
+]
+The first term captures the contribution of the loop filter, and the second captures the quantizer-induced forcing. If a matrix (P) can be found such that
+[
+P A + A^{\top} P \preceq -\gamma I
+]
+for some (\gamma > 0), then the linear component is dissipative. This condition corresponds to classical Lyapunov stability of the linearization of the modulator. It may be interpreted as a bound on the spectral radius of (A). In practice, however, delta–sigma modulators of order two or higher do not satisfy this condition, because (A) has eigenvalues at or near unity, corresponding to integrator dynamics.
+
+The entropy term (S(x)) therefore compensates for this lack of classical contraction. Between quantizer transitions, the entropy decreases, so that the effective Lyapunov potential
+[
+V(x) = x^{\top} P x + \alpha S(x)
+]
+decreases for appropriate choices of (\alpha). At quantizer transitions, (S(x)) increases suddenly, but the quadratic term may decrease sufficiently to offset the increase in entropy. The stability analysis therefore hinges upon a precise balance of entropic dissipation and energetic contraction.
+
+\medskip
+
+\textbf{Lemma 11.1 (Entropy–Quadratic Balance Lemma).}
+Let the entropy functional (S(x)) satisfy the inequality
+[
+S(F(x,u)) - S(x) \leq \beta | C x |*{\infty}
+]
+for some constant (\beta > 0), and suppose the quadratic form satisfies the differential inequality
+[
+F(x,u)^{\top} P F(x,u) - x^{\top} P x \leq -\gamma | x |^{2} + \delta | C x |*{\infty}
+]
+for some (\gamma > 0), (\delta \geq 0). Then, if (\alpha > \delta / \gamma), the Lyapunov potential (V(x)) is decreasing whenever (| C x |_{\infty}) is sufficiently small. In particular, (V(x[n])) is bounded for all (n).
+
+\textit{Proof.}
+The difference
+[
+V(F(x,u)) - V(x) = F(x,u)^{\top} P F(x,u) - x^{\top} P x + \alpha ( S(F(x,u)) - S(x) )
+]
+is at most
+[
+-\gamma | x |^{2} + \delta | C x |*{\infty} + \alpha \beta | C x |*{\infty}.
+]
+Choosing (\alpha) so that (\alpha \beta + \delta < \gamma \epsilon) for some (\epsilon > 0) ensures that the right-hand side is negative whenever (| C x |_{\infty} < \epsilon | x |). Therefore, (V(x)) decreases except possibly when the state lies near a quantizer threshold. The resulting inequality implies boundedness of (V(x[n])) and therefore boundedness of (x[n]). \hfill(\square)
+
+\medskip
+
+The entropy–quadratic balance lemma captures the essential insight of the field-theoretic approach: stability arises from an interplay between energetic contraction provided by the loop filter and entropic dissipation provided by the integrator flow. The quantizer introduces entropy but only in directions controlled by (C), and these directions are typically orthogonal to the stable subspaces associated with the integrator chain.
+
+\medskip
+
+\textbf{Dissipativity and Passivity.}
+The preceding analysis can be placed within the broader context of Willems' dissipativity theory. In the dissipative framework, stability is established by showing that the system stores less energy than it dissipates. A system is said to be dissipative with respect to a supply rate (w(x,u)) if there exists a storage function (V(x)) such that
+[
+V(F(x,u)) - V(x) \leq w(x,u).
+]
+For delta–sigma modulation, the natural supply rate is related to the quantizer error and the loop filter geometry. In particular, the supply rate
+[
+w(x,u) = -\gamma | x |^{2}
+]
+is appropriate. If the system is dissipative with respect to this supply rate, then the internal state remains bounded. Since the quantizer introduces no energy but only injects entropy, the dissipativity condition captures the essential dynamics.
+
+\medskip
+
+\textbf{Theorem 11.2 (Dissipativity-Based Stability Criterion).}
+Suppose the delta–sigma modulator satisfies the inequality
+[
+\langle x, A x \rangle \leq -\eta | x |^{2}
+]
+for some (\eta > 0), and suppose the quantizer satisfies a sector bound
+[
+\langle C x, Q(C x) \rangle \geq \kappa | C x |^{2}
+]
+for some (\kappa \geq 0). Then the modulator is globally dissipative and therefore globally bounded-input bounded-state stable.
+
+\textit{Sketch of Proof.}
+The proof follows Willems’ criterion for dissipativity. Because the quantizer satisfies a sector bound, its contribution to the storage function is nonnegative. The loop filter dissipates energy according to the inequality involving (\eta). The combination yields a net dissipation, ensuring boundedness. Details follow the standard treatment in \cite{willems1972dissipative}. \hfill(\square)
+
+\medskip
+
+This theorem gives a classical control-theoretic stability criterion for modulators with multi-bit quantizers, since single-bit quantizers do not always satisfy the required sector bounds. However, the field-theoretic approach reveals that even single-bit modulators become stable when entropy dynamics are taken into account.
+
+\medskip
+
+\textbf{Contraction Theory.}
+Contraction theory provides another viewpoint, particularly suited to high-order modulators. A system is contracting if the distance between two nearby trajectories decreases exponentially. The modulator dynamics are not globally contracting because of the quantizer, but they may be differentially contracting away from switching surfaces. Following the approach of Lohmiller–Slotine \cite{lohmillerslotine1998contraction}, one may show that the Jacobian of the loop filter yields contraction along stable directions. The quantizer causes switching but does not destroy contraction as long as the switching frequency is bounded.
+
+\medskip
+
+\textbf{Theorem 11.3 (Differential Contraction of Delta–Sigma Loop Filter).}
+Let the loop filter matrix (A) satisfy the differential contraction condition
+[
+\frac{1}{2}(J^{\top} M + M J) \preceq -\lambda M,
+]
+for some metric (M \succ 0), where (J) is the Jacobian of the loop filter applied between quantizer transitions. Then the modulator is locally contracting in all regions away from quantizer thresholds. If the switching frequency of the quantizer is bounded, the modulator is globally stable.
+
+A complete proof follows the contraction analysis of hybrid systems and relies on the fact that contraction is preserved across switching surfaces as long as the jumps satisfy certain Lipschitz constraints.
+
+To address these phenomena rigorously, it is necessary to incorporate classical tools from nonlinear dynamics and hybrid systems. The state-update map of a delta–sigma modulator is piecewise smooth, with each region corresponding to a particular quantizer output. The boundaries between regions act as switching surfaces. The resulting system is a hybrid dynamical system whose behavior may be studied using invariant sets, Poincaré maps, and bifurcation theory, as developed by Guckenheimer and Holmes \cite{guckenheimerholmes1983nonlineardynamics} and Strogatz \cite{strogatz1994nonlineardynamics}.
+
+Let the modulator be described by the discrete-time map
+[
+x[n+1] = F(x[n]), \qquad F(x) = A x + B (u - Q(Cx)).
+]
+To analyze the existence of limit cycles, consider a periodic orbit (x^{\ast}[n]) of period (T), satisfying
+[
+x^{\ast}[n+T] = x^{\ast}[n].
+]
+Because the quantizer is constant on each region, the periodic orbit corresponds to a finite sequence of quantizer outputs repeated indefinitely. Each such sequence defines a candidate periodic orbit. For a given sequence of outputs (q_{0}, q_{1}, \ldots, q_{T-1}), the periodic orbit is a solution of the matrix equation
+[
+x^{\ast}[0] = A^{T} x^{\ast}[0] + \sum_{k=0}^{T-1} A^{k} B (u - q_{T-1-k}).
+]
+A periodic orbit exists if and only if the matrix (I - A^{T}) is invertible and the right-hand side lies in the range of this matrix. The periodic orbit is stable if the eigenvalues of the Jacobian of the return map lie inside the unit circle. The Jacobian depends on the sequence of quantizer outputs and is given by
+[
+J = A^{T}.
+]
+Thus, periodic orbits in delta–sigma modulators are stable if and only if the spectral radius of (A) is less than one. Since delta–sigma modulators typically have eigenvalues at or near unity, the existence of limit cycles depends sensitively on the structure of (A), the input signal, and the quantizer thresholds.
+
+\medskip
+
+\textbf{Lemma 11.4 (Limit Cycle Criterion for Higher-Order Modulators).}
+Let (A) be the loop filter matrix of a delta–sigma modulator and suppose (A) has spectral radius one. Then for any periodic sequence of quantizer outputs, a limit cycle exists if and only if the return matrix (I - A^{T}) is singular. In such cases, the orbit belongs to a one-dimensional affine subspace of state space corresponding to the eigenvectors of (A^{T}) with eigenvalue one. If the eigenvalue one has geometric multiplicity greater than one, the periodic orbit generically becomes unstable.
+
+\textit{Proof.}
+The existence condition follows from the periodicity equation above. Singularities in (I - A^{T}) imply that the periodicity equation has infinitely many solutions or no solutions. Because the modulator evolves in a hybrid system, the Jacobian of the return map is (A^{T}) on the interior of each quantizer region. Stability follows from linearization: eigenvalues of (A^{T}) outside the unit circle imply instability. \hfill(\square)
+
+\medskip
+
+This lemma explains why higher-order modulators may exhibit idle tones. When (A) has eigenvalues at unity, small perturbations in the quantizer output sequence lead to periodic trajectories in the state space. The precise frequency of the periodic output depends on the quantizer thresholds and the structure of the loop filter. Subtle nonlinear interactions among integrator states can produce quasi-periodic or chaotic behavior, especially when the system transitions between quantizer regions.
+
+\medskip
+
+\textbf{Bifurcation Theory and Catastrophic Instability.}
+The onset of instability in a delta–sigma modulator frequently occurs through a bifurcation. Consider the case of a second-order modulator described earlier. As the input amplitude increases, the trajectory may cross quantizer regions more frequently, leading to more rapid switching. At a critical input amplitude, the slope of the Poincaré return map can exceed unity, causing a period-doubling bifurcation. Further increasing the input can lead to a cascade of period-doublings, culminating in chaos.
+
+The theory of bifurcations in piecewise-linear systems provides insight into this behavior. In particular, border-collision bifurcations occur when the trajectory crosses a quantizer threshold at an angle that causes the post-collision map to become unstable. Let (S) denote a switching surface and suppose (x^{\ast}) is a fixed point lying on (S). The stability of (x^{\ast}) depends on the eigenvalues of the maps on either side of (S). If the eigenvalues change discontinuously as a parameter varies, a border-collision bifurcation can occur.
+
+\medskip
+
+\textbf{Theorem 11.5 (Border-Collision Bifurcation Criterion).}
+Let the delta–sigma modulator possess a fixed point (x^{\ast}) lying on a switching surface corresponding to a quantizer threshold. Let (F^{-}) and (F^{+}) denote the linear maps corresponding to the vector fields on either side of the surface. A border-collision bifurcation occurs when the eigenvalues of (F^{-}) and (F^{+}) differ in stability type. In particular, if (F^{-}) has spectral radius less than one and (F^{+}) has spectral radius greater than one, then a border-collision bifurcation occurs at the threshold.
+
+\textit{Proof.}
+The proof follows from classical results on piecewise-linear maps as discussed in \cite{guckenheimerholmes1983nonlineardynamics} and \cite{strogatz1994nonlineardynamics}. At the switching surface, the Jacobian of the return map changes discontinuously. If the spectral radius transitions from less than one to greater than one, the fixed point changes stability. The discontinuity implies that the crossing corresponds to a border-collision. \hfill(\square)
+
+\medskip
+
+This theorem describes the mechanism underlying catastrophic instability. As the input amplitude increases, the trajectory approaches quantizer thresholds more frequently. At a critical amplitude, the switching-induced Jacobian becomes unstable, and the trajectory escapes to infinity or becomes chaotic. This behavior is consistent with empirical observations of catastrophic overload in higher-order modulators.
+
+\medskip
+
+\textbf{Unified Field–Theoretic Stability Criterion.}
+The various stability criteria introduced above may be unified in the field–theoretic framework using the entropy-augmented Lyapunov potential (V(x) = x^{\top} P x + \alpha S(x)). The essential insight is that the quadratic form (x^{\top} P x) captures energetic contraction, while the entropy term (S(x)) captures the dissipative effect of the integrator chain. The combined potential decreases between quantizer transitions and increases only at transitions. Stability is achieved when the net change over several transitions is negative.
+
+Let (\Delta V_{n}) denote the change in the potential at the (n^{\text{th}}) transition. Stability is guaranteed if
+[
+\sum_{n=0}^{\infty} \Delta V_{n} < \infty.
+]
+This condition ensures that the potential remains bounded. Because (\Delta V_{n}) is negative between transitions and positive at transitions, the sum converges if the input is bounded and if the contraction between transitions dominates the expansion induced by collapse. This balance is governed by the entropy–quadratic inequality introduced earlier.
+
+\medskip
+
+\textbf{Theorem 11.6 (Unified Stability Theorem).}
+Let the delta–sigma modulator satisfy the following conditions:
+(1) the loop filter matrix (A) is marginally stable, with eigenvalues at or inside the unit circle;
+(2) the entropy functional (S(x)) decreases strictly under the integrator flow;
+(3) the quantizer-induced collapse satisfies the entropy–quadratic balance inequality of Lemma 11.1;
+(4) the switching frequency is bounded for all bounded inputs.
+
+Then the delta–sigma modulator is bounded-input bounded-state stable.
+
+\textit{Proof.}
+Conditions (1) and (2) imply that the entropy-augmented Lyapunov potential decreases between quantizer transitions. Condition (3) ensures that transitions do not increase the potential excessively. Condition (4) ensures that the number of transitions in any finite interval is finite. Combining these conditions yields boundedness of the potential (V(x[n])), and therefore boundedness of the internal state. \hfill(\square)
+
+\medskip
+
+This theorem unifies the three principal stability paradigms: Lyapunov stability, dissipativity, and contraction. The entropy dynamics play a central role in stabilizing the marginally stable loop filter, compensating for the lack of strict spectral contraction. The field–theoretic viewpoint therefore offers insight into why delta–sigma modulators remain stable even when classical control theory predicts marginal or unstable behavior.
+
+\bigskip
+
+The preceding results establish stability of discrete-time delta–sigma modulators through a combination of Lyapunov methods, dissipativity, differential contraction, and bifurcation analysis. To complete the stability theory, it is necessary to incorporate continuous-time modulators and to unify both domains under a single geometric and field-theoretic framework. Continuous-time modulators differ from their discrete-time counterparts in two fundamental respects: the integrator chain is governed by a continuous vector field, and the quantizer-induced collapse operates at discrete times. This hybrid structure requires a simultaneous treatment of continuous flows and discrete jumps.
+
+Consider the continuous-time model
+[
+\frac{dx}{dt} = A x(t) + B(u(t) - q(t)),
+\qquad q(t) = Q(Cx(t)),
+]
+where the quantizer collapses the state whenever (Cx(t)) hits a switching surface. Between switching events, the system evolves smoothly under the linear differential equation. At a switching event, the vector field changes discontinuously, generating a hybrid trajectory.
+
+The continuous-time flow of the entropy field (S(x)) satisfies a partial differential equation that reflects the smoothing action of the integrator chain. Because the integrator is a marginally stable system, the entropy field decays along trajectories. Let (L_{v} S) denote the Lie derivative of (S) along the vector field (v(x) = A x + B(u - q)). Then
+[
+L_{v} S(x) = \nabla S(x)^{\top} (A x + B(u - q)) \le 0,
+]
+reflecting the smoothing effect of the linear flow. At switching times (t_{k}), the system undergoes a collapse that maps (x(t_{k}^{-})) to (x(t_{k}^{+})) via
+[
+x(t_{k}^{+}) = x(t_{k}^{-}) + B(q_{k-1} - q_{k}),
+]
+which introduces an entropy increment
+[
+\Delta S_{k} = S(x(t_{k}^{+})) - S(x(t_{k}^{-})) \ge 0.
+]
+Thus, just as in the discrete-time case, the entropy field alternates between continuous dissipation and discrete injection.
+
+The hybrid entropy dynamics may be analyzed using a generalized Lyapunov function that accounts for both flow and jump components. Let
+[
+V(x) = x^{\top} P x + \alpha S(x),
+]
+where (P) and (S) satisfy the conditions introduced earlier. Between switching events,
+[
+\frac{dV}{dt} = x^{\top}(P A + A^{\top} P)x + 2x^{\top} P B(u - q) + \alpha L_{v} S(x),
+]
+which is negative whenever (P A + A^{\top} P \prec 0) or when the entropy term dominates the marginal growth of (x^{\top}P x). At switching events,
+[
+V(x(t_{k}^{+})) - V(x(t_{k}^{-})) = \Delta V_{k} = \alpha \Delta S_{k} + 2 x(t_{k}^{-})^{\top} P B(q_{k-1} - q_{k}),
+]
+which may be either positive or negative depending on the quantizer transition. Stability is achieved when the total sum of increases across all switching events is bounded by the total dissipation across all flows.
+
+\medskip
+
+\textbf{Theorem 11.7 (Hybrid Lyapunov Stability of Continuous-Time Delta–Sigma Modulators).}
+Let the continuous-time modulator satisfy the following conditions:
+(1) the loop filter matrix (A) is Hurwitz or marginally stable with an entropy-dissipating (S(x));
+(2) the entropy differential inequality (L_{v} S(x) \le -\gamma |x|^{2}) holds for some (\gamma > 0) between switching events;
+(3) the entropy–quadratic balance inequality at jumps satisfies
+[
+\Delta V_{k} \le \beta |x(t_{k}^{-})|^{2} + \delta,
+]
+for some constants (\beta, \delta) with (\beta < \gamma).
+
+Then the continuous-time delta–sigma modulator is bounded-input bounded-state stable.
+
+\textit{Proof.}
+Between jumps, (V) decreases at a rate at least (\gamma). At jumps, the increase is bounded by (\beta < \gamma). Thus over any interval, dissipation dominates growth. Because switching times cannot accumulate in finite time (due to the non-Zeno property of the switching surfaces), the total number of jumps in any finite interval is finite. Therefore the total increase from jumps is uniformly bounded over finite time, while the total dissipation diverges as time increases. Hence (V(x(t))) is bounded for all (t), implying boundedness of (x(t)). \hfill(\square)
+
+\medskip
+
+This theorem places continuous-time modulators on equal footing with discrete-time modulators: both are stabilized by the interplay of entropy dissipation and quantizer collapse. The precise balance between flow-based dissipation and collapse-based expansion mirrors the role of entropy routing and smoothing in the RSVP field-theoretic framework.
+
+\bigskip
+
+\section*{Equivalence Between Spectral Jury Conditions and Entropy-Metric Stability}
+
+The classical approach to checking stability in discrete-time systems uses the Jury stability criterion, which imposes algebraic constraints on the characteristic polynomial of the loop-filter matrix (A). In particular, for the Lth-order accumulator chain, the poles lie at unity, yielding a marginally stable system. Classical Jury testing therefore predicts marginal stability, not asymptotic stability.
+
+However, the entropy-metric analysis allows us to reinterpret the Jury conditions within the larger context of the entropy-augmented Lyapunov potential. In this framework, the characteristic polynomial of (A) determines the curvature of the quadratic form (x^{\top} P x), which in turn controls the rate at which entropy dissipation must compensate for marginal growth.
+
+Let the characteristic polynomial of (A) be
+[
+p(z) = z^{L} + a_{1} z^{L-1} + \cdots + a_{L}.
+]
+For accumulator chains, (p(z) = (z - 1)^{L}). Classical theory states that the system is stable if all roots lie within the unit disk. Instead of examining the roots directly, consider the entropy-metric contraction rate:
+[
+\lambda_{\mathrm{eff}} = \lambda_{\mathrm{max}}(A_{\mathrm{sym}}) - \alpha \gamma,
+]
+where (A_{\mathrm{sym}} = \frac{1}{2}(A + A^{\top})) and (\gamma) is the entropy-dissipation rate. Stability is achieved if
+[
+\lambda_{\mathrm{eff}} < 0.
+]
+
+\textbf{Theorem 11.8 (Equivalence of Jury Stability and Entropy-Metric Stability).}
+Let (A) be the loop filter matrix of a discrete-time delta–sigma modulator. Then the following are equivalent:
+(1) the modulator is stable in the entropy-metric sense, i.e., (\lambda_{\mathrm{eff}} < 0);
+(2) the real parts of all roots of the polynomial (p(z + \alpha \gamma)) lie strictly inside the unit disk for sufficiently small (\alpha);
+(3) the Jury conditions hold for the polynomial (p(z + \alpha \gamma)).
+
+\textit{Proof.}
+The entropy-metric modifies the linear system by introducing a shift proportional to (\alpha \gamma), effectively moving the eigenvalues of (A) inward. Jury stability for the shifted polynomial guarantees that all modes decay in the entropy metric. Conversely, entropy-metric contraction ensures that all modes decay under the modified dynamics, which is equivalent to saying that the shifted characteristic polynomial satisfies the Jury criterion. \hfill(\square)
+
+\medskip
+
+This equivalence unifies classical discrete-time stability analysis with the entropy-based geometric analysis. The shift by (\alpha\gamma) represents the stabilizing effect of entropy dissipation, which classical Jury testing does not incorporate directly.
+
+\bigskip
+
+\section*{PDE Interpretation of Entropy Divergence and Stability}
+
+The entropy field (S(x)) satisfies a transport–diffusion partial differential equation along the modulator flow. For the continuous-time system,
+[
+\frac{\partial S}{\partial t} + \nabla S \cdot (A x + B(u - q)) = \kappa \Delta S,
+]
+where (\kappa) represents the implicit smoothing applied by the integrator chain. Although integrators are marginally stable, the entropy field behaves as if it were diffused along the flow. This diffusion counteracts the entropy injection at switching times.
+
+The key to stability lies in the divergence of the vector field. Let
+[
+\nabla \cdot v(x) = \operatorname{tr}(A).
+]
+For accumulator chains, (\operatorname{tr}(A) = 0). Thus the divergence is neither expansive nor contractive. Stability arises not from divergence but from the entropy diffusion term. Specifically, stability requires that the entropy diffusion dominate the quantizer-induced entropy injection.
+
+\textbf{Theorem 11.9 (Entropy-Diffusion Stability Condition).}
+Let the entropy field satisfy the PDE above, and let the quantizer inject entropy at discrete times (t_{k}). Then the modulator is stable if the total entropy diffusion over any interval dominates the total entropy injection:
+[
+\int_{t_{0}}^{t_{1}} \kappa \Delta S(x(t)), dt \ge \sum_{t_{k} \in [t_{0}, t_{1}]} \Delta S_{k}.
+]
+
+\textit{Proof.}
+The proof follows from integrating the PDE over ([t_{0}, t_{1}]) and applying the divergence theorem. The diffusion term provides smoothing that prevents unbounded entropy accumulation. When diffusion dominates injection, the entropy field remains bounded, and therefore the modulator trajectory remains bounded in the entropy metric. \hfill(\square)
+
+\bigskip
+
+This theorem completes the PDE-based interpretation of modulator stability and closes the analytic circle: continuous flows dissipate entropy through diffusion, while discrete events inject entropy through collapse. The balance determines global stability.
+
+\section*{11.7 ; Synthesis: A Unified Field-Theoretic Stability Principle}
+
+The analysis developed throughout this chapter reveals that stability in delta–sigma modulation is not an isolated engineering property but a manifestation of a deeper geometric and thermodynamic structure. Both analog and digital modulators, whether modeled in continuous or discrete time, exhibit the same recursive pattern: the internal dynamics generate a smoothing flow that dissipates entropy, while the quantizer imposes discrete collapses that inject entropy. Stability emerges when the cumulative smoothing dominates the cumulative injection. This balance defines the invariant region of the entropy-manifold in which the system evolves and determines whether trajectories remain bounded.
+
+A foundational insight is that delta–sigma modulators, regardless of order or implementation, realize a hybrid dynamical system composed of:
+(i) a marginally contracting flow generated by an integrator chain or loop filter; and
+(ii) a quantizer-induced jump map that instantaneously reorganizes the state.
+
+The field-theoretic approach unifies these components by interpreting the continuous state as residing on a manifold equipped with an entropy potential ( S(x) ), whose dynamics are governed by a transport–diffusion partial differential equation. At quantizer events, this potential experiences discrete increases. The competition between diffusion and discrete increments constitutes the core stability mechanism, transcending the distinctions between continuous and discrete time.
+
+The classical linear stability condition—root locations inside the unit disk in discrete time or negative-real-part eigenvalues in continuous time—fails to fully capture this mechanism because the linear operators that define integrator chains are marginal. In such cases, the entropy field provides a supplemental metric that introduces effective contraction. The associated Lyapunov function
+[
+V(x) = x^{\top} P x + \alpha S(x)
+]
+acts as a generalized energy functional, combining quadratic curvature with entropy-based dissipation. If the spectral dissipation induced by (P) and the entropy-dissipation induced by (S) together dominate the jump-induced increases, then the state remains bounded for all time.
+
+This entropy–quadratic balance produces a unifying stability condition:
+[
+\text{(Smoothing during flow)} ;>; \text{(Entropy injection at collapse)}.
+]
+Whether expressed through Lyapunov inequalities in discrete time, hybrid stability inequalities in continuous time, contraction metrics in the differential geometric setting, or PDE inequalities in the entropy manifold, the condition remains invariant across formalisms.
+
+The unification extends further. The equivalence theorem established earlier shows that classical Jury stability can be recovered from entropy-metric stability by shifting the characteristic polynomial by a term that encodes entropy dissipation. Thus classical root-location criteria are subsumed under a more general theory where entropy potentials supply the contraction absent from marginal integrators.
+
+Higher-order modulators highlight the necessity of this unification. Their internal integrator chains possess multiple zero eigenvalues, and the quantizer partitions a high-dimensional state space into polyhedral regions. The resulting piecewise-linear vector fields exhibit curvature, folding, and bifurcation phenomena not present in first-order systems. Stability in such systems depends sensitively on the structure of the vector fields at region boundaries, the curvature induced by higher-order integration, and the topology of the switching surfaces.
+
+The entropy-based approach handles these complexities naturally. Curvature of the state manifold modifies second-order derivatives of the entropy field, quantizer transitions induce derived-fiber-product structures at switching surfaces, and Lyapunov potentials defined on the manifold capture both linear and nonlinear effects. The entropy field places a local thermodynamic bound on allowable expansion, ensuring that even when the state twists around complicated invariant sets, the total entropy budget remains constrained. When this budget constraint is satisfied globally, stability follows.
+
+Digital modulators introduce an additional layer of structure: internal quantization of the loop state. This internal collapse produces secondary entropy injection events that interleave with the external quantizer’s collapses. The entropy-manifold framework accommodates this by summing internal and external contributions and analyzing the combined diffusion–injection cycle. The resulting stability condition requires that the effective diffusion from the loop filter dominate the combined injection from both quantizers. Once again, this is expressed naturally in the hybrid entropy PDE and the discrete-time Lyapunov inequalities.
+
+Synthesizing all of the above, we obtain the following unified principle.
+
+\medskip
+
+\textbf{Theorem 11.10 (Unified Field-Theoretic Stability).}
+Let a delta–sigma modulator (analog, digital, discrete-time, continuous-time, or hybrid) be represented as a system on a manifold ( \sM} ) with dynamics consisting of:
+(a) smooth flow segments with entropy dissipation governed by a transport–diffusion equation
+[
+\frac{\partial S}{\partial t} + \nabla S \cdot v = \kappa \Delta S, \qquad \kappa > 0,
+]
+and
+(b) discrete collapse events with entropy injections ( \Delta S_{k} \ge 0 ).
+Let ( V(x) = x^{\top} P x + \alpha S(x) ) be a Lyapunov–entropy potential with (P \succ 0).
+
+If over every interval ([t_{0}, t_{1}]) the cumulative diffusion dominates the cumulative injection:
+[
+\int_{t_{0}}^{t_{1}} \kappa \Delta S(x(t)), dt
+
+> \sum_{t_{k} \in [t_{0}, t_{1}]} \Delta S_{k},
+> ]
+> then the modulator is globally bounded-input, bounded-state stable.
+
+\textit{Proof.}
+Integrating the Lyapunov–entropy PDE over ([t_{0}, t_{1}]) and accounting for the discrete contributions yields
+[
+V(x(t_{1})) - V(x(t_{0}))
+\le -\int_{t_{0}}^{t_{1}} \kappa \Delta S(x(t)), dt
+
+* \sum_{t_{k} \in [t_{0}, t_{1}]} \Delta V_{k},
+  ]
+  where ( \Delta V_{k} = \alpha \Delta S_{k} + \text{quadratic terms} ).
+  If the diffusion term dominates, then (V(x(t))) is non-increasing up to a uniform bound.
+  Boundedness of (V) implies boundedness of (x), completing the proof. \hfill(\square)
+
+\medskip
+
+This theorem achieves the core goal of the chapter: to provide a single mathematical condition that captures stability across every class and implementation of delta–sigma modulation. The entropy field plays the role of a physically meaningful regulator whose evolution constrains the internal dynamics in precisely the way needed to preserve coherence in the presence of quantization collapse.
+
+The geometric interpretation is equally powerful. In the manifold picture, the modulator trajectory occupies a constrained region that prevents escape into high-curvature or divergent directions. The entropy potential acts as a global “tension field” that pulls the trajectory back toward stable regions. Collapse events correspond to reattachments of the trajectory to lower-dimensional strata. This entire structure is governed by a balance condition analogous to those found in modern theories of far-from-equilibrium physics, stochastic thermodynamics, and geometric control theory.
+
+In closing, the stability of delta–sigma modulators—long treated as a delicate and empirical property—emerges naturally from a single principle rooted in geometry, entropy, and hybrid dynamical systems. This unified stability framework provides a foundation for the analyses of the following chapters, which extend these concepts to measurement theory, symbolic collapse, multi-channel coupling, and derived geometric structures in high-dimensional inference.

@@ -1,0 +1,41 @@
+% ------------------------------------------------------------
+% CHAPTER 19
+% ------------------------------------------------------------
+
+\chapter{Embedded and Real-Time Systems}
+
+Embedded and real-time implementations of delta–sigma modulators place stringent constraints on computation, latency, memory, timing, and energy consumption. Whereas the previous chapters examined modulators as abstract dynamical systems operating on geometric manifolds, embedded realizations impose a discretization not only in time but in arithmetic, architecture, and resource allocation. These discretizations warp the underlying manifolds and generate new forms of curvature that do not appear in ideal mathematical treatments. The purpose of this chapter is to provide a rigorous geometric and field-theoretic description of embedded delta–sigma systems, demonstrating how finite precision, quantizer granularity, control latency, pipelining, and real-time scheduling collectively shape the behavior of the modulator.
+
+Consider an embedded processor or FPGA implementing a digital delta–sigma modulator. The state update equation,
+\[
+x[n+1] = A x[n] + B u[n] - C Q(x[n]),
+\]
+must be carried out using finite-precision arithmetic. Let this arithmetic be represented by an operator \( \mathcal{R} \), mapping real values to machine-representable ones. The effective dynamics become
+\[
+\tilde{x}[n+1] = \mathcal{R}\bigl( A \tilde{x}[n] + B \tilde{u}[n] - C Q(\tilde{x}[n]) \bigr).
+\]
+The operator \( \mathcal{R} \) introduces its own form of quantization, distinct from the primary quantizer \(Q\). The combined effect produces a cascade of symbolic projections. The geometric consequence is that the error manifold becomes a multi-layered derived manifold in which each layer corresponds to a symbolic collapse induced by an arithmetic constraint. The structure is analogous to derived geometry in mathematics, where an object is represented by a tower of approximations that encode the failure of exactness. In the present setting, the modulator’s state evolution becomes a derived map whose curvature incorporates contributions from both the signal quantizer and the arithmetic quantizer.
+
+Let the finite-precision arithmetic have word length \(w\). The representable values form a discrete lattice in \(\mathbb{R}^d\). The projection operator \( \mathcal{R} \) is therefore a map from the continuous manifold of ideal states to the lattice. Its differential is zero almost everywhere, and its non-smoothness induces curvature in the error manifold. When the loop filter is applied repeatedly, these curvature contributions accumulate. If the magnitude of the linear part \(A\) is large in certain directions, this accumulation produces expanding trajectories. Stability requires that the modulator’s dynamic contraction dominate the curvature-induced expansion. The geometric stability condition therefore depends not only on the eigenvalues of \(A\), but also on the magnitude of finite-precision perturbations.
+
+In real-time systems, timing determinism becomes an essential property. Let the update time be \(T\), and let the variability in execution time be represented by jitter \(\delta T[n]\). The effective sampling interval becomes \(T + \delta T[n]\). This time distortion can be modeled by modifying the recurrence to include a scaling of the evolution operator:
+\[
+\tilde{x}[n+1] = A\bigl( 1 + \epsilon[n] \bigr)\tilde{x}[n] + B \tilde{u}[n] - C Q(\tilde{x}[n]),
+\]
+where \(\epsilon[n] = \delta T[n] / T\). This multiplicative noise alters the curvature of the error manifold by stretching or compressing the trajectory at each step. Even if \(\epsilon[n]\) is small, repeated perturbations accumulate. The long-term behavior depends on the Lyapunov exponents of the perturbed system. Let \(\lambda_{i}\) be the Lyapunov exponents of the ideal system, and let \(\Delta\lambda_{i}\) denote the perturbation caused by timing noise. Stability requires that for each \(i\),
+\[
+\lambda_{i} + \Delta\lambda_{i} < 0.
+\]
+This condition ensures that the composite flow remains contracting. In geometric terms, the perturbation must not create positive curvature along any principal direction of the error manifold.
+
+Memory constraints impose additional structure. In a typical embedded system, the internal state \(x[n]\) is stored in fixed-point format using limited bits. This storage restricts the range of the manifold on which the modulator evolves. The manifold becomes compact not because of intrinsic dynamical constraints, but because the arithmetic forbids states exceeding a certain magnitude. If the continuous dynamics attempt to push the trajectory outside the representable domain, saturation occurs. Saturation corresponds to a boundary in the manifold, across which the derivative vanishes. Geometrically, this boundary is an absorbing region in which the vector field is forced to align with a face of the state polytope. If the system enters this region, the trajectory becomes constrained to evolve along a lower-dimensional manifold, often producing distortions or instability.
+
+Real-time scheduling imposes additional constraints. Many embedded systems execute delta–sigma modulators concurrently with other tasks, such as sensor fusion, communication, or control routines. Scheduling jitter modifies the sampling times, and contention for CPU or memory resources introduces delays. These delays alter the timing of the state update and modify the effective recurrence. If the modulator is not updated at exactly the right time, the implicit assumption that the loop filter operates on evenly spaced samples becomes invalid. The resulting temporal distortion can be viewed as a warping of the manifold’s geodesics. Instead of following the true gradient flow, the system experiences a distorted flow with nonuniform time parametrization. The curvature tensor is modified accordingly, and the resulting trajectory may deviate from the stability region.
+
+In field-theoretic language, the embedded system introduces additional noise sources into the entropy field. Arithmetic quantization acts as a high-frequency entropy injector. Timing jitter acts as a diffusion-like perturbation on the manifold. Saturation imposes boundary conditions on the scalar field \(\Phi\). Real-time scheduling acts as a time-dependent modulation of the vector field \(v\). The stability and fidelity of the modulator therefore depend on how these perturbations interact with the lamphrodynamic relaxation of the entropy field. If the injected entropy is too large, or if the curvature distortions produced by finite precision are too severe, the system may fail to dissipate the entropy adequately, resulting in oscillations or drift.
+
+The engineering challenge is to design the modulator such that all perturbations introduced by embedded constraints are absorbed through lamphrodynamic dissipation. This requires choosing loop coefficients that minimize curvature in regions most affected by finite-precision effects. It requires selecting quantizer thresholds that produce smooth transitions within the representable domain. It requires ensuring that timing accuracy is sufficient to avoid warping of the spectral geodesics on which the error dynamics evolve. In practice, this leads to conservative designs with modest loop orders, robust coefficient choices, and careful attention to scheduling and arithmetic precision.
+
+In summary, embedded and real-time implementations of delta–sigma modulators impose geometric constraints that fundamentally alter the structure of the error and state manifolds. The arithmetic, timing, and memory discretizations introduce additional curvature and boundary conditions, modifying the underlying flows. Understanding these modifications requires interpreting the embedded modulator as a derived geometric object whose behavior results from the interaction of multiple layers of projection and flow. Only by analyzing the joint geometry of these layers can we ensure stable and accurate operation.
+
+

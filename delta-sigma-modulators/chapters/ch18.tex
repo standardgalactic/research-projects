@@ -1,0 +1,59 @@
+% ------------------------------------------------------------
+% CHAPTER 18
+% ------------------------------------------------------------
+
+\chapter{Power Electronics and Control Systems}
+
+Delta–sigma modulation occupies a unique position in power electronics and control theory because it merges high-frequency switching behavior with low-frequency control objectives. Whereas audio and precision sensing operate primarily on measurement manifolds, power systems exist on actuation manifolds in which the converter’s output is not a representation of a signal, but rather a direct manipulation of the physical world. A delta–sigma loop used for power control therefore interacts with mechanical inertia, inductive and capacitive energy storage, nonlinear load characteristics, and dynamical controllers that operate alongside or within the modulator. The resulting dynamical system is far more complex than a standalone converter. It is governed by the interplay of quantization, switching dynamics, and plant behavior. The geometric and field-theoretic viewpoint previously developed proves essential for understanding these interactions.
+
+Consider a simplified power electronic system in which a delta–sigma modulator drives a switching stage that controls a physical plant such as a DC motor, a switched-mode power supply, or an inverter feeding an inductive load. Let \(y[n]\) denote the bitstream produced by the modulator. The switching stage interprets this bitstream as a set of on–off commands determining the instantaneous applied voltage or current. The physical plant evolves according to a differential equation
+\[
+\frac{d\Phi_{\mathrm{plant}}}{dt} = f(\Phi_{\mathrm{plant}}, y),
+\]
+where \( \Phi_{\mathrm{plant}} \) denotes the plant state, such as inductor current or motor angular velocity. The plant feeds back a measurement \(u[n]\) to the delta–sigma loop. The combined system is therefore a continuous–discrete hybrid composed of a delta–sigma modulator within a closed-loop physical control system.
+
+The stability of such a system requires analyzing the coupled dynamics of the modulator and plant. Let the modulator have internal state \(x[n]\) governed by
+\[
+x[n+1] = A x[n] + B u[n] - C Q(x[n]).
+\]
+The plant evolves according to
+\[
+\frac{d\Phi_{\mathrm{plant}}}{dt} = f(\Phi_{\mathrm{plant}}, Q(x(t))).
+\]
+The two subsystems interact through the quantizer output. This interaction introduces nonlinearity into both discrete and continuous domains. The discrete dynamics introduce threshold-induced folding and curvature into the error manifold, while the continuous dynamics may exhibit their own nonlinearities such as saturation, inductive storage, or damping.
+
+To analyze stability, we consider the geometric structure of the joint state space \( \mathcal{X} = \mathcal{M} \times \mathcal{P} \), where \( \mathcal{M} \) is the modulator’s state manifold and \( \mathcal{P} \) is the plant state manifold. The system evolves on \( \mathcal{X} \) according to a hybrid flow. The Fisher metric on the modulator induces a Riemannian structure on \(\mathcal{M}\), while the physical plant possesses its natural geometric structure derived from its Lagrangian or Hamiltonian formulation. Constructing a joint metric on \( \mathcal{X} \) allows the combined system to be treated as a single geometric dynamical entity.
+
+Let the plant dynamics be expressible as a gradient flow on a manifold with metric \(h\), such that
+\[
+\frac{d\Phi_{\mathrm{plant}}}{dt} = - \nabla_{h} V(\Phi_{\mathrm{plant}}, y),
+\]
+where \(V\) is a potential energy or control Lyapunov function. If such a representation exists, the plant trajectory is a geodesic descent with respect to \(h\). The delta–sigma modulator, meanwhile, evolves according to a stochastic gradient flow with respect to the modulator’s Fisher metric \(g\). Coupling these flows produces a composite system whose stability and fidelity depend on the compatibility of the two metrics. Stability requires that the joint metric have a curvature structure that directs the composite trajectory toward a bounded invariant set. When the modulator injects entropy via quantization, the plant must dissipate this entropy through its physical dynamics. If dissipation is insufficient, the combined system may accumulate curvature in its error manifold and diverge.
+
+In power control systems, the delta–sigma modulator often replaces a pulse-width modulation (PWM) block. The modulator’s noise shaping allows it to perform switching with higher effective resolution than PWM while maintaining a fixed switching frequency or even operating asynchronously. The analysis of asynchronous switching requires extending the field-theoretic treatment to nonuniform sampling. Let the switching instants be \( t_{n} \), with an associated sequence of dwell times \( \Delta t_{n} = t_{n+1} - t_{n} \). The modulator output is now a measure-valued control signal,
+\[
+y(t) = \sum_{n} Q(x[n]) \chi_{[t_{n}, t_{n+1})}(t),
+\]
+where \( \chi \) is the indicator function. The plant dynamics now involve impulsive forcing at irregular intervals. The geometric effect is that the interaction between curvature-induced discontinuities from the modulator and the mechanical or electrical inertia of the plant becomes time-varying. Stability requires that the average effect of these impulses remain bounded and that the resulting flows converge toward an attractor.
+
+To analyze actuation stability in geometric terms, consider the joint Lyapunov functional
+\[
+\mathcal{L}(x, \Phi_{\mathrm{plant}}) = \mathcal{F}_{\mathrm{mod}}(x) + V(\Phi_{\mathrm{plant}}, Q(x)),
+\]
+where \( \mathcal{F}_{\mathrm{mod}} \) is the modulator free-energy functional. The time evolution of the composite system satisfies
+\[
+\frac{d\mathcal{L}}{dt} = \langle \nabla \mathcal{F}_{\mathrm{mod}}, \dot{x} \rangle_{g} + \langle \nabla V, \dot{\Phi}_{\mathrm{plant}} \rangle_{h}.
+\]
+Each term corresponds to a geometric descent on its respective manifold. Stability requires that the total derivative be nonpositive:
+\[
+\frac{d\mathcal{L}}{dt} \leq 0.
+\]
+This condition ensures that the joint trajectory remains on a descending path in the joint metric space. The quantizer introduces non-smoothness, so the derivative must be interpreted in the sense of Dini derivatives or through measure-theoretic analysis of discontinuous flows. When properly handled, the condition yields a stability criterion involving the joint curvature tensor of \(g \oplus h\). Specifically, the system is stable if the curvature-induced expansions are overwhelmed by lamphrodynamic dissipation arising from the loop filter and plant damping.
+
+The field-theoretic interpretation provides further insight. The quantizer acts as a local entropy injector, adding disorder to the plant’s actuation manifold. The plant dynamics act as an entropy sink, dissipating injected entropy through resistive losses, mechanical damping, or thermal processes. The delta–sigma loop must route entropy into physical dissipation channels rather than into modes that destabilize the plant. The quality of this routing depends on the alignment of the vector field induced by the loop filter with the natural dissipation gradients of the plant. In practical terms, this means that the loop must be designed so that switching activity aligns with plant modes that can absorb high-frequency ripple without destabilizing low-frequency behavior.
+
+Finally, we examine the classical engineering phenomenon of limit cycles in power delta–sigma modulators. Limit cycles correspond to periodic orbits on the joint state manifold. They arise when the folding induced by quantizer thresholds and the expansion induced by unstable plant dynamics balance in such a way that the system enters a closed orbit. These cycles produce audible or mechanical artifacts such as torque ripple or voltage oscillation. Geometrically, a limit cycle corresponds to a closed geodesic or a periodic orbit of the hybrid flow. Whether such a cycle exists depends on the topology of the joint manifold and the distribution of curvature. Breaking the cycle requires perturbing the geometric structure so that no closed geodesic satisfies the hybrid dynamical constraints. This may be achieved by modifying filter coefficients, introducing controlled noise, altering quantizer behavior, or adjusting plant parameters.
+
+In summary, delta–sigma modulation in power electronics and control systems represents a deeply coupled geometric and physical problem. The converter must operate as an entropy-routing engine embedded within a larger actuation manifold. Its internal vector fields must align with the plant’s dissipation structure to maintain stability. Its curvature must remain compatible with the plant’s natural dynamics. The next chapter extends these insights to embedded and real-time systems, where computational and resource constraints impose further geometric structure on the modulator.
+
+

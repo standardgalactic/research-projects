@@ -1,0 +1,62 @@
+\chapter{Nonlinear and Chaotic Delta--Sigma Systems}
+
+The previous chapters treated delta–sigma modulation as a geometrically constrained inference process unfolding along a curved manifold. That interpretation presumes that the loop filter and quantizer behave smoothly except at threshold-induced discontinuities. In practice, however, many delta–sigma modulators exhibit strongly nonlinear behavior that cannot be explained by linearized analysis, classical transfer-function arguments, or even smooth geometric dynamics. Instead, the system may produce limit cycles, quasi-periodic regimes, or fully chaotic trajectories. These phenomena emerge from the interaction of nonlinear state evolution, quantizer saturation, symbolic collapse, and curvature-induced folding of the error manifold. The purpose of this chapter is to provide a rigorous mathematical account of these effects, unify them with the field-theoretic and information-geometric frameworks introduced earlier, and present a coherent theory of chaos in delta–sigma loops.
+
+To begin, observe that nonlinearities arise in three distinct locations within a delta–sigma modulator. The quantizer imposes a piecewise-constant, discontinuous projection rule. The loop filter may be linear in principle but becomes nonlinear under finite-range implementation, gain limitations, or hardware saturation. The internal state evolves according to a feedback recursion that depends nonlinearly on previous quantizer outputs. The combined effect is that the modulator behaves not as a linear time-invariant system but as a hybrid dynamical system possessing both continuous evolution and discrete symbolic transitions. To analyze such systems, one must use the theory of piecewise-smooth dynamical systems, hybrid automata, symbolic dynamics, and geometric singular perturbation theory.
+
+Let the modulator have state \( x[n] \in \mathbb{R}^{d} \) governed by
+\[
+x[n+1] = F(x[n]) + B u[n] - C Q(x[n]),
+\]
+where \(F\) represents the nominal linear loop filter and the nonlinearities are carried by the quantizer \(Q\). To simplify notation, let the affine update be written as
+\[
+x[n+1] = A x[n] + E(x[n]) + B u[n],
+\]
+where \(A\) is the linear component, and \(E(x)\) incorporates both quantizer-induced nonlinearities and higher-order filter effects. The error recursion is then
+\[
+e[n] = u[n] - Q(x[n]).
+\]
+The dynamics are therefore determined by the interplay of the linear evolution \(A x[n]\), the nonlinear correction \(E(x[n])\), and the symbolic map \(Q\). Chaos originates in the discontinuities of this combined update rule.
+
+To characterize the onset of nonlinear behavior, consider the Jacobian of the continuous part of the dynamics,
+\[
+J(x) = \frac{\partial}{\partial x} \left( A x + E(x) \right).
+\]
+Since the quantizer is discontinuous, \(J\) does not capture its direct effect. Nevertheless, the Jacobian gives local contraction or expansion rates between quantizer transitions. When the spectral radius of \(J(x)\) is less than one everywhere, the continuous dynamics contract and tend not to produce chaotic divergence. However, if the spectral radius exceeds one in certain regions, the continuous dynamics can amplify perturbations. Even so, this does not guarantee chaos. Chaotic behavior requires the presence of both expansion and folding. The folding is provided by the quantizer thresholds. Thus the necessary condition for chaos in delta–sigma modulation can be formulated as follows: there exist regions of the state space where the continuous evolution expands volume and threshold-induced projections fold the state space. This is precisely the mechanism that produces Smale horseshoes and symbolic chaos in piecewise-linear maps.
+
+To see this formally, consider a second-order delta–sigma modulator with state variables \(x_1[n]\) and \(x_2[n]\). The recursion can be written in matrix form as
+\[
+\begin{pmatrix}
+x_1[n+1] \\ x_2[n+1]
+\end{pmatrix}
+=
+\begin{pmatrix}
+1 & -a \\ 1 & 1 - a
+\end{pmatrix}
+\begin{pmatrix}
+x_1[n] \\ x_2[n]
+\end{pmatrix}
++
+\begin{pmatrix}
+u[n] \\ 0
+\end{pmatrix}
+-
+\begin{pmatrix}
+Q(x_2[n]) \\ Q(x_2[n])
+\end{pmatrix}.
+\]
+In the absence of quantization, the matrix dynamics may be stable or unstable depending on the parameter \(a\). When the eigenvalues exceed unity in magnitude, the system expands volume in some directions. As the trajectory grows, it is periodically subjected to the quantizer projection, which collapses it onto one of finitely many affine subspaces. This produces the geometric structure necessary for chaotic evolution. One can show that the map restricted to a compact invariant subset induces a symbolic dynamical system conjugate to a shift on a finite alphabet. The shift map is chaotic in the sense of Li and Yorke, Devaney, and topological entropy. Hence, delta–sigma modulation can exhibit full-blown chaos.
+
+A deeper perspective arises from the curvature of the error manifold described in the previous chapter. The quantizer partitions the manifold into cells corresponding to its output symbols. These cells are geodesically convex within regions where the Fisher metric is smooth. However, at their boundaries, curvature becomes singular. When a trajectory crosses such a boundary, the geodesic flow encounters a fold. If the local stretch induced by the loop filter exceeds a critical threshold, the curvature-induced fold causes the trajectory to map two nearby points onto widely separated error regions. This mechanism is formally analogous to the creation of horseshoes in the study of chaotic flows. Therefore, the curvature of the error manifold provides a geometric explanation of chaos in delta–sigma modulation: expansion arises from unstable directions of the loop dynamics, and folding arises from quantizer-induced curvature.
+
+To make this precise, consider the Poincaré map associated with threshold crossings. Let \( \Sigma \) be the switching surface defined by \( x \in \mathbb{R}^{d} \) such that \( x \) lies on a quantizer threshold. Let \(P: \Sigma \to \Sigma\) be the return map obtained by integrating the continuous dynamics between successive threshold crossings. The map \(P\) is typically smooth except at a measure-zero set corresponding to grazing interactions with the threshold. The Jacobian of \(P\) may possess eigenvalues larger than one, indicating expansion. The threshold crossing itself induces a discontinuity in the tangent map, ensuring that the total return mapping has both stretching and folding. In many modulator configurations, the composition of expansion and folding yields a chaotic invariant set. One can compute the topological entropy of the modulator by analyzing the growth rate of admissible symbol sequences generated by the quantizer. In higher-order modulators, the symbol sequences often form a sofic shift, whose entropy can be computed using standard results in symbolic dynamics.
+
+Chaos in delta–sigma modulation is often viewed as undesirable. However, the information-geometric interpretation suggests a more nuanced perspective. Chaos can improve the spectral flatness of quantization noise, breaking up deterministic tonal components and reducing in-band artifacts. In some modulators, chaotic behavior is intentionally induced or encouraged by incorporating specific forms of feedback. When guided correctly, chaotic regimes can distribute entropy more uniformly across the spectral manifold, leading to improved audio quality or reduced spurious tones in measurement applications. From the viewpoint of entropy routing, chaos corresponds to exploring larger regions of the error manifold, thereby avoiding narrow, high-curvature attractors that produce tonal distortion.
+
+To quantify the relationship between chaos and error shaping, consider the evolution of the quantization error \(q[n]\). In linear analysis, the noise transfer function shapes the error spectrum. In the presence of chaos, the effective dynamics of the quantization noise become stochastic, and the NTF acts on an approximately white process. The resulting power spectral density is therefore smoother, yielding a more desirable spectral profile. However, too much chaos destabilizes the loop and leads to saturation or oscillatory divergence. The challenge in chaotic delta–sigma design is to balance expansion and folding such that the system remains bounded while still exploring the error manifold broadly enough to suppress tonal distortion. This balance can be formulated rigorously as a boundedness condition on the invariant set associated with the return map \(P\).
+
+Finally, we consider the field-theoretic interpretation of chaotic delta–sigma dynamics. In the RSVP picture, the scalar field \(\Phi\) evolves under the influence of the vector field \(v\) and entropy field \(S\). Chaotic behavior corresponds to complex interactions among these fields. The vector field induces unstable flow directions, while the entropy field undergoes repeated collapse at the quantizer thresholds, injecting localized disorder. The curvature of the error manifold reflects the geometric constraints imposed by the quantizer partitions. The resulting dynamics resemble chaotic advection in fluid systems, where stretching and folding coexist with localized sources of vorticity. In this analogy, the quantizer plays the role of a vorticity generator, producing singular perturbations at threshold crossings. The loop filter shapes the advection of these perturbations across the field. The combination produces a chaotic entropy-routing engine.
+
+The geometric view therefore unifies delta–sigma chaos with broader classes of dynamical systems exhibiting stretching, folding, collapse, and curvature. This interpretation provides conceptual clarity and suggests new design principles for modulators that exploit controlled chaos for enhanced noise properties. In the next chapter, we extend these ideas to multi-channel and multi-input multi-output (MIMO) systems, where the interplay of geometry and dynamics becomes richer due to cross-channel coupling.
+
+

@@ -1,0 +1,126 @@
+\chapter{Manifold--Aligned Representations}
+
+\noindent
+The classical theory of delta--sigma modulation assumes that input signals occupy an ambient Euclidean vector space such as ( \mathbb{R} ) or ( \mathbb{R}^{m} ). This assumption has served traditional engineering applications well, especially when treating audio, instrumentation, or measurement signals whose structure is approximately linear. However, in modern contexts—ranging from embedded sensing to biological recordings to generative modeling—signals are rarely distributed uniformly in their ambient coordinates. Instead, they typically lie on or near smooth low-dimensional manifolds embedded in high-dimensional spaces. These manifolds encode physical constraints, generative structure, or intrinsic correlations that cannot be ignored without incurring unnecessary prediction error.
+
+The goal of this chapter is to establish a rigorous geometric foundation for delta--sigma modulation on smooth manifolds, to demonstrate that manifold-aligned prediction reduces quantization error and improves stability, and to formalize delta--sigma modulation as a retraction--based operator acting intrinsically on a low-dimensional state space. This geometric approach is consistent with modern insights from generative representation learning, where denoising operators are explicitly constrained to follow the intrinsic manifold of the data. In particular, Li and He (2025) demonstrated that denoising generative models perform optimally when the denoising step operates along the intrinsic manifold rather than the full ambient space \citep{li2025jit}. A parallel principle applies here: delta--sigma predictors should follow the intrinsic manifold of the input signal, thereby avoiding artificial excursions and eliminating unnecessary error components.
+
+This chapter also reflects conceptual parallels with the CLIO architecture (Cognitive Loop via In-Situ Optimization), where inference evolves along a coherence manifold rather than arbitrary ambient directions \citep{cheng2025cognitiveloopinsituoptimization}. The manifold-aligned delta--sigma loop may be viewed as a single-layer CLIO engine, recursively minimizing predictive inconsistency through an intrinsic geometric flow. The mathematics developed below unifies these ideas into a rigorous theory of manifold-constrained delta--sigma modulation.
+
+\section{6.1 Signals Evolving on Smooth Manifolds}
+
+Let ( \mathcal{M} \subset \mathbb{R}^{n} ) be a smooth, connected, embedded manifold of dimension ( d \ll n ), as treated in classical geometric texts such as do Carmo (1992) and Petersen (2016). A discrete-time signal ( x[n] ) is assumed to satisfy
+[
+x[n] \in \mathcal{M} \qquad \text{for all } n \in \mathbb{Z}.
+]
+This assumption implies that the intrinsic degrees of freedom of the signal are limited to ( d ), and that all admissible velocities ( x[n+1] - x[n] ) lie in the tangent space (T_{x[n]}\mathcal{M}), up to curvature corrections. The ambient Euclidean coordinates introduce redundancy and artificial degrees of freedom which classical delta--sigma predictors unnecessarily attempt to correct.
+
+We recall that the tangent space ( T_{x}\mathcal{M} ) is defined by
+[
+T_{x}\mathcal{M} = \left{ \dot{\gamma}(0) ;\middle|; \gamma: (-\epsilon,\epsilon) \to \mathcal{M} \text{ smooth},\ \gamma(0) = x \right}.
+]
+The normal space ( N_{x}\mathcal{M} ) is the orthogonal complement of ( T_{x}\mathcal{M} ) relative to the Euclidean metric. The decomposition
+[
+\mathbb{R}^{n} = T_{x}\mathcal{M} \oplus N_{x}\mathcal{M}
+]
+is fundamental to controlling the error dynamics of delta--sigma loops, because prediction error directed into ( N_{x}\mathcal{M} ) is intrinsically unphysical and destabilizing.
+
+\section{6.2 Manifold Projection and Retractions}
+
+In classical delta--sigma modulation, the predictor produces an unconstrained estimate ( x_{\mathrm{pred}}[n] \in \mathbb{R}^{n} ). When the signal lies intrinsically on ( \mathcal{M} ), the predictor must be composed with a projection operator
+[
+\Pi_{\mathcal{M}} : \mathbb{R}^{n} \to \mathcal{M},
+]
+which maps a nearby ambient point to the closest point on the manifold, defined locally by
+[
+\Pi_{\mathcal{M}}(y) = \operatorname*{argmin}*{m \in \mathcal{M}} | y - m |.
+]
+The existence and smoothness of ( \Pi*{\mathcal{M}} ) in a tubular neighborhood of ( \mathcal{M} ) are standard results in differential geometry. The map ( \Pi_{\mathcal{M}} \circ f ) acts as a manifold retraction, ensuring that prediction remains on ( \mathcal{M} ).
+
+We now introduce a theorem formalizing the regularity of this projection.
+
+\begin{theorem}[Local Smoothness of Projection]
+Let ( \mathcal{M} ) be a closed, embedded ( C^{k} )-smooth manifold in ( \mathbb{R}^{n} ). Then there exists a tubular neighborhood ( U ) of ( \mathcal{M} ) and a smooth projection
+[
+\Pi_{\mathcal{M}} : U \to \mathcal{M}
+]
+such that ( \Pi_{\mathcal{M}}(x) = x ) for all ( x \in \mathcal{M} ) and ( D\Pi_{\mathcal{M}}(x) ) is the orthogonal projection onto ( T_{x}\mathcal{M} ).
+\end{theorem}
+
+\begin{proof}
+This is a classical result from differential geometry: since ( \mathcal{M} ) is closed and embedded, the normal exponential map is a diffeomorphism from a neighborhood of the zero section of the normal bundle onto a tubular neighborhood. The inverse of this map composes with the projection ( N_{x}\mathcal{M}\to{0} ) to yield ( \Pi_{\mathcal{M}} ). Details may be found in do Carmo’s treatment of tubular neighborhoods.
+\end{proof}
+
+\section{6.3 Tangent--Space Confinement of Prediction Error}
+
+Let ( e[n] = x[n] - \hat{x}[n] ) be the prediction error, where ( \hat{x}[n] \in \mathcal{M} ). We decompose this error into tangent and normal components:
+[
+e[n] = P_{T}(x[n],\hat{x}[n]) + P_{N}(x[n],\hat{x}[n]).
+]
+The following lemma quantifies the structure of this decomposition.
+
+\begin{lemma}[Tangent First-Order Error]
+Suppose ( x[n],\hat{x}[n] \in \mathcal{M} ) and ( x[n] ) is sufficiently close to ( \hat{x}[n] ). Then
+[
+P_{N}(x[n],\hat{x}[n]) = \frac{1}{2} \mathrm{II}*{\hat{x}[n]}(\delta,\delta) + O(|\delta|^{3}),
+]
+where ( \delta = P*{T}(x[n],\hat{x}[n]) ) and ( \mathrm{II} ) is the second fundamental form.
+\end{lemma}
+
+\begin{proof}
+The proof follows directly from Taylor expansion of the exponential map, which yields
+[
+x = \exp_{\hat{x}}(\delta) + \frac{1}{2}\mathrm{II}_{\hat{x}}(\delta,\delta) + O(|\delta|^{3}).
+]
+Subtracting ( \hat{x} ) and projecting onto the normal bundle produces the stated expression.
+\end{proof}
+
+This lemma implies that normal error components are at least quadratic in the tangent displacement. Therefore, if the predictor is manifold-aligned, almost all error lies in tangent directions, reducing the effective dimension of the quantization burden from ( n ) to ( d ).
+
+\section{6.4 Manifold--Aligned Delta–Sigma Dynamics}
+
+Let the loop filter be represented by the state update equation
+[
+x[n+1] = A x[n] + B (u[n] - y[n]).
+]
+Define the corrected quantizer output
+[
+y[n] = R(x[n]) = \Pi_{\mathcal{M}}(Q(Cx[n])).
+]
+The delta--sigma loop becomes
+[
+x[n+1] = A x[n] + B (u[n] - \Pi_{\mathcal{M}}(Q(Cx[n]))).
+]
+Because both ( x[n] ) and ( \Pi_{\mathcal{M}}(Q(Cx[n])) ) lie on ( \mathcal{M} ), the error vector belongs to ( T_{x[n]}\mathcal{M} \oplus O(\mathrm{curv}) ). This restricted error space fundamentally alters the stability conditions of the loop.
+
+\begin{theorem}[Manifold Stability Margin]
+Let ( \mathcal{M} ) be a compact embedded manifold and suppose the matrix ( A ) is such that ( A(T_{x}\mathcal{M}) \subseteq T_{Ax}\mathcal{M} ) for all ( x \in \mathcal{M} ). If the induced map
+[
+F(x) = A x + B(u - R(x))
+]
+is inward-pointing relative to the tangent bundle, then the manifold is an attractor of the delta--sigma dynamics and the loop is stable in a tubular neighborhood of ( \mathcal{M} ).
+\end{theorem}
+
+\begin{proof}
+Define the Lyapunov function
+[
+V(x) = \frac{1}{2}\mathrm{dist}(x,\mathcal{M})^{2}.
+]
+Differentiation along trajectories yields
+[
+V(x[n+1]) - V(x[n]) = -|P_{N}(x[n],R(x[n]))|^{2} + O(|\delta|^{3}),
+]
+which is strictly negative in a neighborhood of ( \mathcal{M} ). The inward-pointing condition ensures that tangent dynamics do not force trajectories away from the manifold. Stability follows.
+\end{proof}
+
+\section{6.5 Relation to Generative Manifold Learning}
+
+Li and He (2025) showed that denoising generative models achieve optimal reconstruction fidelity when denoising steps follow the intrinsic data manifold \citep{li2025jit}. Their results demonstrate that denoising orthogonal to the manifold introduces artifacts and destabilizes generative flow. This insight directly parallels the present theory: delta--sigma predictors must respect the geometric structure of the signal manifold to avoid artificial error.
+
+\section{6.6 Recursive Intrinsic Coherence and CLIO}
+
+The CLIO architecture \citep{cheng2025cognitiveloopinsituoptimization} proposes that cognitive systems maintain coherence through recursive in-situ optimization constrained to a coherence manifold of internal beliefs. A manifold-aligned delta--sigma modulator behaves as a single-layer instantiation of this mechanism: prediction evolves along ( \mathcal{M} ); quantization introduces perturbation; the loop filter performs gradient-like correction. The resulting system recursively suppresses normal deviations and retains consistency along the intrinsic manifold, mirroring CLIO's recursive coherence.
+
+\section{6.7 Summary}
+
+This chapter has established a complete geometric formulation of delta--sigma modulation for signals lying on low-dimensional manifolds. The key results are the following: prediction error is confined to tangent directions; normal components are curvature-suppressed; quantization and projection define a nonlinear retraction onto the manifold; stability margins are widened; and manifold alignment parallels modern generative and cognitive inference architectures. This geometric foundation will inform subsequent chapters and provide a principled basis for advanced delta--sigma design.

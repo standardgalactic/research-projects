@@ -1,0 +1,85 @@
+% ------------------------------------------------------------
+% Appendix D — Complete Example Designs (SPICE, Python, HDL)
+% ------------------------------------------------------------
+
+\chapter{Complete Example Designs (SPICE, Python, HDL)}
+
+This appendix provides a collection of fully worked delta–sigma designs expressed in three complementary domains: SPICE circuits for analog implementations, Python programs for algorithmic simulations and numerical verification, and hardware-description-language modules for synthesizable digital designs. Each design is expressed not merely as a recipe but as a geometric instantiation of the principles developed throughout the book. In each representation the goal is the same, namely to make explicit the relationship between entropy descent, vector-field transport, symbolic collapse, and the spectral shaping that arises when these three components interact within the derived geometric structure of a delta–sigma modulator.
+
+The designs in this appendix therefore serve a dual purpose. They provide directly implementable reference models while simultaneously illustrating how the theory of the preceding chapters manifests in concrete artifacts. The SPICE circuits reveal how geometric curvature and entropy gradients appear as device-level currents, voltages, and charge storage. The Python simulations demonstrate how the partial differential equation formulations reduce to explicit numerical updates. The HDL descriptions exhibit how symbolic collapse and discrete-time vector flows become clocked finite-state machines implementing derived fiber products at each timestep. In this way the appendix functions as a bridge between high-level mathematical formulation and low-level engineering design.
+
+\section{D.1 First-Order Analog Delta–Sigma Modulator in SPICE}
+
+Consider the classical integrator-comparator first-order delta–sigma modulator. In the geometric formulation the integrator represents the vector field that accumulates error, while the comparator enforces a symbolic collapse that projects the system onto one of two quantized strata. The stability and noise-shaping behavior correspond to the curvature of the derived entropy manifold and the dissipation induced by the feedback loop.
+
+A minimal SPICE description of this system begins with an operational transconductance amplifier acting as the integrator. Let \(C_{i}\) denote the integrating capacitor and \(R_{f}\) the feedback resistor. The integrator voltage \(v_{i}(t)\) satisfies
+\[
+C_{i}\frac{dv_{i}}{dt} = \frac{1}{R_{f}}\bigl(v_{\mathrm{in}}(t) - v_{\mathrm{fb}}(t)\bigr),
+\]
+which corresponds directly to the continuous-time version of the entropy-flow equation
+\[
+\frac{dX}{dt} = -\nabla S(X) + v(X) + U.
+\]
+Here the difference \(v_{\mathrm{in}} - v_{\mathrm{fb}}\) acts as the effective negative gradient of the entropy potential. The comparator produces a binary value \(b(t)\in\{-1,+1\}\) according to the sign of \(v_{i}(t)\). The feedback voltage is a scaled version of this value, \(v_{\mathrm{fb}} = b(t) V_{\mathrm{ref}}\), thus implementing the derived fiber product between the continuous state and the symbolic strata.
+
+A full SPICE netlist for this system includes the OTA, comparator, reference voltage generator, and the feedback network. Although the internal device models appear far removed from the geometric PDE, the mapping becomes apparent when one tracks how capacitor charge, comparator threshold crossing, and feedback current correspond to the entropy descent, symbolic collapse, and vector flow respectively. Every simulation result produced by this circuit can therefore be interpreted in the language of the derived manifold and the shifted symplectic structure established earlier.
+
+\section{D.2 Higher-Order Cascaded Loop in SPICE}
+
+To illustrate higher-order behavior consider a cascade-of-integrators feed-forward topology of order two. The internal states \(v_{1}(t)\) and \(v_{2}(t)\) obey
+\[
+C_{1}\frac{dv_{1}}{dt} = \frac{1}{R_{1}}\bigl(v_{\mathrm{in}} - v_{\mathrm{fb}}\bigr),
+\qquad
+C_{2}\frac{dv_{2}}{dt} = \frac{1}{R_{2}}v_{1}.
+\]
+The second integrator introduces a hidden direction in the derived tangent complex. The collapse imposed by the comparator annihilates only one dimensional component of this complex, leaving the second intact. This residual direction produces the additional zeros in the noise transfer function and shapes the high-frequency behavior.
+
+The SPICE model requires two OTAs, each configured as an inverting integrator, along with appropriate biasing networks. The comparator must be capable of resolving small differences in \(v_{2}\) in order to maintain stability. Overload manifests when both integrator voltages saturate, corresponding to escape along directions in the derived manifold where entropy curvature decays too rapidly. These behaviors can be predicted precisely by analyzing the PDE and its discretization, and the SPICE simulation verifies the predictions experimentally.
+
+\section{D.3 Python Simulation of First-Order Delta–Sigma Modulation}
+
+The Python implementation provides a numerical realization of the discretized PDE of the modulator. Let the discrete state be \(x[n]\). The update rule of the first-order loop is
+\[
+x[n+1] = x[n] + u[n] - q[n],
+\]
+where \(q[n]\) is the quantized output. This iteration corresponds directly to the explicit Euler discretization of the PDE
+\[
+\frac{dX}{dt} = -\nabla S(X) + v(X) + U.
+\]
+The term \(u[n]\) is the external input. The term \(q[n]\) is the derived projection. The difference \(u[n] - q[n]\) is the effective entropy gradient.
+
+The Python code defines the update rule, the quantizer, and the loop filter. Simulation demonstrates the spectral shaping predicted by the linearized PDE analysis. Dither can be added to the quantizer to soften the derived collapse, which corresponds in the geometric description to rounding the edges of the quantizer boundaries, thereby reducing symbolic curvature. Idle tones appear when the derived tangent complex acquires periodic structure, and the Python simulation reproduces these phenomena faithfully.
+
+\section{D.4 Python Simulation of a Higher-Order Loop Filter}
+
+For a second-order modulator define two internal states \(x_{1}[n]\) and \(x_{2}[n]\). The discrete-time PDE is approximated by
+\[
+x_{1}[n+1] = x_{1}[n] + u[n] - q[n],
+\qquad
+x_{2}[n+1] = x_{2}[n] + x_{1}[n].
+\]
+The output is the quantizer value. This scheme exhibits the twofold noise shaping expected from a second-order loop. Python simulation reveals the high-frequency roll-off of error energy predicted analytically.
+
+The geometric interpretation is immediate. The state \((x_{1},x_{2})\) evolves on a two-dimensional entropy manifold. The quantizer induces a derived collapse onto a one-dimensional symbolic space. The residual direction produces a first homotopy-corrected mode whose evolution gives rise to the second-order shaping.
+
+\section{D.5 HDL Implementation of a Digital Delta–Sigma Modulator}
+
+The HDL implementation translates the derived geometric structure into a sequential logic machine. The internal states are represented as fixed-point numbers. The feedback loop executes symbolic collapse at each clock cycle. The update rule is implemented by adders, registers, and a comparator.
+
+Let the HDL module compute
+\[
+x[n+1] = x[n] + u[n] - q[n],
+\]
+where \(q[n]\) is produced by comparing \(x[n]\) with zero. The fixed-point width determines the curvature of the entropy potential near the quantizer boundaries, since coarse precision limits the ability to represent small slopes. Overflow corresponds to blow-up in the PDE and can be constrained by saturation logic. A two-integrator design requires two registers and two adders arranged such that the second register accumulates the value of the first.
+
+The HDL description reveals that digital delta–sigma modulators are not mere approximations of analog ones. They are exact discretized PDEs whose symbolic projection is realized by the comparator. The entire derived geometric structure is encoded in the clocked evolution of fixed-point registers.
+
+\section{D.6 Synthesis and Verification of the HDL Model}
+
+Synthesis of the HDL model maps the symbolic collapse to hardware logic elements. The feedback structure becomes a directed graph of adders, registers, and comparators. Timing closure ensures that the derived collapse occurs within one clock period. Formal verification tools check that overflow does not occur for given input ranges, establishing stability under load conditions. These verification steps correspond to checking that the PDE satisfies the curvature–entropy condition required for bounded divergence.
+
+The spectral properties of the HDL modulator are confirmed by capturing bitstreams from the synthesizable design and analyzing them numerically. The resulting spectra match those predicted by the Python model and the SPICE simulations. Thus the numerical, circuit-level, and hardware-level representations form a coherent realization of the geometric PDE principles derived earlier.
+
+\section{D.7 Multirate and MIMO Design Examples}
+
+More advanced modulator structures including multirate clocks and multi-channel coupling can be implemented in each domain. In SPICE these require clocked switches and cross-coupled integrator networks. In Python they require vector-valued updates and multiple partial differential equations evolving jointly. In HDL they require a collection of interconnected modules exchanging quantized information at each cycle. The PDE formulations derived in Appendix B accurately predict the stability and spectral behavior of these complex architectures, and the implemented designs validate the theoretical predictions.

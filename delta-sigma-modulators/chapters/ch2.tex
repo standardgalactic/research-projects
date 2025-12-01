@@ -1,0 +1,129 @@
+\chapter{Signals as Fields, Quantization as Dynamics}
+
+The classical theory of signal processing treats signals as real-valued or vector-valued functions of time, typically expressed as ( x : \mathbb{R} \to \mathbb{R}^n ) or as discrete sequences ( x[n] ) in the sampled setting. While this representation has been central to the entire edifice of electrical engineering, it is in many ways an idealization. Signals encountered in physical, biological, and cognitive systems are not merely arbitrary functions. They are manifestations of deeper field structures, governed by internal symmetries, dynamical constraints, and geometric relationships among their degrees of freedom. The goal of this chapter is to reformulate signals and quantization within a field-theoretic and geometric framework, thereby establishing the conceptual foundations for the entropy-shaping and vector-flow interpretation of delta--sigma modulation developed in later chapters.
+
+\section*{2.1 Signals as Sections of a Field Over Time}
+
+To begin, consider a physical system whose configuration at time ( t ) is represented by a point ( x(t) ) in a state manifold ( \mathcal{X} ). Classical electrical signals are modeled by choosing ( \mathcal{X} = \mathbb{R} ) or ( \mathbb{R}^n ). However, many signals arise from systems constrained by geometry, physics, or semantics. The configuration of a robot arm lies on a Lie group, the state of a biochemical network lies on a constrained concentration manifold, and the latent trajectory of a cognitive system explores a semantic manifold whose structure is not Euclidean. In all such cases, the signal is best regarded as a section of a fibered space. Let ( \pi : E \to \mathbb{R} ) be a bundle whose fiber over each time ( t ) is ( E_t = \mathcal{X} ). A signal is a section ( s : \mathbb{R} \to E ) satisfying ( \pi(s(t)) = t ). Here ( s(t) = x(t) ) in the classical case. This formulation allows time-dependent fields to be incorporated naturally and provides the geometric machinery needed to discuss tangent vectors, curvature, and projection operators later in the text.
+
+This field-based perspective is not needlessly abstract. It aligns with the way modern physics treats dynamical systems \citep{arnold1989mathematical} and with the information-geometric viewpoint in statistics, where probability distributions form points on a Riemannian manifold \citep{amari2016information}. Moreover, it matches the interpretive structure of RSVP theory, in which scalar, vector, and entropy fields jointly determine the evolution of a system's internal state. By embedding signals within a field-theoretic structure, we prepare the ground for interpreting delta--sigma modulation as an operator acting on fields rather than as a discrete circuit mechanism.
+
+\section*{2.2 The Dynamics of Sampling}
+
+Sampling a signal extracts discrete observations from an underlying continuous field. In classical sampling theory, this is described by the sampling operator acting as
+[
+x[n] = x(nT_s),
+]
+where ( T_s ) is the sampling period. In the field-theoretic interpretation, sampling corresponds to evaluating the section ( s(t) ) at discrete times. If ( x(t) ) lies on a manifold ( \mathcal{X} ), then sampling is a map from the space of smooth curves on ( \mathcal{X} ) into a discrete sequence of points in ( \mathcal{X} ). This perspective immediately reveals that sampling is not an innocent operation. It destroys differential structure, eliminates curvature information, and collapses the continuous geometry of the signal into discrete snapshots. In classical delta--sigma modulation, this degradation is compensated by oversampling: by sampling more frequently than required by the Nyquist rate, one recovers enough information about the signal’s smoothness to impose geometric and entropic constraints through the feedback loop.
+
+The classical Shannon sampling theorem does not address this geometric dimension. It asserts that band-limited functions can be reconstructed exactly from sufficiently frequent samples. However, it does not account for signals that lie on manifolds or that satisfy constraints derived from physics, semantics, or field structure. When signals possess geometric structure, sampling can be understood as a derived mapping problem, and reconstruction becomes a problem in differential topology rather than solely in harmonic analysis. This motivates the manifold-aligned treatment developed later in the book and begins the process of reframing quantization and noise shaping in geometric terms.
+
+\section*{2.3 Quantization as a Dynamical Projection}
+
+Quantization is traditionally viewed as the process of mapping a continuous signal into a discrete set of values. Let ( Q : \mathbb{R} \to \Lambda ), where ( \Lambda \subset \mathbb{Z} ) or ( \Lambda \subset \mathbb{R} ), denote a quantizer. Classical analysis treats ( Q ) as a memoryless nonlinearity, sometimes modeled as an additive white-noise source when the input is sufficiently ``busy'' or dithered \citep{widrow1956statistical}. Although effective for many engineering purposes, this abstraction neglects the geometrically significant fact that quantization is a projection from a continuous field to a discrete symbolic structure. When the input signal lies on a manifold or when the symbolic outputs carry semantic meaning, quantization becomes a nontrivial collapse operation.
+
+Formally, quantization can be interpreted as a projection onto a discrete subset equipped with the subspace topology inherited from the ambient space. If the signal lies on a manifold ( \mathcal{X} ), then quantization is not merely a projection onto ( \Lambda \subset \mathbb{R}), but onto the manifold-constrained discrete structure ( \Lambda \cap \mathcal{X} ). The distinction becomes crucial when the quantized representation is used inside a feedback loop. The dynamics of the loop must account for the fact that quantization has removed certain degrees of freedom, altered the entropy of the state, and imposed discrete constraints that break differentiability. These constraints govern the evolution of the error field and ultimately shape the stability of the modulator.
+
+To illustrate this, consider a smooth field ( x(t) ) evolving on a manifold ( \mathcal{X} ). When sampled and quantized, the discrete output ( y[n] = Q(x[n])) may lie far from the manifold, particularly when ( \Lambda ) is not aligned with the geometry of ( \mathcal{X} ). In the absence of alignment, the quantization error includes components orthogonal to the tangent space ( T_{x[n]}\mathcal{X} ). These components can destabilize the delta--sigma loop by producing error directions that cannot be predicted or corrected using the loop filter. This motivates the manifold-projection operator introduced in the previous chapter
+[
+\Pi_{\mathcal{X}}(y[n]) = \arg\min_{z \in \mathcal{X}} | y[n] - z |,
+]
+which ensures that the quantizer output remains compatible with the signal geometry. The combination ( \Pi_{\mathcal{X}} \circ Q) becomes a derived collapse map that preserves the field structure.
+
+\section*{2.4 Differential Operators on Error Fields}
+
+The delta--sigma loop can now be interpreted as imposing a differential structure on the quantization error. Let the sampled input be denoted ( u[n] ) and the quantizer output ( y[n] ). The prediction error is ( e[n] = u[n] - y[n] ). In a first-order delta--sigma modulator, this error is integrated, resulting in the internal state update
+[
+x[n+1] = x[n] + e[n].
+]
+This is a discrete analogue of integrating a gradient field. In more general modulators, the loop filter applies a linear difference operator ( L ) to the error, so that
+[
+x[n+1] = f(x[n]) + L(e[n]).
+]
+If the loop filter acts as a discrete derivative of order ( k ), then the state evolves according to
+[
+x[n+1] = x[n] + \Delta^{-k} e[n],
+]
+where ( \Delta^{-k} ) denotes the ( k )-fold discrete integration operator \citep{butterworth1988discrete}. This structure mirrors the relationship between differential operators and Green's functions in continuous systems. In the field-theoretic interpretation, the loop filter acts as a smoothing operator on the error field, redistributing its spectral energy and thereby shaping its entropy.
+
+This interpretation aligns with foundational results in control theory and dissipative systems, particularly those of Willems \citep{willems1972dissipative}, which characterize systems that maintain bounded energy in the presence of disturbances. It also resonates with information geometry, where gradient flows drive trajectories across statistical manifolds \citep{amari2016information}. Delta--sigma modulation becomes a discrete dynamical system driven by the gradient of a composite potential consisting of a coherence potential (imposed by the loop filter) and an entropy potential (injected by quantization).
+
+\section*{2.5 Entropy, Divergence, and Field Coherence}
+
+Entropy plays a central role in the behavior of delta--sigma modulators. The quantizer injects entropy into the system by collapsing a continuous field into a discrete symbol. This collapse perturbs the internal state and introduces divergence in the error field. The loop filter acts in opposition to this divergence by smoothing the state trajectory and exporting entropy into high-frequency spectral modes. In the language of field theory, quantization acts as a localized, impulsive perturbation of the entropy field, while the loop filter acts as a vector flow that redistributes this entropy according to the structure of its transfer function.
+
+This interpretation becomes more precise when one considers the spectral density of the quantization error. Oversampling reduces the local entropy density by expanding the time resolution at which the error field is observed. Noise shaping redistributes entropy across frequencies, effectively reducing entropy in the frequency band of interest at the cost of increasing entropy elsewhere. From a thermodynamic perspective, the delta--sigma modulator performs entropy routing: it selectively increases the entropy of modes that do not matter while reducing the entropy of modes that do.
+
+The idea of entropy routing is central to many modern theories of cognition, nonequilibrium physics, and information geometry. In the free-energy principle, organisms minimize prediction error by exporting uncertainty into sensory or latent dimensions where it does not impair coherence \citep{friston2019free}. In dissipative dynamical systems, entropy gradients generate flows that stabilize internal states \citep{willems1972dissipative}. In RSVP theory, entropy fields evolve according to smoothing and divergence operators that constrain the dynamics of the scalar and vector fields. Delta--sigma modulation therefore becomes a concrete instance of a broad universal pattern: systems achieve stability and coherence by directing entropy into dimensions or modes where its presence is less harmful.
+
+\section*{2.6 Toward a Unified Conceptual Vocabulary}
+
+The remainder of the book adopts this unified field-theoretic and geometric vocabulary. Signals are treated as sections of fields; quantizers act as collapse operators; loop filters act as smoothing and divergence operators; and error fields carry entropy that is distributed across spectral modes through feedback. This language allows classical engineering insights to be reformulated in geometric terms. For example, the classical distinction between in-band and out-of-band noise becomes a statement about where entropy is concentrated in the spectrum of the error field. The stability of the loop becomes a statement about the boundedness of the vector flow generated by the loop filter. The effectiveness of oversampling becomes a consequence of increasing the resolution at which the entropy field is observed. These reformulations illuminate the underlying principles of delta--sigma modulation and prepare the ground for the advanced topics developed later.
+
+\section*{2.7 Quantization as a Derived Map}
+
+Quantization has traditionally been treated as a discontinuous nonlinearity without internal geometric structure. However, once signals are understood as living on manifolds or as sections of fibered fields, quantization must be interpreted more carefully. The quantizer is a map that collapses a smooth field into a discrete symbolic structure, and this collapse must be reconciled with the underlying geometry of the signal. In geometric terms, quantization is neither an orthogonal projection nor a smooth retraction. It is a derived mapping that identifies entire regions of the state space with single symbolic representatives, thereby truncating the local differentiable structure.
+
+Let ( \mathcal{X} \subset \mathbb{R}^n ) be the signal manifold and ( \Lambda \subset \mathbb{R}^n ) the discrete set of quantizer outputs. The quantizer induces a diagram
+[
+\mathcal{X} \xleftarrow{;;\iota;;} \mathcal{X} \times \Lambda \xrightarrow{;;\pi;;} \Lambda,
+]
+where ( \iota ) embeds the manifold into the product and ( \pi ) projects onto the discrete symbols. The quantization map ( Q ) can be expressed as the derived fiber product
+[
+Q = \pi \circ \iota^{-1},
+]
+where the inverse is understood in the homotopical sense: it does not give a pointwise inverse but reconstructs equivalence classes defined by the quantizer's partition of the manifold. This perspective, inspired by contemporary treatments of derived geometry \citep{lurie2009higher}, clarifies why quantization destroys structure that must later be restored by the feedback loop.
+
+Quantization thus replaces the smooth geometry of ( \mathcal{X} ) with a discrete stratification in which each stratum corresponds to a quantization cell. The delta--sigma loop must then ensure that its predictions remain consistent with this stratified geometry. The loop filter reconstructs differentiability by acting as a pullback of the continuous geometry through the derived quantization map:
+[
+x[n+1] = f(x[n]) + L(u[n] - Q(x[n])).
+]
+Here the operator ( L ) acts analogously to a Green's operator on the error field, restoring smoothness that quantization destroyed instantaneously.
+
+\section*{2.8 Noise Shaping as Entropy Transport}
+
+Having established quantization as a derived collapse, we now examine its consequences for the entropy of the error field. The delta--sigma loop is best understood as an entropy-transport system. Quantization injects entropy into the low-frequency portion of the error field because the collapse of a continuous signal to a symbol eliminates information about the fine structure of the input. Without feedback, the resulting error would be uniformly distributed across frequencies. The loop filter, however, acts as a vector field that redistributes this entropy by pushing it into modes that are dynamically irrelevant or easy to remove.
+
+Let ( E(\omega) ) denote the spectral density of the error field. In the absence of shaping, quantization produces a flat spectrum. When passed through a loop filter with frequency response ( H(\omega) ), the resulting error spectrum becomes
+[
+E_{\text{out}}(\omega) = |H(\omega)|^2 E(\omega),
+]
+which is the classical frequency-domain description of noise shaping \citep{candy1992oversampling}. However, the quantity ( E(\omega) ) may also be interpreted as a spatial distribution of entropy across frequency modes. The operator ( H(\omega) ) has the effect of amplifying entropy in high-frequency modes and attenuating it in low-frequency modes. In doing so, the modulator sacrifices entropy in perceptually or functionally irrelevant regions to preserve coherence in the band of interest.
+
+This spectral view seamlessly connects to the thermodynamic interpretation. Entropy transport is a ubiquitous stabilizing mechanism: biological systems export entropy into the environment to maintain order \citep{friston2010free}; dissipative systems maintain coherence by imposing divergence constraints on vector fields \citep{willems1972dissipative}; and statistical manifolds exhibit curvature-dependent flows that minimize divergence \citep{amari2016information}. Delta--sigma modulation fits naturally within this lineage. The loop filter produces a flow that transports entropy along a gradient determined by its transfer function, ensuring that the internal state remains coherent despite repeated collapses imposed by the quantizer.
+
+\section*{2.9 Vector Fields, Divergence, and Stability}
+
+The geometric interpretation of delta--sigma modulation becomes more illuminating when we examine the vector fields generated by the loop filter. Let ( x[n] ) denote the internal state and ( v[n] = L(e[n]) ) the update vector. In the continuous limit, the iteration
+[
+x[n+1] - x[n] = v[n]
+]
+becomes a discretization of the flow
+[
+\frac{dx}{dt} = v(x(t)),
+]
+which describes the evolution of the system in response to the quantization-induced disturbance. The divergence of this vector field determines whether the system remains stable. A negative divergence indicates contraction, ensuring that trajectories converge toward a bounded set. Classical linear stability analyses implicitly assume that the divergence of the linearized vector field is negative. However, this condition becomes more subtle in the presence of nonlinear collapse maps such as quantizers.
+
+Entropy fields provide a more robust characterization of stability. Let ( S(x) ) denote a scalar entropy potential associated with the internal state. The divergence of the vector field can be decomposed as
+[
+\nabla \cdot v = -\frac{dS}{dt} + R(x),
+]
+where ( R(x) ) captures curvature and nonlinear correction terms. Stability requires that the entropy injected by quantization be compensated by entropy dissipation through the loop filter. In this interpretation, the delta--sigma modulator stabilizes itself by continuously draining entropy from the low-frequency portion of the state and exporting it into high-frequency modes where it is harmless.
+
+This perspective aligns naturally with Lyapunov-based analyses. A suitable Lyapunov function for the delta--sigma loop may combine distance from a coherence manifold with an entropy penalty:
+[
+V(x) = \frac{1}{2}|x - \Pi_{\mathcal{X}}(x)|^2 + \alpha S(x).
+]
+The first term enforces geometric consistency, while the second term penalizes entropy accumulation. The loop filter must ensure that ( V(x[n+1]) < V(x[n]) ) except for transient increases caused by quantization. This yields stability criteria that incorporate geometric, thermodynamic, and spectral considerations simultaneously.
+
+\section*{2.10 Relationship to Classical Delta--Sigma Theory}
+
+The geometric and field-theoretic interpretation developed here remains entirely consistent with classical delta--sigma theory but provides deeper insight into why classical results hold. In the classical view, noise shaping arises from the presence of an integrator in the feedback loop, and stability is assessed through linearized models and the design of noise transfer functions and signal transfer functions \citep{schreier2005understanding}. When viewed as an entropy-flow system, these structures appear as natural consequences of the geometric constraints imposed by field dynamics.
+
+The integrator corresponds to a discrete version of a smoothing operator on the error field. The noise transfer function appears as a frequency-domain representation of the entropy redistribution operator. The conditions for stability in the presence of quantization emerge from the requirement that the vector field generated by the loop filter be divergence-free or contracting in the relevant region of the state space. Oversampling corresponds to refining the temporal resolution at which the entropy field is observed, thereby reducing the local entropy density. Dither appears as an entropy injection mechanism that linearizes the collapse map and restores statistical symmetries.
+
+This reinterpretation does not replace the classical approach. Rather, it reveals that the classical approach is a special case of a more general geometric and thermodynamic framework. By grounding delta--sigma modulation in concepts drawn from dynamics, geometry, and information theory, we obtain tools capable of describing modulators that operate well outside the classical regime: mediating continuous-time fields, interacting with manifold-constrained signals, participating in multi-stage and multi-channel structures, and integrating with cognitive and active-measurement processes.
+
+\section*{2.11 Concluding Remarks}
+
+This chapter has established the geometric and field-theoretic foundation upon which the remainder of the book is built. By treating signals as sections of manifolds, quantization as a derived collapse map, and delta--sigma feedback as a vector flow that redistributes entropy, we gain a unified conceptual vocabulary that connects the classical engineering interpretation with modern mathematical and physical perspectives. The next chapter applies these insights to classical delta--sigma modulators, revealing the deep continuity between the traditional linearized model and the field-theoretic framework introduced here. Subsequent chapters extend the theory to manifold-aligned prediction, entropy shaping, derived geometry, multi-stage inference, and the full thermodynamic interpretation of delta--sigma modulation.

@@ -1,0 +1,71 @@
+% ------------------------------------------------------------
+% CHAPTER 15
+% ------------------------------------------------------------
+
+\chapter{Multi-Channel and MIMO Delta--Sigma Modulation}
+
+Up to this point, we have analyzed delta--sigma modulation in a single–channel setting, where all dynamical interactions occur within a one–dimensional or low–dimensional internal state space. Many modern systems, however, require multi–channel conversion. Examples include phased–array receivers, multi-axis inertial sensors, multi-electrode neural recording arrays, audio spatialization systems, and general MIMO communication architectures. In such systems, the converter is not simply a repeated single-channel modulator. Instead, it consists of a structured network of interacting delta--sigma loops whose states, quantization events, and shaped error signals mutually influence one another.
+
+The purpose of this chapter is to establish a high-level but mathematically complete description of MIMO delta--sigma systems. We describe their dynamics using coupled vector fields, block-structured quantizers, and multi-dimensional error manifolds endowed with a joint Fisher metric. The resulting analysis reveals a rich geometric structure in which entropy flows not only along individual channel loops, but also between them. This coupling produces new forms of stability behavior, new mechanisms of noise routing, and new opportunities for cross-channel optimization.
+
+To formalize these ideas, consider an \(m\)-channel delta--sigma system with state vector
+\[
+x[n] \in \mathbb{R}^{d m},
+\]
+where each channel contributes a \(d\)-dimensional internal state. Let the input vector be
+\[
+u[n] \in \mathbb{R}^{m},
+\]
+and let the quantizer output be a vector
+\[
+y[n] = Q(x[n]) \in \Lambda \subset \mathbb{R}^{m},
+\]
+where \(\Lambda\) is a discrete lattice or symbolic manifold. The system evolves according to
+\[
+x[n+1] = F(x[n]) + B u[n] - C Q(x[n]),
+\]
+where \(F\) is the multi-channel loop filter, typically block-structured, and \(C\) encodes potential cross-channel feedback. The update may be written more explicitly as
+\[
+x[n+1] = A x[n] + E(x[n]) + B u[n],
+\]
+where \(A\) contains the linear inter-channel couplings and \(E(x[n])\) contains nonlinear contributions including quantizer-induced effects. The multi-channel quantizer \(Q\) may operate independently per channel, or jointly across all channels. Joint quantizers arise in MIMO communication systems where quantization must satisfy power constraints across channels or where the modulation ensures mutual information preservation.
+
+The coupling in \(A\) transforms the system from one composed of independent loops into a genuinely multi-dimensional dynamical system. Even if \(A\) is block diagonal, hardware constraints or digital implementation often introduce cross-channel leakage, and the quantizer thresholds may not be aligned independently across channels. Thus, the global state evolution inhabits a manifold \(\mathcal{M} \subset \mathbb{R}^{dm}\) with richer curvature and more complex geometric invariants than its single-channel counterpart.
+
+To understand this geometry rigorously, define the error vector
+\[
+e[n] = u[n] - y[n].
+\]
+As in the single-channel case, \(e[n]\) traces a path on a geometric manifold, but now the manifold has dimension \(m\). To analyze its curvature, define the joint distribution \(p(e \mid \theta)\) induced by the loop dynamics and quantizer. The Fisher information metric becomes the matrix
+\[
+g_{ij}(\theta) = \mathbb{E}\left[ \frac{\partial \log p(e \mid \theta)}{\partial \theta^{i}} \frac{\partial \log p(e \mid \theta)}{\partial \theta^{j}} \right].
+\]
+The resulting Riemannian geometry reflects how perturbations in one channel influence the predictability and error propagation in another. In a block-independent system, this metric is block diagonal. In a coupled system, the metric acquires off-diagonal terms describing cross-channel sensitivity. These terms measure how small variations in one channel modify the uncertainty distribution in others. The presence of nonzero off-diagonal components is a geometric signature of channel interaction.
+
+From this metric, we define the Levi--Civita connection and curvature tensor exactly as in the previous chapter. The connection coefficients
+\[
+\Gamma^{k}_{ij} = \frac{1}{2} g^{k\ell} \left( \frac{\partial g_{\ell i}}{\partial \theta^{j}} + \frac{\partial g_{\ell j}}{\partial \theta^{i}} - \frac{\partial g_{ij}}{\partial \theta^{\ell}} \right)
+\]
+encode how error evolution in channel \(i\) is transported into channel \(j\). Curvature describes higher-order entanglements of error propagation. The geometric structure therefore encodes all possible interactions between channels at the level of prediction, correction, and entropy routing.
+
+The quantizer \(Q\) contributes additional geometric complexity. If \(Q\) is separable, meaning it acts independently per channel, then the symbolic collapse happens in each dimension separately. The error manifold is the Cartesian product of single-channel manifolds, and the curvature is concentrated on the union of their threshold hypersurfaces. However, if \(Q\) is joint, such as in vector quantization or in constrained lattice quantizers for MIMO communications, the threshold structure becomes a collection of high-dimensional polyhedral regions. The collapse from a continuous state to one of these regions is a projection onto a lower-dimensional symbolic manifold. The boundaries of these regions intersect in nontrivial ways, producing curvature singularities at their edges and corners. When the state trajectory crosses such a boundary, the return map for the multi-channel system experiences a discontinuity whose geometric effect is substantially more complex than in the scalar case.
+
+To analyze these transitions, we introduce the threshold set \(\Sigma\), defined as the union of all quantizer boundary hypersurfaces. The Poincaré return map
+\[
+P: \Sigma \to \Sigma
+\]
+captures the structure of multi-channel interactions. Unlike in the scalar case, where \(\Sigma\) is a set of isolated points or a collection of hyperplanes, here it is a stratified manifold with regions of dimension ranging from \(dm - 1\) down to zero. Each stratum corresponds to a different set of active quantizer constraints. The structure of \(P\) on this stratified space determines the symbolic dynamics of the system. In general, this symbolic dynamics cannot be described by a simple shift on a finite alphabet, but instead corresponds to a subshift of finite type defined by a high-dimensional transition graph reflecting the allowable sequences of crossings. The associated topological entropy quantifies the complexity of multi-channel delta--sigma behavior.
+
+The phenomenon of cross-channel entropy flow becomes visible in this geometric framework. Consider two channels with coupled dynamics. A perturbation in channel one may, through the geometry of the Fisher metric, produce a corresponding change in curvature along the error trajectory of channel two. When the trajectory encounters a quantizer threshold, the collapse perturbs both channels. Thus entropy introduced by one channel may be absorbed or exported by another. This phenomenon appears in spatial audio converters, where quantization noise from one channel may be intentionally routed to directions perceptually less sensitive. It also appears in MIMO communication encoders, where quantization noise is preferentially directed toward spatial directions or eigenmodes that minimally affect channel capacity.
+
+Mathematically, this routing corresponds to controlling the direction of the error vector within the tangent space of the error manifold. For a system with Fisher metric \(g\), the squared infinitesimal error is
+\[
+\| de \|^{2}_{g} = g_{ij} de^{i} de^{j}.
+\]
+Entropy routing corresponds to shaping the metric so that error increases are confined to directions where the metric weight is small. In linear systems, this shaping corresponds to designing the noise transfer matrix. In geometric systems, it corresponds to modifying the curvature or connection such that the gradient flow evolves in desirable directions. As a practical matter, this means designing the loop filter or quantizer structure such that error flows naturally into high-dimensional subspaces where it has minimal perceptual or informational impact.
+
+The stability of MIMO delta--sigma systems depends on these geometric considerations. The existence of a bounded invariant set requires that expansion induced by the linear dynamics be balanced by folding induced by quantizer collapse. In the multi-channel case, the expansion may occur in some directions and contraction in others. Thus, the global stability of the system cannot be captured by a single spectral radius condition. Instead, one must examine the joint spectral radius of the set of Jacobians associated with the various threshold regions. When this joint spectral radius is less than one, the system admits a compact invariant set and behaves in a stable manner. When it exceeds one, the system may exhibit chaotic or divergent behavior. This criterion aligns with the geometric picture: stability requires that the composite action of expansion and folding preserve the boundedness of trajectories on the error manifold.
+
+These considerations reveal that multi-channel delta--sigma modulation is best understood as the dynamics of a high-dimensional coupled geometric system with interacting curvature, thresholds, and entropy flows. Such systems often exhibit rich behavior not present in their single-channel counterparts. In the next part of this book, we return to engineering considerations and examine concrete designs, beginning with first-order modulators and expanding toward full-field theoretic implementations.
+
+

@@ -1,0 +1,963 @@
+\chapter{PDE Derivations for \texorpdfstring{$\Delta\Sigma$}{} Flow Operators}
+
+\section{B.1 Introduction: The PDE Basis of Delta–Sigma Modulation}
+
+Although delta–sigma modulators are typically expressed as discrete-time feedback systems, their underlying behavior is most naturally understood through a continuous-time partial differential equation that governs entropy transport on a curved manifold. The discrete recursion is then a sample–and–project approximation of this PDE. Deriving the modulator from the PDE clarifies the structure of stability, noise shaping, and symbolic collapse. It also provides the necessary foundation for interpreting delta–sigma systems as lamphrodynamic flows in the RSVP framework.
+
+The purpose of this appendix is to construct the continuous-time entropy–flow PDE corresponding to a general delta–sigma modulator, derive its discrete approximation, and show how quantization corresponds to the imposition of boundary conditions that induce symbolic collapse. All subsequent results in this appendix flow from the recognition that the discrete modulator is merely a particular discretization of a far richer geometric dynamical system.
+
+\section{B.2 The Continuous-Time Entropy–Flow Equation}
+
+The continuous-time formulation begins with the definition of an entropy potential \(S : \mathcal{M} \to \mathbb{R}\), where \(\mathcal{M}\) is a smooth manifold representing the internal state of the modulator. The potential induces a Riemannian metric \(g_{ij} = \partial_i \partial_j S\), whose gradient flow governs the dissipation of quantization-induced disturbances. The loop filter contributes a vector field \(v\), representing structured transport on the manifold. The continuous-time ΔΣ operator before quantization is therefore governed by the PDE
+\[
+\frac{\partial X(t)}{\partial t} = -\nabla S(X(t)) + v(X(t)) + U(t),
+\]
+where \(U(t)\) is the input signal.
+
+The interpretation of this equation is physical. The gradient term \(-\nabla S\) corresponds to lamphrodynamic entropy descent. The vector term \(v\) corresponds to baryonic–vector transport in the RSVP field, representing the controlled redirection of entropy along constrained trajectories. The term \(U(t)\) injects external energy into the manifold.
+
+This PDE is the geometric origin of all delta–sigma behavior.
+
+\section{B.3 Incorporating Quantization as a Singular Source Term}
+
+Quantization cannot be represented as a smooth forcing term. It introduces discontinuities in the state trajectory that must be modeled using a singular distribution. Let the quantizer output be denoted by
+\[
+Q(t) = \mathcal{Q}(X(t)),
+\]
+which induces instantaneous jumps of the state across the manifold. The correct geometric representation of quantization is a source term in the PDE:
+\[
+\frac{\partial X(t)}{\partial t} = -\nabla S(X(t)) + v(X(t)) + U(t) + \eta(t),
+\]
+where \(\eta(t)\) is a distribution-valued term encoding quantization impulses. In practice,
+\[
+\eta(t) = \sum_{k\in\mathbb{Z}} e_k \, \delta(t - kT_s)
+\]
+in the sampled system, where \(e_k = X(kT_s^{-}) - Q_k\) is the quantization discrepancy.
+
+Thus quantization is modeled as an impulsive perturbation that abruptly changes the state at discrete times. The PDE therefore evolves smoothly between sampling instants and undergoes symbolic collapse at sampling instants.
+
+This structure reveals the deeper significance of quantization: it enforces a boundary condition on the PDE’s solution, projecting it into a derived submanifold.
+
+\section{B.4 Deriving the Discrete-Time ΔΣ Recursion from the PDE}
+
+To derive the familiar discrete ΔΣ recursion, the PDE must be integrated over each sampling period. Let \(T_s\) denote the sampling period. For \(t \in [nT_s,(n+1)T_s)\),
+\[
+\frac{\partial X}{\partial t} = -\nabla S(X) + v(X) + U(t).
+\]
+Integrating yields
+\[
+X((n+1)T_s^{-}) = X(nT_s^{+}) + \int_{nT_s}^{(n+1)T_s} \bigl[-\nabla S(X(t)) + v(X(t)) + U(t)\bigr]\, dt.
+\]
+
+For sufficiently small sampling period, we approximate the integral using a first-order Lie–Trotter splitting:
+\[
+X((n+1)T_s^{-}) = X(nT_s^{+}) - T_s \nabla S(X_n) + T_s v(X_n) + T_s U_n + O(T_s^2).
+\]
+At the sampling instant \((n+1)T_s\), quantization is applied:
+\[
+X_{n+1} = Q\bigl(X((n+1)T_s^{-})\bigr).
+\]
+Let \(e_{n+1} = X((n+1)T_s^{-}) - Q(X((n+1)T_s^{-}))\). The state after quantization becomes
+\[
+X_{n+1} = X((n+1)T_s^{-}) - e_{n+1}.
+\]
+
+Combining these expressions gives
+\[
+X_{n+1} = X_n - T_s \nabla S(X_n) + T_s v(X_n) + T_s U_n - e_{n+1} + O(T_s^2),
+\]
+which is precisely the general ΔΣ recursion identified throughout this book:
+\[
+X_{n+1} = X_n - \Delta t \nabla\mathcal{F}(X_n) + B e_{n+1},
+\]
+where \(\Delta t = T_s\) and \(\mathcal{F}(X) = S(X) + R(X) - \langle X,U\rangle\), with \(R(X)\) chosen such that \(\nabla R(X) = -v(X)\).
+
+Thus the geometry of the PDE directly yields the structure of the discrete modulator.
+
+\section{B.5 Noise Shaping as the Spectral Response of the PDE}
+
+The noise-shaping properties of the discrete modulator can now be derived from the spectral geometry of the PDE. Linearizing the PDE around a stationary trajectory gives
+\[
+\frac{\partial}{\partial t} \delta X = -H_S(X^\ast)\delta X + J_v(X^\ast)\delta X + \eta(t),
+\]
+where \(H_S\) is the Hessian of the entropy potential and \(J_v\) is the Jacobian of the vector field.
+
+Applying the Laplace transform yields
+\[
+s \,\delta X(s) = -(H_S - J_v)\delta X(s) + \eta(s),
+\]
+or equivalently,
+\[
+\delta X(s) = (sI + H_S - J_v)^{-1}\eta(s).
+\]
+
+Noise shaping is therefore governed by the resolvent
+\[
+\mathcal{N}(s) = (sI + H_S - J_v)^{-1}.
+\]
+
+Sampling this resolvent through the bilinear transform gives the discrete transfer functions, including the noise transfer function. The zeros of the NTF at \(z=1\) arise from the structure of the operator \(H_S - J_v\), which exhibits degenerate eigenvalues corresponding to low-frequency modes. The order of these zeros corresponds to the order of the degeneracy, which is reflected geometrically in the curvature profile of the manifold.
+
+Thus classical NTF behavior is a discretized expression of the low-frequency spectral geometry of the continuous-time PDE.
+
+\section{B.6 Nonlinear PDE Terms and High-Order Curvature Operators}
+
+The preceding analysis treated the entropy–flow PDE primarily in its linearized form. However, practical delta–sigma modulators operate in a regime where nonlinear effects are not merely perturbations but essential contributors to stability, spectral behavior, and overload response. These nonlinearities arise from both the curvature of the entropy metric and the nonlinear transport geometry of the loop–filter vector field. The PDE describing the full system must therefore include higher-order terms that capture these interactions.
+
+Let the state be expanded as \(X = X_{0} + \delta X\). The Taylor expansion of the entropy gradient is
+\[
+\nabla S(X) = \nabla S(X_{0}) + H_{S}(X_{0}) \delta X + \frac{1}{2}\nabla^{3}S(X_{0})[\delta X,\delta X] + \cdots,
+\]
+where \(\nabla^{3}S\) is the cubic differential acting bilinearly on an ordered pair of vectors. Similarly, the vector field admits an expansion
+\[
+v(X) = v(X_{0}) + J_{v}(X_{0})\delta X + \frac{1}{2}D^{2}v(X_{0})[\delta X,\delta X] + \cdots.
+\]
+
+Incorporating these expressions into the PDE yields
+\[
+\frac{\partial}{\partial t}\delta X 
+= -H_{S}\delta X + J_{v}\delta X 
+- \frac{1}{2}\nabla^{3}S[\delta X,\delta X]
++ \frac{1}{2}D^{2}v[\delta X,\delta X] 
++ \eta(t) + \mathcal{R},
+\]
+where \(\mathcal{R}\) denotes the higher-order remainder terms.
+
+The significance of these nonlinearities is twofold. First, they encode the curvature of the entropy manifold, which determines how dissipation scales with amplitude. Second, they encode the nonlinear distortion of the vector field, which determines how the loop filter reshapes trajectories at large amplitudes. Both effects become dominant in overload conditions or in modulators operating at high order.
+
+These terms reveal that the PDE governing delta–sigma modulation belongs to a broader class of quasilinear geometric PDEs in which curvature and transport interact in nontrivial ways. Delta–sigma behavior is therefore inseparable from the nonlinear geometry of the manifold on which it evolves.
+
+\section{B.7 Boundary Geometry and the Quantizer as a Derived PDE Domain}
+
+Quantization imposes boundary conditions on the PDE solution that are fundamentally geometric. The state does not evolve on the full manifold \(\mathcal{M}\), but on a collection of disjoint domains \(\mathcal{M}_{q}\), where each domain corresponds to a quantizer output symbol \(q\). The projection \(Q(X)\) assigns the state to the symbol whose domain contains it.
+
+Thus the PDE evolves smoothly within each domain and undergoes a discontinuous transition upon crossing the boundary between domains. The quantizer can therefore be interpreted as a partition of the state manifold into a family of submanifolds with piecewise-smooth boundaries:
+\[
+\mathcal{M} = \bigcup_{q\in\mathcal{A}} \overline{\mathcal{M}_{q}},
+\]
+where \(\mathcal{A}\) is the alphabet of the quantizer.
+
+At the boundary \(\partial\mathcal{M}_{q}\), the PDE must satisfy a derived boundary condition. The correct formulation is
+\[
+\lim_{t\to t^{\ast -}} X(t) \in \partial\mathcal{M}_{q} 
+\quad \Longrightarrow \quad
+\lim_{t\to t^{\ast +}} X(t) = Q(X(t^{\ast -})),
+\]
+which states that the solution undergoes an instantaneous projection onto a different component of the derived manifold. This condition expresses symbolic collapse: the state transitions into a lower-dimensional submanifold determined by the quantizer output.
+
+From the viewpoint of derived geometry, these discontinuities correspond to homotopy truncations of the tangent complex. The higher-order tangent information is discarded at each sampling instant, leaving a reduced complex that determines the next stage of the flow. Thus quantization is not simply the selection of a discrete symbol; it is the imposition of a new derived geometric phase space.
+
+The PDE therefore exists on a stratified manifold whose strata correspond to quantizer outputs. Understanding delta–sigma modulation requires understanding the evolution of PDE solutions across this stratification.
+
+\section{B.8 PDE Interpretation of MASH and Multi-Loop Systems}
+
+Multi-stage noise shaping (MASH) modulators and other multi-loop delta–sigma architectures can now be described as coupled systems of PDEs interacting through hierarchical boundary conditions. Let the internal states of a two-stage MASH modulator be \(X^{(1)}(t)\) and \(X^{(2)}(t)\). The governing PDEs are
+\[
+\frac{\partial X^{(1)}}{\partial t} = -\nabla S_{1}(X^{(1)}) + v_{1}(X^{(1)}) + U(t) + \eta_{1}(t),
+\]
+\[
+\frac{\partial X^{(2)}}{\partial t} = -\nabla S_{2}(X^{(2)}) + v_{2}(X^{(2)}) + Q_{1}(t) + \eta_{2}(t).
+\]
+
+The additional term \(Q_{1}(t)\) in the second equation functions as a boundary signal determined by the first PDE. Thus the two PDEs are coupled through a symbolic boundary condition. The presence of the quantized output of one system as the driving term for another means that the domains of the two PDEs are linked through a derived fiber product:
+\[
+\mathcal{M}^{(1,2)} 
+= \mathcal{M}^{(1)} \times_{\mathcal{A}_{1}} \mathcal{M}^{(2)},
+\]
+where \(\mathcal{A}_{1}\) is the alphabet of the first quantizer. This geometric structure explains why MASH modulators can eliminate certain error terms: the derived fiber product eliminates paths in the combined manifold that are inconsistent with the symbolic interface.
+
+Thus multi-loop delta–sigma systems can be interpreted as PDE networks connected through derived symbolic boundary maps. Their stability and noise shaping follow from the curvature and entropy geometry of the coupled system.
+
+\section{B.9 Continuous-Time Overload and Blow-Up Phenomena}
+
+Overload in delta–sigma modulators is often understood as the state escaping the stable operating region of the discrete recursion. In the PDE formulation, overload corresponds to finite-time blow-up of the PDE solution. Let \(X(t)\) evolve under the PDE with input \(U(t)\). Blow-up occurs when
+\[
+\lim_{t\to t_{\ast}} \|X(t)\| = \infty
+\]
+for some finite \(t_{\ast}\).
+
+Finite-time blow-up can be analyzed by comparing the rate of entropy dissipation with the rate of entropy injection. Let
+\[
+\frac{d}{dt} S(X(t)) = -\langle \nabla S, \nabla S\rangle + \langle \nabla S, v\rangle + \langle \nabla S, U\rangle + \Xi(t),
+\]
+where \(\Xi(t)\) is the instantaneous quantization entropy injection.
+
+Blow-up occurs when the positive terms dominate the negative dissipation induced by \(-\langle\nabla S,\nabla S\rangle\). In particular, overload is guaranteed when
+\[
+\langle \nabla S(X), v(X) \rangle + \langle \nabla S(X), U \rangle + \Xi(t)
+\]
+grows faster than
+\[
+\|\nabla S(X)\|^{2}.
+\]
+
+This condition corresponds to a violation of the curvature–entropy compatibility condition established in Appendix A. In continuous time, the inequality becomes a differential inequality whose failure implies divergence of the trajectory.
+
+Thus overload is not an arbitrary artifact of finite precision. It is the PDE manifestation of entering a region of the entropy manifold where the vector–field transport and external forcing exceed the ability of the curvature-driven entropy descent to restore order.
+
+\section{B.10 Spectral–Manifold Approximation for Practical ΔΣ Design}
+
+Engineering design requires accurate estimation of the spectral behavior of the modulator near its operating point. The underlying PDE provides a method for deriving spectral approximations that remain valid even for nonlinear or high-order systems.
+
+Let the PDE be linearized around a nominal trajectory \(X^\ast(t)\), as in Section B.5. The resulting operator
+\[
+\mathcal{L} = H_{S} - J_{v}
+\]
+defines a differential operator whose spectrum determines the noise-shaping characteristics. The classical noise transfer function is a discretized approximation of the resolvent of this operator.
+
+Practical design therefore reduces to computing a spectral approximation of \(\mathcal{L}\). The simplest approximation uses constant coefficients corresponding to the Hessian and Jacobian at the equilibrium point. Higher-order approximations employ curvature corrections:
+\[
+\mathcal{L}_{\text{eff}} = H_{S} 
+- J_{v} 
+- \frac{1}{2}\mathrm{Ric}_{g},
+\]
+where \(\mathrm{Ric}_{g}\) is the Ricci curvature tensor. The effect of curvature is to shift the eigenvalues of \(\mathcal{L}\), altering the effective slope of noise shaping.
+
+This spectral–manifold approximation explains why certain modulator architectures exhibit excess loop delay sensitivity or degraded high-frequency shaping. Their curvature profiles distort the effective spectrum of the operator, altering the root structure of the NTF.
+
+Thus practical delta–sigma design is inseparable from the spectral geometry of the underlying entropy manifold.
+
+\section{B.11 Limit Cycles and Quasi-Periodic Attractors in the PDE Framework}
+
+The discrete-time delta–sigma loop is known to exhibit limit cycles, quasi-periodic oscillations, and, in rare cases, chaotic trajectories. In the discrete formulation these phenomena arise when the state repeatedly traverses a cycle of quantizer boundary crossings. In the continuous-time PDE formulation, however, these behaviors correspond to the emergence of nontrivial invariant sets of the entropy–flow PDE with impulsive boundary conditions.
+
+Let the PDE be written in full as
+\[
+\frac{\partial X}{\partial t} 
+= -\nabla S(X) + v(X) + U(t) + \eta(t),
+\]
+with \(\eta(t)\) encoding quantization impulses. Between impulses the PDE is smooth. A limit cycle corresponds to a periodic orbit of the impulsive flow, meaning that there exists a minimal period \(T > 0\) such that
+\[
+X(t + T) = X(t)
+\]
+for all sufficiently large \(t\). From the geometric viewpoint, this orbit represents an invariant curve on the entropy manifold that is preserved under the combined effects of entropy descent, vector‐field transport, input forcing, and symbolic collapse.
+
+To identify the conditions under which limit cycles arise, consider the Poincaré map associated with the PDE between quantizer impulses. Let \(P\) denote the map that takes the state immediately after one impulse to the state immediately after the next impulse. A limit cycle arises when there exists a point \(X^{\ast}\) such that
+\[
+P(X^{\ast}) = X^{\ast}.
+\]
+In the PDE formulation the map \(P\) is given by integrating the continuous flow between impulses followed by projection across a quantizer boundary. Thus
+\[
+X^{\ast}
+= Q\!\left(\Phi_{T_s}(X^{\ast})\right),
+\]
+where \(\Phi_{T_s}\) is the solution operator of the PDE without impulses.
+
+The existence of such fixed points critically depends on the geometry of the entropy potential. Limit cycles most commonly arise when the curvature of the entropy manifold is sufficiently small in some region, allowing the vector-field transport to counterbalance the entropy descent. This balancing prevents the trajectory from collapsing into the global attractor and instead sustains oscillatory behavior.
+
+Quasi-periodic attractors correspond to invariant toroidal structures within the PDE phase space, typically emerging when the curvature produces multiple nearly degenerate directions of slow descent. These phenomena reflect the spectral geometry of the operator \(H_{S} - J_{v}\). When the operator has multiple eigenvalues with small real parts, slow oscillatory modes interact with quantizer boundaries to produce quasi-periodicity.
+
+Thus limit cycles and quasi-periodic attractors are not anomalies; they are natural geometric consequences of entropy–flow PDEs evolving on curved manifolds subject to impulsive constraints.
+
+\section{B.12 Stochastic PDE Formulation and Dither as a Diffusive Term}
+
+Dither is traditionally understood as the intentional injection of low-amplitude noise before quantization to reduce distortion. In the PDE context, however, dither is interpreted as a stochastic process that regularizes the derived boundary conditions induced by quantization. The correct PDE representation is a stochastic differential equation with a diffusion term:
+\[
+dX(t) 
+= \bigl[-\nabla S(X) + v(X) + U(t)\bigr]\,dt
++ \sigma(X)\,dW(t)
++ dJ(t),
+\]
+where \(W(t)\) is a Wiener process, \(\sigma(X)\) is the diffusion coefficient determined by the dither amplitude and spectral shape, and \(dJ(t)\) is the impulsive jump process of quantization.
+
+The diffusion term introduces randomness that smooths the transition of the trajectory across quantizer boundaries. In the deterministic case, the state may repeatedly cross the same boundary, resulting in a limit cycle. With diffusion present, the state is perturbed transversally to the boundary, breaking the periodicity and causing the averaged trajectory to converge toward the global attractor.
+
+On a geometric level, dither enriches the tangent complex by reintroducing directions that quantizer collapse would otherwise annihilate. The diffusion term therefore counteracts symbolic truncation, preventing the system from becoming trapped in cycles corresponding to degenerate derived structures.
+
+A precise description of this effect is obtained by considering the Fokker–Planck equation associated with the stochastic PDE. Let \(\rho(x,t)\) be the probability density of the state. The evolution is governed by
+\[
+\frac{\partial \rho}{\partial t}
+= \operatorname{div}\!\left(
+\rho\,\nabla S - \rho\,v
+\right)
++ \frac{1}{2}\Delta(\sigma^{2}\rho)
++ \sum_{k} \bigl[T_{k}^{\ast}\rho - \rho\bigr]\delta(t-kT_{s}),
+\]
+where \(T_{k}^{\ast}\) is the transfer operator induced by quantization at step \(k\).
+
+The diffusion term increases the dimensionality of the invariant measure of the PDE. This broadening of the measure explains why dither reduces harmonic distortion: it distributes the symbolic entropy injection more evenly across the manifold.
+
+Thus dither is a geometric device for smoothing the derived PDE boundaries and preventing collapse into pathological attractors.
+
+\section{B.13 Lamphrodynamic Descent and the ΔΣ Error PDE}
+
+The lamphrodynamic framework introduced in the main text provides a physical interpretation of entropy descent as the smoothing of tension within a scalar–vector–entropy field. Within this framework the error signal of a delta–sigma modulator evolves according to a PDE analogous to the lamphrodynamic relaxation flow.
+
+Let the error be defined by \(E(t) = U(t) - Q(t)\). The PDE governing error evolution is
+\[
+\frac{\partial E}{\partial t}
+= -\nabla S_{E}(E) + w(E) + \xi(t),
+\]
+where \(S_{E}\) is an entropy potential defined on the error manifold, \(w\) is the induced vector field obtained by projecting the global state dynamics into the error coordinates, and \(\xi(t)\) is the impulse train associated with quantization.
+
+In a first-order delta–sigma loop, this PDE reduces to
+\[
+\frac{\partial E}{\partial t}
+= -\frac{\partial}{\partial t} X(t) + \xi(t)
+= \frac{d}{dt}Q(t) + \xi(t),
+\]
+revealing the familiar relationship:
+\[
+E(t) = \frac{d}{dt}Q(t)
+\]
+modulo smoothing and jump terms.
+
+Lamphrodynamic descent explains the spectral properties of delta–sigma modulation. The entropy potential \(S_{E}\) is chosen such that the error field diffuses outward in high-frequency directions and is suppressed in low-frequency directions. This directional smoothing is achieved by shaping the curvature of \(S_{E}\), which corresponds to shaping the derivative operator applied to the error.
+
+Thus the entire noise–shaping property of delta–sigma modulation is a lamphrodynamic consequence of the curvature of the error field’s entropy potential.
+
+\section{B.14 Curvature–Spectral Interaction and High-Order Noise Shaping}
+
+High-order delta–sigma modulators exhibit steeper high-frequency noise shaping because the underlying PDE has a higher-order degeneracy in its low-frequency spectral modes. This spectral degeneracy is a geometric property of the entropy manifold. Let the entropy potential be expanded near the operating point as
+\[
+S(X) = \frac{1}{2} X^{\top} P X + O(\|X\|^{3}),
+\]
+with \(P\) positive definite. The noise-shaping operator is determined by the structure of \(\mathcal{L} = H_{S} - J_{v}\). High-order degeneracy corresponds to the existence of multiple eigenvalues satisfying
+\[
+\lambda_{1}, \ldots, \lambda_{m} \approx 0,
+\]
+with \(m\) equal to the order of the modulator.
+
+The quantizer collapse enforces an impulsive perturbation that excites these modes. The PDE filters the excitation through the resolvent
+\[
+\mathcal{N}(s) = (sI + \mathcal{L})^{-1}.
+\]
+
+Because the small eigenvalues correspond to long relaxation timescales, their contribution to the spectrum grows with frequency, yielding the characteristic \(f^{m}\) high-frequency noise shaping.
+
+Thus the order of the delta–sigma loop corresponds to the dimension of the nearly flat curvature subspace in the entropy manifold. Increasing the loop order increases this flatness, thereby increasing the spectral tilt. However, the curvature–entropy compatibility constraint of Appendix A limits the maximum dimension of this flat region, explaining why excessively high-order modulators become unstable.
+
+\section{B.15 Multi-Scale PDE Structure and Oversampling}
+
+Oversampling in delta–sigma modulators corresponds to embedding the PDE in a multi-scale temporal hierarchy. Let the sampling period be \(T_{s}\). The PDE evolves on time intervals of length \(T_{s}\), but the intrinsic relaxation timescale determined by the curvature of the entropy manifold is typically much smaller. Let \(\tau\) denote this relaxation timescale, so that \(\tau \ll T_{s}\) in high-OSR systems.
+
+This separation of scales allows the PDE to reach a quasi-equilibrium state between successive quantizer impulses:
+\[
+X(t + \tau) \approx X^{\ast}(t)
+\]
+for \(t \in [nT_{s}, nT_{s} + \tau]\).
+
+As a result, the state approaches the manifold of minimizers of the instantaneous free–energy functional within each sampling interval. The quantizer impulse then perturbs the system into a nearby region, beginning a new relaxation phase.
+
+The consequence is that oversampling increases the number of relaxation phases per unit time. Each relaxation phase reduces the entropy of the internal state, while each quantizer impulse injects entropy. Increasing the oversampling ratio therefore increases the rate of entropy dissipation relative to injection.
+
+This multi-scale PDE interpretation provides the geometric explanation for the well-known fact that high OSR improves stability, noise shaping, and resolution. It also clarifies the limit beyond which increasing OSR yields diminishing returns: once the relaxation time \(\tau\) is comparable to \(T_{s}\), further oversampling cannot increase the number of effective relaxation events.
+
+\section{B.16 Idle Tones and Spectral Line Formation as PDE Resonances}
+
+Idle tones appear in delta–sigma modulators when the error signal exhibits narrowband oscillations, often at rational multiples of the sampling frequency. In discrete-time analysis these tones arise when the state enters a short periodic orbit. In the PDE formulation, however, idle tones correspond to resonant modes of the entropy–flow operator excited by repeated quantizer impulses.
+
+Let the linearized PDE be
+\[
+\frac{\partial}{\partial t}\delta X
+= \mathcal{A}\delta X + \eta(t),
+\]
+where \(\mathcal{A} = -H_{S} + J_{v}\). Let the quantizer impulse be modeled as
+\[
+\eta(t) = \sum_{k\in\mathbb{Z}} \varepsilon_{k}\delta(t - kT_{s}).
+\]
+Applying the Laplace transform yields
+\[
+\delta X(s) = \mathcal{N}(s)\sum_{k}\varepsilon_{k}e^{-kT_{s}s},
+\]
+where \(\mathcal{N}(s)\) is the resolvent. Consider a single eigenmode of the operator corresponding to the eigenvalue \(\lambda\). The response in this mode is
+\[
+x_{\lambda}(s)
+= \frac{1}{s-\lambda}\sum_{k}\varepsilon_{k}e^{-kT_{s}s}.
+\]
+
+If the sequence \(\varepsilon_{k}\) is periodic with period \(p\), then its Laplace representation has poles at
+\[
+s_{m} = \frac{2\pi i m}{p T_{s}},
+\]
+and the response becomes
+\[
+x_{\lambda}(s) 
+= \sum_{m} \frac{c_{m}}{(s-\lambda)(s - s_{m})}.
+\]
+
+The residue at \(s = s_{m}\) determines the magnitude of the spectral line at frequency \(2\pi m / (p T_{s})\). The intensity of the idle tone is therefore
+\[
+|x_{\lambda}(s_{m})| 
+= \left|\frac{c_{m}}{s_{m}-\lambda}\right|.
+\]
+
+Idle tones correspond to approximate resonances where the imaginary part of an eigenvalue \(\lambda\) aligns with a harmonic of the sampling frequency. Thus idle tones arise from the intersection of the spectral geometry of the entropy manifold and the symbolic periodicity induced by quantizer collapse.
+
+In high-order systems the operator \(\mathcal{A}\) possesses many nearly imaginary eigenvalues, making resonances more likely and explaining why idle tones become more prominent as loop order increases. Dither disrupts alignment of residues, breaking the resonant structure and destroying idle tones.
+
+Thus idle tones are not merely artifacts of discrete logic. They are geometric resonances of the delta–sigma PDE forced periodically by quantizer impulses.
+
+\section{B.17 Time-Varying Coefficients and Modulated PDE Structures}
+
+Many delta–sigma modulators incorporate time-varying coefficients to suppress idle tones, reduce distortion, or implement adaptive strategies. In the PDE formulation, time-varying coefficients correspond to a non-autonomous geometric flow on a manifold whose metric and vector field change in time.
+
+Let the PDE be written as
+\[
+\frac{\partial X}{\partial t}
+= -\nabla S(X,t) + v(X,t) + U(t) + \eta(t).
+\]
+The time dependence of \(S\) and \(v\) implies that the metric \(g_{ij}(t)\) and curvature tensors \(R_{ijkl}(t)\) evolve according to
+\[
+\frac{\partial}{\partial t} g_{ij}
+= \partial_{i}\partial_{j}\left(\frac{\partial S}{\partial t}\right),
+\]
+\[
+\frac{\partial}{\partial t} R_{ijkl}
+= \nabla_{k}\nabla_{l}\left(\frac{\partial g_{ij}}{\partial t}\right) + \cdots.
+\]
+
+This evolution creates a time-modulated entropy manifold, meaning that the curvature profile shifts dynamically. The shifting curvature modifies the spectral gap of the operator \(\mathcal{A}(t)\). By introducing mild oscillatory modulation, the spectrum is continually perturbed, preventing long-term accumulation of resonances in any single mode and thereby suppressing idle tones.
+
+Time-varying coefficients therefore correspond to a geometric strategy for preventing PDE resonance locking. Instead of allowing the flow to evolve on a fixed manifold where resonances may develop, the manifold is slowly deformed in time, causing the spectral landscape to drift and preventing coherent resonance.
+
+Thus methods such as dynamic element matching, coefficient dithering, and noise-shaped scramblers all correspond to time-varying geometric flows that prevent the PDE from developing persistent resonant patterns.
+
+\section{B.18 The PDE of Digital Delta–Sigma and Bitstream Arithmetic}
+
+Digital delta–sigma modulators operate entirely in discrete arithmetic, yet they exhibit dynamical properties identical to their analog counterparts. This equivalence arises because digital bitstream arithmetic is a discretization of a PDE on a discrete manifold.
+
+Let the state space be a discrete lattice embedded in a manifold \(\mathcal{M}\). The digital state evolution is governed by
+\[
+X_{n+1} = X_{n}
+- \Delta t \nabla_{\mathrm{disc}} S(X_{n})
++ \Delta t\, v_{\mathrm{disc}}(X_{n})
++ U_{n}
+- e_{n+1},
+\]
+where \(\nabla_{\mathrm{disc}}\) and \(v_{\mathrm{disc}}\) are finite-difference approximations of the continuous operators. The quantizer output is binary or multi-bit arithmetic with saturation and wrap-around constraints corresponding to discrete boundary identifications.
+
+The underlying PDE is therefore a discrete Laplacian or gradient operator defined on a graph. Let the graph Laplacian be denoted by \(\Delta_{\mathcal{G}}\), with the discrete gradient given by \(\nabla_{\mathcal{G}}\). Then the digital delta–sigma PDE is
+\[
+\frac{\partial X}{\partial t}
+= -\nabla_{\mathcal{G}} S(X)
++ v_{\mathcal{G}}(X)
++ U(t)
++ \eta(t),
+\]
+which is structurally identical to its analog counterpart.
+
+Bitstream arithmetic therefore corresponds to a graph-theoretic PDE. The curvature of the discrete manifold is encoded by the combinatorial Laplacian. The nature of bit wrapping, accumulator saturation, and round-off behavior corresponds to the imposition of discrete boundary conditions. Thus the digital modulator is a discretized geometric flow on a graph approximating the continuous entropy manifold.
+
+This explains the empirical fact that digital delta–sigma modulators exhibit the same stability and noise-shaping behavior as continuous-time systems: they evolve according to the same geometric PDE, interpreted in the discrete category.
+
+\section{B.19 Curvature-Induced Aliasing, Folding, and Spurious Tones}
+
+Aliasing and spectral folding in delta–sigma modulators emerge from the nonlinear distortion of the PDE by curvature. When the state evolves on a curved manifold, the projection of the trajectory onto the quantizer alphabet is a nonlinear function of the state. This nonlinearity produces harmonics and subharmonics corresponding to interaction terms in the curvature expansion.
+
+Consider the Taylor expansion of the quantizer boundary near a point \(X_{0}\). Let the boundary be defined implicitly by \(\Phi(X) = 0\), with normal vector \(n = \nabla \Phi(X_{0})\). The second-order correction is determined by the Hessian of \(\Phi\):
+\[
+\Phi(X) = n^{\top}(X-X_{0})
++ \frac{1}{2}(X-X_{0})^{\top} H_{\Phi} (X-X_{0})
++ \cdots.
+\]
+
+The curvature contribution arises from \(H_{\Phi}\). When the PDE trajectory interacts with this curved boundary, the discontinuous transition produces additional frequency components determined by the geometry of the boundary. Specifically, the impulse
+\[
+e_{n+1} = X_{n+1}^{-} - Q(X_{n+1}^{-})
+\]
+contains polynomial terms in \(X_{n+1}^{-}\). These terms redistribute spectral energy across harmonics, leading to spectral folding.
+
+Similarly, the curvature of the entropy manifold modifies the PDE flow by introducing nonlinear mixing between modes. The term \(\nabla^{3}S[\delta X, \delta X]\) produces quadratic interactions that generate sum and difference frequencies, some of which fold into the signal band depending on their relation to the sampling frequency.
+
+Thus aliasing is not merely the result of insufficient sampling. It is a geometric consequence of evolving on curved manifolds with impulsive symbolic collapse. Flattening the curvature, adjusting quantizer thresholds, or using dither all reduce curvature-induced spectral folding.
+
+\section{B.20 PDE Stability of Adaptive and Self-Tuning Delta–Sigma Modulators}
+
+Adaptive delta–sigma modulators adjust their coefficients in response to operating conditions. In the PDE formulation, adaptation corresponds to the evolution of the entropy potential and vector field according to a governing functional. Let the coefficients evolve according to
+\[
+\frac{d\theta}{dt} = -\nabla_{\theta} \mathcal{J}(X,\theta),
+\]
+where \(\theta\) denotes the parameters and \(\mathcal{J}\) is a performance functional, typically derived from metrics related to error, distortion, or power.
+
+The joint PDE for the state and parameters is then
+\[
+\begin{cases}
+\displaystyle
+\frac{\partial X}{\partial t}
+= -\nabla S_{\theta}(X) + v_{\theta}(X) + U(t) + \eta(t),
+\\[1em]
+\displaystyle
+\frac{d\theta}{dt}
+= -\nabla_{\theta} \mathcal{J}(X,\theta).
+\end{cases}
+\]
+
+This system evolves on the product manifold \(\mathcal{M} \times \Theta\), where \(\Theta\) is the parameter manifold. Stability requires that the curvature of the joint entropy potential
+\[
+\mathcal{S}(X,\theta) = S_{\theta}(X) + \mathcal{J}(X,\theta)
+\]
+satisfy the curvature–entropy compatibility condition of Appendix A.
+
+In particular, stability is guaranteed if
+\[
+\langle\nabla_{X}\mathcal{S}, v_{\theta}(X) \rangle
++ \langle\nabla_{\theta}\mathcal{S}, -\nabla_{\theta}\mathcal{S} \rangle
+\ge
+\Delta S_{Q}(X) - \alpha \mathcal{S}(X,\theta)
+\]
+for sufficiently large \((X,\theta)\). The first term represents entropy dissipation in state space, and the second represents dissipation in parameter space. Together they ensure that adaptation does not destabilize the modulator.
+
+Thus adaptive delta–sigma modulators correspond to PDEs on evolving entropy manifolds whose geometric stability is ensured by combined control of curvature in both the state and parameter directions.
+
+\section{B.21 Loop Order Limits from the Geometry of the Entropy–Flow PDE}
+
+High-order delta–sigma modulators exhibit improved noise shaping but degraded stability. In classical analysis this manifests as a practical upper bound on useful loop order. In the PDE formulation, loop-order limits arise naturally from the curvature structure of the entropy manifold and the interaction between quantizer impulses and the flatness of the manifold in low-curvature directions.
+
+Let the entropy manifold be expressed near an equilibrium point as
+\[
+S(X) = \frac{1}{2}\sum_{i=1}^{d} \lambda_{i} x_{i}^{2} + O(\|X\|^{3}),
+\]
+where the eigenvalues \(\lambda_{1},\ldots,\lambda_{d}\) represent the curvature of the manifold in corresponding directions. A first-order delta–sigma modulator corresponds to one low-curvature direction. A second-order modulator corresponds to two such directions. An \(m\)-th order modulator requires \(m\) small eigenvalues.
+
+Stability requires the curvature–entropy compatibility condition of Appendix A:
+\[
+\langle \nabla S(X), v(X) \rangle \ge \Delta S_{Q}(X) - \alpha S(X)
+\]
+for \(\|X\|\) sufficiently large. As the number of low-curvature directions increases, the dissipation term
+\[
+\|\nabla S(X)\|^{2}
+= \sum_{i=1}^{d} \lambda_{i}^{2} x_{i}^{2}
+\]
+becomes weaker for any given amplitude along those directions. Meanwhile, quantization impulses create perturbations in all directions, and their entropy injection \(\Delta S_{Q}\) does not diminish with increasing loop order.
+
+The condition fails when the number of small curvature directions exceeds the ability of the vector field \(v\) to redirect entropy into high-curvature directions. This imposes an intrinsic geometric limit:
+\[
+m_{\max}
+= \dim \left\{\, i \;\middle|\; \lambda_{i} \approx 0 \,\right\}.
+\]
+
+Thus the maximum stable loop order is the dimension of the nearly flat subspace of the entropy manifold. This geometric perspective explains classical empirical constraints and shows that loop-order limits reflect the intrinsic topology and curvature of the underlying entropy field, not algebraic intricacies.
+
+\section{B.22 Quasi-Hamiltonian Structure of the ΔΣ Entropy–Flow PDE}
+
+Although delta–sigma modulators are dissipative, the PDE describing their behavior contains a quasi-Hamiltonian component. The vector field \(v(X)\) often contains a term that resembles a Hamiltonian rotation. Let
+\[
+v(X) = J \nabla H(X) + d(X),
+\]
+where \(J\) is a constant antisymmetric matrix, \(H\) is a pseudo-Hamiltonian potential, and \(d(X)\) is a dissipative correction term.
+
+Substituting this decomposition into the PDE yields
+\[
+\frac{\partial X}{\partial t}
+= -\nabla S(X) + J \nabla H(X) + d(X) + U(t) + \eta(t).
+\]
+
+If the dissipative term \(-\nabla S + d(X)\) were absent, the system would reduce to a Hamiltonian PDE with impulsive forcing. The presence of \(-\nabla S\) produces lamphrodynamic descent that competes with rotational dynamics induced by \(J\nabla H\). The balance between these two determines the qualitative behavior of the modulator.
+
+In high-order modulators the rotational terms can dominate in certain directions, producing quasi-conservative oscillatory motion. These oscillations interact with quantizer impulses to produce the resonant idle tones of Section B.16. When entropy descent dominates, these oscillations are suppressed and the trajectory collapses into the global attractor.
+
+Thus delta–sigma modulators possess a mixed Hamiltonian–dissipative PDE structure with impulsive discontinuities. This quasi-Hamiltonian decomposition clarifies why delta–sigma behavior sometimes resembles conservative oscillation and sometimes resembles noisy relaxation.
+
+\section{B.23 Derived PDEs and Symbolic Sheaf Conditions on Quantizer Domains}
+
+In the presence of quantization, the PDE does not evolve on a single smooth manifold but on a stratified manifold whose strata correspond to quantizer output symbols. The correct mathematical formalism for describing PDE evolution on stratified spaces is that of sheaves of solution spaces. Let \(\mathcal{F}\) denote the sheaf assigning to each open set \(U\subset \mathcal{M}\) the set of solutions to the PDE in \(U\).
+
+The quantizer imposes gluing conditions between solutions in adjacent strata. Let
+\[
+\mathcal{M} = \bigcup_{q} \mathcal{M}_{q}
+\]
+be the stratification and let \(\mathcal{M}_{q,r} = \overline{\mathcal{M}_{q}} \cap \overline{\mathcal{M}_{r}}\). The solution sheaf must satisfy the symbolic compatibility condition
+\[
+\mathcal{F}(\mathcal{M}_{q}) \times \mathcal{F}(\mathcal{M}_{r})
+\longrightarrow
+\mathcal{F}(\mathcal{M}_{q,r})
+\]
+which enforces the boundary identification
+\[
+X(t^{+}) = Q(X(t^{-})).
+\]
+
+These gluing conditions encode the derived fiber products that appear in multi-loop systems (Section B.8). They also enforce the symbolic truncation of the tangent complex at quantizer boundaries. The modulator PDE is therefore a derived PDE whose solution space is best understood as a sheaf on a stratified manifold with derived boundary maps.
+
+This viewpoint reveals that quantization introduces categorical constraints, not merely numerical discontinuities. The stability and spectral behavior of the modulator depend critically on how the solution sheaf glues across strata.
+
+\section{B.24 Entropy Flux Conservation Laws and Divergence Constraints}
+
+The PDE governing delta–sigma modulation admits a conservation law for entropy flux in the absence of quantization impulses. Let the entropy flux vector \(J_{S}\) be defined by
+\[
+J_{S} = -S(X) v(X).
+\]
+Then the continuity equation takes the form
+\[
+\frac{\partial S}{\partial t}
++ \operatorname{div}(J_{S})
+= -\|\nabla S(X)\|^{2}.
+\]
+
+The right-hand side represents entropy dissipation. Integrating over a region \(U\subset\mathcal{M}\) yields
+\[
+\frac{d}{dt}\int_{U} S \, d\mu
++ \int_{\partial U} \langle J_{S}, n \rangle\, d\sigma
+= -\int_{U}\|\nabla S\|^{2}\, d\mu.
+\]
+
+Quantization impulses violate conservation by producing instantaneous entropy injections:
+\[
+\Delta S_{\text{imp}} = \Delta S_{Q}.
+\]
+
+Thus entropy in a delta–sigma modulator evolves according to a conservation law punctuated by impulsive injections. The loop filter redirects entropy flux across the manifold, while the entropy potential dissipates it.
+
+This flux formulation explains why noise shaping occurs: the vector field \(v\) directs entropy flux into high-curvature directions where it dissipates efficiently, thereby reducing low-frequency entropy. The PDE therefore possesses an entropy-routing structure analogous to the lamphrodynamic flows of the RSVP framework.
+
+\section{B.25 Continuous-Time NTF Slope Limits from Curvature of the Entropy Manifold}
+
+The classical NTF slope limit of continuous-time delta–sigma modulators states that the high-frequency noise-shaping slope cannot exceed the loop order. In the PDE formulation this limit arises from the curvature structure of the entropy manifold and the degeneracy of its low-frequency modes.
+
+The high-frequency asymptotics of the NTF correspond to the large-\(s\) behavior of the resolvent
+\[
+\mathcal{N}(s) = (sI + H_{S} - J_{v})^{-1}.
+\]
+
+If the smallest \(m\) eigenvalues of \(H_{S} - J_{v}\) vanish to first order, then as \(s\to\infty\),
+\[
+\mathcal{N}(s) \sim \frac{1}{s^{m+1}}.
+\]
+
+This produces an NTF with high-frequency slope proportional to \(m+1\). In order for \(m\) eigenvalues to be small, the entropy manifold must have an \(m\)-dimensional nearly flat subspace. However, the curvature–entropy compatibility condition of Appendix A imposes a constraint on how large such a flat region may be. Excessive flattening reduces dissipative power and violates stability.
+
+Thus the PDE places a strict upper bound on the number of small eigenvalues of \(H_{S} - J_{v}\). This bound corresponds exactly to the loop-order limit of the modulator. Increasing loop order beyond this limit forces the entropy manifold to become too flat and destabilizes the PDE.
+
+As a result, the continuous-time NTF slope limit emerges as a fundamental geometric consequence of the curvature structure of the entropy manifold. Noise shaping, stability, and loop order are all controlled by the relationship between curvature and entropy descent.
+
+\section{B.26 Global Attractors and Long-Time Asymptotics of the Entropy–Flow PDE}
+
+The delta–sigma entropy–flow PDE with impulsive boundary conditions generates a dynamical system whose long-time behavior is governed by the existence, structure, and basin of attraction of global attractors. A global attractor is a compact, invariant set \(\mathcal{A}\subset\mathcal{M}\) that attracts all trajectories under the impulsive PDE. Its existence guarantees that every trajectory eventually settles into a bounded region of the entropy manifold, where the combined effects of entropy descent, vector-field transport, and symbolic collapse balance each other.
+
+The deterministic PDE between impulses is strictly dissipative because 
+\[
+\frac{d}{dt} S(X(t)) = -\|\nabla S(X(t))\|^{2} + \langle \nabla S, v(X)\rangle + \langle\nabla S, U(t)\rangle.
+\]
+The first term dominates for sufficiently large \(\|X\|\) if the curvature–entropy compatibility condition holds. This ensures that trajectories cannot diverge unboundedly. The impulsive term, although non-dissipative, injects only bounded increments at discrete times. Taken together, these properties imply that the joint semigroup generated by the PDE and impulses possesses an absorbing set: a bounded set that eventually contains every trajectory.
+
+Once absorption is guaranteed, the existence of a global attractor follows from standard compactness arguments. Let \(S^{\ast}\) denote the infimum of the entropy potential along all trajectories. Then the region \(S(X)\le S^{\ast} + \varepsilon\) becomes forward invariant for sufficiently small \(\varepsilon\). The omega-limit set of this region defines the attractor. This attractor typically takes the form of a deformed torus, containing both smooth flows and symbolic transitions.
+
+The long-time asymptotics of the PDE therefore do not depend on the initial condition. They depend only on the geometric structure of the entropy manifold, the curvature of the vector field, and the symbolic topology of the quantizer domains. This explains why the audio band behavior of a delta–sigma modulator does not change with different initial states: long-time asymptotics erase transient information through geometric dissipation.
+
+\section{B.27 Delta–Sigma PDEs on Bounded versus Unbounded Manifolds}
+
+The state space of a delta–sigma modulator may be modeled either as an unbounded manifold, such as \(\mathbb{R}^{d}\), or a bounded manifold obtained by imposing saturation, wrapping, or projective boundaries. The PDE behaves differently in these two settings, yet the essential behavior is governed by the same geometric principles.
+
+On an unbounded manifold, stability requires that the entropy potential grow without bound, ensuring that 
+\[
+\lim_{\|X\|\to\infty} S(X) = +\infty.
+\]
+This guarantees that dissipation dominates injection in the asymptotic region. However, many digital and analog modulators impose implicit boundaries through saturations or clipping. These create a bounded manifold obtained by gluing parts of the boundary together or truncating them.
+
+Let \(\mathcal{M}_{\mathrm{sat}}\) be the saturated manifold. The entropy potential becomes bounded:
+\[
+\sup_{X\in \mathcal{M}_{\mathrm{sat}}} S(X) < \infty.
+\]
+The dissipation term can no longer dominate in the asymptotic region, because no such region exists. Instead, stability is achieved by enforcing vector-field divergence conditions that ensure that trajectories cannot accumulate near the boundary in a manner that leads to cycling or blow-up.
+
+Thus in bounded manifolds, stability depends not on the unbounded convexity of the entropy potential but on the divergence structure of the vector field and on how the symbolic boundaries glue solutions together. The global attractor still exists, but its geometry is controlled more by boundary sheaf conditions than by asymptotic curvature.
+
+This distinction explains why digital delta–sigma modulators remain stable despite lacking an unbounded entropy potential. They evolve on a compact graph, and stability is enforced through combinatorial divergence constraints.
+
+\section{B.28 Invariant Measures, Ergodicity, and Spectral Complexity}
+
+The long-time statistical behavior of delta–sigma modulators can be understood through the invariant measure of the impulsive PDE. Let \(\mathcal{P}_{t}\) denote the transition operator evolving probability measures under the PDE between impulses, and let \(\mathcal{Q}\) denote the operator induced by quantization. The combined evolution is governed by
+\[
+\mu_{n+1} = \mathcal{Q}\circ \mathcal{P}_{T_{s}} (\mu_{n}).
+\]
+
+An invariant measure \(\mu^{\ast}\) satisfies
+\[
+\mu^{\ast} = \mathcal{Q}\circ \mathcal{P}_{T_{s}} (\mu^{\ast}).
+\]
+If the global attractor is unique and the PDE flow is mixing, then the invariant measure is unique and ergodic. The ergodic property corresponds to the empirical observation that the noise characteristics of a delta–sigma modulator do not depend on initial conditions or on the transient behavior after start-up.
+
+Spectral complexity arises when the invariant measure is supported on a fractal set within the state manifold. This occurs in high-order modulators where the attractor may possess a fractal geometry induced by the intersection of the flow with the quantizer boundary. The fractal dimension of the attractor influences the spectral distribution of the bitstream.
+
+Thus ergodicity, invariant measures, and fractal geometry together determine the statistical properties of delta–sigma modulation. These properties emerge naturally from the geometric structure of the impulsive PDE.
+
+\section{B.29 High-Frequency Forcing, Fast–Slow Decomposition, and Averaging Theory}
+
+Oversampled delta–sigma modulators exhibit a natural separation of timescales. The PDE evolves on a fast timescale determined by the sampling period and on a slow timescale determined by the curvature of the entropy manifold. Let \(t = \epsilon^{-1}\tau\) with small \(\epsilon = T_{s}/\tau_{0}\). The PDE becomes
+\[
+\epsilon \frac{\partial X}{\partial \tau} = -\nabla S(X) + v(X) + U(\epsilon^{-1}\tau) + \eta(\epsilon^{-1}\tau).
+\]
+
+In the limit \(\epsilon \to 0\), averaging theory yields an effective PDE governing the slow variable:
+\[
+\frac{dX}{d\tau}
+= -\nabla S(X) + v(X) + \overline{U} + \overline{\eta},
+\]
+where the bars denote averages over one fast sampling period. This explains why, at high OSR, the statistical behavior of the modulator becomes independent of the exact shape of quantizer impulses. The modulation caused by fast impulses is replaced by an averaged symbolic flux.
+
+The fast–slow decomposition also clarifies why increasing OSR improves the spectral smoothness of the modulator output: the effective PDE becomes smoother as fast oscillations average out. Thus oversampling corresponds to a form of geometric regularization that makes the modulator approach an effective gradient flow.
+
+\section{B.30 Geometry of Multi-Bit Quantization and Derived Stratification}
+
+Multi-bit quantization replaces the binary symbolic boundary with a partition of the manifold into multiple strata, each corresponding to one quantizer output level. The number of strata increases, producing a finer stratification:
+\[
+\mathcal{M}
+= \bigcup_{q \in \mathcal{A}} \mathcal{M}_{q},
+\]
+where \(\mathcal{A}\) is the multi-bit alphabet. The stratification becomes finer as the resolution increases.
+
+The entropy cost of crossing boundaries decreases as the quantization step becomes smaller. The symbolic collapse becomes gentler because the tangent complex loses less information when moving between strata. This reduces the entropy injection term \(\Delta S_{Q}\), which stabilizes the PDE and enlarges the basin of attraction.
+
+The geometry of multi-bit quantization can be understood as a refinement of the derived manifold structure. The tangent complex truncation becomes shallow, as fewer directions are eliminated at each boundary crossing. As a result, the derived gluing conditions become more linear, making the PDE smoother across strata.
+
+This geometric refinement explains why multi-bit delta–sigma modulators combine superior stability with excellent noise-shaping performance. They reduce the discontinuity of the boundary conditions without compromising the essential symbolic nature of the modulator.
+
+\section{B.31 Symbolic Curvature and the Geometry of Quantization Levels}
+
+The geometry of quantization is often described in terms of thresholds or step sizes, but the PDE formulation reveals that quantization introduces a new type of geometric structure: symbolic curvature. This curvature arises from the nonlinear way in which the quantizer partitions the manifold into strata. Each boundary between strata bends the trajectory of the PDE solution by imposing a discontinuous projection whose strength depends on the local geometry of the boundary.
+
+Let the quantizer alphabet be \(\mathcal{A} = \{q_{1},\ldots,q_{K}\}\). For each \(q\), the domain \(\mathcal{M}_{q}\) is defined implicitly by an inequality
+\[
+\Phi_{q}(X) \le 0.
+\]
+The symbolic curvature at a boundary point \(X_{0}\) is defined by the second fundamental form of the stratum:
+\[
+\mathrm{II}_{q}(u,v)
+= \langle H_{\Phi_{q}}(X_{0})u, v \rangle,
+\]
+where \(H_{\Phi_{q}}\) is the Hessian of \(\Phi_{q}\). The sign and magnitude of \(\mathrm{II}_{q}\) determine how strongly the quantizer boundary bends the PDE trajectory as it crosses from \(\mathcal{M}_{q}\) to an adjacent stratum.
+
+If the symbolic curvature is large, even small disturbances in the PDE trajectory can produce disproportionate symbolic outcomes. This leads to sensitive dependence on initial conditions and increases the likelihood of resonant behavior. Conversely, small symbolic curvature corresponds to gentle boundaries, reducing distortion and promoting stability.
+
+In multi-bit quantizers, the symbolic curvature is typically small because the boundaries are nearly parallel and evenly spaced. This explains the superior robustness of multi-bit modulators. Binary quantizers, by contrast, possess symbolic curvature concentrated at a few boundaries, producing stronger nonlinearity and sharper derived truncation of the tangent complex.
+
+Thus symbolic curvature is a geometric measure of quantizer nonlinearity. It determines how strongly the PDE solution is deflected during boundary crossings and therefore controls the degree of harmonic distortion produced by symbolic collapse.
+
+\section{B.32 Continuous-Time Multirate Systems and PDE Homogenization}
+
+Multirate delta–sigma modulators introduce multiple sampling periods within a single architecture. These systems achieve superior noise shaping by combining high-frequency quantizer impulses with lower-frequency internal resets. In the PDE formulation, multirate systems correspond to flows with several fast timescales interacting with a slow underlying entropy descent.
+
+Let \(T_{1},\ldots,T_{m}\) be the sampling periods, with \(T_{1} < \cdots < T_{m}\). The PDE becomes
+\[
+\frac{\partial X}{\partial t} 
+= -\nabla S(X)
++ v(X) 
++ U(t)
++ \sum_{j=1}^{m} \eta_{j}(t),
+\]
+where each \(\eta_{j}(t)\) is a distribution with impulses spaced at intervals \(T_{j}\).
+
+Homogenization theory allows one to derive an effective PDE for the slow dynamics by averaging over the faster impulses. Let \(\epsilon_{j} = T_{j}/T_{m}\). Sending \(\epsilon_{j} \to 0\) for all \(j < m\) yields the homogenized PDE
+\[
+\frac{dX}{dt}
+= -\nabla S(X)
++ v(X)
++ \overline{U}
++ \sum_{j=1}^{m-1} \overline{\eta}_{j}
++ \eta_{m}(t),
+\]
+where the bars denote time-averages over one period of the fast impulses.
+
+Thus the multirate ΔΣ architecture corresponds to a PDE where all but the slowest timescale have been homogenized into effective drift terms. The slowest impulse series imposes the dominant symbolic collapse, while the faster impulses act as a continual diffusive modulation that enhances stability and smooths the state distribution.
+
+This formalism explains why multirate modulators achieve better performance with similar loop order. They effectively increase the dissipation-to-collapse ratio by distributing quantizer impulses across multiple timescales.
+
+\section{B.33 Noncommutative Geometry of Multi-Dimensional ΔΣ PDEs}
+
+In multi-dimensional delta–sigma modulators, such as MIMO or spatial delta–sigma arrays, the state evolves on a manifold with nontrivial topology and multiple coupled vector fields. The PDE becomes
+\[
+\frac{\partial X}{\partial t}
+= -\nabla S(X) 
++ \sum_{\alpha=1}^{r} v_{\alpha}(X)
++ U(t)
++ \eta(t),
+\]
+where the vector fields \(v_{\alpha}\) do not necessarily commute.
+
+Noncommutativity introduces a deeper geometric structure reminiscent of noncommutative geometry. The commutators
+\[
+[v_{\alpha}, v_{\beta}] = v_{\alpha}v_{\beta} - v_{\beta}v_{\alpha}
+\]
+generate curvature-like terms that distort the flow. The BCH expansion applied to the time-ordered exponential of the PDE solution reveals that noncommuting vector fields induce higher-order corrections:
+\[
+\Phi_{T}(X) 
+= \exp\!\left(-T \nabla S + \sum_{\alpha} T v_{\alpha}
++ \frac{T^{2}}{2} \sum_{\alpha<\beta} [v_{\alpha},v_{\beta}]
++ \cdots \right)(X).
+\]
+
+These Lie bracket terms generate effective rotation or drift that cannot be expressed as combinations of the original vector fields. This phenomenon is analogous to curvature in the space of flows. In multi-dimensional ΔΣ systems this curvature affects both stability and noise shaping:
+
+1. It creates effective transport directions not present in the original architecture.  
+2. It amplifies or suppresses quantization impulses depending on the sign of the bracket terms.  
+3. It can produce complex oscillations or quasi-periodic invariants in the attractor.  
+
+Thus multi-dimensional delta–sigma modulators inhabit a noncommutative geometric space where symbolic collapse interacts with Lie-bracket curvature.
+
+\section{B.34 The Derived Poisson Kernel of Delta–Sigma Noise Flow}
+
+The spectral properties of delta–sigma noise can be described using a derived version of the Poisson kernel. In classical harmonic analysis, the Poisson kernel expresses the propagation of boundary disturbances into the interior of a domain. In delta–sigma PDEs, quantization impulses play the role of boundary disturbances on the derived manifold defined by the quantizer strata.
+
+Let the linearized PDE be
+\[
+\frac{\partial X}{\partial t} = \mathcal{A}X + \eta(t).
+\]
+The corresponding resolvent kernel is
+\[
+K(t) = e^{\mathcal{A}t}.
+\]
+Quantization impulses yield the convolution representation
+\[
+X(t) 
+= \int_{0}^{t} K(t-\tau)\,\eta(\tau)\, d\tau.
+\]
+
+The derived nature of quantizer impulses means that \(\eta(t)\) lies in the orthogonal complement of the tangent complex at the boundary. Therefore only part of the kernel contributes to noise propagation. The effective noise kernel becomes the projection
+\[
+K_{\mathrm{eff}}(t) = K(t)\circ \pi_{\mathrm{symb}},
+\]
+where \(\pi_{\mathrm{symb}}\) projects onto the symbolic normal directions.
+
+In the Fourier domain the effective spectral kernel is
+\[
+\widehat{K}_{\mathrm{eff}}(\omega)
+= \left(i\omega I - \mathcal{A}\right)^{-1}\pi_{\mathrm{symb}}.
+\]
+
+This kernel determines the noise transfer function. The zeros of the NTF correspond to frequencies where the derived Poisson kernel annihilates the symbolic component of the impulse. Thus NTF zeros are geometric loci where the derived kernel vanishes. Increasing loop order increases the multiplicity of these loci.
+
+The derived Poisson kernel offers a unified interpretation of noise shaping as the propagation of symbolic boundary disturbances through a curved entropy manifold.
+
+\section{B.35 Stability of Nonlinear PDE Couplings in MIMO Delta–Sigma Architectures}
+
+In MIMO delta–sigma modulators, several state variables evolve under coupled nonlinear PDEs. The stability problem becomes significantly more complex because each subsystem receives quantized boundary data from others. The overall PDE is
+\[
+\frac{\partial X^{(i)}}{\partial t}
+= -\nabla S_{i}(X^{(i)})
++ \sum_{j} v_{ij}(X^{(i)}, X^{(j)})
++ U^{(i)}(t)
++ \eta^{(i)}(t),
+\]
+where \(i\) indexes the channels.
+
+The coupling vector fields \(v_{ij}\) may introduce nontrivial interactions between the entropy manifolds \(\mathcal{M}_{i}\). The combined manifold is the product space
+\[
+\mathcal{M} = \mathcal{M}_{1}\times\cdots\times\mathcal{M}_{p},
+\]
+equipped with a block metric whose curvature structure reflects the intertwined dissipation of the subsystems.
+
+Stability requires that the global entropy potential
+\[
+S_{\mathrm{tot}}(X^{(1)},\ldots,X^{(p)})
+= \sum_{i} S_{i}(X^{(i)})
++ \sum_{i<j} R_{ij}(X^{(i)},X^{(j)})
+\]
+satisfy a multi-channel curvature–entropy compatibility condition:
+\[
+\sum_{i}
+\langle \nabla_{X^{(i)}} S_{\mathrm{tot}}, 
+-\nabla S_{i} + \sum_{j} v_{ij} \rangle
+\ge 
+\sum_{i}\Delta S_{Q}^{(i)}
+- \alpha S_{\mathrm{tot}}.
+\]
+
+The total dissipation must exceed the sum of all symbolic entropy injections across channels. This condition guarantees the existence of a global attractor in the product manifold and ensures that the PDE coupling does not introduce runaway growth.
+
+Thus stability in multidimensional delta–sigma modulators corresponds to ensuring that curvature-induced dissipation in each channel counterbalances both inter-channel interactions and symbolic impulses. The derived tensor structure of the product manifold plays a crucial role in enforcing this balance.
+
+\section{B.36 Lyapunov–Schmidt Reduction for Delta–Sigma Entropy–Flow PDEs}
+
+When analyzing delta–sigma modulators with high-dimensional internal states, it is often advantageous to decompose the PDE into slow and fast components. Lyapunov–Schmidt reduction provides a principled method for isolating the critical dynamics responsible for stability and noise shaping. The central idea is to decompose the state space into the kernel of the linearized operator and its complement. The kernel corresponds to modes with small eigenvalues, which dominate the large-scale dynamics, while the complement captures rapidly decaying modes.
+
+Let the linearized operator be
+\[
+\mathcal{A} = -H_{S} + J_{v},
+\]
+and let the state space decompose as
+\[
+X = Y + Z,
+\]
+where \(Y\in \ker(\mathcal{A})\) and \(Z\in \mathrm{Im}(\mathcal{A})\). Substituting into the full nonlinear PDE yields
+\[
+\frac{\partial Y}{\partial t} + \frac{\partial Z}{\partial t}
+= \mathcal{A}Y + \mathcal{A}Z + \mathcal{N}(Y+Z) + \eta(t),
+\]
+where \(\mathcal{N}\) denotes nonlinear terms.
+
+Because \(Y\in\ker(\mathcal{A})\), its linear evolution is trivial, and the dominant dynamics for \(Y\) come from
+\[
+\frac{\partial Y}{\partial t}
+= \Pi_{\ker}\mathcal{N}(Y+Z) + \Pi_{\ker}\eta(t),
+\]
+whereas for \(Z\),
+\[
+\frac{\partial Z}{\partial t}
+= \mathcal{A}Z + \Pi_{\mathrm{Im}}\mathcal{N}(Y+Z) + \Pi_{\mathrm{Im}}\eta(t).
+\]
+
+The fast component \(Z\) rapidly relaxes toward a slow manifold governed by \(Y\). At steady state one obtains
+\[
+Z = -\mathcal{A}^{-1}\Pi_{\mathrm{Im}}\mathcal{N}(Y) + O(\|Y\|^{2}),
+\]
+reducing the PDE to an effective system for the slow variable:
+\[
+\frac{\partial Y}{\partial t}
+= \Pi_{\ker}\mathcal{N}\bigl(Y - \mathcal{A}^{-1}\Pi_{\mathrm{Im}}\mathcal{N}(Y)\bigr)
++ \Pi_{\ker}\eta(t).
+\]
+
+In delta–sigma modulators the kernel dimension corresponds to the modulator order. Thus the slow manifold dimension is precisely the loop order, and the effective PDE governing \(Y\) determines the noise shaping and stability properties. Lyapunov–Schmidt reduction therefore provides the formal justification for the existence of low-dimensional reduced models for high-order modulators.
+
+\section{B.37 Entropy–Metric Connection and Geodesic Interpretation of Error Dynamics}
+
+The entropy potential induces a Riemannian metric \(g_{ij} = \partial_{i}\partial_{j} S\), which determines the geometry of the modulator state space. Under this metric, the trajectory of the PDE can be interpreted as a perturbed geodesic. The unforced, noiseless PDE
+\[
+\frac{\partial X}{\partial t} = -\nabla S(X)
+\]
+corresponds to motion along the gradient of the entropy potential, which is precisely the steepest descent path for the Riemannian metric. When a vector field \(v(X)\) is added, the trajectory becomes a geodesic perturbed by a controlled drift.
+
+The quantizer impulses introduce abrupt geodesic truncations, projecting the trajectory onto new segments of the manifold. Between impulses the path remains smooth. Therefore the delta–sigma trajectory can be viewed as a sequence of geodesic arcs joined by symbolic discontinuities. The curvature of the metric determines how these arcs deviate from straight lines.
+
+In the error coordinates, the error PDE
+\[
+\frac{\partial E}{\partial t}
+= -\nabla S_{E}(E) + w(E) + \xi(t)
+\]
+reveals that the quantization error behaves like a geodesic on an entropy manifold whose curvature determines the spectral tilt of the shaped noise. Directions with low curvature correspond to slow geodesic motion and thus contribute substantially to low-frequency noise suppression.
+
+Thus the geodesic perspective unifies error dynamics, noise shaping, and loop filter design in a single geometric framework. Effective loop filters sculpt the entropy metric so that geodesics are unfavorable in low-frequency directions and strongly suppressed in unstable directions.
+
+\section{B.38 Blow-Up Profiles and Derived Singularity Formation}
+
+In pathological settings delta–sigma modulators can experience overload, corresponding to finite-time blow-up of the PDE solution. The profile of such a blow-up is determined by the asymptotic behavior of the entropy potential and the vector field. Let \(X(t)\) satisfy
+\[
+\frac{\partial X}{\partial t}
+= -\nabla S(X) + v(X) + U + \eta(t),
+\]
+and suppose that blow-up occurs at time \(t_{\ast}\). Then near \(t_{\ast}\), the state satisfies
+\[
+\|X(t)\| \sim \frac{1}{(t_{\ast} - t)^{\gamma}},
+\]
+where the exponent \(\gamma\) depends on the degree of homogeneity of the entropy potential. If
+\[
+S(X) \sim c\|X\|^{p},
+\]
+then
+\[
+\gamma = \frac{1}{p-2}.
+\]
+This shows that quadratic entropy potentials (\(p=2\)) cannot produce blow-up profiles: they admit only exponential divergence, which is ruled out by the curvature–entropy compatibility condition if stability is desired. Higher-order entropy potentials may produce finite-time singularities if their curvature decays sufficiently fast in certain directions.
+
+Quantizer impulses accelerate the blow-up by introducing sudden jumps that align the trajectory with unstable geodesics. These jumps correspond to derived singularities: the tangent complex is truncated in such a way that stabilizing directions vanish. Thus overload corresponds to a failure of the derived boundary structure to preserve enough stabilizing geometry.
+
+Hence blow-up in delta–sigma modulators is not a random event. It is a structured geometric singularity arising from curvature decay, vector-field misalignment, and repeated symbolic collapse.
+
+\section{B.39 PDE-Based Design Rules for Practical Delta–Sigma Modulators}
+
+The PDE framework yields a unified set of design rules for delta–sigma converters. These rules can be derived by examining the PDE under constraints that ensure stability, adequate noise shaping, and robustness under quantizer impulses.
+
+The first rule is that the entropy potential should grow sufficiently rapidly to prevent curvature collapse. This ensures that the dissipation term dominates in the asymptotic regime. The second rule is that the vector field should align stabilizing directions with modes where the entropy potential grows slowly. This alignment redirects the error flow into regions where dissipation is strong. The third rule is that the symbolic curvature of the quantizer boundaries must be mild enough to avoid distorting the PDE trajectory in destabilizing ways.
+
+These principles yield precise conditions on loop filter design, quantizer step size, oversampling ratio, and dithering strategy. In particular, the classical NTF zero placement problem becomes a geometric problem of locating regions of low curvature in the entropy manifold. Saturation boundaries correspond to regions of high symbolic curvature that must be treated carefully to avoid inducing blow-up profiles.
+
+Thus practical delta–sigma design is fundamentally a matter of sculpting the entropy manifold, the vector field, and the symbolic strata so that the combined PDE remains stable and produces a desired spectral profile. All traditional design strategies can be interpreted as specific methods for controlling curvature, entropy descent, symbolic truncation, and PDE flow topology.
+
+\section{B.40 Summary and Integration with RSVP Field Dynamics}
+
+The preceding sections have shown that delta–sigma modulation is best understood as the evolution of an impulsive entropy–flow PDE on a curved manifold with a derived boundary structure imposed by quantization. Every classical feature of delta–sigma behavior—stability, noise shaping, idle tones, overload, limit cycles, dithering, multi-bit quantization, multirate coupling, and MIMO architectures—arises naturally from the interaction between entropy descent, vector-field transport, and symbolic collapse.
+
+This geometric and variational perspective aligns delta–sigma modulation with the broader RSVP framework. In RSVP theory, entropy fields, vector flows, and scalar potentials govern the dynamics of physical and cognitive systems. Delta–sigma modulators constitute miniature, controllable instances of RSVP dynamics. Their PDE structure matches the lamphrodynamic relaxation and entropy-routing principles of RSVP field theory.
+
+The formalism developed here will therefore be used repeatedly in later chapters. Delta–sigma loops serve as canonical examples of entropy-driven, symbol-emitting dynamical systems whose behavior reveals fundamental principles underlying measurement, cognition, and active inference. The PDE derivations provided in this appendix form the mathematical foundation for all subsequent applications of delta–sigma concepts within the RSVP framework.
