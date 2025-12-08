@@ -1,0 +1,115 @@
+% File: Volume-II-Applications/appendices/appI-numerical-evolution.tex
+
+\chapter{Numerical Methods for Cosmological Evolution}
+\label{app:cosmo-numerics}
+
+This appendix summarizes numerical techniques relevant to solving the
+cosmological evolution equations derived in Part~II of this volume.
+We emphasize methods that are adapted to the lamphrodynamic field
+equations and their interaction with entropy--vector dynamics.  Our
+goal is to provide practical guidance for implementing numerical
+solutions, rather than to develop a comprehensive theory of numerical
+analysis.
+
+\section{Discretization of Background Evolution}
+
+We begin with the homogeneous and isotropic lamphrodynamic equations
+derived in Chapter~4.  Let $a(t)$ denote the scale factor and
+$\Psi(t)=(\PhiField(t),\vField(t),\SField(t))$ denote the spatially
+homogeneous fields.  The coupled nonlinear ODE system takes the form
+\[
+  \frac{d}{dt}\Psi(t) = \mathcal{F}(\Psi(t),a(t))\,,
+  \qquad
+  \frac{d}{dt}a(t) = \mathcal{G}(\Psi(t),a(t))\,,
+\]
+where $\mathcal{F}$ and $\mathcal{G}$ are determined by the lamphrodynamic
+action and its variational derivatives.
+
+For time discretization, standard explicit and implicit Runge--Kutta
+methods may be used.  Stability is improved by semi--implicit updates
+for $\SField(t)$, reflecting entropy dissipation.  Adaptive step size
+control is recommended due to the stiff coupling between $\vField$ and
+$\SField$ during early epochs.
+
+\section{Linear Perturbation Equations}
+
+For linear perturbations, we decompose fields into Fourier modes
+$\delta\Psi_k(t)$ satisfying
+\[
+  \frac{d}{dt}\delta\Psi_k(t)=\mathcal{L}_k\,\delta\Psi_k(t)\,,
+\]
+where $\mathcal{L}_k$ is the linearized operator.  The dominant numerical
+issue is the scale dependence introduced by entropy--vector couplings,
+leading to nontrivial dispersion.  Implicit schemes or operator
+splitting techniques reduce numerical stiffness.
+
+Spectral methods (Chebyshev, Fourier) are natural for periodic domains.
+Finite--difference methods are viable on comoving grids, provided
+appropriate boundary conditions and resolution criteria are enforced.
+
+\section{Mode Coupling and Transfer Functions}
+
+Transfer functions are computed by evolving perturbations from early
+times to the present.  In \rsvpabbr{}, the lamphrodynamic contributions
+modify both scalar and vector channels.  Numerical integration must
+account for:
+\begin{itemize}
+  \item entropy--induced modification of gravitational potentials,
+  \item cross--coupling terms in $\vField$ and $\SField$,
+  \item altered growth rates compared to $\Lambda$CDM.
+\end{itemize}
+Parallelization across $k$--modes is straightforward and recommended.
+
+\section{Weak Lensing and Line--of--Sight Integrals}
+
+Weak lensing observables rely on line--of--sight integration of
+perturbations along null geodesics.  In \rsvpabbr{}, null geodesics are
+modified by entropy--vector contributions (Chapter~3).  Numerical
+integration should incorporate:
+\begin{itemize}
+  \item modified geodesic equations,
+  \item entropy--weighted optical depth,
+  \item anisotropic stress contributions.
+\end{itemize}
+Adaptive sampling along the line of sight improves accuracy near sharp
+features in $\SField(t)$ and $\vField(t)$.
+
+\section{Boltzmann Solvers and Existing Software}
+
+Standard Boltzmann solvers (CAMB, CLASS) can be extended to include
+lamphrodynamic terms.  This requires:
+\begin{itemize}
+  \item modification of background equations,
+  \item extension of perturbation modules to include $(\PhiField,\vField,\SField)$,
+  \item additional source terms in line--of--sight integrators.
+\end{itemize}
+Validation against $\Lambda$CDM baselines is essential and provides a
+useful diagnostic for implementation errors.
+
+\section{Numerical Relativity and Nonlinear Regimes}
+
+In strongly nonlinear regimes, numerical relativity methods become
+necessary.  The lamphrodynamic field equations form a mixed system of
+hyperbolic--parabolic type, where entropy diffusion plays a stabilizing
+role.  Discontinuous Galerkin methods and finite--volume schemes with
+shock capturing may be appropriate for studying entropic singularities.
+
+\section{Parallelization and Performance}
+
+Efficient parallelization exploits:
+\begin{itemize}
+  \item independent $k$--mode evolution,
+  \item GPU acceleration for spectral transforms,
+  \item domain decomposition for large--scale spatial grids.
+\end{itemize}
+Entropy diffusion reduces the stiffness of the system at late times,
+but may increase computational cost during early evolution.
+
+\section{Remarks}
+
+The numerical implementation of \rsvpabbr{} remains an active area of
+development.  Future work will combine Boltzmann solvers, numerical
+relativity tools, and cosmological data pipelines to provide full
+Bayesian inference for lamphrodynamic cosmology.  We return to these
+questions in the concluding chapters of Volume~II.
+

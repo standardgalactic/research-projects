@@ -1,0 +1,207 @@
+% File: appendices/appK-complexity.tex
+
+\chapter{Computational Complexity Background}
+\label{app:complexity}
+
+This appendix summarizes the classical theory of computational complexity
+required for the formal development of SpherePop, semantic computation, and
+distributed lamphrodynamic processes in Volume~III.  The treatment emphasizes
+structural complexity (reductions, completeness, hierarchies) and those aspects
+which reappear in homotopy--theoretic or geometric encodings.  We work
+predominantly in the classical Turing model and remark on geometric
+representations when appropriate.
+
+\section{Deterministic and Nondeterministic Computation}
+
+\begin{definition}[Turing machine]
+A (deterministic) Turing machine $M$ consists of a finite set of states,
+a finite tape alphabet with a distinguished blank symbol,
+a transition function, and a distinguished halting configuration.
+Given an input $x \in \{0,1\}^\ast$, $M$ either halts with an output or
+continues indefinitely.
+\end{definition}
+
+\begin{definition}[Time complexity]
+The (worst--case) time complexity of $M$ is the function
+\[
+T_M(n) := \max \{ \text{number of steps $M$ uses on input $x$} \;:\; |x|=n \}.
+\]
+We say that $M$ runs in time $T(n)$ if $T_M(n)\le T(n)$ for all~$n$.
+\end{definition}
+
+\begin{definition}[Complexity classes]
+\begin{enumerate}
+  \item ${\sf P}$ consists of all problems decidable in polynomial time
+        by a deterministic Turing machine.
+  \item ${\sf NP}$ consists of all problems decidable in polynomial time
+        by a nondeterministic Turing machine.
+  \item ${\sf PSPACE}$ consists of problems decidable using polynomial space.
+\end{enumerate}
+\end{definition}
+
+\begin{remark}
+The containment ${\sf P} \subseteq {\sf NP} \subseteq {\sf PSPACE}$ is known,
+but no strict separation of these classes has been proved.
+The open question ${\sf P} \stackrel{?}{=} {\sf NP}$ is central to classical
+complexity theory.
+\end{remark}
+
+\section{Reductions and Completeness}
+
+\begin{definition}[Polynomial--time reduction]
+A language $A$ reduces to $B$ (written $A \le_p B$) if there exists a
+polynomial--time computable function $f$ such that
+$x \in A$ iff $f(x)\in B$.  A problem is {\sf NP--hard} if every problem in
+${\sf NP}$ reduces to it, and {\sf NP--complete} if it is both
+{\sf NP--hard} and in ${\sf NP}$.
+\end{definition}
+
+\begin{remark}
+For geometric computation models, one typically constructs an encoding
+$\mathrm{Enc}(x)$ of classical input $x$ as a geometric configuration such that
+logical operations correspond to merge or collapse operations.
+Polynomial simulation requires that the size and depth of the encoding scale
+polynomially with~$|x|$.
+\end{remark}
+
+\section{Alternation and Space Complexity}
+
+\begin{definition}[Alternating Turing machine]
+An alternating Turing machine is a nondeterministic Turing machine whose
+states are partitioned into \emph{existential} and \emph{universal} states,
+with acceptance defined inductively on the computation tree.
+\end{definition}
+
+\begin{theorem}[Chandra--Kozen--Stockmeyer]
+For $k\ge 1$,
+\[
+{\sf AP} = {\sf PSPACE}.
+\]
+More precisely, polynomial--time alternating computation equals polynomial
+space deterministic computation.
+\end{theorem}
+
+\begin{remark}
+This equivalence plays a role in geometric encodings where
+``branching'' is represented topologically (e.g.~via choice of merge
+sequencing), and universal quantification appears as a geometric constraint.
+\end{remark}
+
+\section{Space--Time Hierarchies}
+
+\begin{theorem}[Time hierarchy]
+For reasonable $t(n)$,
+\[
+\mathrm{DTIME}(t(n)) \subsetneq \mathrm{DTIME}(t(n)\log t(n)).
+\]
+\end{theorem}
+
+\begin{theorem}[Space hierarchy]
+For space--constructible $s(n)$,
+\[
+\mathrm{DSPACE}(s(n)) \subsetneq \mathrm{DSPACE}(s(n)\log s(n)).
+\]
+\end{theorem}
+
+\begin{remark}
+Such strict inclusions demonstrate that increasing resources truly increases
+computational power in the Turing model; analogous results for geometric
+computations require careful resource measures (size of configuration,
+dimensionality, number of merge operations).
+\end{remark}
+
+\section{Circuit Complexity and Uniformity}
+
+\begin{definition}[Boolean circuit]
+A Boolean circuit is a directed acyclic graph of logical gates computing a
+Boolean function $f:\{0,1\}^n\to \{0,1\}$.
+Its size is the number of gates and its depth is the length of the longest
+directed path.
+\end{definition}
+
+\begin{definition}[Circuit classes]
+\begin{enumerate}
+  \item ${\sf AC}^0$ are constant--depth, polynomial--size circuits with
+        unbounded fan--in AND/OR gates.
+  \item ${\sf NC}^k$ are poly--size circuits of depth $O(\log^k n)$.
+\end{enumerate}
+\end{definition}
+
+\begin{remark}
+Circuit classes give an alternative viewpoint for merge--collapse systems:
+merge corresponds to parallel composition, while collapse relates to depth
+reduction or abstraction.  Establishing lower bounds in this setting is an
+open problem (see \cref{sec:open-problems-volume3}).
+\end{remark}
+
+\section{Encoding Lambda Calculus and Turing Machines}
+
+\begin{definition}[Lambda calculus]
+The untyped lambda calculus consists of variables, abstractions $\lambda x.M$,
+and applications $M\,N$.  Reduction rules include $\beta$--reduction
+$(\lambda x.M)\,N \to M[x:=N]$.
+\end{definition}
+
+\begin{theorem}[Church--Turing thesis (informal)]
+The lambda calculus, Turing machines, and other standard models compute the
+same class of (partial) functions on natural numbers.
+\end{theorem}
+
+\begin{remark}
+In SpherePop, lambda terms will be represented as geometric configurations,
+where application is modeled by merge, and abstraction corresponds to a
+collapse or quotient identifying a boundary component.  Complexity bounds
+require that the encoding and its evolution remain polynomially controlled.
+\end{remark}
+
+\section{Complexity in Geometric and Homotopy--Theoretic Models}
+
+\begin{definition}[Size of a geometric configuration]
+Fix a class of finite geometric objects (e.g.~triangulated manifolds, or
+finite unions of balls).  The \emph{size} of a configuration is the number of
+primitive pieces needed to describe it (cells, simplices, generators).
+\end{definition}
+
+\begin{remark}
+A merge--collapse system is computationally \emph{efficient} if each elementary
+operation transforms a configuration of size $n$ into one of size $O(n^c)$ for
+some fixed~$c$, and the number of operations needed to simulate a Turing step
+is polynomial in $n$.  This is a key requirement in the proof of Turing
+completeness in \cref{chap:spherepop-computation}.
+\end{remark}
+
+\section{Distributed Complexity and CRDTs}
+
+\begin{definition}[Distributed complexity (informal)]
+Given a network of processes updating a shared state, the distributed
+complexity measures the number of rounds or messages required to achieve
+consistency or agreement under specified failure models.
+\end{definition}
+
+\begin{remark}
+CRDTs (Conflict--Free Replicated Data Types) provide eventual consistency using
+commutative operations.  Interpreting these operations as lamphrodynamic flows
+introduces a geometric semantics in which convergence properties become
+statements about dissipative field evolution.
+\end{remark}
+
+\section{Equivalence Problems and Higher Categories}
+
+\begin{remark}
+Determining equivalence of objects in an $\infty$--category is in general far
+more complex than equality of classical data.  Complexity grows rapidly with
+dimension and coherence conditions.  At present, only partial complexity
+classifications are known; these motivate the conjectured hardness results in
+Volume~III for geometric computation of equivalence.
+\end{remark}
+
+\section{Summary}
+
+This appendix has outlined the classical foundations of computational
+complexity relevant to geometric and homotopy--theoretic computation.  The key
+concepts used in later chapters are reductions, completeness, complexity
+classes, hierarchy theorems, and the geometric interpretation of
+merge--collapse operations.  Further references are provided in the unified
+bibliography.
+
+

@@ -1,0 +1,178 @@
+% ============================================================
+% CHAPTER 3
+% ============================================================
+
+\chapter{Computational Expressiveness of SpherePop}
+\label{chap:computational-expressiveness}
+
+\section{Motivation}
+
+The SpherePop calculus was originally introduced as a geometric model
+of computation based on two primitive operations: \emph{merge} and
+\emph{collapse}. Merge implements homotopy colimits (cf.
+\cref{chap:merge-hocolim}), whereas collapse abstracts internal detail
+while preserving boundary invariants (cf. \cref{chap:collapse-truncation}).
+In this chapter we prove that these two operations, together with
+geometrically admissible boundary data, suffice to encode universal
+computation. In particular, SpherePop is Turing complete.
+
+From a conceptual perspective, this establishes SpherePop as a
+fundamental model of geometric computation analogous to the lambda
+calculus for functional computation or Turing machines for classical
+discrete computation. From the lamphrodynamic point of view, it implies
+that computational processes can be realized as lamphrodynamically
+admissible evolutions of geometric states.
+
+
+\section{Encoding of Lambda Calculus}
+
+Let $\Lambda$ denote the usual untyped lambda calculus with application
+$(MN)$ and abstraction $(\lambda x.M)$. We construct a geometric encoding
+\[
+  \Enc \colon \Lambda \longrightarrow \dConfig,
+\]
+mapping lambda terms to derived configuration objects. Application is
+encoded by merge of configurations, and abstraction is encoded by an
+entropy--admissible boundary structure which binds a formal variable.
+
+\begin{definition}
+Given a lambda term $M$, define $\Enc(M)$ to be the configuration
+constructed inductively as follows:
+\begin{enumerate}
+\item If $M$ is a variable $x$, then $\Enc(x)$ is the basic configuration
+representing the boundary label $x$.
+\item If $M = (MN)$, then $\Enc(M)$ is the merge
+$\Enc(M) \merge \Enc(N)$.
+\item If $M = \lambda x.M'$, then $\Enc(M)$ is obtained by collapse of
+$\Enc(M')$ along the admissible boundary corresponding to $x$.
+\end{enumerate}
+\end{definition}
+
+\begin{remark}
+This encoding is reminiscent of categorical semantics of the lambda
+calculus in cartesian closed categories, except that merge plays the
+role of application and collapse plays the role of abstraction. The
+boundary structure supplied by lamphrodynamics serves as a binder.
+\end{remark}
+
+
+\section{Beta Reduction as Geometric Evolution}
+
+The key observation is that beta reduction in the lambda calculus
+corresponds to a geometric sequence of merge and collapse operations.
+Given $(\lambda x.M)N$, the merge operation combines the configurations
+$\Enc(M)$ and $\Enc(N)$. A subsequent entropy--admissible collapse
+substitutes the boundary condition for $x$ with that of $N$.
+
+\begin{proposition}
+Let $M,N$ be lambda terms. Then
+\[
+  \Enc((\lambda x.M)N) \simeq
+  \Collapse(\Enc(M)\merge\Enc(N)),
+\]
+where the collapse substitutes boundary data associated to $x$.
+\end{proposition}
+
+\begin{proof}[Sketch]
+Merge produces a configuration in which the boundary associated to $x$
+is identified with the boundary associated to $N$. Entropy--admissible
+collapse retracts the resulting configuration to one in which $x$ is
+substituted by $N$. Details follow the inductive construction of $\Enc$.
+\end{proof}
+
+\begin{corollary}
+$\Enc$ preserves beta reduction: if $M\to_\beta M'$, then
+$\Enc(M)\rightsquigarrow\Enc(M')$ via merge--collapse evolution.
+\end{corollary}
+
+
+\section{Turing Completeness}
+
+We now prove the main theorem of this chapter.
+
+\begin{theorem}[SpherePop Turing Completeness]
+\label{thm:spherepop-turing}
+The SpherePop calculus is Turing complete. More precisely, the encoding
+$\Enc$ is sound and complete with respect to lambda calculus reduction.
+Hence any partial recursive function can be represented as a
+lamphrodynamically admissible sequence of merge and collapse operations.
+\end{theorem}
+
+\begin{proof}[Sketch of proof]
+Soundness follows from the previous corollary. For completeness, we
+construct a geometric evaluation strategy by induction on the lambda
+term, using merge for application and collapse for abstraction. The
+fundamental step is to show that every lambda term can be realized as a
+finite lamphrodynamic composition of merge and collapse. Since lambda
+calculus is Turing complete, so is SpherePop. Full technical details
+require a careful treatment of boundary invariants and lamphrodynamic
+admissibility, deferred to Appendix~M.
+\end{proof}
+
+
+\section{Complexity Analysis}
+
+Computational complexity in SpherePop depends on the number of merge and
+collapse operations as well as the lamphrodynamic cost of collapse.
+While complexity in lambda calculus is measured by beta reductions,
+complexity in SpherePop is measured by geometric operations.
+
+\begin{definition}
+The \emph{SpherePop complexity} $\Comp(X)$ of an encoded configuration
+$X=\Enc(M)$ is the minimal number of merge and collapse operations
+required to produce a normal form of $X$.
+\end{definition}
+
+\begin{proposition}
+There exists a constant $C>0$ such that for any lambda term $M$,
+\[
+  \Comp(\Enc(M)) \le C \cdot \beta(M),
+\]
+where $\beta(M)$ is the usual beta--reduction complexity of $M$.
+\end{proposition}
+
+\begin{proof}[Idea]
+Each beta reduction corresponds to at most one merge and one collapse.
+The constant $C$ accounts for auxiliary geometric normalizations.
+\end{proof}
+
+\begin{remark}
+This estimate shows that SpherePop does not incur asymptotic complexity
+penalties relative to the lambda calculus, up to constant factors. A
+precise characterization of SpherePop complexity classes remains open.
+\end{remark}
+
+
+\section{Comparison with Other Models}
+
+SpherePop differs from standard models of computation in two essential
+ways: (i) its primitives are geometric rather than symbolic, and (ii)
+computational steps are lamphrodynamically admissible operations. In
+particular, SpherePop computation can occur \emph{in situ} in a physical
+system governed by lamphrodynamic evolution.
+
+\begin{remark}
+Unlike cellular automata or graph rewriting systems, SpherePop is based
+on derived geometry and shifted symplectic structures. This makes it a
+candidate model for computation in physical theories with geometric
+constraints, including RSVP itself.
+\end{remark}
+
+
+\section{Open Problems}
+
+\begin{enumerate}
+\item Determine SpherePop complexity classes and their relationship to
+standard complexity classes (P, NP, etc.).
+\item Develop a geometric type theory for SpherePop analogous to typed
+lambda calculus.
+\item Investigate lamphrodynamic resource constraints for physical
+computation in RSVP.
+\end{enumerate}
+
+\medskip
+\noindent
+This completes Part~I, Chapter~3. The next part develops semantic and
+geometric evolutions in L--systems.
+\newpage
+
