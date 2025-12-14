@@ -1,0 +1,35 @@
+#!/bin/sh
+# sp-guard-freeze: create or update epistemic.guard.sha256
+# Mechanical operation only. No interpretation.
+
+set -eu
+
+GUARD="epistemic.guard"
+FREEZE="epistemic.guard.sha256"
+
+if [ ! -f "$GUARD" ]; then
+	echo "ERROR: $GUARD not found" >&2
+	exit 2
+fi
+
+# Require sha256sum
+if ! command -v sha256sum >/dev/null 2>&1; then
+	echo "ERROR: sha256sum not available" >&2
+	exit 2
+fi
+
+SUM=$(sha256sum "$GUARD" | awk '{print $1}')
+
+if [ -z "$SUM" ]; then
+	echo "ERROR: checksum computation failed" >&2
+	exit 2
+fi
+
+# Write in canonical format: "<hash><two spaces><filename>"
+# Overwrite is explicit and intentional.
+printf "%s  %s\n" "$SUM" "$GUARD" > "$FREEZE"
+
+echo "FROZEN"
+echo "DETAIL: checksum written to $FREEZE"
+exit 0
+

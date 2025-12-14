@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+out="${1:-build/MANIFEST.txt}"
+mkdir -p "$(dirname "$out")"
+
+echo "Spherepop Manifest" > "$out"
+echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$out"
+echo "" >> "$out"
+
+hash_cmd=""
+if command -v sha256sum >/dev/null 2>&1; then
+  hash_cmd="sha256sum"
+elif command -v shasum >/dev/null 2>&1; then
+  hash_cmd="shasum -a 256"
+else
+  echo "warn: no sha256 tool; manifest will list files only."
+fi
+
+find . -type f \( -name "*.tex" -o -name "*.bib" -o -name "*.lean" -o -name "*.hs" -o -name "*.py" -o -name "*.rkt" \) \
+  | sort \
+  | while IFS= read -r f; do
+      if [[ -n "$hash_cmd" ]]; then
+        $hash_cmd "$f" >> "$out"
+      else
+        echo "$f" >> "$out"
+      fi
+    done
+
+echo "Wrote: $out"
+

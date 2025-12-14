@@ -1,0 +1,32 @@
+#!/bin/sh
+# sp-guard-verify(1)
+# Verify epistemic.guard against frozen checksum.
+
+set -eu
+
+GUARD="epistemic.guard"
+SUM="epistemic.guard.sha256"
+
+command -v sha256sum >/dev/null 2>&1 || {
+	echo "sp-guard-verify: sha256sum not found" >&2
+	exit 1
+}
+
+[ -f "$GUARD" ] || {
+	echo "sp-guard-verify: missing $GUARD" >&2
+	exit 1
+}
+
+[ -f "$SUM" ] || {
+	echo "sp-guard-verify: missing $SUM (guard not frozen)" >&2
+	exit 1
+}
+
+if ! sha256sum -c "$SUM" >/dev/null 2>&1; then
+	echo "sp-guard-verify: FAIL: epistemic.guard has changed" >&2
+	echo "sp-guard-verify: run sp-guard-freeze to acknowledge change" >&2
+	exit 1
+fi
+
+echo "sp-guard-verify: guard verified"
+

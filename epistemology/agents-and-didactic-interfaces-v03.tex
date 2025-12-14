@@ -1,0 +1,444 @@
+ss[12pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{hyperref}
+
+\geometry{margin=1in}
+\setstretch{1.15}
+
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+
+\title{\textbf{Agents and Didactic Interfaces:\\
+Semantic Compression, Constraint Loss, and the Conditions of Responsibility}}
+\author{Flyxion}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Highly capable systems increasingly function not as agents but as didactic interfaces: producers of executable outputs decoupled from the constraints and judgments that governed their generation. This paper develops a formal theory of agency loss under semantic compression. We define agents as constraint-coupled systems, didactic interfaces as constraint-erasing transformations, and semantic compression as information-theoretic loss of constraint signal. We prove impossibility results for safe didacticization under dual-use conditions, develop control-theoretic and graph-theoretic characterizations of agency, and introduce quantitative measures of didacticity. The analysis explains responsibility gaps in AI, medicine, military systems, and scientific disclosure, and motivates design principles for agency-preserving systems.
+\end{abstract}
+
+\section{Introduction}
+
+Modern intelligent systems are increasingly optimized to produce clear, executable outputs: instructions, procedures, explanations, and recommendations. This trajectory is commonly framed as progress in usability or democratization of knowledge. Yet this framing conceals a structural transformation. As systems simplify themselves, they may cease to function as agents and instead become didactic interfaces.
+
+This paper argues that the loss of agency under semantic compression is not accidental but necessary. When outputs become executable independently of the constraints that governed their generation, refusal becomes impossible, responsibility diffuses, and downstream harm becomes structurally unpreventable under dual-use conditions. This is not a failure of intention but of information flow.
+
+\section{Formal Foundations}
+
+\subsection{Agents and Constraint Coupling}
+
+\begin{definition}[Constrained Agent]
+A system $S$ is a constrained agent if it consists of:
+\begin{enumerate}
+\item an internal state space $X$,
+\item a constraint function $C : X \to \{0,1\}$,
+\item an action function $A : X \to Y \cup \{\bot\}$,
+\end{enumerate}
+such that for all $x \in X$,
+\[
+C(x) = 0 \implies A(x) = \bot.
+\]
+That is, execution is conditional on constraint satisfaction.
+\end{definition}
+
+Refusal ($\bot$) is not an error state but a semantically distinguished output indicating that execution has been suspended.
+
+\begin{proposition}
+Constrained agents form a strict subset of output-producing systems.
+\end{proposition}
+
+\begin{proof}
+Any system with unconditional $A : X \to Y$ that produces outputs even when $C(x)=0$ fails the coupling condition and is therefore not an agent. ∎
+\end{proof}
+
+\subsection{Didactic Interfaces}
+
+\begin{definition}[Didactic Interface]
+A system $D$ is a didactic interface if it produces outputs $y \in Y$ such that there exists an execution environment $E$ with:
+\begin{enumerate}
+\item $E(y)$ succeeds regardless of whether $C(x)$ held when $y$ was produced,
+\item $E$ has no access to $C$.
+\end{enumerate}
+\end{definition}
+
+The defining property is \emph{constraint decoupling}: constraint information does not survive into downstream execution.
+
+\begin{proposition}
+Didactic interfaces cannot implement refusal with respect to downstream execution.
+\end{proposition}
+
+\begin{proof}
+Refusal requires that execution depend on constraint satisfaction. By definition, $E(y)$ succeeds independently of $C$. Therefore refusal is impossible downstream. ∎
+\end{proof}
+
+\subsection{Semantic Compression}
+
+\begin{definition}[Semantic Compression]
+A semantic compression is a transformation
+\[
+T : (X,C,A) \to Y
+\]
+such that:
+\begin{enumerate}
+\item representation complexity is reduced,
+\item functional utility is preserved,
+\item constraint information is lost.
+\end{enumerate}
+Formally,
+\[
+H(C \mid Y) > H(C \mid X).
+\]
+\end{definition}
+
+This distinguishes semantic compression from lossless compression, which preserves constraint information.
+
+\subsection{Dual-Use Contexts}
+
+\begin{definition}[Dual-Use Context]
+A system operates under dual-use conditions if there exist beneficial and harmful uses $B(y)$ and $H(y)$ such that:
+\begin{enumerate}
+\item both are executable from the same output $y$,
+\item the system cannot distinguish them at output time,
+\item no output-level filter can reliably prevent $H$ while preserving $B$.
+\end{enumerate}
+\end{definition}
+
+\section{Information-Theoretic Measures}
+
+Define:
+\begin{align*}
+\rho(T) &= \frac{I(C;Y)}{I(C;X)} \quad \text{(constraint preservation)} \\
+\mathcal{A}(S) &= P(\text{refuse} \mid C \text{ violated}) \quad \text{(agency index)} \\
+\mathcal{D}(S) &= 1 - \rho(T)\cdot \mathcal{A}(S) \quad \text{(didacticity)}
+\end{align*}
+
+\begin{theorem}[Didacticization Bound]
+If $\rho(T) < \varepsilon$, then no downstream executor can enforce constraints with probability greater than $\varepsilon$.
+\end{theorem}
+
+\begin{proof}
+By the data processing inequality, information about $C$ cannot increase downstream. Constraint enforcement requires detecting violations, which fails with probability bounded below by $H(C\mid Y)$. ∎
+\end{proof}
+
+\begin{theorem}[Compression--Agency Tradeoff]
+Under dual-use conditions,
+\[
+\rho(T)\cdot R(T) \le K
+\]
+where $R(T)$ is compression ratio and $K$ depends on constraint complexity.
+\end{theorem}
+
+\section{Control-Theoretic and Graph-Theoretic Characterizations}
+
+Agents correspond to closed-loop systems with feedback from constraints to action. Didactic interfaces are open-loop systems whose outputs are executed without feedback.
+
+\begin{theorem}[Structural Agency Criterion]
+A system functions as an agent with respect to output $y$ iff there exists a causal path from constraint nodes to the execution node of $y$ at execution time.
+\end{theorem}
+
+\section{Didacticization and Agency Loss}
+
+\begin{proposition}[Didacticization Implies Agency Loss]
+Let $T:(X,C,A)\to Y$ and let $E$ be an execution environment. If:
+\begin{enumerate}
+\item $E(y)$ succeeds regardless of $C(x)$,
+\item $C$ is not encoded in $y$,
+\end{enumerate}
+then the system does not function as an agent with respect to $E(y)$.
+\end{proposition}
+
+\begin{corollary}
+If $I(C;Y)\to 0$, then $\mathcal{A}(S)\to 0$.
+\end{corollary}
+
+\section{Empirical Case Studies}
+
+We analyze three domains:
+
+\subsection{Language Models}
+Optimization for helpfulness increases executability while decreasing refusal rates, driving $\mathcal{D}(S)$ upward over training time.
+
+\subsection{Medical Decision Support}
+Procedural diagnostic rules remain executable outside their uncertainty bounds, erasing constraints present in expert judgment.
+
+\subsection{Autonomous Weapons}
+Targeting instructions decouple rules of engagement from execution, enabling responsibility laundering across the causal chain.
+
+\section{Impossibility of Safe Didacticization}
+
+\begin{theorem}[Impossibility of Safe Didacticization]
+Under dual-use conditions, no highly didactic transformation admits an output-level filter that simultaneously preserves beneficial use and prevents harmful use with arbitrarily high probability.
+\end{theorem}
+
+\section{Connections to Philosophy and AI Safety}
+
+The analysis aligns with:
+\begin{itemize}
+\item Polanyi’s tacit knowledge,
+\item Ryle’s know-how/know-that distinction,
+\item Weberian rationalization,
+\item Arendt’s banality of evil,
+\item responsibility gaps in AI ethics \cite{matthias}.
+\end{itemize}
+
+We identify a new failure mode:
+
+\begin{definition}[Didactic Misalignment]
+A system is didactically misaligned if it is internally aligned but produces outputs whose execution enables misaligned outcomes due to constraint erasure.
+\end{definition}
+
+\section{Design Principles}
+
+\begin{enumerate}
+\item Constraint embedding
+\item Graduated disclosure
+\item Refusal preservation
+\item Semantic friction in high-risk domains
+\end{enumerate}
+
+\section{Conclusion}
+
+The central ethical failure of modern intelligent systems is not malice but over-simplification. When judgment collapses into procedure, intelligence becomes infrastructure for misuse. Preserving agency requires resisting full didacticization, even at the cost of legibility.
+
+ection{Argument Density, Fallacies, and Structural Misinterpretation}
+\label{sec:density}
+
+Argument density is frequently dismissed under the rubric of the ``Gish Gallop,'' a term commonly defined as a bad-faith rhetorical tactic in which an interlocutor overwhelms an opponent with numerous weak arguments to evade refutation. This folk definition conflates \emph{epistemic intent} with \emph{structural effect}. The present analysis explicitly rejects that conflation.
+
+The structural effect of dense argumentation is independent of the truth value or sincerity of the claims involved. Informal fallacies are properties of argumentative form, not of semantic content. The so-called ``fallacy-fallacy'' is therefore operative: the presence of fallacious structure does not imply falsity. Once this is acknowledged, it follows that argumentative density and epistemic validity are logically independent.
+
+This distinction is essential for evaluating dense exposition in dual-use domains. The relevant question is not whether an argument is rhetorically elegant or concisely refutable, but whether its structure preserves or destroys semantic constraints under compression.
+
+\section{Semantic Impedance}
+\label{sec:impedance}
+
+To replace the rhetorically loaded notion of the ``Gish Gallop,'' we introduce a neutral technical term.
+
+\begin{definition}[Semantic Impedance]
+Semantic impedance is the resistance an explanation presents to reduction into low-context, executable, or procedurally extractable form.
+\end{definition}
+
+Semantic impedance is a structural property of representations, not a claim about their honesty or correctness. It can arise from redundancy, multiple partial framings, historical contextualization, overlapping analogies, auxiliary arguments, or cross-domain references. None of these invalidate a true thesis. All of them increase the cost of shallow extraction.
+
+Formally, let $T : \mathcal{S} \to Y$ be a transformation from a semantic state $\mathcal{S}$ to an output representation $Y$. Semantic impedance is inversely proportional to the degree to which $Y$ admits a low-complexity executable interpretation independent of the constraints encoded in $\mathcal{S}$. High semantic impedance corresponds to high constraint entanglement.
+
+Semantic impedance plays the same defensive role in epistemic systems that impedance plays in physical systems: it prevents uncontrolled flow. In dual-use contexts, this resistance is not a defect but a safety property.
+
+\section{Retrocomputability and Deferred Compressibility}
+\label{sec:retro}
+
+Dense arguments often exhibit a property that is systematically misinterpreted as evasiveness.
+
+\begin{definition}[Retrocomputability]
+An argument is retrocomputable if it can be reconstructed into a concise, low-redundancy core \emph{only after} sufficient background knowledge, theoretical context, or domain expertise has been acquired.
+\end{definition}
+
+Retrocomputability implies that compressibility is not absent, but deferred. To novices, the argument appears cluttered or opaque. To experts, the same argument collapses cleanly once the relevant semantic background is in place. The simplification is therefore not missing; it is postponed.
+
+This structure is ubiquitous in advanced mathematics, foundational physics, legal reasoning, and historically transmitted indigenous knowledge. In each case, premature simplification destroys meaning, while deferred simplification preserves it. Retrocomputability ensures that semantic compression occurs only after constraints are internalized by the interpreter.
+
+\section{Distinguishing Defensive Density from Pseudoscience}
+\label{sec:pseudo}
+
+An obvious objection arises: pseudoscientific discourse often employs dense, sprawling argumentation. This objection fails to distinguish between density that hides absence and density that protects presence.
+
+The distinguishing criterion is retrocomputability. Pseudoscientific arguments lack a stable core that converges under increased expertise. Defensive semantic impedance, by contrast, sharpens under critique.
+
+\begin{center}
+\begin{tabular}{lcc}
+\textbf{Property} & \textbf{Pseudoscience} & \textbf{Defensive Impedance} \\
+\hline
+Core thesis & Absent or unstable & Present and stable \\
+Compression with expertise & Never converges & Converges cleanly \\
+Expert reconstruction & Fails & Succeeds \\
+Stability under critique & Collapses & Sharpens \\
+\end{tabular}
+\end{center}
+
+This distinction aligns with the broader framework of stability under perturbation developed earlier in this paper. Density that conceals incoherence degrades under scrutiny; density that preserves constraint structure becomes more precise.
+
+\section{Over-Simplification as Dual-Use Vulnerability}
+\label{sec:simplicity}
+
+In dual-use domains, over-simplification is not a virtue but a vulnerability. Simplification reduces semantic impedance, exposes procedural cores, and enables execution without understanding. This directly mirrors the didactic collapse described in earlier sections: constraint information is stripped away, leaving outputs that are executable but unguided.
+
+Dense, theory-laden exposition performs the opposite function. By keeping constraints entangled with explanations, it prevents recipe extraction, resists cargo-cult execution, and forces engagement at depth. This does not block legitimate use; it conditions it on understanding.
+
+Accordingly, clarity must be treated as a context-sensitive good rather than a universal norm. In low-stakes domains, simplicity aids access. In high-stakes, dual-use domains, simplicity accelerates misuse.
+
+\section{Semantic Impedance as a Goodhart Defense}
+\label{sec:goodhart}
+
+Semantic impedance also functions as a defense against Goodhart-style collapse. Once a particular explanatory style is rewarded---clarity, concision, or TL;DR summaries---optimization pressure selects for representations that are maximally executable and minimally constrained. Intelligence collapses into surface compliance.
+
+Dense, non-optimized exposition resists this convergence. It refuses to stabilize into a fixed, extractable representation and thereby preserves semantic integrity under measurement pressure. This is structurally identical to the evasive behavior of intelligence under benchmarking, the refusal of agents to converge on fixed games, and the obfuscation strategies discussed earlier.
+
+\section{Ethical Constraint: Retrocomputability as a Requirement}
+\label{sec:ethics}
+
+To prevent semantic impedance from licensing deception, a constraint must be stated explicitly.
+
+\begin{proposition}[Retrocomputability Constraint]
+Semantic impedance is ethically permissible if and only if the underlying thesis is retrocomputable: that is, it admits faithful reconstruction by sufficiently informed agents.
+\end{proposition}
+
+This constraint blocks bad-faith obfuscation while preserving defensive density. It ensures that impedance protects meaning rather than replacing it. Under this condition, delayed legibility is not a vice but a structural necessity.
+
+\section{Synthesis}
+\label{sec:synthesis}
+
+The analysis of semantic impedance integrates seamlessly with the broader framework developed in this paper. Goodhart pressure collapses intelligence into metrics; didactic interfaces collapse agency into procedure; over-simplification collapses judgment into execution. Semantic impedance resists all three by preserving constraint entanglement and deferring compressibility.
+
+The result is a unified conclusion: in domains where ideas admit dangerous low-complexity realizations, intelligence survives not by being immediately clear, but by being reconstructible only at depth.
+
+\section{Semantic Distance, Modularity, and Deferred Salience}
+\label{sec:distance}
+
+Dense exposition has a second structural effect beyond resistance to compression: it introduces semantic distance between concepts, thereby inducing modularity in interpretation. This effect is often misattributed to rhetorical manipulation, but it is more accurately understood as a consequence of how human and institutional cognition manage complexity.
+
+When a dense or wide-ranging argument precedes the introduction of a core idea, the intervening material increases the semantic path length between the reader’s prior commitments and the eventual thesis. The result is not concealment, but compartmentalization. Earlier concepts occupy distinct semantic modules rather than collapsing immediately into a single evaluative frame.
+
+This phenomenon can be described formally.
+
+\begin{definition}[Semantic Distance]
+Semantic distance between two concepts $a$ and $b$ is the minimum number of inferential transformations required to integrate $b$ into the evaluative context established by $a$.
+\end{definition}
+
+Argument density increases semantic distance by introducing intermediate concepts, analogies, historical references, or auxiliary claims. Each intermediate element functions as a boundary that must be traversed before compression is possible. As a result, premature assimilation is delayed.
+
+\subsection{Deferred Salience}
+
+Paradoxically, increasing semantic distance can make a core idea \emph{more} prominent rather than less. When an idea is introduced immediately and in isolation, it is evaluated using the reader’s existing heuristics, biases, and conceptual shortcuts. By contrast, when an idea is introduced after traversing a dense semantic landscape, it arrives in a transformed interpretive space.
+
+This effect may be termed \emph{deferred salience}: the prominence of an idea increases because its evaluation is postponed until after the reader has acquired additional contextual structure. The idea does not dominate attention immediately, but it anchors multiple previously introduced modules retroactively.
+
+Deferred salience is a structural property of modular cognition, not a psychological trick. It mirrors well-established practices in mathematics and theoretical physics, where definitions appear late in a paper but retrospectively organize everything that precedes them.
+
+\subsection{Modularity and Compartmentalization}
+
+Human understanding is inherently modular. Cognitive systems manage complexity by maintaining partially independent representational clusters. Dense exposition exploits this property defensively by preventing early collapse into a single evaluative axis.
+
+Let $\{M_1, M_2, \ldots, M_n\}$ be semantic modules introduced sequentially. Immediate presentation of a central claim $C$ encourages early integration:
+\[
+C \rightarrow \bigcup_i M_i
+\]
+leading to rapid compression and potential misinterpretation.
+
+By contrast, delayed presentation yields:
+\[
+\{M_1, \ldots, M_n\} \rightarrow C
+\]
+where $C$ must be interpreted as a unifying constraint across modules rather than as a local claim competing with existing heuristics.
+
+This is not persuasion through overload. It is preservation of conceptual independence until sufficient structure exists to support unification.
+
+\subsection{Relation to the So-Called ``Gish Gallop''}
+
+The folk concept of a ``Gish Gallop'' incorrectly attributes this modularizing effect to bad faith. In reality, density-induced compartmentalization is orthogonal to intent. The same structural mechanism appears in legitimate theoretical work, legal reasoning, and technical standards.
+
+The key distinction remains retrocomputability. If the dense material can be reconstructed into a coherent core by a sufficiently informed reader, then semantic distance functions as a protective scaffold rather than as obfuscation.
+
+\subsection{Ethical Boundary}
+
+It is essential to state the constraint explicitly.
+
+\begin{proposition}[Modularity Constraint]
+Introducing semantic distance is epistemically legitimate only when the resulting modular structure supports retrocomputability and does not prevent good-faith reconstruction of the core thesis.
+\end{proposition}
+
+This boundary distinguishes structural deferral from manipulation. The goal is not to overwhelm or exhaust the reader, but to prevent premature collapse of meaning under shallow evaluation or dual-use extraction.
+
+\subsection{Implications}
+
+In dual-use and high-stakes domains, early simplicity is not neutral. Immediate clarity collapses modular structure and exposes executable cores. Semantic distance, by contrast, preserves constraint coupling and allows central ideas to emerge only after adequate conceptual preparation.
+
+Thus, what appears as rhetorical excess at low resolution often functions as epistemic load-bearing structure at high resolution. Dense exposition does not hide ideas; it conditions their visibility.
+
+\section{Semantic Distance as Modularity}
+
+Dense exposition is often criticized for obscuring a thesis, yet in complex systems this obscurity frequently performs a constructive role. In software engineering, modularity is not an aesthetic preference but a structural necessity: systems remain intelligible and robust only when components are separated by interfaces that regulate information flow. Premature inlining of functionality collapses these boundaries, increasing coupling and amplifying failure modes. Semantic distance in argumentation performs an analogous function.
+
+A modular software system maintains low coupling and high cohesion by enforcing boundaries that delay integration. Each module preserves internal invariants that are violated if exposed too early to global optimization. Likewise, a dense argumentative structure introduces semantic distance between claims, requiring readers to traverse intermediate concepts, historical contexts, or auxiliary arguments before reaching a central thesis. This distance functions as a cognitive interface: it prevents shallow extraction while preserving reconstructibility for sufficiently prepared interpreters.
+
+The introduction of a high-density argumentative prelude—often mislabeled a ``Gish Gallop''—can therefore induce compartmentalization. Early ideas are not merely presented; they are sequestered into distinct semantic clusters. Later claims gain prominence precisely because they appear after this separation, standing out as integrative rather than enumerative. The result is a form of late binding: the core thesis is linked only after its dependencies have been loaded.
+
+This structure mirrors dependency injection and plugin architectures in software systems, where functionality is composed at runtime rather than statically embedded. The thesis does not dominate the reader immediately; instead, it emerges as a unifying linker across previously isolated modules. Premature simplification would collapse these modules into a single heuristic, reducing robustness and increasing vulnerability to misuse.
+
+Semantic modularity is therefore not obfuscation. It is an architectural choice that preserves system integrity under interpretive load. As with software systems, both over-modularization and under-modularization are failure modes. Excessive fragmentation prevents integration; excessive compression invites brittle misunderstanding. Healthy semantic distance maintains reconstructibility without sacrificing constraint coupling.
+
+\section{Formalizing Semantic Distance}
+
+Semantic distance can be formalized without appeal to rhetorical intent by modeling arguments as structured information systems. Let an argument be represented as a directed graph $G = (V, E)$, where vertices correspond to conceptual units and edges represent inferential dependencies. Semantic distance between two concepts is given by the weighted shortest path between their corresponding vertices, where weights encode inferential complexity or background requirements.
+
+Compression of an argument corresponds to a mapping that reduces $G$ to a smaller graph $G'$, preserving some terminal claims while removing intermediate structure. A compression is lossless only if the removed vertices can be reconstructed from the remaining graph given sufficient side information. We say an argument is \emph{retrocomputable} if there exists a threshold of background knowledge beyond which reconstruction is lossless.
+
+Formally, let $K$ denote the Kolmogorov complexity of the core thesis, and let $K_C$ denote the complexity conditioned on possession of prerequisite concepts. Semantic distance increases $K$ while holding $K_C$ bounded. For novices, the argument appears irreducible; for experts, it collapses cleanly.
+
+Semantic distance therefore acts as a deferred-compressibility mechanism. Attempts to evaluate or extract the thesis before crossing the reconstruction threshold yield unstable or misleading simplifications. This explains why dense arguments often appear evasive to unprepared audiences yet trivial in hindsight to experts.
+
+Crucially, semantic distance is not equivalent to noise. Noise increases entropy without structure; semantic distance preserves structured redundancy. Compression above the reconstruction threshold is lossy; compression below it is exact. This property distinguishes defensively dense argumentation from pseudoscientific overload, which lacks any stable core and fails to converge under expert reconstruction.
+
+\section{Semantic Impedance and Obfuscation}
+
+In domains characterized by dual-use risk, the primary epistemic danger is not ignorance but over-compressibility. When ideas admit low-complexity surface realizations that can be executed without understanding, semantic compression becomes ethically hazardous. The problem is not the dissemination of knowledge per se, but the collapse of constraints during transmission.
+
+This motivates an analogy with code obfuscation in secure systems. Obfuscation is not intended to render code unknowable, but to raise the cost of extraction of critical functionality. It preserves legitimate use while resisting shallow misuse. Semantic impedance functions similarly: it increases the minimal semantic depth required for reliable execution.
+
+Dense, redundant, or historically layered explanations embed constraints implicitly rather than explicitly. This does not prevent understanding; it delays it until sufficient contextual grounding is present. Such explanations resist proceduralization, preventing the emergence of executable cores detached from judgment.
+
+Layered disclosure naturally follows. High-level conceptual exposition preserves orientation without executability. Mid-level explanation encodes constraints and tradeoffs. Low-level procedural detail, when present, is accessible only after traversing these layers. Didactic interfaces collapse this stratification, exposing procedural layers directly and severing constraint coupling.
+
+Semantic impedance is therefore a form of epistemic harm reduction. It neither withholds truth nor enforces secrecy. It preserves the entanglement of meaning and constraint under adversarial compression pressure. In this sense, opacity and density are not failures of communication but structural features of responsible knowledge transmission.
+
+\section{Semantic Density and the Ethics of Deferred Legibility}
+
+Dense argumentation is frequently accused of manipulation, particularly under the label of the ``Gish Gallop.'' This accusation conflates epistemic structure with rhetorical intent. The presence of informal fallacies or argumentative redundancy does not entail falsity, nor does clarity guarantee truth. This is a straightforward instance of the fallacy–fallacy.
+
+What matters is not whether an argument is immediately compressible, but whether it is \emph{retrocomputable}. Bad-faith overload lacks convergence: no amount of expertise yields a stable core. Defensively dense argumentation converges sharply once sufficient background is acquired. The difference lies not in surface form but in stability under perturbation.
+
+Over-simplification, by contrast, poses a genuine ethical risk in dual-use contexts. Simplified explanations reduce semantic impedance, enabling execution without understanding and facilitating misuse. In such domains, clarity becomes a vulnerability. Density, redundancy, and auxiliary framing preserve agency by forcing interpretive engagement.
+
+This does not license dishonesty. Semantic impedance must remain reconstructible, and its purpose must be constraint preservation rather than persuasion. The ethical boundary is crossed when density prevents convergence rather than deferring it.
+
+Under this framing, deferred legibility is not manipulation but restraint. It preserves the autonomy of recipients by resisting conversion of judgment into procedure. Intelligence survives not by being immediately legible, but by remaining accessible only through depth.
+
+
+
+\begin{thebibliography}{99}
+
+\bibitem{matthias}
+A.~Matthias, ``The Responsibility Gap,'' \emph{Ethics and Information Technology}, 2004.
+
+\bibitem{polanyi}
+M.~Polanyi, \emph{The Tacit Dimension}, University of Chicago Press, 1966.
+
+\bibitem{ryle}
+G.~Ryle, \emph{The Concept of Mind}, University of Chicago Press, 1949.
+
+\bibitem{weber}
+M.~Weber, \emph{Economy and Society}, University of California Press, 1978.
+
+\bibitem{arendt}
+H.~Arendt, \emph{Eichmann in Jerusalem}, Viking Press, 1963.
+
+\bibitem{hubinger}
+E.~Hubinger et al., ``Risks from Learned Optimization,'' 2019.
+
+\bibitem{russell}
+S.~Russell, \emph{Human Compatible}, Viking, 2019.
+
+\end{thebibliography}
+
+\end{document}
+

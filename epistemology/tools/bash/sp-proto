@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cmd="${1:-run}"
+lang="${2:-all}"
+root="${3:-prototypes}"
+
+run_python() {
+  if command -v python3 >/dev/null 2>&1; then
+    if [[ -f "$root/python/main.py" ]]; then
+      echo "[python] running prototypes/python/main.py"
+      python3 "$root/python/main.py"
+    else
+      echo "warn: $root/python/main.py not found"
+    fi
+  else
+    echo "warn: python3 not installed"
+  fi
+}
+
+run_haskell() {
+  if command -v runhaskell >/dev/null 2>&1; then
+    if [[ -f "$root/haskell/Main.hs" ]]; then
+      echo "[haskell] runhaskell prototypes/haskell/Main.hs"
+      runhaskell "$root/haskell/Main.hs"
+    else
+      echo "warn: $root/haskell/Main.hs not found"
+    fi
+  elif command -v ghci >/dev/null 2>&1; then
+    echo "warn: runhaskell not found but ghci exists; add Main.hs for script mode."
+  else
+    echo "warn: haskell toolchain not installed"
+  fi
+}
+
+run_racket() {
+  if command -v racket >/dev/null 2>&1; then
+    if [[ -f "$root/racket/main.rkt" ]]; then
+      echo "[racket] racket prototypes/racket/main.rkt"
+      racket "$root/racket/main.rkt"
+    else
+      echo "warn: $root/racket/main.rkt not found"
+    fi
+  else
+    echo "warn: racket not installed"
+  fi
+}
+
+if [[ "$cmd" != "run" ]]; then
+  echo "usage: sp-proto run [all|python|haskell|racket] [prototypes_dir]"
+  exit 2
+fi
+
+case "$lang" in
+  all) run_python; run_haskell; run_racket ;;
+  python) run_python ;;
+  haskell) run_haskell ;;
+  racket) run_racket ;;
+  *) echo "unknown lang: $lang"; exit 2 ;;
+esac
+

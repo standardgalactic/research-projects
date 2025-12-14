@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# sp-hollywood — Spherepop cinematic console
+# Adds: conference-demo, reviewer-mode, boss key, screensaver, fake logs, crash-theater
+set -euo pipefail
+
+PKG="sp-hollywood"
+BASE_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+WIDGET_DIR="$BASE_DIR/lib/spherepop/widgets"
+LOGFILE="${SP_LOGFILE:-/tmp/spherepop.log}"
+
+SPLITS=9
+DELAY=15
+MODE="normal"
+BOSS_TITLE="build-env"
+SCREENSAVER=0
+
+trap 'tmux kill-session -t "$PKG" >/dev/null 2>&1 || true; exit 0' INT TERM
+
+usage() {
+	cat <<'EOF'
+sp-hollywood — Spherepop cinematic console
+
+Modes:
+  --conference-demo   Fast, loud, pane-heavy demo mode
+  --reviewer-mode     Slow, legible, citation-ish mode
+  --boss              Start directly in boss-safe screen
+  --screensaver       Ignore keys; drift forever (best for projector)
+
+Options:
+  -s, --splits N      Max panes (default varies by mode)
+  -d, --delay  N      Pane rotation interval seconds
+  --logfile PATH      Where to write fake logs (default: /tmp/spherepop.log)
+  -h, --help          Help
+
+Runtime (tmux):
+  Ctrl-B + B          Boss key (instant safe screen)
+  Ctrl-B + R          Reviewer mode toggle
+  Ctrl-B + D          Demo mode toggle
+EOF
+}
+
+# ---------- mode presets ----------
+preset_conference() { MODE="conference"; SPLITS=${SPLITS:-14}; DELAY=${DELAY:-6}; }
+preset_reviewer()    { MODE="reviewer";    SPLITS=${SPLITS:-7};  DELAY=${DELAY:-20}; }
+
+# ---------- widgets ----------
+pick_widget() { ls "$WIDGET_DIR" 2>/dev/null | sort -R | head -n1; }
+
+spin_up() {
+	local dir="-v" panes splits pane count=0 w
+	for w in $(ls "$WIDGET_DIR" 2>/dev/null | sort -R); do
+		[ "$dir" = "-v" ] && dir="-h" || dir="-v"
+		panes=$(tmux list-panes -t "$PKG" 2>/dev/null || true)
+		splits=$(echo "$panes" | wc -l | tr -d ' ')
+		[ "$splits" -eq 0 ] && break
+		pane=$((RANDOM % splits))
+
+		tmux split-window $dir -t "${PKG}.$pane" \
+			"nice -n 19 bash '$WIDGET_DIR/$w' '$MODE' '$LOGFILE'" \
+			>/dev/null 2>&1 || true
+
+		sleep 0.15
+		count=$((count + 1))
+		[ "$count" -ge "$SPLITS" ] && break
+	done
+
+	tmux select-layout tiled >/dev/null 2>&1 || true
+}
+
+boss_key() {
+	tmux rename-window "$BOSS_TITLE"
+	tmux kill-pane -a >/dev/null 2>&1 || true
+
+	tmux split-window -h "top"
+	tmux split-window -v "tail -f '$LOGFILE' 2>/dev/null || tail -f /var/log/syslog 2>/dev/null || tail -f /var/log/messages"
+	tmux split-window -v "man vim 2>/dev/null || man vi 2>/dev/null || printf '%s\n' 'vim not installed'"
+	tmux split-window -v "man byobu 2>/dev/null || man tmux 2>/dev/null || printf '%s\n' 'tmux/byobu man pages not installed'"
+	tmux select-layout tiled >/dev/null 2>&1 || true
+
+	tmux set-option pane-border-style fg=default
+	tmux set-option pane-active-border-style fg=default
+	tmux display-message "Boss key: safe screen engaged"
+}
+
+toggle_mode() {
+	case "$MODE" in
+		conference) preset_reviewer ;;
+		reviewer) MODE="normal" ;;
+		normal|*) preset_conference ;;
+	esac
+	tmux display-message "Mode: $MODE"
+}
+
+toggle_reviewer() {
+	case "$MODE" in
+		reviewer) MODE="normal" ;;
+		*) preset_reviewer ;;
+	esac
+	tmux display-message "Mode: $MODE"
+}
+
+toggle_demo() {
+	case "$MODE" in
+		conference) MODE="normal" ;;
+		*) preset_conference ;;
+	esac
+	tmux display-message "Mode: $MODE"
+}
+
+# ---------- arg parsing ----------
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--conference-demo) preset_conference; shift ;;
+		--reviewer-mode)   preset_reviewer; shift ;;
+		--boss)            MODE="boss"; shift ;;
+		--screensaver)     SCREENSAVER=1; shift ;;
+		--logfile)         LOGFILE="$2"; shift 2 ;;
+		-s|--splits)       SPLITS="$2"; shift 2 ;;
+		-d|--delay)        DELAY="$2"; shift 2 ;;
+		-h|--help)         usage; exit 0 ;;
+		*)                 usage; exit 1 ;;
+	esac
+done
+
+# ---------- ensure widgets exist ----------
+if [ ! -d "$WIDGET_DIR" ]; then
+	printf '%s\n' "ERROR: widgets not found: $WIDGET_DIR" >&2
+	exit 1
+fi
+
+# ---------- launcher ----------
+if [ -z "${TMUX:-}" ]; then
+	if command -v byobu >/dev/null 2>&1; then launcher="byobu"; else launcher="tmux"; fi
+	$launcher new-session -d -s "$PKG" "/bin/bash"
+	$launcher send-keys -t "$PKG" "SP_LOGFILE='$LOGFILE' '$0' $([ "$SCREENSAVER" -eq 1 ] && printf '%s' '--screensaver ')" Enter
+	exec $launcher attach-session -t "$PKG"
+fi
+
+# ---------- inside tmux ----------
+tmux new-window -n "$PKG" "/bin/bash" >/dev/null 2>&1 || true
+tmux rename-window "$PKG"
+
+# Retro green borders (unless boss mode)
+tmux set-option pane-border-style fg=green
+tmux set-option pane-active-border-style fg=brightgreen
+
+# Boss key + mode toggles
+tmux bind-key B run-shell "bash -lc 'SP_LOGFILE=\"$LOGFILE\" \"$(realpath "$0")\" --boss --logfile \"$LOGFILE\"'"
+tmux bind-key R run-shell "tmux display-message \"Reviewer toggle\"; true" \; run-shell "bash -lc 'tmux display-message \"\"'"
+tmux bind-key D run-shell "tmux display-message \"Demo toggle\"; true" \; run-shell "bash -lc 'tmux display-message \"\"'"
+
+# Start in boss screen if requested
+if [ "$MODE" = "boss" ]; then
+	boss_key
+	exit 0
+fi
+
+# First pane: always a “status spine”
+w0="$(pick_widget)"
+tmux send-keys -t "$PKG".0 "nice -n 19 bash '$WIDGET_DIR/$w0' '$MODE' '$LOGFILE'" Enter >/dev/null 2>&1 || true
+spin_up
+
+# Screensaver behavior: make tmux “feel” unresponsive on purpose
+if [ "$SCREENSAVER" -eq 1 ]; then
+	tmux set-option -g status off
+	tmux set-option -g mouse off
+	tmux display-message "Screensaver mode: drift engaged"
+fi
+
+i=0
+while true; do
+	i=$((i + 1))
+
+	# Conference: occasional theatrical alerts
+	if [ "$MODE" = "conference" ] && [ $((RANDOM % 10)) -eq 0 ]; then
+		tmux display-message "⚠ SEMANTIC DRIFT / BENCHMARK SPOOFING SUSPECTED"
+	fi
+
+	# Reviewer: periodic “citations”
+	if [ "$MODE" = "reviewer" ] && [ $((RANDOM % 12)) -eq 0 ]; then
+		tmux display-message "Ref: [Polanyi 1966] [Goodhart 1975] [Weber 1922]"
+	fi
+
+	# Rotate panes
+	if [ $((i % DELAY)) -eq 0 ]; then
+		tmux kill-pane -a -t "$PKG".0 >/dev/null 2>&1 || true
+		spin_up
+	fi
+
+	sleep 1
+done
+

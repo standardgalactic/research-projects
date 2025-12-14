@@ -1,0 +1,107 @@
+#!/bin/sh
+#
+# sptop-retro — epistemic stress tester (green-screen edition)
+#
+# WARNING:
+# This is a theatrical diagnostic simulator.
+# It spawns harmless short-lived processes to make
+# monitoring itself visibly unstable.
+#
+
+INTERVAL=1
+SPAWN_INTERVAL=8
+MAX_DUMMIES=20
+
+GREEN="\033[1;32m"
+DIM="\033[2;32m"
+RESET="\033[0m"
+BLINK="\033[5m"
+
+spawn_dummy() {
+  (
+    # Each dummy has a different meaningless “purpose”
+    sleep_time=$(( (RANDOM % 20) + 5 ))
+    sleep "$sleep_time"
+  ) &
+}
+
+spawn_batch() {
+  count=$(pgrep -f "sleep [0-9][0-9]*" | wc -l)
+  if [ "$count" -lt "$MAX_DUMMIES" ]; then
+    spawn_dummy
+  fi
+}
+
+clear_screen() {
+  printf "\033[H\033[2J"
+}
+
+header() {
+  printf "${GREEN}${BLINK}SPTOP-RETRO${RESET}\n"
+  printf "${DIM}Semantic Process Oscilloscope — DO NOT TRUST${RESET}\n"
+  printf "${DIM}Time: %s${RESET}\n" "$(date '+%H:%M:%S')"
+  printf "${DIM}---------------------------------------------${RESET}\n"
+}
+
+fake_metrics() {
+  printf "${GREEN}COHERENCE.....:${RESET} %02d%%\n" "$((RANDOM % 100))"
+  printf "${GREEN}REFUSAL BUS...:${RESET} %s\n" "$( [ $((RANDOM%2)) -eq 0 ] && echo ACTIVE || echo FLICKER )"
+  printf "${GREEN}GOODHART LOAD.:${RESET} %d\n" "$((RANDOM % 9999))"
+  printf "${GREEN}DIDACTIC DRIFT:${RESET} %s\n" "$( [ $((RANDOM%3)) -eq 0 ] && echo RISING || echo CONTAINED )"
+  printf "\n"
+}
+
+process_table() {
+  printf "${GREEN}PID     TYPE                 STATUS${RESET}\n"
+  printf "${DIM}---------------------------------------------${RESET}\n"
+
+  ps -eo pid,comm | grep sleep | head -n 12 | while read -r pid cmd; do
+    label=$(semantic_label)
+    printf "%-7s %-20s %-10s\n" "$pid" "$label" "RUNNING"
+  done
+}
+
+semantic_label() {
+  case $((RANDOM % 6)) in
+    0) echo "epistemic_probe" ;;
+    1) echo "goodhart_canary" ;;
+    2) echo "semantic_noise" ;;
+    3) echo "observer_effect" ;;
+    4) echo "metric_decay" ;;
+    5) echo "null_agent" ;;
+  esac
+}
+
+footer() {
+  printf "\n"
+  printf "${DIM}Keys:${RESET} q=quit   r=refresh   (no control possible)\n"
+  printf "${DIM}NOTE:${RESET} This system is generating activity to test your faith in monitors.\n"
+}
+
+tick=0
+
+while :; do
+  clear_screen
+  header
+  fake_metrics
+  process_table
+  footer
+
+  tick=$((tick + 1))
+  if [ $((tick % SPAWN_INTERVAL)) -eq 0 ]; then
+    spawn_batch
+  fi
+
+  read -r -t "$INTERVAL" key
+  case "$key" in
+    q)
+      clear_screen
+      printf "Observer disengaged.\n"
+      exit 0
+      ;;
+    r)
+      continue
+      ;;
+  esac
+done
+

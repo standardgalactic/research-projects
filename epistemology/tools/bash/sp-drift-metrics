@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# sp-drift-metrics — simulate metric degradation when reused under adaptation
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+sp-drift-metrics [-t steps] [-s seed] [-o out.csv]
+
+Simulates drift of a metric when agents adapt to it over time.
+
+Options:
+  -t steps   Time steps (default: 80)
+  -s seed    Integer seed (default: 7)
+  -o file    Output CSV (default: ./drift.csv)
+  -h         Help
+USAGE
+}
+
+steps=80
+seed=7
+out="./drift.csv"
+
+while getopts "t:s:o:h" opt; do
+  case "$opt" in
+    t) steps="$OPTARG" ;;
+    s) seed="$OPTARG" ;;
+    o) out="$OPTARG" ;;
+    h) usage; exit 0 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+
+cat <<'BANNER'
+MODE: Synthetic / Non-operational
+Local simulation only. No external systems are accessed.
+BANNER
+
+awk -v T="$steps" -v SEED="$seed" -v OUT="$out" '
+BEGIN{
+  print "t,metric,semantic_fidelity,drift_index,notes" > OUT;
+  x=SEED;
+  m=0.40;  # metric score
+  f=0.85;  # semantic fidelity (what metric hoped to track)
+  d=0.00;  # drift index
+
+  for (t=1; t<=T; t++) {
+    x = (1664525*x + 1013904223) % 2147483648;
+    u = x/2147483648.0;
+
+    # agents adapt: metric rises; fidelity erodes
+    m = m + 0.02 + 0.02*u; if (m>1) m=1;
+    f = f - (0.008 + 0.018*m) + 0.005*(u-0.5); if (f<0) f=0;
+
+    # drift index increases as gap widens
+    d = (m - f); if (d<0) d=0;
+
+    note="";
+    if (d>0.35) note="WARNING: metric drift high (illustrative)";
+    printf "%d,%.4f,%.4f,%.4f,%s\n", t, m, f, d, note >> OUT;
+  }
+}
+' /dev/null
+
+printf '%s\n' "Wrote: $out"
+

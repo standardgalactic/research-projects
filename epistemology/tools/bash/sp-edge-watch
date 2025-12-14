@@ -1,0 +1,20 @@
+#!/bin/sh
+# sp-edge-watch — observe node availability (non-intrusive)
+
+set -eu
+
+CONFIG="nodes/lab.json"
+
+while true; do
+  date
+  jq -r '.nodes[] | "\(.user)@\(.host)"' "$CONFIG" |
+  while read -r TARGET; do
+    if ssh -o BatchMode=yes -o ConnectTimeout=2 "$TARGET" true 2>/dev/null; then
+      echo "$TARGET: reachable"
+    else
+      echo "$TARGET: unavailable"
+    fi
+  done
+  sleep 10
+done
+

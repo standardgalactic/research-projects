@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# sp-hollywood — Spherepop cinematic console
+# Conference demo + boss key edition
+
+set -euo pipefail
+
+PKG="sp-hollywood"
+WIDGET_DIR="$(dirname "$0")/../lib/spherepop/widgets"
+
+SPLITS=9
+DELAY=15
+MODE="normal"
+BOSS_TITLE="build-env"
+
+trap "tmux kill-session -t $PKG >/dev/null 2>&1; exit 0" INT TERM
+
+log() {
+	[ "$MODE" = "conference" ] && echo "[DEMO] $*" >&2
+}
+
+spin_up() {
+	local dir="-v"
+	local panes splits pane count=0
+
+	for w in $(ls "$WIDGET_DIR" | sort -R); do
+		[ "$dir" = "-v" ] && dir="-h" || dir="-v"
+
+		panes=$(tmux list-panes -t $PKG 2>/dev/null || true)
+		splits=$(echo "$panes" | wc -l | tr -d ' ')
+		[ "$splits" -eq 0 ] && break
+
+		pane=$((RANDOM % splits))
+
+		tmux split-window $dir -t ${PKG}.$pane \
+			"nice -n 19 bash $WIDGET_DIR/$w" \
+			>/dev/null 2>&1 || true
+
+		sleep 0.2
+		count=$((count + 1))
+		[ "$count" -ge "$SPLITS" ] && break
+	done
+}
+
+boss_key() {
+	tmux rename-window "$BOSS_TITLE"
+	tmux kill-pane -a
+
+	# Safe, boring panes
+	tmux split-window -h "top"
+	tmux split-window -v "tail -f /var/log/syslog 2>/dev/null || tail -f /var/log/messages"
+	tmux split-window -v "man vim || man vi"
+	tmux select-layout tiled
+
+	# Remove green glow
+	tmux set-option pane-border-style fg=default
+	tmux set-option pane-active-border-style fg=default
+}
+
+usage() {
+	cat <<EOF
+sp-hollywood — Spherepop cinematic console
+
+Options:
+  --conference-demo     High-noise public demo mode
+  --boss                Start directly in boss-safe mode
+  -s, --splits N        Max panes
+  -d, --delay N         Rotation delay
+  -h, --help            Show help
+
+Runtime:
+  Ctrl-B + B            Boss key (instant safe screen)
+EOF
+}
+
+# ---------------- Parse args ----------------
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--conference-demo)
+			MODE="conference"
+			SPLITS=14
+			DELAY=6
+			shift
+		;;
+		--boss)
+			MODE="boss"
+			shift
+		;;
+		-s|--splits)
+			SPLITS="$2"
+			shift 2
+		;;
+		-d|--delay)
+			DELAY="$2"
+			shift 2
+		;;
+		-h|--help)
+			usage
+			exit 0
+		;;
+		*)
+			usage
+			exit 1
+		;;
+	esac
+done
+
+# ---------------- Launcher ----------------
+
+if [ -z "${TMUX:-}" ]; then
+	if command -v byobu >/dev/null 2>&1; then
+		launcher="byobu"
+	else
+		launcher="tmux"
+	fi
+
+	$launcher new-session -d -s "$PKG" "/bin/bash"
+	$launcher send-keys -t "$PKG" "$0 $*"
+	$launcher send-keys -t "$PKG" Enter
+	exec $launcher attach-session -t "$PKG"
+fi
+
+# ---------------- Inside tmux ----------------
+
+tmux new-window -n "$PKG" "/bin/bash"
+tmux set-option pane-border-style fg=green
+tmux set-option pane-active-border-style fg=brightgreen
+
+# Bind boss key
+tmux bind-key B run-shell "bash -c '$(realpath "$0") --boss'"
+
+if [ "$MODE" = "boss" ]; then
+	boss_key
+	exit 0
+fi
+
+spin_up
+
+i=0
+while true; do
+	i=$((i + 1))
+
+	if [ "$MODE" = "conference" ] && [ $((RANDOM % 12)) -eq 0 ]; then
+		tmux display-message "⚠ SEMANTIC DRIFT DETECTED"
+	fi
+
+	if [ $((i % DELAY)) -eq 0 ]; then
+		tmux kill-pane -a -t "$PKG".0 >/dev/null 2>&1 || true
+		spin_up
+	fi
+
+	sleep 1
+done
+

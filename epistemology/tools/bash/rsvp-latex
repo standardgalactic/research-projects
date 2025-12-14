@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# rsvp-latex: compile a LaTeX file using latexmk with sane defaults.
+# Usage:
+#   rsvp-latex main.tex
+
+tex="${1:-}"
+[[ -n "$tex" ]] || { echo "usage: rsvp-latex <file.tex>"; exit 2; }
+
+# Use latexmk if present; fall back to pdflatex x2.
+if command -v latexmk >/dev/null 2>&1; then
+  latexmk -pdf -interaction=nonstopmode -halt-on-error "$tex"
+else
+  pdflatex -interaction=nonstopmode -halt-on-error "$tex"
+  pdflatex -interaction=nonstopmode -halt-on-error "$tex"
+fi
+

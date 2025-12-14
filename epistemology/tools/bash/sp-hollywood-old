@@ -1,0 +1,137 @@
+	#!/usr/bin/env bash
+# N.B.: Use bash for $RANDOM
+#
+# sp-hollywood: generate a cinematic, epistemically-honest console
+#               for Spherepop / RSVP / semantic drift demonstrations
+#
+# This tool intentionally produces:
+#   - unstable metrics
+#   - redundant processes
+#   - non-actionable diagnostics
+#   - rotating semantic noise
+#
+# It is NOT a monitoring system.
+# It is a critique of monitoring systems.
+#
+# Inspired by hollywood(1), but philosophically non-compliant.
+#
+# License: Apache 2.0
+# Author: Flyxion et al.
+#
+
+PKG="sp-hollywood"
+WIDGET_DIR="$(dirname "$0")/../lib/spherepop/widgets"
+SPLITS=9
+DELAY=15
+
+trap "tmux kill-session -t $PKG >/dev/null 2>&1; exit 0" INT TERM
+
+spin_up() {
+	local dir="-v"
+	local panes
+	local splits
+	local pane
+	local split=1
+
+	sleep 0.5
+
+	for w in $(ls "$WIDGET_DIR" | sort -R); do
+		[ "$dir" = "-v" ] && dir="-h" || dir="-v"
+
+		panes=$(tmux list-panes -t $PKG 2>/dev/null)
+		splits=$(echo "$panes" | wc -l | tr -d ' ')
+		[ "$splits" -eq 0 ] && break
+
+		pane=$((RANDOM % splits))
+
+		tmux split-window $dir -t ${PKG}.$pane \
+			"nice -n 19 bash $WIDGET_DIR/$w" \
+			>/dev/null 2>&1
+
+		sleep 0.3
+		split=$((split + 1))
+		[ "$split" -ge "$SPLITS" ] && break
+	done
+}
+
+usage() {
+	cat <<EOF
+sp-hollywood — Spherepop cinematic console
+
+Usage:
+  sp-hollywood [options]
+
+Options:
+  -s, --splits N     Max tmux panes (default: $SPLITS)
+  -d, --delay N      Pane rotation delay in seconds (default: $DELAY)
+  -h, --help         Show this help
+
+Description:
+  Launches a rotating tmux/byobu dashboard composed of
+  semantic monitors, epistemic noise generators, and
+  RSVP-inspired drift visualizers.
+
+  Nothing here is actionable.
+  Everything here is intentional.
+EOF
+}
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		-s|--splits)
+			SPLITS="$2"
+			shift 2
+		;;
+		-d|--delay)
+			DELAY="$2"
+			shift 2
+		;;
+		-h|--help)
+			usage
+			exit 0
+		;;
+		*)
+			usage
+			exit 1
+		;;
+	esac
+done
+
+# Select launcher
+if [ -z "$TMUX" ]; then
+	if command -v byobu >/dev/null 2>&1; then
+		launcher="byobu"
+	else
+		launcher="tmux"
+	fi
+
+	$launcher new-session -d -s "$PKG" "/bin/bash"
+	$launcher send-keys -t "$PKG" "$0 -s $SPLITS -d $DELAY"
+	$launcher send-keys -t "$PKG" Enter
+	exec $launcher attach-session -t "$PKG"
+	exit 0
+fi
+
+# Inside tmux: create main window
+widget1=$(ls "$WIDGET_DIR" | sort -R | head -n1)
+
+tmux new-window -n "$PKG" "bash $WIDGET_DIR/$widget1" \; \
+	set-option -g pane-border-style fg=green \; \
+	set-option -g pane-active-border-style fg=brightgreen \
+	>/dev/null 2>&1
+
+spin_up
+
+# Rotation loop
+i=0
+while true; do
+	i=$((i + 1))
+
+	if [ $((i % DELAY)) -eq 0 ]; then
+		tmux kill-pane -a -t "$PKG".0 >/dev/null 2>&1
+		spin_up
+	fi
+
+	sleep 1
+done
+

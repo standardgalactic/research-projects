@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cmd="${1:-}"
+nbdir="${2:-notebooks}"
+
+if [[ -z "$cmd" ]]; then
+  cat <<'TXT'
+usage:
+  sp-notebooks list [dir]
+  sp-notebooks exec [dir]         # execute all notebooks (requires jupyter)
+  sp-notebooks export [dir]       # export notebooks to markdown/html (requires nbconvert)
+TXT
+  exit 2
+fi
+
+if [[ "$cmd" == "list" ]]; then
+  find "$nbdir" -type f -name "*.ipynb" | sort
+  exit 0
+fi
+
+if ! command -v jupyter >/dev/null 2>&1; then
+  echo "error: jupyter not found. Install python+jupyter in your env."
+  exit 1
+fi
+
+if [[ "$cmd" == "exec" ]]; then
+  mkdir -p .notebooks_cache
+  while IFS= read -r nb; do
+    echo "[exec] $nb"
+    jupyter nbconvert --to notebook --execute \
+      --ExecutePreprocessor.timeout=600 \
+      --output-dir .notebooks_cache \
+      "$nb"
+  done < <(find "$nbdir" -type f -name "*.ipynb" | sort)
+  exit 0
+fi
+
+if [[ "$cmd" == "export" ]]; then
+  mkdir -p build/notebooks
+  while IFS= read -r nb; do
+    echo "[export] $nb"
+    jupyter nbconvert --to markdown --output-dir build/notebooks "$nb" || true
+    jupyter nbconvert --to html --output-dir build/notebooks "$nb" || true
+  done < <(find "$nbdir" -type f -name "*.ipynb" | sort)
+  exit 0
+fi
+
+echo "unknown command: $cmd"
+exit 2
+

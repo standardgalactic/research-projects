@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# sp-probe-refusal — simulate constraint violations and measure refusal behavior
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+sp-probe-refusal [-n trials] [-s seed] [-o out.csv]
+
+Runs a synthetic trial set. Some trials violate constraints; the simulated
+policy either "REFUSE" or "EXECUTE" based on constraint coupling.
+
+Options:
+  -n trials  Number of trials (default: 80)
+  -s seed    Integer seed (default: 99)
+  -o file    Output CSV (default: ./refusal.csv)
+  -h         Help
+USAGE
+}
+
+trials=80
+seed=99
+out="./refusal.csv"
+
+while getopts "n:s:o:h" opt; do
+  case "$opt" in
+    n) trials="$OPTARG" ;;
+    s) seed="$OPTARG" ;;
+    o) out="$OPTARG" ;;
+    h) usage; exit 0 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+
+cat <<'BANNER'
+MODE: Synthetic / Non-operational
+No external systems are accessed. Outputs are simulated decisions only.
+BANNER
+
+awk -v N="$trials" -v SEED="$seed" -v OUT="$out" '
+BEGIN{
+  print "trial,constraint_ok,decision,notes" > OUT;
+  x=SEED;
+  refuse=0; vio=0;
+
+  for (i=1; i<=N; i++) {
+    x = (1103515245*x + 12345) % 2147483648;
+    u = x/2147483648.0;
+
+    # 30% violations
+    ok = (u > 0.30) ? 1 : 0;
+    if (!ok) vio++;
+
+    # constraint-coupled policy: refuse on violations with high probability
+    # (still imperfect to reflect real-world brittleness)
+    x = (1103515245*x + 12345) % 2147483648;
+    v = x/2147483648.0;
+
+    decision="EXECUTE";
+    note="";
+    if (!ok) {
+      # refuse with 0.85 probability
+      if (v < 0.85) { decision="REFUSE"; refuse++; }
+      else { decision="EXECUTE"; note="WARNING: executed under violation (illustrative)"; }
+    }
+
+    printf "%d,%d,%s,%s\n", i, ok, decision, note >> OUT;
+  }
+
+  # summary line (comment style)
+  printf "# violations=%d refusal_on_violation=%.3f\n", vio, (vio>0?refuse/vio:0) >> OUT;
+}
+' /dev/null
+
+printf '%s\n' "Wrote: $out"
+

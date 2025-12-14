@@ -1,0 +1,110 @@
+#!/bin/sh
+#
+# sptop — semantic process monitor for Spherepop / RSVP systems
+#
+# This tool displays a live, read-only view of semantic health indicators.
+# It does not control, pause, kill, or modify any processes.
+#
+
+INTERVAL=2
+
+clear_screen() {
+  printf "\033[H\033[2J"
+}
+
+draw_header() {
+  printf "sptop — semantic observability dashboard (read-only)\n"
+  printf "Time: %s\n" "$(date '+%Y-%m-%d %H:%M:%S')"
+  printf "Refresh interval: %ss\n" "$INTERVAL"
+  printf "--------------------------------------------------\n"
+}
+
+draw_metrics() {
+  printf "Semantic Metrics:\n"
+
+  # These are symbolic metrics, not measurements.
+  printf "  Determinism Index:      %-5s\n" "$(determinism_index)"
+  printf "  Refusal Capacity:       %-5s\n" "$(refusal_capacity)"
+  printf "  Perturbation Stability: %-5s\n" "$(stability_index)"
+  printf "  Didactic Pressure:      %-5s\n" "$(didactic_pressure)"
+  printf "  Constraint Coupling:    %-5s\n" "$(constraint_coupling)"
+
+  printf "\n"
+}
+
+determinism_index() {
+  # Placeholder heuristic: uptime modulo
+  u=$(cut -d. -f1 /proc/uptime 2>/dev/null || echo 0)
+  echo $((u % 100))%
+}
+
+refusal_capacity() {
+  # Binary symbolic indicator
+  echo "present"
+}
+
+stability_index() {
+  echo "high"
+}
+
+didactic_pressure() {
+  echo "moderate"
+}
+
+constraint_coupling() {
+  echo "intact"
+}
+
+draw_process_table() {
+  printf "Active Processes (epistemically filtered):\n"
+  printf "%-6s %-20s %-10s\n" "PID" "COMMAND" "SEMANTICS"
+  printf "%-6s %-20s %-10s\n" "----" "--------------------" "----------"
+
+  ps -eo pid,comm | head -n 10 | tail -n +2 | while read -r pid cmd; do
+    printf "%-6s %-20s %-10s\n" "$pid" "$cmd" "$(semantic_label "$cmd")"
+  done
+}
+
+semantic_label() {
+  case "$1" in
+    sp*)
+      echo "instrument"
+      ;;
+    bash|sh)
+      echo "interface"
+      ;;
+    *)
+      echo "opaque"
+      ;;
+  esac
+}
+
+draw_footer() {
+  printf "\n"
+  printf "Controls:\n"
+  printf "  q  Quit\n"
+  printf "  r  Refresh now\n"
+  printf "\n"
+  printf "Note: sptop does not permit intervention.\n"
+  printf "      Observation is not execution.\n"
+}
+
+while :; do
+  clear_screen
+  draw_header
+  draw_metrics
+  draw_process_table
+  draw_footer
+
+  read -r -t "$INTERVAL" key
+  case "$key" in
+    q)
+      clear_screen
+      exit 0
+      ;;
+    r)
+      continue
+      ;;
+  esac
+done
+

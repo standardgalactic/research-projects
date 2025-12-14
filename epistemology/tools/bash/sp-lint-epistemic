@@ -1,0 +1,189 @@
+#!/bin/sh
+# sp-lint-epistemic(1)
+#
+# Structural epistemic lint for Spherepop projects.
+# Enforces disclosure and non-authority invariants.
+#
+# This tool does not assess correctness, insight, or meaning.
+
+set -eu
+
+PROG="sp-lint-epistemic"
+CONFIG_DIR="${HOME}/.config/spherepop"
+MODE_FILE="${CONFIG_DIR}/sp_mode"
+GUARD_FILE="epistemic.guard"
+
+STRICT=0
+FAIL=0
+
+usage() {
+	cat <<EOF
+usage: $PROG [--strict]
+
+Options:
+  --strict   Treat warnings as failures
+  -h, --help Show this help text
+EOF
+	exit 0
+}
+
+while [ "${1:-}" ]; do
+	case "$1" in
+		--strict) STRICT=1 ;;
+		-h|--help) usage ;;
+		*) printf '%s: unknown option: %s\n' "$PROG" "$1" >&2; exit 1 ;;
+	esac
+	shift
+done
+
+die() {
+	printf '%s: %s\n' "$PROG" "$*" >&2
+	exit 1
+}
+
+warn() {
+	if [ "$STRICT" -eq 1 ]; then
+		fail "$*"
+	else
+		printf '%s: warning: %s\n' "$PROG" "$*" >&2
+	fi
+}
+
+check() {
+	printf '%s\n' "$*"
+}
+
+fail() {
+	printf '%s: FAIL: %s\n' "$PROG" "$*" >&2
+	FAIL=1
+}
+
+# ------------------------------------------------------------
+# 1. Guard file presence
+# ------------------------------------------------------------
+
+check "checking for epistemic guard file..."
+
+if [ ! -f "$GUARD_FILE" ]; then
+	fail "missing required epistemic guard file: $GUARD_FILE"
+else
+	check "found $GUARD_FILE"
+fi
+
+# ------------------------------------------------------------
+# 2. Guard file non-emptiness
+# ------------------------------------------------------------
+
+check "checking guard file non-emptiness..."
+
+if [ ! -s "$GUARD_FILE" ]; then
+	fail "$GUARD_FILE exists but is empty"
+fi
+
+# ------------------------------------------------------------
+# 3. sp-mode existence
+# ------------------------------------------------------------
+
+check "checking sp-mode availability..."
+
+if ! command -v sp-mode >/dev/null 2>&1; then
+	fail "sp-mode not found in PATH"
+else
+	check "sp-mode found"
+fi
+
+# ------------------------------------------------------------
+# 4. sp-mode --print side-effect freedom
+# ------------------------------------------------------------
+
+check "checking sp-mode --print side-effect freedom..."
+
+if [ -e "$MODE_FILE" ]; then
+	warn "mode file already exists; skipping side-effect test"
+else
+	if ! (
+		test ! -e "$MODE_FILE" &&
+		sp-mode --print >/dev/null 2>&1 &&
+		test ! -e "$MODE_FILE"
+	); then
+		fail "sp-mode --print creates state or has side effects"
+	else
+		check "sp-mode --print is side-effect free"
+	fi
+fi
+
+# ------------------------------------------------------------
+# 5. Mode file validity (if present)
+# ------------------------------------------------------------
+
+check "checking mode file validity (if present)..."
+
+if [ -e "$MODE_FILE" ]; then
+	MODE="$(sed -n '1p' "$MODE_FILE" 2>/dev/null || true)"
+	case "$MODE" in
+		satire|instrument)
+			check "mode file contains valid mode: $MODE"
+			;;
+		*)
+			fail "invalid mode in $MODE_FILE: '$MODE'"
+			;;
+	esac
+else
+	check "no mode file present (acceptable)"
+fi
+
+# ------------------------------------------------------------
+# 6. Authority language scan
+# ------------------------------------------------------------
+
+check "scanning for prohibited authority language..."
+
+FORBIDDEN='diagnostic|analysis result|ground truth|measures|detects|verifies'
+
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+	FILES="$(git ls-files)"
+else
+	FILES="$(find . -type f 2>/dev/null)"
+fi
+
+for f in $FILES; do
+	case "$f" in
+		*.sh|*.md|*.txt|*.tex|*.roff|*.man)
+			if grep -Ei "$FORBIDDEN" "$f" >/dev/null 2>&1; then
+				fail "prohibited authority language found in $f"
+			fi
+			;;
+	esac
+done
+
+# ------------------------------------------------------------
+# 7. Documentation non-goals check
+# ------------------------------------------------------------
+
+check "checking documentation for non-goals language..."
+
+DOC_OK=0
+for f in README README.md CONTRIBUTING.md docs/* 2>/dev/null; do
+	if [ -f "$f" ] && grep -Ei 'non-goals|does not|not intended' "$f" >/dev/null 2>&1; then
+		DOC_OK=1
+		break
+	fi
+done
+
+if [ "$DOC_OK" -eq 0 ]; then
+	warn "no explicit non-goals language found in documentation"
+else
+	check "non-goals language present"
+fi
+
+# ------------------------------------------------------------
+# Final result
+# ------------------------------------------------------------
+
+if [ "$FAIL" -ne 0 ]; then
+	die "epistemic lint failed"
+fi
+
+check "epistemic lint passed"
+exit 0
+

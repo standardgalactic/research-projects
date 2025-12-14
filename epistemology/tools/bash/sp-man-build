@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# sp-man-build — optionally gzip manpages (no external actions)
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+sp-man-build [-d man_dir]
+
+Gzips all *.1 files under man_dir into *.1.gz (in place).
+
+Options:
+  -d dir   Man directory (default: ./usr/share/man/man1)
+  -h       Help
+USAGE
+}
+
+dir="./usr/share/man/man1"
+
+while getopts "d:h" opt; do
+  case "$opt" in
+    d) dir="$OPTARG" ;;
+    h) usage; exit 0 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+
+command -v gzip >/dev/null 2>&1 || { echo "gzip not found"; exit 2; }
+
+find "$dir" -type f -name "*.1" -print0 | while IFS= read -r -d '' f; do
+  gzip -9 -f "$f"
+  echo "gzipped: $f -> $f.gz"
+done
+

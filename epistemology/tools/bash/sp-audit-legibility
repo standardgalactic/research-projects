@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# sp-audit-legibility — flags when text becomes highly compressible / procedural
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+sp-audit-legibility [-f file] [-t threshold] [-o out.txt]
+
+Estimates legibility risk by crude compression ratio and procedural markers.
+Input is local text only.
+
+Options:
+  -f file       Input file (default: stdin)
+  -t threshold  Ratio threshold in percent (default: 55)
+  -o file       Output report (default: ./legibility.txt)
+  -h            Help
+
+Heuristics:
+  - Compression ratio via wc bytes vs gzip -c bytes (if gzip available)
+  - Procedural markers: "Step", "1.", "2.", "do this", "then"
+USAGE
+}
+
+infile=""
+threshold=55
+out="./legibility.txt"
+
+while getopts "f:t:o:h" opt; do
+  case "$opt" in
+    f) infile="$OPTARG" ;;
+    t) threshold="$OPTARG" ;;
+    o) out="$OPTARG" ;;
+    h) usage; exit 0 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+
+tmp="$(mktemp)"
+cleanup(){ rm -f "$tmp"; }
+trap cleanup EXIT
+
+if [ -n "$infile" ]; then
+  cat -- "$infile" > "$tmp"
+else
+  cat > "$tmp"
+fi
+
+bytes="$(wc -c < "$tmp" | tr -d ' ')"
+gzip_bytes=""
+if command -v gzip >/dev/null 2>&1; then
+  gzip_bytes="$(gzip -c "$tmp" | wc -c | tr -d ' ')"
+else
+  gzip_bytes="$bytes"
+fi
+
+# percent = gzip_bytes / bytes * 100
+# if gzip compresses well, gzip_bytes << bytes => percent small.
+# Here we treat HIGH compressibility as risk; so risk_score = 100 - percent.
+percent="$(awk -v a="$gzip_bytes" -v b="$bytes" 'BEGIN{ if(b==0) print 100; else printf "%.0f", (a/b)*100 }')"
+risk="$((100 - percent))"
+
+# procedural markers
+proc_hits="$(grep -Eic '(^|\b)(step[[:space:]]*[0-9]*|[0-9]+\.[[:space:]]|do[[:space:]]+this|then|next|finally)\b' "$tmp" || true)"
+
+{
+  echo "MODE: Synthetic / Local-only text audit"
+  echo "Bytes: $bytes"
+  echo "Gzip-bytes: $gzip_bytes"
+  echo "Compression percent: $percent%"
+  echo "Legibility risk score (100 - percent): $risk"
+  echo "Procedural marker hits: $proc_hits"
+  echo "----"
+  if [ "$risk" -ge "$threshold" ] && [ "$proc_hits" -ge 2 ]; then
+    echo "FLAG: Legibility threshold exceeded."
+    echo "Interpretation: text may be executable without context (didactic-interface risk)."
+  else
+    echo "OK: No strong legibility flag under current thresholds."
+  fi
+  echo "----"
+  echo "NOTE: This is a heuristic; it does not judge truth, intent, or safety."
+} > "$out"
+
+printf '%s\n' "Wrote: $out"
+

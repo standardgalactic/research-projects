@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# spherepop-newpaper: create a new paper skeleton referencing shared preamble/macros.
+# Usage:
+#   spherepop-newpaper <dir> <title>
+
+dir="${1:-}"
+title="${2:-}"
+
+[[ -n "$dir" && -n "$title" ]] || { echo "usage: spherepop-newpaper <dir> <title>"; exit 2; }
+
+mkdir -p "$dir"/{sections,appendices,bib}
+
+cat > "$dir/main.tex" <<EOF
+\\documentclass[12pt]{article}
+\\input{../shared/preamble/preamble.tex}
+\\input{../shared/macros/macros.tex}
+
+\\title{\\textbf{$title}}
+\\author{Flyxion}
+\\date{}
+
+\\begin{document}
+\\maketitle
+
+\\begin{abstract}
+% TODO: abstract
+\\end{abstract}
+
+\\input{sections/introduction.tex}
+
+\\appendix
+\\input{appendices/notes.tex}
+
+\\bibliographystyle{plain}
+\\bibliography{../shared/bib/references}
+\\end{document}
+EOF
+
+cat > "$dir/sections/introduction.tex" <<'EOF'
+\section{Introduction}
+% TODO
+EOF
+
+cat > "$dir/appendices/notes.tex" <<'EOF'
+\section{Notes}
+% TODO
+EOF
+
+echo "Created paper skeleton in $dir"
+

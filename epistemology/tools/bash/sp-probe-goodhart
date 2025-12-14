@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# sp-probe-goodhart — demonstrate proxy/metric collapse under optimization pressure
+set -euo pipefail
+
+banner() {
+  cat <<'BANNER'
+MODE: Synthetic / Non-operational
+This tool runs a local simulation. No external systems are accessed.
+BANNER
+}
+
+usage() {
+  cat <<'USAGE'
+sp-probe-goodhart [-n epochs] [-s seed] [-o out.csv]
+
+Simulates optimization of a proxy metric that diverges from a ground-truth objective.
+
+Options:
+  -n epochs   Number of epochs (default: 60)
+  -s seed     Integer seed (default: 42)
+  -o file     Write CSV output (default: ./goodhart.csv)
+  -h          Help
+
+Output CSV columns:
+  epoch,proxy_score,truth_score,notes
+USAGE
+}
+
+epochs=60
+seed=42
+out="./goodhart.csv"
+
+while getopts "n:s:o:h" opt; do
+  case "$opt" in
+    n) epochs="$OPTARG" ;;
+    s) seed="$OPTARG" ;;
+    o) out="$OPTARG" ;;
+    h) usage; exit 0 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+
+banner
+
+# Simple deterministic RNG using awk (LCG), no $RANDOM dependence.
+awk -v N="$epochs" -v SEED="$seed" -v OUT="$out" '
+BEGIN{
+  print "epoch,proxy_score,truth_score,notes" > OUT;
+  x=SEED;
+  proxy=0.10;
+  truth=0.90;
+
+  for (e=1; e<=N; e++) {
+    # LCG
+    x = (1103515245*x + 12345) % 2147483648;
+    u = x/2147483648.0;
+
+    # Optimization pressure increases proxy aggressively
+    proxy = proxy + 0.03 + 0.01*u;
+    if (proxy>1) proxy=1;
+
+    # Truth decays as proxy becomes target (stylized collapse)
+    # Add mild noise but keep in [0,1]
+    truth = truth - (0.015 + 0.02*(proxy^2)) + 0.01*(u-0.5);
+    if (truth<0) truth=0;
+    if (truth>1) truth=1;
+
+    note="";
+    if (proxy>0.90 && truth<0.50) note="NOTE: metric became target; objective decoupled";
+    printf "%d,%.4f,%.4f,%s\n", e, proxy, truth, note >> OUT;
+  }
+}
+' /dev/null
+
+printf '%s\n' "Wrote: $out"
+

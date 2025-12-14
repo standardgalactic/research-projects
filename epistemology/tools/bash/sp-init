@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dir="${1:-spherepop_os}"
+[[ -n "$dir" ]] || { echo "usage: sp-init [dir]"; exit 2; }
+
+mkdir -p "$dir"/{
+shared/{preamble,macros,bib,docs,ci},
+os/{src,tests,spec,docs,bench},
+calculus/{lean,docs,examples},
+prototypes/{haskell,python,racket,notes},
+notebooks,
+tools,
+build,
+logs
+}
+
+# README (safe: conceptual, not procedural weapon-y content)
+cat > "$dir/README.md" <<'MD'
+# Spherepop OS Workspace
+
+This repo is a multi-language research + prototype environment for:
+- **Spherepop OS**: event-sourced kernel model & replayable semantics
+- **Spherepop Calculus (Lean)**: formal rules, theorems, and replay equivalence proofs
+- **Prototypes**: Haskell/Python/Racket experiments to validate semantics & tooling
+- **Notebooks**: analyses, experiments, and reproducible evaluations
+
+Key properties emphasized:
+- append-only event logs
+- deterministic replay
+- explicit collapse/equivalence operations
+- separation of operational state vs metadata/gauge
+
+Tooling:
+- `sp-tree` shows canonical structure
+- `sp-lean` runs Lean workflows (if Lean installed)
+- `sp-proto` runs prototypes for languages found in `prototypes/`
+- `sp-notebooks` manages notebooks (exec/export/lint)
+- `sp-manifest` writes a manifest of sources & checksums
+MD
+
+# Minimal placeholders
+touch "$dir/shared/bib/references.bib"
+touch "$dir/os/spec/kernel_model.md"
+touch "$dir/calculus/docs/README.md"
+touch "$dir/prototypes/notes/README.md"
+
+# Git ignore
+cat > "$dir/.gitignore" <<'TXT'
+/build/
+/logs/
+/.notebooks_cache/
+/.lean/
+/lake-packages/
+/**/.DS_Store
+TXT
+
+echo "Initialized Spherepop OS workspace at: $dir"
+

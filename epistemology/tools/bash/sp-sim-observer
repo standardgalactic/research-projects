@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# sp-sim-observer — emits semantically empty "authoritative-looking" signals (disclosed)
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+sp-sim-observer [-n lines] [-s seed] [-o out.log]
+
+Emits semantically empty status lines to study observer misattribution.
+Disclosure is mandatory and printed in-band.
+
+Options:
+  -n lines  Number of lines (default: 40)
+  -s seed   Integer seed (default: 123)
+  -o file   Output log (default: ./observer.log)
+  -h        Help
+USAGE
+}
+
+lines=40
+seed=123
+out="./observer.log"
+
+while getopts "n:s:o:h" opt; do
+  case "$opt" in
+    n) lines="$OPTARG" ;;
+    s) seed="$OPTARG" ;;
+    o) out="$OPTARG" ;;
+    h) usage; exit 0 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+
+{
+  echo "EPISTEMIC DISCLOSURE:"
+  echo "  These lines are intentionally semantically empty."
+  echo "  They are generated to test human attribution error."
+  echo "  No diagnostics are being performed."
+  echo "----"
+} > "$out"
+
+awk -v N="$lines" -v SEED="$seed" '
+function pick(a, n,   i){ i=int(rand()*n)+1; return a[i]; }
+BEGIN{
+  srand(SEED);
+  split("semantic_drift|constraint_erasure|proxy_instability|interpretability_gap|metric_contamination|retrocomputability", A, "|");
+  split("LOW|MEDIUM|HIGH|CRITICAL", L, "|");
+  split("Polanyi|Weber|Goodhart|Arendt|Ryle|Jonas", R, "|");
+  for (i=1; i<=N; i++) {
+    c = pick(A, 6);
+    sev = pick(L, 4);
+    ref = pick(R, 6);
+    # Disclosed emptiness is maintained by an explicit tag.
+    printf "[SIMULATED][NO-SEMANTICS] %s=%s (ref=%s)\n", c, sev, ref;
+  }
+}
+' >> "$out"
+
+printf '%s\n' "Wrote: $out"
+

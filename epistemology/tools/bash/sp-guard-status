@@ -1,0 +1,62 @@
+#!/bin/sh
+# sp-guard-status
+# Report the freeze status of epistemic.guard
+#
+# This tool performs no mutation.
+# It reports only mechanically verifiable states.
+
+set -eu
+
+GUARD_FILE="epistemic.guard"
+CHECKSUM_FILE="epistemic.guard.sha256"
+
+die() {
+    echo "sp-guard-status: $*" >&2
+    exit 2
+}
+
+# Guard file existence
+if [ ! -f "$GUARD_FILE" ]; then
+    echo "STATUS: MISSING"
+    echo "DETAIL: epistemic.guard not found"
+    exit 1
+fi
+
+# Checksum file existence
+if [ ! -f "$CHECKSUM_FILE" ]; then
+    echo "STATUS: UNFROZEN"
+    echo "DETAIL: checksum file not found"
+    exit 1
+fi
+
+# Extract checksum line (ignore comments and blanks)
+LINE=$(grep -E '^[0-9a-fA-F]{64}[[:space:]]+' "$CHECKSUM_FILE" || true)
+
+if [ -z "$LINE" ]; then
+    echo "STATUS: UNFROZEN"
+    echo "DETAIL: no valid checksum entry present"
+    exit 1
+fi
+
+EXPECTED_SUM=$(echo "$LINE" | awk '{print $1}')
+EXPECTED_FILE=$(echo "$LINE" | awk '{print $2}')
+
+if [ "$EXPECTED_FILE" != "$GUARD_FILE" ]; then
+    echo "STATUS: INVALID"
+    echo "DETAIL: checksum references '$EXPECTED_FILE', expected '$GUARD_FILE'"
+    exit 1
+fi
+
+# Compute current checksum
+ACTUAL_SUM=$(sha256sum "$GUARD_FILE" | awk '{print $1}')
+
+if [ "$EXPECTED_SUM" = "$ACTUAL_SUM" ]; then
+    echo "STATUS: FROZEN"
+    echo "DETAIL: checksum matches"
+    exit 0
+else
+    echo "STATUS: MODIFIED"
+    echo "DETAIL: guard content does not match frozen checksum"
+    exit 1
+fi
+

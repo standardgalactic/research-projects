@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# sp-sim-apprenticeship — simulate pipeline fragility under automation pressure
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+sp-sim-apprenticeship [-y years] [-o out.csv]
+
+Simulates an organization with seniors/juniors/automation. Short-term efficiency
+pressure reduces junior hiring; long-term senior supply becomes brittle.
+
+Options:
+  -y years   Years to simulate (default: 20)
+  -o file    Output CSV (default: ./apprenticeship.csv)
+  -h         Help
+USAGE
+}
+
+years=20
+out="./apprenticeship.csv"
+
+while getopts "y:o:h" opt; do
+  case "$opt" in
+    y) years="$OPTARG" ;;
+    o) out="$OPTARG" ;;
+    h) usage; exit 0 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+
+cat <<'BANNER'
+MODE: Synthetic / Non-operational
+Local simulation only. No HR systems, no real hiring, no external data.
+BANNER
+
+awk -v Y="$years" -v OUT="$out" '
+BEGIN{
+  print "year,seniors,juniors,automation,throughput,fragility,notes" > OUT;
+
+  S=30; J=40; A=0.10;  # initial counts, automation level
+  for (y=1; y<=Y; y++) {
+
+    # automation increases
+    A = A + 0.04; if (A>0.95) A=0.95;
+
+    # short-term throughput rises with automation and seniors
+    throughput = (S*1.0) + (J*0.4) + (A*60);
+
+    # competitive pressure reduces junior hiring as automation rises
+    hires = int(10 - 8*A); if (hires<0) hires=0;
+
+    # attrition: seniors leave; juniors leave; promotions depend on seniors
+    S_leave = int(2 + 0.05*S);
+    J_leave = int(6 + 0.07*J);
+
+    # promotions: juniors become seniors, but only if enough seniors exist
+    promo_cap = int(0.15*S);
+    promos = int(0.10*J); if (promos>promo_cap) promos=promo_cap;
+
+    # update counts
+    S = S - S_leave + promos; if (S<0) S=0;
+    J = J - J_leave - promos + hires; if (J<0) J=0;
+
+    # fragility grows when seniors are scarce and juniors collapse
+    frag = 0.0;
+    if (S>0) frag = (1.0/(S+1)) * 20;
+    frag = frag + (J<10 ? 3.0 : 0.0);
+    frag = frag + (A>0.70 ? 2.0 : 0.0);
+
+    note="";
+    if (J<10) note="WARNING: junior pipeline collapsed (illustrative)";
+    if (S<10) note=(note?note"; ":"") "CRITICAL: senior scarcity (illustrative)";
+
+    printf "%d,%d,%d,%.2f,%.2f,%.2f,%s\n", y, S, J, A, throughput, frag, note >> OUT;
+  }
+}
+' /dev/null
+
+printf '%s\n' "Wrote: $out"
+

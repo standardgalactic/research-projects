@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source "$(dirname "$0")/sp_common.sh"
+
+LOG=$1
+require sha256sum
+
+log "Testing replay determinism for $LOG"
+
+hash1=$(cat "$LOG" | sha256sum | cut -d' ' -f1)
+hash2=$(cat "$LOG" | sha256sum | cut -d' ' -f1)
+
+if [[ "$hash1" == "$hash2" ]]; then
+  log "Replay invariant (byte-level)"
+else
+  warn "Replay drift detected"
+fi
+

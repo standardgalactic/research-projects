@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cmd="${1:-}"
+target="${2:-calculus/lean}"
+
+if [[ -z "$cmd" ]]; then
+  cat <<'TXT'
+usage:
+  sp-lean check [path]     # typecheck lean files or a Lake project
+  sp-lean fmt [path]       # run formatter (if available)
+  sp-lean test [path]      # optional: run lean tests (if configured)
+notes:
+  - expects Lean toolchain installed in PATH (lean/lake)
+TXT
+  exit 2
+fi
+
+if ! command -v lean >/dev/null 2>&1; then
+  echo "error: lean not found in PATH. Install Lean (elan) in your container/host."
+  exit 1
+fi
+
+if [[ "$cmd" == "check" ]]; then
+  if [[ -f "$target/lakefile.lean" || -f "$target/lakefile.toml" ]]; then
+    (cd "$target" && lake build)
+  else
+    # typecheck all .lean files under target
+    mapfile -t files < <(find "$target" -type f -name "*.lean" | sort)
+    [[ "${#files[@]}" -gt 0 ]] || { echo "no .lean files found under $target"; exit 0; }
+    for f in "${files[@]}"; do
+      echo "[lean] $f"
+      lean "$f"
+    done
+  fi
+  exit 0
+fi
+
+if [[ "$cmd" == "fmt" ]]; then
+  if command -v leanfmt >/dev/null 2>&1; then
+    find "$target" -type f -name "*.lean" -print0 | xargs -0 leanfmt -w
+  else
+    echo "warn: leanfmt not found; skipping."
+  fi
+  exit 0
+fi
+
+if [[ "$cmd" == "test" ]]; then
+  if [[ -f "$target/lakefile.lean" || -f "$target/lakefile.toml" ]]; then
+    (cd "$target" && lake test || true)
+  else
+    echo "warn: no lake project; tests not configured."
+  fi
+  exit 0
+fi
+
+echo "unknown command: $cmd"
+exit 2
+

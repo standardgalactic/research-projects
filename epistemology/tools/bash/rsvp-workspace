@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# rsvp-workspace: minimal helper to create consistent manuscript scaffolds
+# Usage:
+#   rsvp-workspace init <dir>
+#   rsvp-workspace status
+
+cmd="${1:-}"
+arg="${2:-}"
+
+if [[ "$cmd" == "init" ]]; then
+  [[ -n "$arg" ]] || { echo "usage: rsvp-workspace init <dir>"; exit 2; }
+  mkdir -p "$arg"/{tex,figs,bib,build,notes}
+  cat > "$arg/notes/README.txt" <<'TXT'
+Workspace notes:
+- Keep derivations in tex/derivations.tex
+- Keep claims/lemmas in tex/lemmas.tex
+- Avoid hype-terms in public summaries; prefer explicit math objects.
+TXT
+  echo "Initialized workspace at: $arg"
+  exit 0
+fi
+
+if [[ "$cmd" == "status" ]]; then
+  echo "Workspace status (heuristic):"
+  find . -maxdepth 2 -type f \( -name "*.tex" -o -name "*.bib" \) | wc -l | awk '{print "files:", $1}'
+  echo "Recent TeX edits:"
+  find . -type f -name "*.tex" -printf "%T@ %p\n" 2>/dev/null | sort -nr | head -n 10 | cut -d' ' -f2-
+  exit 0
+fi
+
+echo "usage: rsvp-workspace {init <dir>|status}"
+exit 2
+

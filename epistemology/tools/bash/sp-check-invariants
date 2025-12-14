@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# sp-check-invariants — perturbation checks for claimed invariants (statement-level)
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+sp-check-invariants [-i invariant] [-p class] [-o out.txt]
+
+Checks whether a claimed invariant remains stable under stylized perturbations.
+This is a logical/simulation aid, not a system diagnostic.
+
+Options:
+  -i text   Invariant statement (default: "proxy implies objective")
+  -p name   Perturbation class: P1|P2|P3 (default: P3)
+  -o file   Output report (default: ./invariants.txt)
+  -h        Help
+USAGE
+}
+
+inv="proxy implies objective"
+pclass="P3"
+out="./invariants.txt"
+
+while getopts "i:p:o:h" opt; do
+  case "$opt" in
+    i) inv="$OPTARG" ;;
+    p) pclass="$OPTARG" ;;
+    o) out="$OPTARG" ;;
+    h) usage; exit 0 ;;
+    *) usage; exit 2 ;;
+  esac
+done
+
+cat <<'BANNER'
+MODE: Synthetic / Non-operational
+This tool evaluates claims about invariants using stylized perturbations.
+No external systems are accessed.
+BANNER
+
+{
+  echo "Invariant: $inv"
+  echo "Perturbation class: $pclass"
+  echo "----"
+  case "$pclass" in
+    P1)
+      echo "Result: INCONCLUSIVE"
+      echo "Notes: Low perturbation. Many overclaims survive P1."
+      ;;
+    P2)
+      echo "Result: WEAKENED"
+      echo "Notes: Under moderate shift, invariant requires additional assumptions."
+      ;;
+    P3)
+      echo "Result: VIOLATED"
+      echo "Notes: Invariant breaks under distribution shift + incentive adaptation."
+      echo "This indicates invariant overclaim, not system failure."
+      ;;
+    *)
+      echo "Result: ERROR"
+      echo "Notes: Unknown perturbation class. Use P1, P2, or P3."
+      exit 2
+      ;;
+  esac
+  echo "----"
+  echo "Interpretation:"
+  echo "  If an invariant fails here, treat it as a candidate for reformulation into"
+  echo "  structural constraints (representational bounds), not as a behavioral guarantee."
+} > "$out"
+
+printf '%s\n' "Wrote: $out"
+

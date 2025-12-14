@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# sp-lab — Spherepop Laboratory launcher (synthetic, local-only)
+# SEE ALSO: sp-probe-goodhart(1), sp-drift-metrics(1), sp-check-invariants(1),
+#           sp-sim-observer(1), sp-audit-legibility(1), sp-probe-refusal(1),
+#           sp-sim-apprenticeship(1)
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+sp-lab run <tool> [args...]
+sp-lab list
+sp-lab help [tool]
+
+Tools:
+  goodhart       -> sp-probe-goodhart
+  drift          -> sp-drift-metrics
+  invariants     -> sp-check-invariants
+  observer       -> sp-sim-observer
+  legibility     -> sp-audit-legibility
+  refusal        -> sp-probe-refusal
+  apprenticeship -> sp-sim-apprenticeship
+
+Notes:
+  - Synthetic / non-operational: no external systems are accessed.
+USAGE
+}
+
+die() { printf '%s\n' "sp-lab: $*" >&2; exit 2; }
+
+cmd="${1:-}"
+case "$cmd" in
+  list)
+    usage | sed -n '1,120p'
+    ;;
+  help)
+    t="${2:-}"
+    if [ -z "$t" ]; then usage; exit 0; fi
+    case "$t" in
+      goodhart)       exec man sp-probe-goodhart ;;
+      drift)          exec man sp-drift-metrics ;;
+      invariants)     exec man sp-check-invariants ;;
+      observer)       exec man sp-sim-observer ;;
+      legibility)     exec man sp-audit-legibility ;;
+      refusal)        exec man sp-probe-refusal ;;
+      apprenticeship) exec man sp-sim-apprenticeship ;;
+      *) die "unknown tool for help: $t" ;;
+    esac
+    ;;
+  run)
+    tool="${2:-}"
+    shift 2 || true
+    case "$tool" in
+      goodhart)       exec sp-probe-goodhart "$@" ;;
+      drift)          exec sp-drift-metrics "$@" ;;
+      invariants)     exec sp-check-invariants "$@" ;;
+      observer)       exec sp-sim-observer "$@" ;;
+      legibility)     exec sp-audit-legibility "$@" ;;
+      refusal)        exec sp-probe-refusal "$@" ;;
+      apprenticeship) exec sp-sim-apprenticeship "$@" ;;
+      *) die "unknown tool: $tool (try: sp-lab list)" ;;
+    esac
+    ;;
+  ""|"-h"|"--help")
+    usage
+    ;;
+  *)
+    die "unknown command: $cmd (try: sp-lab --help)"
+    ;;
+esac
+

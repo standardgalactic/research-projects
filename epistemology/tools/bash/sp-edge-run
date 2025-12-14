@@ -1,0 +1,14 @@
+#!/bin/sh
+# sp-edge-run — run a command on all declared nodes
+
+set -eu
+
+CMD="$*"
+CONFIG="nodes/lab.json"
+
+jq -r '.nodes[] | "\(.user)@\(.host)"' "$CONFIG" |
+while read -r TARGET; do
+  echo "==> $TARGET"
+  ssh "$TARGET" "$CMD"
+done
+

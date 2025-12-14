@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# sp-lint-epistemic
+#
+# Fails if any sp-* executable omits epistemic safeguards.
+#
+# This is a build-time enforcement tool.
+#
+
+set -eu
+
+ROOT="${1:-.}"
+FAIL=0
+
+COMMON_PATTERN='sp-edge-common.sh'
+
+echo "[sp-lint] Checking epistemic safeguards..."
+
+find "$ROOT" -type f -perm -u+x -name 'sp-*' | while read -r file; do
+	# Skip manpages and docs
+	case "$file" in
+		*.1|*.5|*.7) continue ;;
+	esac
+
+	if ! grep -q "$COMMON_PATTERN" "$file"; then
+		echo "[sp-lint] FAIL: $file does not source $COMMON_PATTERN" >&2
+		FAIL=1
+	else
+		echo "[sp-lint] OK:   $file"
+	fi
+done
+
+if [ "$FAIL" -ne 0 ]; then
+	echo "[sp-lint] Epistemic guard violation detected." >&2
+	echo "[sp-lint] Refusing to proceed." >&2
+	exit 1
+fi
+
+echo "[sp-lint] All tools passed epistemic checks."
+
