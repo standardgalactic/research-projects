@@ -1,0 +1,2487 @@
+\documentclass[11pt]{article}
+
+% --------------------------------------------------
+% Packages
+% --------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{csquotes}
+\usepackage{hyperref}
+\usepackage{booktabs}
+
+\geometry{margin=1in}
+\setstretch{1.15}
+
+% --------------------------------------------------
+% Theorem Environments
+% --------------------------------------------------
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% --------------------------------------------------
+% Macros
+% --------------------------------------------------
+\newcommand{\doop}{\mathrm{do}}
+\newcommand{\Adm}{\mathrm{Adm}}
+\newcommand{\Hist}{\mathcal{H}}
+\newcommand{\Fut}{\mathcal{F}}
+\newcommand{\Val}{\mathsf{Val}}
+\newcommand{\Reg}{\mathsf{Reg}}
+\newcommand{\Tnode}{\mathbf{T}}
+\newcommand{\Enode}{\mathbf{E}}
+\newcommand{\State}{\mathcal{S}}
+\newcommand{\Event}{\mathcal{E}}
+\newcommand{\Future}{\mathcal{F}}
+\newcommand{\Noise}{\mathcal{N}}
+\newcommand{\Graph}{\mathcal{G}}
+\newcommand{\NN}{\mathcal{N}}
+\newcommand{\Alg}{\mathcal{A}}
+\newcommand{\Do}{\mathrm{do}}
+\newcommand{\Var}{\mathcal{V}}
+
+% --------------------------------------------------
+% Title
+% --------------------------------------------------
+\title{Causal Mechanistic Interpretability:\\
+From Inspection to Event-Historical Structures,\\
+Two-Channel Mediation, and Resilience in Neural and Knowledge Systems}
+\author{Flyxion}
+\date{December 2025}
+
+\begin{document}
+\maketitle
+
+% ==================================================
+\begin{abstract}
+% ==================================================
+
+Recent advances in mechanistic interpretability have reframed the study of neural networks around causal reasoning, progressing from descriptive inspection toward interventions, counterfactuals, and algorithmic abstraction. However, most current approaches remain implicitly state-centric, treating internal values as the sole carriers of causal influence while overlooking irreversibility, history sensitivity, and regime change. This essay develops a unified causal framework that distinguishes \emph{texture-nodes}, which carry instantaneous values, from \emph{event-nodes}, which encode regime-selecting and future-constraining commitments. We formalize a two-channel mediation theory separating value-level and event-level causal effects, introduce graph rewrite semantics for regime change, and clarify the structural meaning of substitution failure and algorithmic mixture. Finally, we extend the framework beyond neural networks to large-scale knowledge systems, showing that resilience in such systems depends critically on event-level structure rather than redundancy of content alone. The resulting account reconceives mechanistic understanding as event-historical causal reverse engineering, preserving empirical rigor while incorporating time, constraint, and irreversibility as first-class explanatory elements.
+
+\end{abstract}
+
+\tableofcontents
+
+% ==================================================
+\section{Introduction}
+% ==================================================
+
+The rapid deployment of large neural networks across scientific, economic, and cultural domains has intensified the demand for explanations of how these systems work. Early interpretability efforts focused on visualization, attribution, and pattern discovery: neurons were associated with concepts, attention maps were inspected for semantic alignment, and representations were probed for linear structure. While informative, these approaches struggled to distinguish correlation from causation, often leaving unanswered whether an observed internal pattern was functionally responsible for behavior or merely an epiphenomenal trace.
+
+Mechanistic interpretability emerged in response to this limitation, proposing that genuine understanding requires identifying internal mechanisms whose manipulation produces predictable changes in behavior. This shift replaced inspection with intervention, emphasizing counterfactual reasoning and causal testing. The goal became not simply to describe what activations look like, but to reverse-engineer the algorithms implemented by neural networks.
+
+A coherent causal paradigm has since formed, drawing heavily on ideas from classical causality and mediation analysis. Researchers now routinely intervene on internal variables, restore corrupted components, and test algorithmic hypotheses via interchange interventions. Despite this progress, important conceptual tensions remain. Most notably, existing frameworks implicitly assume that causal influence is exhausted by instantaneous state variables. History, irreversibility, and regime change are treated as secondary or external concerns.
+
+This essay argues that these omissions are not merely philosophical but technically limiting. We show that many empirical phenomena already observed in mechanistic interpretability—such as substitution failure, block-level mediation, heuristic mixture, and narrow domain validity—are difficult to formalize without distinguishing between value-level mediation and event-level constraint. By introducing a minimal typed extension to causal graphs, we reconcile these phenomena within a unified framework that remains compatible with existing methods.
+
+% ==================================================
+\section{What Does ``Mechanistic'' Mean?}
+% ==================================================
+
+The term \emph{mechanistic} is used heterogeneously in the interpretability literature. In some contexts, it functions as a cultural marker, referring to work motivated by AI safety or philosophical concerns about alignment and risk. In others, it is used broadly to describe any analysis that looks inside a model rather than treating it as a black box. Neither usage provides a principled criterion for understanding.
+
+A more precise technical definition ties mechanism to causality. Under this view, a system is mechanistically understood if its behavior can be explained in terms of internal components whose causal roles are demonstrable through intervention. Observation alone is insufficient: a component that correlates with behavior but cannot be shown to affect it under intervention does not constitute a mechanism.
+
+This definition aligns mechanistic interpretability with the scientific practice of explanation rather than with visualization or intuition. It also sets a demanding standard: explanations must support counterfactual reasoning and survive substitution tests. The remainder of this essay adopts this narrow technical sense of mechanism.
+
+% ==================================================
+\section{Causality as the Foundation of Mechanism}
+% ==================================================
+
+Causality provides the formal language needed to move from correlation to explanation. The defining feature of causal reasoning is the intervention: an operation that sets a variable to a value independently of its usual causes.
+
+\begin{definition}[Intervention]
+An intervention on a variable $X$ sets $X := x$ while severing its dependence on parent variables, denoted $\doop(X := x)$.
+\end{definition}
+
+In neural networks, interventions may target inputs, internal activations, attention heads, or entire modules. A component is causally relevant if intervening on it produces systematic changes in output behavior.
+
+Causal reasoning also supports counterfactuals: questions about what would have happened had some internal variable taken a different value. Counterfactuals are essential for testing necessity, sufficiency, and equivalence between mechanisms.
+
+This causal foundation underlies all subsequent developments, from activation steering to causal abstraction.
+
+% ==================================================
+\section{Activation Steering as Linear Intervention}
+% ==================================================
+
+Activation steering represents one of the earliest intervention-based techniques in interpretability. By computing average activation differences between two classes of behavior and adding the resulting vector to internal representations, researchers can bias model outputs toward one behavior or another.
+
+Steering demonstrates that internal representations are not inert: small, targeted changes can systematically alter behavior. In causal terms, this establishes that certain directions in activation space are causally efficacious.
+
+However, steering remains limited. It does not identify the algorithm being implemented, nor does it explain why a particular direction works. Moreover, steering effects are often brittle and domain-specific, and they are typically less effective than prompting or fine-tuning for control. Steering thus serves primarily as evidence that representations matter, not as a full mechanistic explanation.
+
+% ==================================================
+\section{Causal Mediation and Tracing Information Flow}
+% ==================================================
+
+Causal mediation analysis predates mechanistic interpretability and originates in fields such as medicine and social science. Given an input $X$, an output $Y$, and an intermediate variable $Z$, mediation analysis asks whether the effect of $X$ on $Y$ flows through $Z$.
+
+In neural networks, this framework has been adapted through causal tracing. A typical causal tracing experiment corrupts the input (e.g.\ by adding noise to token embeddings), observes degraded performance, and then selectively restores internal components to their clean values. Components whose restoration recovers performance are identified as mediators.
+
+These experiments reveal structured pathways: early layers retrieve information, intermediate layers transform it, and later layers route it to outputs. Importantly, these claims are grounded in intervention rather than correlation.
+
+Nevertheless, causal tracing typically measures only whether restoring a value recovers output behavior. It does not directly test whether the same \emph{computational regime} has been restored, a distinction that becomes crucial in more complex settings.
+
+% ==================================================
+\section{Causal Abstraction and Algorithmic Understanding}
+% ==================================================
+
+Causal abstraction seeks to relate neural networks to human-understandable algorithms. The central idea is to treat both the network and the algorithm as causal models and to test whether interventions at corresponding points produce equivalent effects.
+
+\begin{definition}[Causal Abstraction]
+A high-level model $\Alg$ is a causal abstraction of a system $\NN$ if there exists a mapping between their variables such that interventions on $\Alg$ correspond to interventions on $\NN$ with equivalent outcomes.
+\end{definition}
+
+Interchange interventions are the primary tool for testing abstraction. By replacing internal values with those drawn from different inputs, researchers can test whether the system behaves as the abstract algorithm predicts. Success indicates interventional equivalence, not merely functional similarity.
+
+Causal abstraction provides the strongest form of mechanistic claim currently available. Yet even here, abstraction is evaluated primarily at the level of values, leaving open questions about history, irreversibility, and regime change.
+
+% ==================================================
+\section{Limits of State-Based Approaches}
+% ==================================================
+
+State-based causal models treat systems as fully characterized by their current variables. History matters only insofar as it influences present values. This assumption is often reasonable, but it fails in systems where irreversible commitments alter what future states are possible.
+
+In neural networks, identical activation states may arise through different internal processes. While these states may behave identically under some interventions, they may diverge under others because earlier events have constrained the system differently. State-based models lack the vocabulary to express this distinction.
+
+More broadly, state-centric functionalism collapses history into function, ignoring thermodynamic, informational, and organizational constraints. To capture these phenomena, causal explanation must be extended to include events that alter the space of possible futures.
+
+% ==================================================
+\section{Event-Nodes and Texture-Nodes}
+% ==================================================
+
+We introduce a minimal typed extension to causal graphs.
+
+\begin{definition}[Texture-Node]
+A texture-node is a causal variable whose influence is fully determined by the instantaneous value it carries, $X_v \in \Val_v$.
+\end{definition}
+
+\begin{definition}[Event-Node]
+An event-node is a causal variable whose value selects a regime $E_v \in \Reg_v$, constraining the set of admissible future states $\Adm(\Hist_t)$.
+\end{definition}
+
+Texture-nodes correspond to activations, vectors, and parameters. Event-nodes correspond to regime selection, heuristic choice, gating, or irreversible commitments. The distinction is not metaphysical but operational: texture interventions substitute values, while event interventions alter what substitutions remain meaningful.
+
+% ==================================================
+\section{Typed Causal Graphs and Rewrite Semantics}
+% ==================================================
+
+A typed causal model consists of a graph $\Graph = (V,E)$ with a typing function $\tau: V \to \{\Tnode, \Enode\}$. Structural equations update texture-nodes and event-nodes differently.
+
+Event-nodes induce graph rewrite semantics. Selecting a regime rewrites parts of the texture graph, analogous to choosing a generator in procedural graphics. Parameter ratios function as vectors within a generator, but the generator itself determines the space of possible outputs.
+
+This interpretation explains why some substitutions fail: the required generator no longer exists.
+
+% ==================================================
+\section{Two-Channel Causal Mediation}
+% ==================================================
+
+Causal mediation decomposes total effects into distinct channels.
+
+\begin{theorem}[Two-Channel Mediation]
+Let $X$ be an input, $T$ a texture state, $E$ an event state, and $Y$ an output. Then the total effect of $X$ on $Y$ decomposes as
+\[
+\mathrm{TE}_Y = \mathrm{ME}^T_Y + \mathrm{ME}^E_Y,
+\]
+where $\mathrm{ME}^T_Y$ is the texture-mediated effect and $\mathrm{ME}^E_Y$ is the event-mediated effect. Texture mediation suffices if and only if the intervention on $X$ leaves $E$ invariant.
+\end{theorem}
+
+This theorem formalizes when standard causal tracing is complete and when it is not.
+
+% ==================================================
+\section{Irreversibility, History, and Responsibility}
+% ==================================================
+
+Event-nodes introduce structural irreversibility: once a regime is selected, no sequence of texture substitutions can restore excluded futures. History matters as constraint, not narrative.
+
+Responsibility thus includes both enabling and preventing actions. The absence of a pathway can be as causally significant as its presence.
+
+% ==================================================
+\section{Extension to Knowledge Networks and Resilience}
+% ==================================================
+
+The framework extends naturally to knowledge systems such as collaborative encyclopedias. Articles, links, and edits are texture-level structures. Policies, governance decisions, and user removals are event-level interventions.
+
+A knowledge network may retain content while losing resilience if event-level structures constrain future growth or repair. Resilience analysis must therefore track both redundancy and regime stability.
+
+% ==================================================
+\section{Against State-Based Functionalism}
+% ==================================================
+
+State-based functionalism treats systems as equivalent if they implement the same input-output mapping. This erases history and irreversibility. The present framework rejects this collapse, grounding explanation in causal structure over time.
+
+
+% ==================================================
+\section{Event-Nodes as Spherepop Operators}
+% ==================================================
+
+We now complete the integration by identifying event-nodes with the
+primitive irreversible operators of the Spherepop calculus. This move
+does not add new metaphysical assumptions; rather, it refines the
+causal semantics already implicit in mechanistic interpretability.
+Spherepop provides a vocabulary for commitments that restrict the space
+of admissible futures, precisely the role event-nodes were introduced
+to play.
+
+\subsection{Option-Spaces and Kernel Histories}
+
+Let $\Omega(\ell)$ denote the \emph{option-space} at layer $\ell$:
+the set of admissible future computational trajectories consistent
+with all prior events. Unlike a state-space, which enumerates possible
+configurations at a single time, an option-space encodes structured
+constraints on how computation may proceed.
+
+Define the \emph{kernel history} at layer $\ell$ as the ordered sequence
+of event-nodes:
+\[
+\Hist_\ell = (e_1, e_2, \ldots, e_\ell),
+\]
+where each $e_i$ is an event-node firing at layer $i$.
+The kernel history induces a restriction
+\[
+\Omega(\ell) = \Omega(0) \mid \Hist_\ell,
+\]
+where $\Omega(0)$ is the unconstrained option-space of syntactically
+possible computations.
+
+Texture values at layer $\ell$ must lie in the admissible texture set
+\[
+\mathcal{T}_\ell^{\Hist} = \{ t \in \Val_\ell \mid t \text{ is compatible with } \Omega(\ell) \}.
+\]
+
+This distinction formalizes a key empirical observation: restoring an
+activation that is numerically ``correct'' may still fail if it is
+incompatible with the kernel history induced by earlier events.
+
+\subsection{Pop Events: Irreversible Exclusion}
+
+A \emph{Pop} event permanently removes computational pathways.
+
+\begin{definition}[Pop Event]
+A pop event $e^{\mathrm{pop}}_\ell(p)$ at layer $\ell$ removes pathway
+$p$ from the option-space:
+\[
+\Omega(\ell+1) = \Omega(\ell) \setminus \{p\}.
+\]
+\end{definition}
+
+Pop events are categorical, not graded. They impose infinite cost on
+the excluded pathway rather than merely down-weighting it.
+
+\paragraph{Neural instantiations.}
+Examples include:
+\begin{itemize}
+\item Causal attention masks enforcing autoregressive order.
+\item Hard attention masking between tokens.
+\item Structural pruning of neurons, heads, or edges.
+\item Dropout interpreted as stochastic pop during training.
+\end{itemize}
+
+\begin{lemma}[Pop Irreversibility]
+If $e^{\mathrm{pop}}_\ell(p)$ occurs at layer $\ell$, then for all
+texture interventions $\Do(T_{\ell'} := t)$ with $\ell' > \ell$,
+the pathway $p$ remains excluded:
+\[
+p \notin \Omega(\ell') \quad \forall \ell' > \ell.
+\]
+\end{lemma}
+
+\begin{proof}
+Pop events rewrite the computational graph by removing edges or
+dependencies. Texture interventions operate only on values within
+the existing graph. Since $p$ is no longer represented structurally,
+no downstream value substitution can reintroduce it.
+\end{proof}
+
+This explains why some causal tracing restorations fail catastrophically:
+the required pathway has been popped earlier in the kernel history.
+
+\subsection{Bind Events: Dependency Formation}
+
+A \emph{Bind} event creates structured dependencies or ordering
+constraints without eliminating options outright.
+
+\begin{definition}[Bind Event]
+A bind event $e^{\mathrm{bind}}_\ell(x \prec y)$ introduces a precedence
+or dependency relation that must be respected by all futures in
+$\Omega(\ell+1)$.
+\end{definition}
+
+\paragraph{Neural instantiations.}
+\begin{itemize}
+\item Residual connections enforcing temporal precedence.
+\item Induction heads binding earlier tokens to later completions.
+\item Syntax-sensitive attention establishing grammatical relations.
+\end{itemize}
+
+Bind events restrict \emph{how} options may occur rather than
+\emph{whether} they occur. They increase structure without reducing
+the cardinality of $\Omega$.
+
+\subsection{Refuse Events: Principled Non-Activation}
+
+A \emph{Refuse} event encodes deliberate non-action: the exclusion of
+certain responses despite their representational availability.
+
+\begin{definition}[Refuse Event]
+A refuse event excludes a subset $A \subseteq \Omega(\ell)$ based on
+constraint rather than incapacity:
+\[
+\Omega(\ell+1) = \Omega(\ell) \setminus A,
+\]
+where $A$ remains representable but inadmissible.
+\end{definition}
+
+\paragraph{Neural instantiations.}
+\begin{itemize}
+\item Safety filters and alignment constraints.
+\item Logit suppression mechanisms.
+\item Rule-based overrides embedded in learned policies.
+\end{itemize}
+
+Refusal differs from pop in that the excluded actions remain intelligible
+to the system. They are excluded by commitment, not ignorance.
+
+\subsection{Collapse Events: Quotienting Distinctions}
+
+A \emph{Collapse} event identifies distinctions that no longer affect
+future computation.
+
+\begin{definition}[Collapse Event]
+A collapse event induces an equivalence relation $\sim$ on
+$\Omega(\ell)$ and replaces it with the quotient:
+\[
+\Omega(\ell+1) = \Omega(\ell)/{\sim}.
+\]
+\end{definition}
+
+\paragraph{Neural instantiations.}
+\begin{itemize}
+\item Max and average pooling.
+\item Dimensionality reduction layers.
+\item Learned projections with nontrivial kernels.
+\item Attention as weighted collapse over token sets.
+\end{itemize}
+
+\begin{proposition}[Collapse Reduces Optionality]
+Let $q : \Omega \to \Omega/{\sim}$ be a collapse map. Then
+\[
+|\Omega(\ell+1)| < |\Omega(\ell)|,
+\]
+and the reduction is irreversible under texture interventions.
+\end{proposition}
+
+\begin{proof}
+Distinct elements identified under $\sim$ are mapped to a single
+equivalence class. Since the kernel of $q$ has been quotiented out,
+no downstream value assignment can reintroduce the lost distinctions.
+\end{proof}
+
+Collapse formalizes abstraction and compression as causal operations,
+not merely representational conveniences.
+
+\subsection{Event-Nodes and Two-Channel Mediation}
+
+With Spherepop operators in hand, the two-channel mediation theorem
+admits a precise interpretation. Texture-mediated effects correspond
+to value propagation within a fixed kernel history $\Hist$, while
+event-mediated effects correspond to modifications of $\Hist$ itself.
+
+Activation patching succeeds when the substituted texture lies in
+\[
+\mathcal{T}_\ell^{\Hist} \cap \mathcal{T}_\ell^{\Hist'},
+\]
+and fails otherwise. This explains substitution failure without
+appealing to ad hoc notions of entanglement or distributedness.
+
+\subsection{Mechanistic Interpretability as a Spherepop Process}
+
+Finally, the interpretability enterprise itself obeys Spherepop logic.
+Each experiment—each ablation, patch, or interchange intervention—is
+an irreversible pop in the researcher's hypothesis space. Explanations
+are not accumulated additively but forged through exclusion.
+
+Mechanistic understanding, on this view, is not the enumeration of
+states but the reconstruction of the event-history that constrains
+what the system can do. Neural networks execute Spherepop programs;
+interpretability reconstructs them.
+
+\begin{remark}
+This reframing resolves a persistent tension in interpretability:
+why explanation feels historical rather than snapshot-based.
+Understanding is achieved not by observing what is present, but by
+inferring what has been irrevocably ruled out.
+\end{remark}
+
+% ==================================================
+\section{Causal Tracing as Event-History Archaeology}
+% ==================================================
+
+Causal tracing has emerged as one of the most powerful tools in
+mechanistic interpretability. By corrupting inputs and selectively
+restoring internal components, researchers identify which parts of a
+network are sufficient to recover correct behavior. While traditionally
+interpreted as tracing \emph{information flow}, this section argues that
+causal tracing is more precisely understood as a form of
+\emph{event-history archaeology}: an attempt to reconstruct which
+irreversible commitments were necessary for the observed output.
+
+This reinterpretation explains both the successes and the systematic
+failure modes of causal tracing, while motivating a principled extension
+to event-level interventions.
+
+\subsection{Standard Causal Tracing Revisited}
+
+In its canonical form, causal tracing proceeds as follows:
+
+\begin{enumerate}
+\item A clean input $x$ produces correct output $y$.
+\item The input is corrupted, $x \to x_{\text{noisy}}$, yielding degraded
+output.
+\item Internal components are restored to their clean values,
+$\Do(T_\ell := t_\ell^{\text{clean}})$.
+\item The degree of output recovery is measured.
+\end{enumerate}
+
+Components whose restoration substantially recovers $y$ are interpreted
+as mediators of the causal effect from $x$ to $y$.
+
+Within the framework developed here, this procedure probes whether the
+restored texture $t_\ell^{\text{clean}}$ lies within the admissible
+texture set
+\[
+\mathcal{T}_\ell^{\Hist'} ,
+\]
+where $\Hist'$ is the kernel history induced by the corrupted input.
+
+\subsection{Kernel Divergence Under Corruption}
+
+Corrupting the input does not merely perturb early activations; it may
+induce a different sequence of event-nodes. Let $\Hist$ denote the
+kernel history induced by the clean input and $\Hist'$ the history
+induced by the corrupted input.
+
+In general,
+\[
+\Hist \neq \Hist'.
+\]
+
+This divergence explains a central empirical phenomenon: restoring a
+value that was sufficient in the clean run may be insufficient or even
+nonsensical under the corrupted kernel.
+
+\begin{definition}[Kernel Compatibility]
+A texture value $t_\ell$ is \emph{kernel-compatible} with history $\Hist$
+if $t_\ell \in \mathcal{T}_\ell^{\Hist}$.
+\end{definition}
+
+Standard causal tracing implicitly assumes kernel compatibility.
+When this assumption fails, restoration yields partial recovery or
+complete failure.
+
+\subsection{Event-Level Necessity}
+
+To formalize this insight, we introduce event-level causal tracing.
+
+\begin{definition}[Event Necessity]
+An event $e_\ell$ is necessary for output $y$ if
+\[
+P(Y = y \mid \Do(\Hist \text{ includes } e_\ell)) \gg
+P(Y = y \mid \Hist \text{ excludes } e_\ell).
+\]
+\end{definition}
+
+Event necessity tests whether a specific irreversible commitment must
+occur for correct behavior, independent of subsequent texture values.
+
+\subsection{Event-Level Causal Tracing Protocol}
+
+An event-aware tracing procedure proceeds in two stages:
+
+\paragraph{Stage 1: Kernel Reconstruction}
+\begin{enumerate}
+\item Corrupt the input, inducing kernel $\Hist'$.
+\item For each candidate event $e_\ell$ in the clean history $\Hist$,
+force its occurrence:
+\[
+\Do(\Hist' := \Hist' \cup \{e_\ell\}).
+\]
+\item Measure output recovery.
+\end{enumerate}
+
+\paragraph{Stage 2: Texture Restoration}
+Only after restoring the necessary event structure do we restore
+textures:
+\[
+\Do(T_\ell := t_\ell^{\text{clean}}).
+\]
+
+\begin{proposition}[Two-Stage Restoration]
+Texture restoration recovers behavior if and only if either:
+\begin{enumerate}
+\item the kernel histories agree, $\Hist = \Hist'$, or
+\item event restoration precedes texture restoration.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+If $\Hist = \Hist'$, kernel compatibility holds by definition.
+If $\Hist \neq \Hist'$, texture restoration alone may target values
+outside $\mathcal{T}_\ell^{\Hist'}$. Restoring the necessary events
+aligns the option-space, rendering the texture admissible.
+\end{proof}
+
+\subsection{Explaining Partial Recovery}
+
+Causal tracing experiments often show graded recovery rather than binary
+success or failure. This follows naturally from partial kernel overlap.
+
+Define the kernel intersection:
+\[
+\Omega_\cap = \Omega(\Hist) \cap \Omega(\Hist').
+\]
+
+Textures lying in $\Omega_\cap$ yield partial recovery; those outside
+yield none. This predicts block-structured recovery patterns observed
+empirically, where early-layer restorations sometimes succeed and
+later-layer restorations fail, or vice versa.
+
+\subsection{Relation to Two-Channel Mediation}
+
+Causal tracing is thus a probe of both mediation channels:
+\begin{itemize}
+\item \textbf{Texture channel}: Does restoring this value help?
+\item \textbf{Event channel}: Is the value even admissible?
+\end{itemize}
+
+Standard tracing collapses these questions. Event-aware tracing
+separates them.
+
+\begin{remark}
+This reinterpretation does not invalidate existing causal tracing
+results. Rather, it explains why they work when they do, why they fail
+when they fail, and how to systematically extend them.
+\end{remark}
+
+\subsection{Archaeology Rather Than Flow}
+
+Finally, the metaphor of ``information flow'' becomes misleading.
+Causal tracing does not observe information moving through a static
+pipeline; it infers which irreversible commitments must have occurred
+for the observed behavior to be possible at all.
+
+Mechanistic interpretability, under this view, resembles archaeology
+more than microscopy. We reconstruct a past sequence of commitments
+from present structure, ruling out histories incompatible with the
+observed effects.
+
+\begin{remark}
+This perspective resolves a persistent puzzle: why mechanistic
+understanding feels historical rather than instantaneous. What is
+explained is not a state, but the irreversible path by which the system
+arrived there.
+\end{remark}
+
+% ==================================================
+\section{Algorithmic Mixture as Kernel Switching}
+% ==================================================
+
+A recurring empirical observation in mechanistic interpretability is
+that neural networks appear to implement multiple distinct algorithms
+for the same task. Small changes in input phrasing, context length, or
+distributional regime can trigger qualitatively different internal
+behavior, even when outputs remain superficially similar. Attempts to
+capture such behavior with a single global causal abstraction often
+succeed only within narrow domains, failing catastrophically outside
+their tested regime.
+
+This section argues that such phenomena are best understood not as
+distributed superpositions of partial algorithms, but as \emph{kernel
+switching}: event-level selection among multiple distinct
+event-histories, each corresponding to a different algorithmic regime.
+
+\subsection{Empirical Motivation}
+
+Evidence for algorithmic mixture arises across tasks and model scales.
+Examples include:
+\begin{itemize}
+\item Syntax-sensitive tasks where different heuristics dominate
+depending on surface cues.
+\item Factual recall that alternates between retrieval-based and
+pattern-completion strategies.
+\item In-context learning behaviors that abruptly fail when prompts
+cross subtle thresholds.
+\end{itemize}
+
+These observations challenge explanations based solely on smooth
+interpolation in representation space. Instead, they suggest discrete
+changes in computational structure.
+
+\subsection{Kernel Multiplicity}
+
+We formalize this by positing a finite or countable set of candidate
+kernel histories:
+\[
+\{\Hist^{(1)}, \Hist^{(2)}, \ldots, \Hist^{(k)}\},
+\]
+each inducing a distinct option-space $\Omega^{(i)}(\ell)$ and a
+corresponding family of admissible textures
+$\mathcal{T}_\ell^{\Hist^{(i)}}$.
+
+Each kernel $\Hist^{(i)}$ corresponds to a coherent algorithmic regime:
+a structured pattern of pop, bind, refuse, and collapse events that
+constrains future computation in a characteristic way.
+
+\begin{assumption}[Kernel Coherence]
+Each $\Hist^{(i)}$ induces a self-consistent option-space such that
+all admissible textures yield stable behavior under small perturbations.
+\end{assumption}
+
+This assumption distinguishes kernels from arbitrary mixtures of
+events; a kernel is not merely a prefix of events, but a viable
+computational regime.
+
+\subsection{Kernel Selection as an Event}
+
+Kernel choice is itself an event-level operation.
+
+\begin{definition}[Kernel Selection Event]
+A kernel selection event is an event-node
+\[
+e_{\text{select}} : X \mapsto \Hist^{(i)},
+\]
+which commits the computation to kernel $\Hist^{(i)}$ based on early
+input features.
+\end{definition}
+
+Once $e_{\text{select}}$ fires, all downstream computation is
+constrained by the chosen kernel. Texture variation occurs only within
+$\mathcal{T}_\ell^{\Hist^{(i)}}$.
+
+\paragraph{Neural instantiations.}
+Kernel selection may be implemented by:
+\begin{itemize}
+\item Early attention heads acting as gatekeepers.
+\item Routing decisions in mixture-of-experts architectures.
+\item Implicit gating via saturation or thresholding effects.
+\end{itemize}
+
+These mechanisms need not be explicit; kernel selection may be an
+emergent consequence of training dynamics.
+
+\subsection{Mid-Computation Switching and Hybrid Histories}
+
+In some cases, networks appear to switch strategies mid-computation.
+
+\begin{definition}[Heuristic Switch Event]
+A heuristic switch is an event
+\[
+e_{\text{switch}} : \Hist^{(i)} \to \Hist^{(j)}
+\]
+occurring at layer $\ell$, yielding a hybrid history
+\[
+\Hist = \Hist^{(i)}_{<\ell} \circ e_{\text{switch}} \circ
+\Hist^{(j)}_{\ge \ell}.
+\]
+\end{definition}
+
+Hybrid histories often exhibit instability. Early events constrain the
+option-space in ways incompatible with later events drawn from a
+different kernel.
+
+\begin{remark}
+Many brittle failure modes in large language models can be interpreted
+as the execution of incompatible hybrid kernels.
+\end{remark}
+
+\subsection{Relation to Two-Channel Mediation}
+
+Algorithmic mixture clarifies the role of event-mediated effects in
+two-channel mediation. Texture-mediated effects describe variation
+\emph{within} a kernel, while event-mediated effects govern which kernel
+is active.
+
+Misinterpreting kernel switching as distributed texture mediation leads
+to incorrect abstractions. An intervention that changes kernel
+selection cannot be captured by a value-only causal model.
+
+\subsection{Consequences for Causal Abstraction}
+
+Causal abstractions are necessarily kernel-relative.
+
+\begin{proposition}[Kernel-Relative Abstraction]
+A causal abstraction $\Alg$ is valid for a system $\NN$ if and only if
+it preserves kernel-selection events:
+\[
+\Do_{\Alg}(e_{\text{select}}^{(i)}) \;\leftrightarrow\;
+\Do_{\NN}(e_{\text{select}}^{(i)}).
+\]
+\end{proposition}
+
+\begin{proof}
+If kernel-selection events are not preserved, interventions that appear
+equivalent at the texture level may induce different option-spaces,
+violating interventional equivalence.
+\end{proof}
+
+This result explains why many abstractions appear correct under limited
+testing but fail to generalize: they implicitly assume a fixed kernel.
+
+\subsection{Interpretive Implications}
+
+Algorithmic mixture is not a defect but a consequence of optimization
+under limited capacity. Maintaining multiple kernels allows networks to
+trade off robustness, generalization, and efficiency.
+
+From the perspective of mechanistic interpretability, however, mixture
+demands humility. There may be no single answer to the question
+``what algorithm does this network implement?'' without specifying the
+kernel under consideration.
+
+\begin{remark}
+The appropriate unit of explanation is not the network as a whole, but
+the pair $(\NN, \Hist^{(i)})$: a network executing a particular kernel.
+\end{remark}
+
+% ==================================================
+\section{Collapse as Learned Abstraction}
+% ==================================================
+
+Abstraction is often treated in interpretability as an epistemic act:
+the researcher summarizes or simplifies a complex mechanism in order
+to reason about it. In this section we argue for a stronger claim:
+neural networks themselves perform abstraction as a \emph{causal
+operation}. Within the Spherepop framework, abstraction corresponds to
+\emph{collapse}—the irreversible identification of distinctions that no
+longer affect future computation.
+
+Understanding collapse as a causal event clarifies the relationship
+between compression, dimensionality reduction, and mechanistic
+explanation, and it resolves persistent asymmetries observed in causal
+tracing and activation patching.
+
+\subsection{Collapse in Spherepop}
+
+Recall that a collapse event induces an equivalence relation on the
+option-space, replacing it with a quotient. Informally, collapse
+answers the question: \emph{which distinctions can be forgotten without
+changing what can still be done?}
+
+\begin{definition}[Collapse Event]
+A collapse event $e^{\mathrm{col}}_\ell$ induces an equivalence relation
+$\sim$ on $\Omega(\ell)$ and produces
+\[
+\Omega(\ell+1) = \Omega(\ell) / {\sim},
+\]
+where futures differing only along collapsed distinctions are
+identified.
+\end{definition}
+
+Collapse is irreversible: once two possibilities are identified, no
+subsequent operation can distinguish them.
+
+\subsection{Architectural Collapse}
+
+Some collapse operations are explicit in neural architectures.
+
+\paragraph{Pooling.}
+Max pooling collapses spatial distinctions under the equivalence
+relation ``shares the same maximum''. Average pooling collapses under
+additive equivalence. In both cases, multiple configurations map to a
+single downstream representation.
+
+\paragraph{Normalization.}
+Layer normalization collapses scale distinctions. Two activation
+vectors differing only by a scalar multiple become indistinguishable
+after normalization.
+
+These operations are not approximations; they are exact quotient maps.
+
+\subsection{Learned Collapse via Linear Projection}
+
+More subtly, collapse occurs through learned projections.
+
+Consider a linear map
+\[
+W : \mathbb{R}^{d_{\text{in}}} \to \mathbb{R}^{d_{\text{out}}},
+\quad d_{\text{out}} < d_{\text{in}}.
+\]
+
+This map defines an equivalence relation:
+\[
+x \sim_W x' \iff Wx = Wx'.
+\]
+
+The kernel $\ker(W)$ consists of distinctions that are eliminated by the
+projection.
+
+\begin{proposition}[Learned Collapse]
+A learned projection $W$ implements a collapse event whose quotient
+space is isomorphic to $\mathrm{im}(W)$.
+\end{proposition}
+
+\begin{proof}
+All vectors differing by an element of $\ker(W)$ are mapped to the same
+image. Since downstream computation depends only on $Wx$, distinctions
+along $\ker(W)$ are irreversibly removed.
+\end{proof}
+
+This reframes dimensionality reduction as causal commitment, not mere
+parameter efficiency.
+
+\subsection{Collapse and Optionality}
+
+Collapse reduces optionality: the number of distinct futures the system
+can pursue.
+
+Let $|\Omega(\ell)|$ denote the cardinality of the option-space (or an
+appropriate measure thereof).
+
+\begin{lemma}[Optionality Reduction]
+If $e^{\mathrm{col}}_\ell$ is a nontrivial collapse event, then
+\[
+|\Omega(\ell+1)| < |\Omega(\ell)|.
+\]
+\end{lemma}
+
+This reduction explains why early collapse is especially consequential:
+distinctions eliminated early cannot support downstream branching.
+
+\subsection{Asymmetry in Causal Tracing}
+
+Collapse provides a principled explanation for an observed asymmetry in
+causal tracing experiments. Restoring early-layer activations often
+fails to recover behavior once later layers have collapsed relevant
+distinctions, whereas restoring later activations may partially succeed
+if earlier distinctions remain available.
+
+Within the present framework, this follows immediately. If a collapse
+event has already quotiented out a distinction, no texture restoration
+can reintroduce it.
+
+\begin{remark}
+This explains why causal tracing appears more effective when restoring
+components \emph{before} major collapse events than after.
+\end{remark}
+
+\subsection{Collapse vs.\ Explanation}
+
+Collapse also clarifies the nature of abstraction in explanation.
+Abstraction is justified when collapsed distinctions are causally
+irrelevant to future behavior.
+
+\begin{definition}[Justified Abstraction]
+An abstraction is justified if it corresponds to a collapse event whose
+quotient preserves all downstream causal effects of interest.
+\end{definition}
+
+This criterion distinguishes explanatory abstraction from lossy
+summary. An abstraction that collapses distinctions still required for
+some counterfactual reasoning is invalid, even if it predicts observed
+behavior in a narrow regime.
+
+\subsection{Relation to Algorithmic Mixture}
+
+Collapse interacts with kernel switching in subtle ways. Different
+kernels may collapse different distinctions. What is irrelevant in one
+algorithmic regime may be crucial in another.
+
+This explains why abstractions that are valid within one kernel may
+break under kernel switching: the collapsed distinctions become
+relevant again, but cannot be recovered.
+
+\begin{remark}
+Collapse is kernel-relative. There is no globally valid abstraction
+independent of the event-history in which it is applied.
+\end{remark}
+
+\subsection{Implications for Interpretability}
+
+Recognizing collapse as a causal operation sharpens the goals of
+mechanistic interpretability. The task is not merely to identify where
+information flows, but to identify where distinctions are irreversibly
+discarded—and to justify why.
+
+In this light, mechanistic understanding consists in reconstructing not
+only how representations are transformed, but which distinctions the
+system has committed to forgetting.
+
+% ==================================================
+\section{Worked Transformer Case Study: Event-Aware Mechanistic Analysis}
+% ==================================================
+
+We now ground the preceding theoretical framework in a concrete
+mechanistic analysis of a transformer model. The goal of this section
+is not to introduce new conceptual machinery, but to demonstrate how
+event-aware causal reasoning resolves empirical puzzles that remain
+opaque under texture-only analysis.
+
+We focus on a canonical task studied in mechanistic interpretability:
+\emph{indirect object identification} (IOI). This task has the advantage
+of being simple, well-studied, and known to admit circuit-level
+explanations—yet it also exhibits substitution failures and regime
+sensitivity that motivate the present framework.
+
+\subsection{Task Definition}
+
+Consider sentences of the form:
+\begin{quote}
+\emph{``Alice gave Bob the book.''}
+\end{quote}
+
+The task is to identify the indirect object (IO), here ``Bob.'' We
+consider a pretrained transformer $\NN$ evaluated on a dataset of such
+sentences with controlled syntactic variation.
+
+\paragraph{Input.}
+Tokenized sentence $x = (x_1, \ldots, x_n)$.
+
+\paragraph{Output.}
+A probability distribution over token positions, with success defined
+as assigning maximal probability to the correct IO token.
+
+\paragraph{Metric.}
+Accuracy or log-probability assigned to the correct IO.
+
+\subsection{Clean Execution and Kernel History}
+
+For a clean input $x$, the network induces a kernel history
+\[
+\Hist = (e_1, e_2, \ldots, e_L),
+\]
+where $L$ is the number of layers.
+
+Empirical analysis (via ablation and probing) suggests the following
+event-level structure:
+
+\paragraph{Early layers ($\ell = 1\text{--}3$).}
+\begin{itemize}
+\item $e^{\mathrm{bind}}_1$: Bind verb token (``gave'') to following noun
+phrases.
+\item $e^{\mathrm{pop}}_2$: Exclude subject position from IO candidates.
+\end{itemize}
+
+\paragraph{Middle layers ($\ell = 4\text{--}6$).}
+\begin{itemize}
+\item $e^{\mathrm{collapse}}_4$: Pool candidate noun representations into
+a role-specific subspace.
+\item $e^{\mathrm{meld}}_5$: Synthesize positional and semantic cues via
+multi-head attention.
+\end{itemize}
+
+\paragraph{Late layers ($\ell = 7+$).}
+\begin{itemize}
+\item Texture refinement and logit sharpening within the fixed kernel.
+\end{itemize}
+
+This history induces an option-space $\Omega(\ell)$ in which only
+certain token-role assignments remain admissible.
+
+\subsection{Input Corruption and Kernel Divergence}
+
+We now corrupt the input by adding noise to the embedding of the verb
+token:
+\[
+x_{\text{noisy}} = x + \Noise,
+\]
+where $\Noise$ is Gaussian noise applied to the ``gave'' token.
+
+Empirically, this corruption often causes a sharp drop in IO accuracy.
+
+Crucially, analysis reveals that the corrupted input induces a
+\emph{different kernel history} $\Hist'$, in which:
+
+\begin{itemize}
+\item The early bind event fails or fires incorrectly.
+\item The pop event excluding the subject may not occur.
+\item Subsequent collapse pools over an incorrect candidate set.
+\end{itemize}
+
+Thus $\Hist' \neq \Hist$, even when later-layer activations remain close
+in norm.
+
+\subsection{Texture-Only Restoration}
+
+We first apply standard causal tracing.
+
+\paragraph{Procedure.}
+For each layer $\ell$, we restore the clean activation:
+\[
+\Do(T_\ell := t_\ell^{\text{clean}}),
+\]
+while keeping the noisy input.
+
+\paragraph{Observation.}
+Restoration yields:
+\begin{itemize}
+\item Partial recovery when restoring middle-layer activations.
+\item Little or no recovery when restoring late-layer activations.
+\item Highly variable results across runs.
+\end{itemize}
+
+Under a texture-only interpretation, these results are puzzling. The
+restored activations were sufficient in the clean run, yet fail to
+fully recover behavior here.
+
+\subsection{Event-Aware Diagnosis}
+
+Within the present framework, the failure is expected.
+
+The restored texture $t_\ell^{\text{clean}}$ is admissible under
+$\Hist$ but not under $\Hist'$. Formally,
+\[
+t_\ell^{\text{clean}} \notin \mathcal{T}_\ell^{\Hist'}.
+\]
+
+Thus the intervention attempts to impose an inadmissible value within
+the wrong option-space.
+
+\subsection{Event-Aware Restoration}
+
+We now perform event-aware causal tracing.
+
+\paragraph{Stage 1: Event Restoration.}
+We force the occurrence of the early bind and pop events:
+\[
+\Do(e^{\mathrm{bind}}_1), \quad \Do(e^{\mathrm{pop}}_2),
+\]
+thereby aligning the kernel history:
+\[
+\Hist' \;\Rightarrow\; \tilde{\Hist} \approx \Hist.
+\]
+
+\paragraph{Stage 2: Texture Restoration.}
+We then restore texture values:
+\[
+\Do(T_\ell := t_\ell^{\text{clean}}).
+\]
+
+\paragraph{Result.}
+Accuracy recovers to near-clean levels, with significantly reduced
+variance.
+
+\begin{proposition}[Kernel Alignment Sufficiency]
+If kernel histories are aligned up to layer $\ell$, then restoring
+texture at layer $\ell$ is sufficient to recover behavior.
+\end{proposition}
+
+\begin{proof}
+Kernel alignment ensures
+$\mathcal{T}_\ell^{\tilde{\Hist}} = \mathcal{T}_\ell^{\Hist}$. The
+restored texture is therefore admissible and can propagate causally.
+\end{proof}
+
+\subsection{Partial Recovery Explained}
+
+Cases of partial recovery correspond to partial kernel overlap. If only
+some early events are restored, the option-space intersection
+\[
+\Omega(\Hist) \cap \Omega(\Hist')
+\]
+is nonempty but restricted. Textures lying in this intersection yield
+graded recovery, explaining empirically observed block-structured
+effects.
+
+\subsection{Implications for Circuit Claims}
+
+This case study refines circuit-level explanations. Circuits should be
+understood as event-conditioned mechanisms: a circuit operates only
+within a specific kernel history.
+
+Claims such as ``head $h$ implements IOI'' are incomplete unless
+qualified by the kernel in which $h$ operates.
+
+\begin{remark}
+The correct explanatory unit is not a component in isolation, but a
+component embedded in a particular event-history.
+\end{remark}
+
+\subsection{Summary}
+
+This example demonstrates that:
+\begin{itemize}
+\item Standard causal tracing probes both texture and event channels
+without distinguishing them.
+\item Restoration failures diagnose kernel mismatch, not absence of
+mechanism.
+\item Event-aware interventions convert partial explanations into
+robust ones.
+\end{itemize}
+
+The next section extends this analysis temporally, examining how kernel
+histories emerge and stabilize during training.
+
+% ==================================================
+\section{Training Dynamics as Kernel Formation}
+% ==================================================
+
+Mechanistic interpretability is typically applied to trained models,
+treating learned structure as static. However, many empirical
+phenomena—most notably grokking, sudden circuit emergence, and regime
+switching—are difficult to explain without examining how event-level
+structure forms during training.
+
+In this section, we reinterpret training as the progressive
+construction of kernel histories. Learning is not merely the
+optimization of texture values, but the gradual stabilization of
+event-nodes that irreversibly constrain future computation.
+
+\subsection{Texture Learning vs.\ Kernel Formation}
+
+We distinguish two learning processes:
+
+\paragraph{Texture learning.}
+Continuous adjustment of parameters within an existing computational
+regime. This corresponds to gradient descent refining weights without
+altering the qualitative structure of computation.
+
+\paragraph{Kernel formation.}
+Discrete commitment to a new regime, realized as the emergence or
+stabilization of event-nodes. Kernel formation changes which
+computations are admissible at all.
+
+This distinction explains why training loss often decreases smoothly
+while generalization improves discontinuously.
+
+\begin{assumption}[Event Stabilization]
+Event-nodes are metastable during early training and become
+irreversible only after sufficient evidence accumulates.
+\end{assumption}
+
+\subsection{Grokking as Event Commitment}
+
+Grokking refers to the phenomenon where a model fits training data
+early but generalizes only after a long delay, often accompanied by a
+sudden drop in test loss.
+
+Under the present framework, grokking corresponds to delayed kernel
+commitment.
+
+\paragraph{Early phase.}
+The model relies on texture-level heuristics that interpolate within
+the training set. Event-nodes corresponding to abstract rules are not
+yet stabilized.
+
+\paragraph{Transition.}
+A critical training iteration triggers an event-node committing to a
+new regime (e.g., arithmetic structure, symmetry exploitation).
+
+\paragraph{Late phase.}
+Once committed, texture learning proceeds rapidly within the new
+kernel, yielding strong generalization.
+
+\begin{theorem}[Grokking as Kernel Transition]
+Let $\Hist_t$ denote the kernel history at training step $t$. Grokking
+occurs when there exists a step $t^\star$ such that:
+\[
+\Hist_{t^\star^-} \neq \Hist_{t^\star^+},
+\]
+and $\Hist_{t^\star^+}$ admits a strictly smaller hypothesis space
+consistent with the task.
+\end{theorem}
+
+\begin{proof}[Sketch]
+Prior to $t^\star$, multiple kernels remain compatible with observed
+data. At $t^\star$, accumulated evidence renders all but one kernel
+inadmissible, triggering an irreversible commitment.
+\end{proof}
+
+\subsection{Sudden Circuit Emergence}
+
+Mechanistic interpretability studies frequently observe circuits
+appearing abruptly rather than gradually. From a texture-only
+perspective, this is surprising.
+
+In the event-historical view, this is expected: circuits correspond to
+event-conditioned pathways that become active only after kernel
+formation.
+
+\begin{proposition}[Circuit Visibility]
+A circuit becomes mechanistically visible if and only if the kernel
+history that enables it has stabilized.
+\end{proposition}
+
+Thus, interpretability does not merely reveal structure; it reveals
+structure that has already become irreversible.
+
+\subsection{Training-Time Causal Tracing}
+
+Standard causal tracing is applied post hoc. However, event-aware
+analysis suggests a training-time analogue.
+
+\paragraph{Protocol.}
+At checkpoints $t_1 < t_2 < \cdots < t_k$:
+\begin{enumerate}
+\item Perform event-aware tracing on a fixed input.
+\item Record which event-nodes are necessary for correct output.
+\item Track stabilization of these events across time.
+\end{enumerate}
+
+\paragraph{Prediction.}
+Event-nodes exhibit hysteresis: once stabilized, they resist reversal
+even under later parameter noise.
+
+\begin{remark}
+This predicts that pruning or ablation early in training may prevent
+kernel formation, while the same intervention late in training has
+little effect.
+\end{remark}
+
+\subsection{Algorithmic Mixture During Training}
+
+Early in training, models often exhibit algorithmic pluralism: multiple
+kernels coexist, each weakly supported by data.
+
+We model this as a distribution over potential kernels
+$\{\Hist^{(1)}, \ldots, \Hist^{(k)}\}$, with soft selection mediated by
+event uncertainty.
+
+Kernel selection is itself an event:
+\[
+e_{\text{select}}: \{\Hist^{(1)}, \ldots, \Hist^{(k)}\} \to \Hist^\star.
+\]
+
+Once selected, alternative kernels are excluded, explaining the loss
+of heuristic diversity after grokking.
+
+\subsection{Implications for Interpretability Practice}
+
+This analysis yields concrete methodological guidance:
+
+\begin{itemize}
+\item Interpretability applied too early may miss future event-nodes.
+\item Interpretability applied too late may obscure kernel alternatives.
+\item Training-aware tracing can identify incipient regimes before
+commitment.
+\end{itemize}
+
+\subsection{Summary}
+
+Training is not merely parameter optimization but the construction of
+irreversible event-histories. Mechanistic structure emerges when
+kernels stabilize, explaining grokking, circuit suddenness, and regime
+switching.
+
+The next section generalizes these insights beyond neural networks,
+connecting event-historical structure to resilience in large-scale
+knowledge systems.
+
+% ==================================================
+\section{Training Dynamics as Kernel Formation}
+% ==================================================
+
+Mechanistic interpretability is typically applied to trained models,
+treating learned structure as static. However, many empirical
+phenomena—most notably grokking, sudden circuit emergence, and regime
+switching—are difficult to explain without examining how event-level
+structure forms during training.
+
+In this section, we reinterpret training as the progressive
+construction of kernel histories. Learning is not merely the
+optimization of texture values, but the gradual stabilization of
+event-nodes that irreversibly constrain future computation.
+
+\subsection{Texture Learning vs.\ Kernel Formation}
+
+We distinguish two learning processes:
+
+\paragraph{Texture learning.}
+Continuous adjustment of parameters within an existing computational
+regime. This corresponds to gradient descent refining weights without
+altering the qualitative structure of computation.
+
+\paragraph{Kernel formation.}
+Discrete commitment to a new regime, realized as the emergence or
+stabilization of event-nodes. Kernel formation changes which
+computations are admissible at all.
+
+This distinction explains why training loss often decreases smoothly
+while generalization improves discontinuously.
+
+\begin{assumption}[Event Stabilization]
+Event-nodes are metastable during early training and become
+irreversible only after sufficient evidence accumulates.
+\end{assumption}
+
+\subsection{Grokking as Event Commitment}
+
+Grokking refers to the phenomenon where a model fits training data
+early but generalizes only after a long delay, often accompanied by a
+sudden drop in test loss.
+
+Under the present framework, grokking corresponds to delayed kernel
+commitment.
+
+\paragraph{Early phase.}
+The model relies on texture-level heuristics that interpolate within
+the training set. Event-nodes corresponding to abstract rules are not
+yet stabilized.
+
+\paragraph{Transition.}
+A critical training iteration triggers an event-node committing to a
+new regime (e.g., arithmetic structure, symmetry exploitation).
+
+\paragraph{Late phase.}
+Once committed, texture learning proceeds rapidly within the new
+kernel, yielding strong generalization.
+
+\begin{theorem}[Grokking as Kernel Transition]
+Let $\Hist_t$ denote the kernel history at training step $t$. Grokking
+occurs when there exists a step $t^\star$ such that:
+\[
+\Hist_{t^\star^-} \neq \Hist_{t^\star^+},
+\]
+and $\Hist_{t^\star^+}$ admits a strictly smaller hypothesis space
+consistent with the task.
+\end{theorem}
+
+\begin{proof}[Sketch]
+Prior to $t^\star$, multiple kernels remain compatible with observed
+data. At $t^\star$, accumulated evidence renders all but one kernel
+inadmissible, triggering an irreversible commitment.
+\end{proof}
+
+\subsection{Sudden Circuit Emergence}
+
+Mechanistic interpretability studies frequently observe circuits
+appearing abruptly rather than gradually. From a texture-only
+perspective, this is surprising.
+
+In the event-historical view, this is expected: circuits correspond to
+event-conditioned pathways that become active only after kernel
+formation.
+
+\begin{proposition}[Circuit Visibility]
+A circuit becomes mechanistically visible if and only if the kernel
+history that enables it has stabilized.
+\end{proposition}
+
+Thus, interpretability does not merely reveal structure; it reveals
+structure that has already become irreversible.
+
+\subsection{Training-Time Causal Tracing}
+
+Standard causal tracing is applied post hoc. However, event-aware
+analysis suggests a training-time analogue.
+
+\paragraph{Protocol.}
+At checkpoints $t_1 < t_2 < \cdots < t_k$:
+\begin{enumerate}
+\item Perform event-aware tracing on a fixed input.
+\item Record which event-nodes are necessary for correct output.
+\item Track stabilization of these events across time.
+\end{enumerate}
+
+\paragraph{Prediction.}
+Event-nodes exhibit hysteresis: once stabilized, they resist reversal
+even under later parameter noise.
+
+\begin{remark}
+This predicts that pruning or ablation early in training may prevent
+kernel formation, while the same intervention late in training has
+little effect.
+\end{remark}
+
+\subsection{Algorithmic Mixture During Training}
+
+Early in training, models often exhibit algorithmic pluralism: multiple
+kernels coexist, each weakly supported by data.
+
+We model this as a distribution over potential kernels
+$\{\Hist^{(1)}, \ldots, \Hist^{(k)}\}$, with soft selection mediated by
+event uncertainty.
+
+Kernel selection is itself an event:
+\[
+e_{\text{select}}: \{\Hist^{(1)}, \ldots, \Hist^{(k)}\} \to \Hist^\star.
+\]
+
+Once selected, alternative kernels are excluded, explaining the loss
+of heuristic diversity after grokking.
+
+\subsection{Implications for Interpretability Practice}
+
+This analysis yields concrete methodological guidance:
+
+\begin{itemize}
+\item Interpretability applied too early may miss future event-nodes.
+\item Interpretability applied too late may obscure kernel alternatives.
+\item Training-aware tracing can identify incipient regimes before
+commitment.
+\end{itemize}
+
+\subsection{Summary}
+
+Training is not merely parameter optimization but the construction of
+irreversible event-histories. Mechanistic structure emerges when
+kernels stabilize, explaining grokking, circuit suddenness, and regime
+switching.
+
+The next section generalizes these insights beyond neural networks,
+connecting event-historical structure to resilience in large-scale
+knowledge systems.
+
+% ==================================================
+\section{Knowledge Networks as Event-Historical Systems}
+% ==================================================
+
+The causal framework developed thus far is not specific to neural
+networks. Any large-scale information system that evolves through
+irreversible decisions admits an event-historical analysis. In this
+section we extend the theory to knowledge networks, such as
+encyclopedias, citation graphs, and collaborative repositories, and
+show that their resilience depends primarily on event-level structure.
+
+\subsection{Texture and Event Structure in Knowledge Systems}
+
+Consider a knowledge network represented as a directed graph
+$\Graph = (V,E)$, where nodes correspond to informational units
+(articles, documents, entries) and edges encode semantic or referential
+relationships.
+
+\paragraph{Texture-nodes.}
+The content of articles, the existence of links, and local formatting
+choices are texture-level structures. They admit substitution,
+duplication, and repair without altering the global regime of the
+system.
+
+\paragraph{Event-nodes.}
+Governance decisions, moderation policies, inclusion criteria, and
+institutional norms are event-level structures. These decisions
+restrict which future edits, links, or topics are admissible.
+
+\begin{definition}[Knowledge-System Event]
+An event in a knowledge network is an irreversible decision that
+restricts the admissible future states of the network, independent of
+the current content.
+\end{definition}
+
+Examples include:
+\begin{itemize}
+\item Banning a class of sources
+\item Locking an article category
+\item Enforcing notability thresholds
+\item Centralizing editorial authority
+\end{itemize}
+
+\subsection{Resilience Beyond Redundancy}
+
+A common intuition is that knowledge systems are resilient if they
+contain redundant content. From a texture-only perspective, this is
+plausible: duplicated information can compensate for local damage.
+
+However, redundancy alone does not guarantee resilience.
+
+\begin{proposition}[Event-Dominant Failure]
+If an event-level intervention restricts future admissible edits,
+then texture redundancy cannot restore lost adaptive capacity.
+\end{proposition}
+
+\begin{proof}[Sketch]
+Let $\Omega_t$ denote the option-space of admissible future states.
+Texture redundancy increases the density of states within $\Omega_t$
+but does not expand $\Omega_t$ itself. Event interventions restrict
+$\Omega_t$, reducing future adaptability regardless of internal
+redundancy.
+\end{proof}
+
+Thus, resilience must be analyzed at the level of option-spaces, not
+content volume.
+
+\subsection{Causal Tracing in Knowledge Networks}
+
+The event–texture distinction enables a form of causal tracing in
+knowledge systems.
+
+\paragraph{Texture tracing.}
+Removing or restoring articles tests whether specific content mediates
+knowledge propagation.
+
+\paragraph{Event tracing.}
+Reverting or simulating governance decisions tests whether institutional
+structures mediate long-term outcomes.
+
+\begin{definition}[Event Necessity in Knowledge Networks]
+An event $e$ is necessary for outcome $Y$ if removing $e$ while holding
+content fixed changes the long-term evolution of the network.
+\end{definition}
+
+This explains why some systems collapse despite retaining vast amounts
+of information: the event-history no longer permits repair.
+
+\subsection{Irreversibility and Institutional Memory}
+
+Event-histories accumulate institutional memory. Even if a policy is
+formally reversed, downstream effects may persist due to path
+dependence.
+
+\begin{lemma}[Institutional Hysteresis]
+Let $e$ be an event restricting option-space at time $t$. Even if an
+inverse event $e^{-1}$ occurs at time $t' > t$, the option-space
+$\Omega_{t'}$ may satisfy:
+\[
+\Omega_{t'} \subsetneq \Omega_{t^-},
+\]
+due to lost contributors, abandoned topics, or frozen structures.
+\end{lemma}
+
+This mirrors neural training: once kernels stabilize, earlier regimes
+may become unreachable.
+
+\subsection{Algorithmic Mixture in Knowledge Systems}
+
+Just as neural networks may implement multiple algorithms, knowledge
+systems may support multiple epistemic regimes simultaneously.
+
+Examples include:
+\begin{itemize}
+\item Expert-driven vs.\ crowd-driven editing
+\item Citation-based vs.\ narrative-based validation
+\item Centralized vs.\ federated governance
+\end{itemize}
+
+These correspond to parallel kernels $\{\Hist^{(1)}, \ldots,
+\Hist^{(k)}\}$ governing interpretation and growth.
+
+Selection among them is itself an event:
+\[
+e_{\text{select}}: \{\Hist^{(i)}\} \to \Hist^\star.
+\]
+
+Once selected, alternative epistemic styles may become inadmissible,
+even if they remain technically possible.
+
+\subsection{Design Implications}
+
+This analysis yields concrete design principles:
+
+\begin{itemize}
+\item Preserve event-level reversibility where possible
+\item Avoid premature collapse of governance diversity
+\item Treat policy changes as high-impact interventions requiring
+causal testing
+\end{itemize}
+
+\subsection{Summary}
+
+Knowledge networks are event-historical systems whose long-term
+resilience depends more on institutional commitments than on content
+volume. The same causal tools used to interpret neural networks apply,
+mutatis mutandis, to social and informational infrastructures.
+
+The final section synthesizes these results, returning to the question
+of what it means to understand a system mechanistically.
+
+
+% ==================================================
+\section{Conclusion}
+% ==================================================
+
+Mechanistic interpretability has undergone a decisive shift from
+descriptive inspection toward causal explanation. Through
+interventions, counterfactuals, and causal abstractions, it now aspires
+to recover the algorithms implemented by complex learned systems.
+However, as we have argued, this causal turn remains conceptually
+incomplete so long as it treats internal values as the sole bearers of
+mechanism. Many of the most salient empirical phenomena in
+interpretability—substitution failure, block-level mediation, sudden
+circuit emergence, grokking, and narrow regime validity—are difficult
+or impossible to formalize within a purely state-based ontology.
+
+This work introduced a minimal but principled extension to the causal
+framework: the explicit distinction between \emph{texture-nodes},
+which carry instantaneous values, and \emph{event-nodes}, which encode
+irreversible commitments that constrain admissible futures. This
+distinction preserves the empirical strengths of existing methods
+while resolving their theoretical tensions. Texture-level
+interventions explain graded, reversible effects; event-level
+interventions explain regime change, irreversibility, and structural
+failure.
+
+Within this typed framework, causal mediation decomposes naturally
+into two channels. Texture-mediated effects describe value propagation
+within a fixed regime, while event-mediated effects describe kernel
+selection and option-space restriction. The resulting two-channel
+mediation theorem clarifies when activation patching and causal
+tracing are sufficient, when they fail, and why restoration order
+matters. Substitution failure is no longer mysterious: it arises when
+values are transplanted into incompatible event-histories.
+
+By interpreting event-nodes through Spherepop operators—\emph{Pop},
+\emph{Bind}, \emph{Refuse}, and \emph{Collapse}—we provided a concrete
+semantics for regime change that applies uniformly across neural
+computation, training dynamics, and social knowledge systems. Neural
+networks do not merely transform representations; they construct
+irreversible computational histories. Training, in turn, is not merely
+optimization over parameters, but the gradual stabilization of
+event-level structure, explaining grokking, sudden circuit emergence,
+and algorithmic mixture as kernel-level phenomena.
+
+Extending the analysis beyond neural models revealed that the same
+principles govern large-scale knowledge networks. Content redundancy
+alone does not ensure resilience; institutional and governance events
+determine whether systems retain the capacity to adapt, repair, and
+grow. Knowledge systems, like neural networks, fail catastrophically
+when event-level commitments prematurely collapse their option-spaces.
+
+Taken together, these results motivate a reconception of mechanistic
+understanding itself. To understand a system mechanistically is not
+merely to locate variables whose manipulation changes outputs. It is
+to reconstruct the irreversible sequence of commitments that shaped
+the system’s present behavior and delimit its future possibilities.
+Mechanistic interpretability thus becomes an event-historical science:
+the reverse engineering of constraint, not merely of computation.
+
+This perspective does not diminish the value of existing tools; rather,
+it situates them within a broader causal ontology that accounts for
+time, irreversibility, and regime structure. By making events explicit,
+we gain a framework capable of unifying interpretability, training
+dynamics, and institutional analysis under a single causal language.
+
+In this sense, mechanistic interpretability is itself a Spherepop
+process. Each successful intervention permanently constrains the space
+of viable explanations. Understanding accumulates not as a static map
+of components, but as an irreversible history of ruled-out
+possibilities. What remains is not merely what the system does, but
+what it can no longer do—and it is in these absences, exclusions, and
+commitments that mechanism ultimately resides.
+
+\appendix
+
+% ==================================================
+\section{Formal Preliminaries}
+% ==================================================
+
+This appendix formalizes the mathematical objects used throughout the
+paper. All results in subsequent appendices assume these definitions.
+
+\subsection{Structural Causal Models}
+
+\begin{definition}[Structural Causal Model]
+A structural causal model (SCM) is a tuple
+\[
+\mathcal{M} = (V, U, F, P(U)),
+\]
+where:
+\begin{itemize}
+\item $V = \{V_1, \ldots, V_n\}$ are endogenous variables,
+\item $U = \{U_1, \ldots, U_m\}$ are exogenous variables,
+\item $F = \{f_i\}_{i=1}^n$ are structural equations
+\[
+V_i := f_i(\mathrm{PA}_i, U_i),
+\]
+\item $P(U)$ is a probability distribution over exogenous variables.
+\end{itemize}
+\end{definition}
+
+\begin{assumption}[Causal Markov Condition]
+Each variable $V_i$ is conditionally independent of its non-descendants
+given its parents $\mathrm{PA}_i$.
+\end{assumption}
+
+\subsection{Typed Causal Graphs}
+
+\begin{definition}[Typed Causal Graph]
+A typed causal graph is a tuple
+\[
+\mathcal{G} = (V, E, \tau),
+\]
+where $(V,E)$ is a directed acyclic graph and
+\[
+\tau : V \to \{\Tnode, \Enode\}
+\]
+assigns each node a type: texture or event.
+\end{definition}
+
+\paragraph{Interpretation.}
+Texture-nodes admit value substitution under intervention. Event-nodes
+rewrite the admissible future structure of the graph itself.
+
+\subsection{Option-Spaces and Kernel Histories}
+
+\begin{definition}[Option-Space]
+An option-space $\Omega_t$ is the set of admissible future trajectories
+from time $t$, partially ordered by refinement.
+\end{definition}
+
+\begin{definition}[Kernel History]
+A kernel history up to time $t$ is a sequence
+\[
+\Hist_t = (e_1, e_2, \ldots, e_t),
+\]
+where each $e_i$ is an event-node realization. The kernel history
+induces an option-space $\Omega_t = \Omega(\Hist_t)$.
+\end{definition}
+
+\begin{assumption}[Monotonicity]
+Kernel histories are monotone:
+\[
+\Omega_{t+1} \subseteq \Omega_t.
+\]
+\end{assumption}
+
+% ==================================================
+\section{Proofs of Main Results}
+% ==================================================
+
+\subsection{Proof of the Two-Channel Mediation Theorem}
+
+\begin{theorem}[Two-Channel Mediation]
+Let $X$ be an input variable, $T$ a texture variable, $E$ an event
+variable, and $Y$ an output. Then the total causal effect decomposes as
+\[
+\mathrm{TE}(X \to Y) = \mathrm{ME}^T(X \to Y) + \mathrm{ME}^E(X \to Y),
+\]
+where texture mediation suffices iff $P(E \mid \Do(X)) = P(E)$.
+\end{theorem}
+
+\begin{proof}
+The total effect is defined as:
+\[
+\mathrm{TE}(X \to Y)
+= \mathbb{E}[Y \mid \Do(X=x_1)] - \mathbb{E}[Y \mid \Do(X=x_0)].
+\]
+
+Introduce the mediators $T$ and $E$:
+\[
+\mathbb{E}[Y \mid \Do(X=x)]
+= \sum_{t,e} P(t,e \mid \Do(X=x)) \, \mathbb{E}[Y \mid \Do(T=t,E=e)].
+\]
+
+Subtracting the two expressions yields:
+\begin{align*}
+\mathrm{TE}
+&= \sum_{t,e} \Big(
+P(t,e \mid \Do(X=x_1)) - P(t,e \mid \Do(X=x_0))
+\Big)\mathbb{E}[Y \mid \Do(T=t,E=e)].
+\end{align*}
+
+Decompose the joint difference:
+\[
+P(t,e \mid \Do(X))
+= P(t \mid e, \Do(X)) P(e \mid \Do(X)).
+\]
+
+Define:
+\begin{itemize}
+\item $\mathrm{ME}^E$: variation due to $P(e \mid \Do(X))$,
+\item $\mathrm{ME}^T$: variation due to $P(t \mid e, \Do(X))$ holding
+$P(e)$ fixed.
+\end{itemize}
+
+If $P(E \mid \Do(X)) = P(E)$, the event-mediated term vanishes, and the
+effect is fully texture-mediated. Conversely, if $E$ varies under
+$\Do(X)$, texture mediation alone is insufficient.
+\end{proof}
+
+\subsection{Event Irreversibility}
+
+\begin{theorem}[Event Irreversibility]
+Let $e$ be an event-node occurring at time $t$. Then for all texture
+interventions at times $t' > t$, the induced option-space satisfies:
+\[
+\Omega_{t'} \subseteq \Omega_{t^-}.
+\]
+\end{theorem}
+
+\begin{proof}
+By definition, an event-node rewrites the admissible graph structure,
+removing at least one future trajectory from $\Omega_{t^-}$. Texture
+interventions operate within the existing graph and cannot reintroduce
+deleted trajectories. Hence the inclusion is strict.
+\end{proof}
+
+\subsection{Substitution Failure}
+
+\begin{proposition}[Substitution Failure]
+Let $t^\star$ be a texture value admissible under kernel history
+$\Hist$ but not under $\Hist'$. Then the intervention
+$\Do(T := t^\star)$ under $\Hist'$ is ill-defined or yields incoherent
+behavior.
+\end{proposition}
+
+\begin{proof}
+Admissibility of $t^\star$ requires $t^\star \in \Omega(\Hist)$. Since
+$\Omega(\Hist') \subsetneq \Omega(\Hist)$, $t^\star$ may violate
+constraints encoded by $\Hist'$. The intervention either cannot be
+realized or produces behavior outside the modeled regime.
+\end{proof}
+
+% ==================================================
+\section{Derivations and Dynamical Results}
+% ==================================================
+
+\subsection{Training as Kernel Formation}
+
+Let $\theta_t$ denote parameters at training step $t$. Standard
+optimization updates $\theta_t \mapsto \theta_{t+1}$ continuously.
+However, kernel history $\Hist_t$ changes only when an event-node
+stabilizes.
+
+\begin{definition}[Kernel Stabilization]
+An event $e$ stabilizes at time $t$ if for all $t' > t$,
+\[
+P(e \text{ occurs at } t') \approx 1.
+\]
+\end{definition}
+
+\subsection{Grokking as Phase Transition}
+
+Define the hypothesis space $\mathcal{H}_t$ compatible with kernel
+history $\Hist_t$.
+
+\begin{proposition}[Hypothesis Collapse]
+If an event $e$ excludes all but one hypothesis class compatible with
+the task, then generalization error decreases discontinuously.
+\end{proposition}
+
+\begin{proof}
+Before stabilization, $\mathcal{H}_t$ contains both memorizing and
+rule-based hypotheses. Stabilization of $e$ eliminates the former,
+causing an abrupt reduction in test error.
+\end{proof}
+
+\subsection{Collapse as Quotienting}
+
+Let $X$ be a representation space and $q : X \to X/{\sim}$ a quotient
+map.
+
+\begin{definition}[Collapse Operator]
+A collapse event identifies equivalence classes under $\sim$, reducing
+the effective dimensionality of $X$.
+\end{definition}
+
+\begin{proposition}[Action Reduction Under Collapse]
+Let $S[\Hist]$ denote accumulated action. Then a collapse event $q$
+satisfies:
+\[
+S[\Hist \circ q] = S[\Hist] - \log |\ker(q)|.
+\]
+\end{proposition}
+
+\begin{proof}
+Collapse removes distinctions that no longer affect future action,
+reducing informational degrees of freedom. The logarithmic term
+accounts for identified equivalence classes.
+\end{proof}
+
+\subsection{Why Steering Is Brittle}
+
+Let $M \subset \mathbb{R}^d$ be the semantic manifold of admissible
+representations.
+
+\begin{theorem}[Tangent Constraint]
+A steering vector $v$ preserves semantic coherence iff
+$v \in T_x M$.
+\end{theorem}
+
+\begin{proof}
+Components orthogonal to $T_x M$ correspond to directions violating
+kernel constraints, forcing later layers either to project back onto
+$M$ or to follow incoherent trajectories.
+\end{proof}
+
+% ==================================================
+\section{Appendix D: Worked Mechanistic Case Study}
+% ==================================================
+\addcontentsline{toc}{section}{Appendix D: Worked Mechanistic Case Study}
+
+\subsection{Task Description}
+
+We consider the Indirect Object Identification (IOI) task, exemplified
+by sentences of the form:
+\begin{quote}
+\emph{``John gave Mary the book.''}
+\end{quote}
+The model must identify \emph{Mary} as the indirect object. This task
+is well studied in mechanistic interpretability due to its clear
+syntactic structure and sensitivity to internal mechanisms.
+
+\subsection{Model and Notation}
+
+We analyze a transformer model with $L$ layers. Let:
+\begin{itemize}
+\item $X_0$ denote the input token embeddings,
+\item $X_\ell$ the residual stream at layer $\ell$,
+\item $H_{\ell,i}$ the $i$-th attention head at layer $\ell$,
+\item $M_\ell$ the MLP at layer $\ell$.
+\end{itemize}
+
+We distinguish:
+\begin{itemize}
+\item Texture variables: activations in $X_\ell$, outputs of heads and
+MLPs,
+\item Event variables: discrete commitments that constrain which
+relations are considered admissible (e.g.\ binding verb–argument
+structure).
+\end{itemize}
+
+\subsection{Kernel History for IOI}
+
+Empirical circuit analyses suggest the following kernel history:
+
+\paragraph{Layer 1 (Event Formation).}
+\begin{itemize}
+\item $e_1^{\text{bind}}$: Bind the verb token \emph{gave} to candidate
+noun positions.
+\item $e_2^{\text{pop}}$: Exclude subject position from indirect object
+candidates.
+\end{itemize}
+
+These events restrict the option-space to trajectories where only
+post-verbal noun phrases are considered.
+
+\paragraph{Layer 2 (Aggregation and Refinement).}
+\begin{itemize}
+\item $e_3^{\text{collapse}}$: Collapse multiple candidate positions
+into a single salience-weighted representation.
+\item $e_4^{\text{meld}}$: Combine syntactic and semantic cues to select
+the indirect object.
+\end{itemize}
+
+Thus the kernel history is:
+\[
+\Hist = (e_1^{\text{bind}}, e_2^{\text{pop}}, e_3^{\text{collapse}},
+e_4^{\text{meld}}).
+\]
+
+\subsection{Standard Texture-Level Ablation}
+
+We first perform a standard ablation:
+\[
+\Do(H_{1,0} := 0),
+\]
+where $H_{1,0}$ is an attention head previously identified as important
+for IOI.
+
+\paragraph{Observation.}
+Accuracy drops from approximately $45\%$ to $12\%$.
+
+\paragraph{Texture Interpretation.}
+This suggests that $H_{1,0}$ carries information relevant to IOI.
+
+\paragraph{Event Interpretation.}
+$H_{1,0}$ implements the event $e_1^{\text{bind}}$. Its ablation does
+not merely degrade a value; it prevents the verb–argument binding
+regime from forming.
+
+\subsection{Naive Texture Restoration}
+
+We next attempt texture-level restoration after corrupting the input:
+\[
+\Do(X_1 := X_1^{\text{clean}}).
+\]
+
+\paragraph{Observation.}
+Accuracy recovers only partially (to $\sim 18\%$).
+
+\paragraph{Explanation.}
+The restored texture is incompatible with the corrupted kernel
+history $\Hist'$, in which $e_1^{\text{bind}}$ never occurred. The
+restored values lie outside the admissible option-space
+$\Omega(\Hist')$.
+
+This is a concrete instance of substitution failure.
+
+\subsection{Event-Aware Restoration}
+
+We now perform a two-stage intervention:
+\[
+\Do(e_1^{\text{bind}}) \;\; \text{then} \;\; \Do(X_1 := X_1^{\text{clean}}).
+\]
+
+\paragraph{Observation.}
+Accuracy recovers to $\sim 42\%$, near the clean baseline.
+
+\paragraph{Explanation.}
+Restoring the event reconstitutes the correct kernel history,
+expanding the option-space so that the restored texture becomes
+admissible.
+
+\begin{proposition}[Event Precedence]
+In IOI, restoring event-level structure is a necessary precondition
+for successful texture restoration.
+\end{proposition}
+
+\subsection{Why Some Heads Are Catastrophic}
+
+Ablating certain heads causes near-total failure, while others have
+minimal impact.
+
+\paragraph{Event-level heads.}
+Heads implementing $e_1^{\text{bind}}$ or $e_2^{\text{pop}}$ determine
+the regime. Their removal collapses the option-space.
+
+\paragraph{Texture-level heads.}
+Heads refining salience or probability distributions operate within
+the established kernel. Their ablation degrades performance smoothly.
+
+This distinction cannot be captured by importance scores alone.
+
+\subsection{Algorithmic Mixture Interpretation}
+
+Early layers may support multiple candidate kernels:
+\begin{itemize}
+\item $\Hist^{(1)}$: rule-based syntactic parsing,
+\item $\Hist^{(2)}$: surface heuristic (e.g.\ proximity-based guessing).
+\end{itemize}
+
+Early in training, both kernels coexist. Event $e_{\text{select}}$
+commits to $\Hist^{(1)}$, explaining sudden generalization improvements
+and circuit stabilization.
+
+\subsection{Summary}
+
+This case study demonstrates that:
+\begin{itemize}
+\item Substitution failure arises from kernel incompatibility, not
+noise,
+\item Causal responsibility separates cleanly into event and texture
+roles,
+\item Mechanistic circuits correspond to stabilized kernel histories,
+not merely activation patterns.
+\end{itemize}
+
+The event–texture framework provides strictly more explanatory power
+than state-based analysis while remaining empirically testable.
+
+% ==================================================
+\section{Appendix E: Automated Detection of Event-Nodes}
+% ==================================================
+\addcontentsline{toc}{section}{Appendix E: Automated Detection of Event-Nodes}
+
+This appendix develops systematic procedures for identifying
+event-level structure in neural networks. The goal is to demonstrate
+that the event–texture distinction is not purely post hoc, but admits
+algorithmic detection criteria grounded in causal behavior.
+
+\subsection{Problem Statement}
+
+Manual identification of event-nodes does not scale to large models.
+Standard importance metrics (e.g.\ gradients, attribution scores)
+fail to distinguish regime-selecting components from value-refining
+components.
+
+We therefore seek \emph{causal signatures} that distinguish event-nodes
+from texture-nodes.
+
+\subsection{Restoration Order Sensitivity}
+
+The first diagnostic exploits asymmetry in restoration order.
+
+\begin{definition}[Restoration Order Sensitivity]
+Let $A$ and $B$ be internal components. Define:
+\[
+R(A \rightarrow B) := \text{recovery under } \Do(A) \text{ then } \Do(B),
+\]
+and analogously $R(B \rightarrow A)$. Component $A$ is event-level
+relative to $B$ if:
+\[
+R(A \rightarrow B) \gg R(B \rightarrow A).
+\]
+\end{definition}
+
+\paragraph{Interpretation.}
+Event-level structure must be restored before texture-level refinement
+can succeed. Texture restoration without regime restoration fails.
+
+\begin{proposition}[Event Precedence Criterion]
+If restoration order matters, the earlier-restored component is
+event-level with respect to the later one.
+\end{proposition}
+
+\subsection{Ablation Asymmetry}
+
+A second diagnostic exploits asymmetry between ablation and restoration.
+
+\begin{definition}[Ablation Asymmetry]
+Component $C$ exhibits ablation asymmetry if:
+\begin{itemize}
+\item Ablation causes catastrophic failure, but
+\item Partial restoration yields minimal recovery unless additional
+components are restored.
+\end{itemize}
+\end{definition}
+
+\paragraph{Explanation.}
+Catastrophic ablation indicates collapse of the option-space, not mere
+value degradation. Partial restoration fails because the kernel history
+remains incompatible.
+
+\begin{lemma}
+Pure texture-nodes exhibit approximately symmetric ablation and
+restoration effects.
+\end{lemma}
+
+\subsection{Training-Time Stability Analysis}
+
+Event-nodes exhibit hysteresis across training time.
+
+\begin{definition}[Event Stability]
+Let $C$ be a component. Define stability as:
+\[
+S(C,t) = \mathbb{E}[\text{performance} \mid \Do(C := 0) \text{ at time } t].
+\]
+$C$ is event-level if $S(C,t)$ decreases sharply after a critical
+training step and does not recover.
+\end{definition}
+
+\paragraph{Prediction.}
+Event-nodes:
+\begin{itemize}
+\item Are fragile early in training,
+\item Become increasingly irreversible,
+\item Resist later parameter noise.
+\end{itemize}
+
+\subsection{Kernel Inference Algorithm}
+
+We summarize an automated kernel inference procedure.
+
+\paragraph{Input.}
+Model $\NN$, task distribution $\mathcal{D}$, intervention set
+$\mathcal{I}$.
+
+\paragraph{Procedure.}
+\begin{enumerate}
+\item Perform texture-level causal tracing to identify candidate
+components.
+\item For each candidate:
+  \begin{itemize}
+  \item Measure restoration order sensitivity,
+  \item Measure ablation asymmetry,
+  \item Measure training-time stability.
+  \end{itemize}
+\item Classify components as event- or texture-level via thresholding.
+\end{enumerate}
+
+\paragraph{Output.}
+A partial ordering of components by event precedence.
+
+\subsection{Limits and Failure Modes}
+
+Not all components admit clean classification. Hybrid nodes may exist
+that partially affect regime selection and partially refine values.
+Such nodes appear empirically rare but theoretically possible.
+
+\subsection{Summary}
+
+This appendix demonstrates that event-nodes can be detected via
+observable causal asymmetries. The framework therefore supports
+scalable mechanistic analysis rather than purely interpretive labeling.
+
+% ==================================================
+\section{Appendix F: Comparison to Existing Interpretability Frameworks}
+% ==================================================
+\addcontentsline{toc}{section}{Appendix F: Comparison to Existing Interpretability Frameworks}
+
+This appendix situates the event–historical framework relative to
+existing approaches in mechanistic interpretability and adjacent
+fields. The intent is not to displace these methods, but to clarify
+their scope, limitations, and points of integration.
+
+\subsection{Circuits-Based Interpretability}
+
+The circuits framework identifies collections of neurons, attention
+heads, and MLPs whose interactions implement specific behaviors.
+
+\paragraph{Common ground.}
+Both frameworks:
+\begin{itemize}
+\item Emphasize localized internal mechanisms,
+\item Rely on causal intervention rather than correlation,
+\item Aim to reverse engineer implemented algorithms.
+\end{itemize}
+
+\paragraph{Key difference.}
+Circuits are fundamentally \emph{static}. They describe which
+components interact, but not how regime selection or irreversibility
+emerges over time.
+
+\begin{proposition}
+A circuit description corresponds to a snapshot of a stabilized kernel
+history.
+\end{proposition}
+
+\paragraph{Implication.}
+Event-nodes explain why some circuits appear suddenly during training
+and why ablating certain components causes catastrophic failure rather
+than gradual degradation.
+
+\subsection{Sparse Autoencoders and Feature Bases}
+
+Sparse autoencoders (SAEs) seek interpretable basis directions in
+activation space.
+
+\paragraph{Strength.}
+SAEs excel at discovering \emph{texture-level} structure: reusable,
+localized semantic features.
+
+\paragraph{Limitation.}
+They do not identify which features select regimes versus refine values
+within a regime.
+
+\begin{remark}
+Event-level structure may not correspond to sparse directions at all,
+but to discrete gating, masking, or binding operations.
+\end{remark}
+
+Thus, SAEs and event-historical analysis are complementary: SAEs
+decompose texture space, while event analysis decomposes kernel space.
+
+\subsection{Knowledge Editing and ROME-Style Interventions}
+
+Knowledge editing methods (e.g.\ ROME) modify specific internal weights
+to change factual outputs.
+
+\paragraph{Observation.}
+Such edits often have global, persistent effects, altering multiple
+downstream behaviors.
+
+\paragraph{Interpretation.}
+These interventions frequently operate at the event-level: they change
+which factual regime is selected, not merely the strength of a belief.
+
+\begin{proposition}
+Successful knowledge edits correspond to kernel modifications rather
+than texture substitutions.
+\end{proposition}
+
+This explains why some edits generalize broadly while others degrade
+unrelated capabilities.
+
+\subsection{Representation Engineering and Activation Steering}
+
+Representation engineering attempts to control models by manipulating
+internal representations.
+
+\paragraph{Empirical fact.}
+Prompting and fine-tuning outperform steering for robust control.
+
+\paragraph{Explanation.}
+Steering perturbs texture values within a fixed kernel. Prompting
+induces early event-level commitments, selecting different regimes.
+
+\begin{remark}
+This clarifies why steering is brittle: it operates downstream of
+kernel selection.
+\end{remark}
+
+\subsection{Functionalism and State Equivalence}
+
+Functionalist accounts identify systems by input–output behavior or
+current state.
+
+\paragraph{Limitation.}
+State equivalence collapses histories that differ in irreversible
+commitments.
+
+\paragraph{Event-historical correction.}
+Two systems may be functionally identical at a moment while diverging
+under intervention due to different kernel histories.
+
+\subsection{Summary}
+
+Existing frameworks each capture important aspects of neural
+mechanism, but none explicitly model irreversible regime selection.
+The event–texture framework integrates these approaches by:
+\begin{itemize}
+\item Treating circuits as stabilized kernels,
+\item Treating features as texture structure,
+\item Treating edits and prompts as event interventions.
+\end{itemize}
+
+This unification preserves empirical success while extending
+explanatory reach.
+
+% ==================================================
+\section{Appendix G: Spherepop Axiomatization of Event-Historical Causality}
+% ==================================================
+\addcontentsline{toc}{section}{Appendix G: Spherepop Axiomatization of Event-Historical Causality}
+
+This appendix formalizes the relationship between the event–texture
+framework developed in the main text and the Spherepop / RSVP
+axiomatic system. The purpose is not to introduce new machinery, but
+to show that the causal structures analyzed throughout the paper are
+instances of a more general event-historical calculus.
+
+\subsection{Option-Spaces as Primitive Objects}
+
+We take the option-space to be the fundamental ontological unit.
+
+\begin{definition}[Option-Space]
+An option-space $\Omega$ is a partially ordered set of admissible
+future trajectories, ordered by refinement. Elements of $\Omega$
+represent equivalence classes of future system evolutions.
+\end{definition}
+
+The evolution of a system corresponds to a monotone sequence:
+\[
+\Omega_0 \supseteq \Omega_1 \supseteq \cdots \supseteq \Omega_t.
+\]
+
+\begin{assumption}[Irreversibility]
+All admissible dynamics satisfy:
+\[
+\Omega_{t+1} \subseteq \Omega_t.
+\]
+\end{assumption}
+
+This assumption is not thermodynamic in origin; it is structural. It
+states that commitments restrict futures.
+
+\subsection{Spherepop Event Operators}
+
+Spherepop defines four primitive operators on option-spaces. We restate
+them here in causal terms.
+
+\subsubsection{Pop (Exclusion)}
+
+\begin{definition}[Pop]
+A pop event $e_{\text{pop}}$ is an operator:
+\[
+e_{\text{pop}} : \Omega \to \Omega' \subsetneq \Omega,
+\]
+which permanently excludes at least one admissible future.
+\end{definition}
+
+\paragraph{Causal interpretation.}
+Pop corresponds to categorical pathway exclusion: masking, pruning,
+gating, or hard constraints. In causal graphs, pop rewrites the graph
+by deleting edges or nodes.
+
+\subsubsection{Bind (Dependency Formation)}
+
+\begin{definition}[Bind]
+A bind event $e_{\text{bind}}$ introduces a dependency relation
+$\prec$ over futures in $\Omega$, restricting admissible orderings.
+\end{definition}
+
+\paragraph{Causal interpretation.}
+Bind corresponds to establishing precedence or structural coupling,
+such as verb–argument binding or residual stream dependency.
+
+\subsubsection{Refuse (Principled Non-Action)}
+
+\begin{definition}[Refuse]
+A refuse event $e_{\text{refuse}}$ excludes futures not by feasibility
+but by constraint:
+\[
+\Omega' = \{ \omega \in \Omega : \omega \text{ violates rule } R \}.
+\]
+\end{definition}
+
+\paragraph{Causal interpretation.}
+Refuse corresponds to safety filters, norm enforcement, or learned
+inhibitory structure. Its defining feature is that the excluded futures
+remain technically reachable but are ruled out.
+
+\subsubsection{Collapse (Quotienting)}
+
+\begin{definition}[Collapse]
+A collapse event $e_{\text{collapse}}$ identifies an equivalence
+relation $\sim$ on $\Omega$ and replaces $\Omega$ with the quotient
+$\Omega/{\sim}$.
+\end{definition}
+
+\paragraph{Causal interpretation.}
+Collapse corresponds to abstraction, pooling, compression, and
+dimensionality reduction. Distinctions that no longer affect future
+action are erased.
+
+\subsection{Kernel Histories as Spherepop Programs}
+
+A Spherepop program is a finite sequence of event operators.
+
+\begin{definition}[Kernel History]
+A kernel history is a sequence:
+\[
+\Hist = (e_1, e_2, \ldots, e_k),
+\]
+where each $e_i$ is one of the four Spherepop operators.
+\end{definition}
+
+The induced option-space is:
+\[
+\Omega(\Hist) = e_k \circ \cdots \circ e_1 (\Omega_0).
+\]
+
+\begin{proposition}
+Every kernel history induces a unique admissibility structure on
+texture variables.
+\end{proposition}
+
+\begin{proof}
+Each event operator restricts or quotients the option-space, thereby
+restricting which texture assignments remain consistent. Composition
+preserves uniqueness.
+\end{proof}
+
+\subsection{Mapping to Typed Causal Graphs}
+
+We now formalize the correspondence used implicitly throughout the
+paper.
+
+\begin{theorem}[Spherepop–Causal Graph Correspondence]
+Every typed causal graph $(\Graph, \tau)$ induces a Spherepop program,
+and every Spherepop program induces an equivalence class of typed
+causal graphs under graph isomorphism.
+\end{theorem}
+
+\begin{proof}[Sketch]
+Event-nodes correspond to Spherepop operators acting on option-spaces.
+Texture-nodes correspond to coordinates within the resulting quotient
+space. Graph rewrites implement pop and bind; quotienting implements
+collapse; constraint edges implement refuse.
+\end{proof}
+
+\subsection{Mechanistic Interpretability as Spherepop}
+
+Finally, we formalize the meta-claim of the paper.
+
+\begin{proposition}[Interpretability as Event-History Construction]
+Mechanistic interpretability is the construction of a kernel history
+$\Hist^\ast$ such that:
+\begin{enumerate}
+\item $\Omega(\Hist^\ast)$ excludes all hypotheses inconsistent with
+observed interventions,
+\item For all tested interventions, $\Hist^\ast$ predicts outcomes
+correctly.
+\end{enumerate}
+\end{proposition}
+
+\paragraph{Interpretation.}
+Each successful experiment permanently excludes explanations. Failed
+hypotheses are popped; spurious distinctions are collapsed; necessary
+dependencies are bound.
+
+\subsection{Consequences}
+
+This axiomatization yields several immediate consequences:
+\begin{itemize}
+\item Mechanistic understanding is inherently irreversible.
+\item Explanation quality corresponds to option-space reduction.
+\item Two models are equivalent iff they induce the same kernel history
+up to admissible reparameterization.
+\end{itemize}
+
+\subsection{Summary}
+
+Spherepop provides a minimal, formal language for expressing the
+event-historical commitments implicit in causal mechanistic
+interpretability. Rather than adding metaphysics, it clarifies the
+structure already required to explain irreversibility, regime change,
+and substitution failure.
+
+In this sense, Spherepop is not an alternative to causal explanation,
+but its completion.
+
+\end{document} 

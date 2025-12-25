@@ -1,9 +1,10 @@
-
 # RAG Cognitive Stack — Repository
 
 This repository contains a production-ready scaffold implementing the five-persona
 RAG memory system (Archivist, Formalist, Synthesist, Strategist, Curator) plus
-routing, ontology tagging, benchmarks, UI, Dockerization, tests, and a LaTeX paper.
+routing, ontology tagging, benchmarks, UI, Dockerization, and tests.
+
+*New!*  Play [Stars 1995 — Event-Historical Explorer](https://standardgalactic.github.io/research-projects/space-explorer.html)
 
 **Contents**
 - `memory_routing_schema.json` — JSON Schema for memory routing records.

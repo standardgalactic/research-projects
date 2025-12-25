@@ -1,0 +1,609 @@
+\documentclass[11pt]{article}
+
+% --------------------------------------------------
+% Packages
+% --------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{csquotes}
+\usepackage{hyperref}
+\usepackage{booktabs}
+
+\geometry{margin=1in}
+\setstretch{1.15}
+
+% --------------------------------------------------
+% Theorem environments
+% --------------------------------------------------
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% --------------------------------------------------
+% Macros
+% --------------------------------------------------
+\newcommand{\doop}{\mathrm{do}}
+\newcommand{\Adm}{\mathrm{Adm}}
+\newcommand{\Hist}{\mathcal{H}}
+\newcommand{\Fut}{\mathcal{F}}
+\newcommand{\Val}{\mathsf{Val}}
+\newcommand{\Reg}{\mathsf{Reg}}
+\newcommand{\Tnode}{\mathbf{T}}
+\newcommand{\Enode}{\mathbf{E}}
+
+% --------------------------------------------------
+% Title
+% --------------------------------------------------
+\title{Causal Mediation, Event Structure, and Regime-Sensitive Mechanistic Interpretability}
+\author{Flyxion}
+\date{December 2025}
+
+\begin{document}
+\maketitle
+
+% ==================================================
+\section{Introduction}
+% ==================================================
+
+Mechanistic interpretability has increasingly converged on causal language as a means of moving beyond correlational inspection of neural network internals. Among the most influential tools adopted from the broader causal inference literature is \emph{causal mediation analysis}, a framework originally developed in domains such as medicine and the social sciences to decompose the effect of one variable on another into intermediate pathways.
+
+In parallel, recent work in mechanistic interpretability has introduced experimental paradigms such as causal tracing, activation restoration, and interchange interventions. These techniques are often presented as novel, model-specific inventions. However, when examined carefully, they instantiate classical causal ideas under conditions that strain purely state-based interpretations.
+
+This essay develops a minimal but rigorous extension of causal mediation analysis suitable for mechanistic interpretability. The extension introduces two typed classes of causal variables—\emph{texture-nodes} and \emph{event-nodes}—and shows how standard mediation, causal tracing, and abstraction can be unified within a single regime-sensitive causal framework.
+
+The goal is not to replace existing methods, but to make explicit the structural assumptions they already rely on.
+
+---
+
+% ==================================================
+\section{Causal Mediation Analysis}
+% ==================================================
+
+Causal mediation analysis addresses the following question: given a variable \(X\) that causally influences a variable \(Y\), through what intermediate variables does this influence flow?
+
+Let \(Z\) be a candidate mediator. The total effect of \(X\) on \(Y\) can be decomposed into:
+\begin{itemize}
+\item a \emph{direct effect}, which bypasses \(Z\);
+\item an \emph{indirect effect}, which flows through \(Z\).
+\end{itemize}
+
+Operationally, this decomposition is evaluated via counterfactual interventions. The direct effect is estimated by varying \(X\) while holding \(Z\) fixed to the value it would have taken under a reference condition. The indirect effect is estimated by holding \(X\) fixed while forcing \(Z\) to the value it would have taken under a different input.
+
+Importantly, causal mediation analysis is agnostic to the internal nature of \(Z\). It requires only that interventions be well-defined and that causal effects be measurable.
+
+---
+
+% ==================================================
+\section{Texture-Nodes}
+% ==================================================
+
+In mechanistic interpretability, internal components such as neurons, residual stream vectors, MLP activations, and attention head outputs are typically treated as mediators.
+
+\begin{definition}[Texture-Node]
+A \emph{texture-node} is a causal variable whose role is exhausted by the numerical value it carries at a given moment. Interventions on a texture-node substitute one value for another.
+\end{definition}
+
+Formally, if \(v\) is a texture-node, then:
+\[
+X_v \in \Val_v
+\]
+and an intervention has the form:
+\[
+\doop(X_v := x'), \quad x' \in \Val_v.
+\]
+
+Standard causal mediation experiments in language models—such as fixing a neuron to its value under one prompt while varying the prompt itself—are texture-node interventions.
+
+Texture-nodes correspond to parameter settings within a fixed generative pipeline. They alter surface realization without altering the structure of the computation itself.
+
+---
+
+% ==================================================
+\section{Causal Tracing and Its Limits}
+% ==================================================
+
+Causal tracing extends mediation analysis by introducing controlled corruption. A typical experiment proceeds by:
+\begin{enumerate}
+\item Adding noise to an input representation;
+\item Observing degradation of output behavior;
+\item Restoring internal components to their uncorrupted values;
+\item Measuring behavioral recovery.
+\end{enumerate}
+
+This method identifies which internal components are sufficient to mediate information flow from input to output.
+
+However, causal tracing implicitly assumes more than value substitution. Noise does not merely perturb values; it can disrupt the system's ability to recognize which computational regime it is operating in. Restoration sometimes recovers not only output accuracy but the entire structure of downstream information routing.
+
+This phenomenon cannot be fully explained by texture-node mediation alone.
+
+---
+
+% ==================================================
+\section{Event-Nodes}
+% ==================================================
+
+To account for regime sensitivity and irreversibility, we introduce a second class of causal variables.
+
+\begin{definition}[Event-Node]
+An \emph{event-node} is a causal variable whose value selects a generative regime, thereby constraining the space of admissible future states. Its causal role is not reducible to a numerical value.
+\end{definition}
+
+Formally, if \(e\) is an event-node, then:
+\[
+E_e \in \Reg_e,
+\]
+where \(\Reg_e\) is a discrete or structured set of regimes.
+
+An intervention on an event-node has the form:
+\[
+\doop(E_e := r), \quad r \in \Reg_e.
+\]
+
+Event-nodes alter not merely what the system computes, but what it \emph{can} compute thereafter.
+
+---
+
+% ==================================================
+\section{Admissible Futures and Irreversibility}
+% ==================================================
+
+Let \(\Hist_t\) denote the realized history up to time \(t\), and let \(\Fut_t\) denote the space of possible future continuations.
+
+\begin{definition}[Admissible Futures]
+The admissible futures map
+\[
+\Adm : \Hist_t \to \mathcal{P}(\Fut_t)
+\]
+assigns to each history the set of futures consistent with that history.
+\end{definition}
+
+\begin{definition}[Structural Irreversibility]
+An intervention is \emph{structurally irreversible} if it changes the admissible futures:
+\[
+\Adm(\Hist_t) \neq \Adm(\Hist_t[\doop(E_e := r)]).
+\]
+\end{definition}
+
+Texture-node interventions need not be structurally irreversible. Event-node interventions generally are.
+
+This distinction explains why some substitutions fail even when values match: the generator regime has changed.
+
+---
+
+% ==================================================
+\section{Generator Functions and Ratio Parameters}
+% ==================================================
+
+Texture-nodes often draw values from procedural generators. Let
+\[
+G_r(\theta)
+\]
+denote a generator selected by regime \(r\), with parameters \(\theta\).
+
+Ratios of parameters,
+\[
+\rho(\theta) = \left(\frac{\theta_i}{\theta_j}\right),
+\]
+function as vector-like features controlling surface variation.
+
+Crucially, the semantic meaning of \(\rho(\theta)\) depends on \(r\). Identical parameter ratios can produce incompatible structures under different generators. This explains why steering vectors are transferable only within shared regimes.
+
+---
+
+% ==================================================
+\section{Typed Causal Graphs}
+% ==================================================
+
+We model mechanistic systems as typed causal graphs.
+
+\begin{definition}[Typed Causal Graph]
+A typed causal graph consists of:
+\begin{itemize}
+\item a directed graph \(G=(V,E)\);
+\item a typing function \(\tau: V \to \{\Tnode, \Enode\}\);
+\item structural equations respecting node types.
+\end{itemize}
+\end{definition}
+
+Texture-node updates produce values. Event-node updates select regimes. Texture-node functions may depend on upstream event-nodes, reflecting generator selection.
+
+---
+
+% ==================================================
+\section{Causal Tracing Revisited}
+% ==================================================
+
+With event-nodes explicit, causal tracing decomposes into two independent tests:
+\begin{itemize}
+\item \emph{Behavioral mediation}: does restoring a component recover output?
+\item \emph{Structural mediation}: does restoring a component recover admissible futures?
+\end{itemize}
+
+Event-nodes are detected not by immediate accuracy recovery, but by restoration of coherent continuation behavior across probes.
+
+Blocks of components lighting up in tracing experiments correspond naturally to distributed realizations of event-nodes.
+
+---
+
+% ==================================================
+\section{Graph Rewrite Semantics}
+% ==================================================
+
+Event-nodes may be interpreted as rewrite triggers on the texture graph.
+
+A rewrite rule has the form:
+\[
+(s, r) \Rightarrow G_s^{(r)},
+\]
+where \(s\) is a rewrite site and \(r\) is a regime.
+
+Rewrites must preserve interface types. Event-nodes thus select which subgraph generates texture values, analogous to swapping procedural material graphs while preserving mesh connectivity.
+
+Interchange interventions succeed if and only if source and target share the same rewrite-normal form.
+
+---
+
+% ==================================================
+\section{Abstraction and Understanding}
+% ==================================================
+
+A causal abstraction is valid if it preserves:
+\begin{enumerate}
+\item texture-level interventional behavior;
+\item event-level irreversibility structure.
+\end{enumerate}
+
+Multiple abstractions may coexist at different granularities. Failure outside a regime delimits the abstraction’s domain rather than falsifying it outright.
+
+Understanding, in this framework, is the ability to reconstruct a simplified causal model that predicts both outputs and structural commitments under intervention.
+
+---
+
+% ==================================================
+\section{Conclusion}
+% ==================================================
+
+Causal mediation analysis remains the foundation of mechanistic interpretability. However, when applied to systems that dynamically select computational regimes, mediation over values alone is insufficient.
+
+By distinguishing texture-nodes from event-nodes, we obtain a minimal extension that:
+\begin{itemize}
+\item preserves classical causal rigor;
+\item explains irreversibility without information loss;
+\item clarifies substitution failure;
+\item unifies causal tracing and abstraction.
+\end{itemize}
+
+No new metaphysics is required. The framework simply makes explicit what existing experiments already presuppose: that some causes change values, while others change the space of possible futures.
+
+% ==================================================
+\section{Formal Relationship to Classical Structural Causal Models}
+% ==================================================
+
+Classical Structural Causal Models (SCMs) represent systems as collections of variables linked by structural equations and evaluated under interventions. The typed causal framework introduced here may be understood as a conservative extension of SCMs rather than a departure from them.
+
+In a standard SCM, all endogenous variables are treated uniformly. By contrast, the present framework refines the variable ontology into texture-nodes and event-nodes. This refinement does not alter the logic of interventions or counterfactual reasoning, but it restricts the interpretation of admissible interventions according to node type.
+
+Every texture-node corresponds directly to a standard SCM variable. Event-nodes may also be embedded in an SCM, but only if the SCM is augmented with explicit regime variables that parameterize entire families of structural equations. In this sense, event-nodes function analogously to \emph{context variables} or \emph{switch variables}, but with a crucial difference: event-nodes are allowed to permanently restrict future intervention spaces.
+
+Thus, the framework remains SCM-compatible while explaining why certain counterfactuals, though syntactically well-formed, are semantically ill-posed after particular interventions.
+
+---
+
+% ==================================================
+\section{Temporal Unrolling and Event Normal Forms}
+% ==================================================
+
+Although the discussion thus far has treated causal graphs abstractly, many mechanistic systems—including neural networks—are best understood via temporal unrolling.
+
+Let \(G_t\) denote the causal graph at time \(t\). Texture-nodes may vary freely across time steps, while event-nodes induce transitions between graph families:
+\[
+G_{t+1} = \mathcal{R}_{E_t}(G_t),
+\]
+where \(\mathcal{R}_{E_t}\) is a rewrite operator determined by the realized event-node configuration.
+
+\begin{definition}[Event Normal Form]
+A system is said to be in \emph{event normal form} if all event-node rewrites applicable up to time \(t\) have been applied, yielding a stabilized texture-graph.
+\end{definition}
+
+Event normal forms allow a precise criterion for interchange interventions:
+\begin{proposition}
+An interchange intervention between two runs is well-defined if and only if both runs share the same event normal form at the intervention time.
+\end{proposition}
+
+This formalizes the intuition that texture substitution requires regime compatibility. When event normal forms differ, substitution failure is not noise but a structural mismatch.
+
+---
+
+% ==================================================
+\section{Probabilistic Effects and Soft Regimes}
+% ==================================================
+
+Not all event-nodes need be discrete or sharply defined. In practice, some regime selections are probabilistic, gradual, or distributed across multiple components.
+
+To accommodate this, event-nodes may be generalized to \emph{soft regimes}, represented as distributions over generator families:
+\[
+E_e \in \Delta(\Reg_e),
+\]
+where \(\Delta(\Reg_e)\) denotes the probability simplex.
+
+Soft regimes explain why:
+\begin{itemize}
+\item some interventions degrade performance gradually rather than catastrophically;
+\item causal tracing produces broad, fuzzy regions rather than sharp points;
+\item models interpolate between heuristics rather than switching cleanly.
+\end{itemize}
+
+In this setting, irreversibility is expressed as contraction of the support of \(\Delta(\Reg_e)\). An event becomes irreversible when certain regimes are no longer assigned nonzero probability.
+
+---
+
+% ==================================================
+\section{Failure Modes Revisited}
+% ==================================================
+
+The typed framework allows a principled classification of failure modes observed in mechanistic interpretability experiments.
+
+\begin{itemize}
+\item \textbf{Texture failure}: value substitution does not recover output, indicating insufficient mediation.
+\item \textbf{Event mismatch}: value substitution produces incoherent or novel behavior due to incompatible regimes.
+\item \textbf{Event collapse}: interventions eliminate regimes required for coherent continuation.
+\item \textbf{Abstraction overreach}: an abstraction preserves texture correspondence but violates irreversibility structure.
+\end{itemize}
+
+These failure modes are empirically distinguishable via the dual metrics introduced earlier: output recovery and admissible-futures recovery. Importantly, they are not errors of experimentation, but signals about the system’s internal organization.
+
+---
+
+% ==================================================
+\section{Limits of Mechanistic Explanation}
+% ==================================================
+
+Even with event-nodes made explicit, the framework does not guarantee complete understanding of a system.
+
+First, causal abstractions are necessarily lossy. Event-nodes may summarize entire families of histories, obscuring fine-grained distinctions that matter at other levels.
+
+Second, some systems may exhibit \emph{non-terminating regime refinement}, in which new event distinctions emerge indefinitely under deeper probing. In such cases, mechanistic understanding remains local and provisional.
+
+Finally, the framework is descriptive rather than normative. It explains how systems operate, not whether their operation is aligned with external criteria or objectives.
+
+These limits are not defects. They reflect the inherent tradeoff between explanatory compression and descriptive completeness.
+
+---
+
+% ==================================================
+\section{Implications for Interpretability Practice}
+% ==================================================
+
+Making event-nodes explicit suggests several practical shifts in interpretability research:
+\begin{itemize}
+\item Restoration experiments should probe continuation structure, not only immediate outputs.
+\item Substitution failures should be analyzed as regime mismatches rather than dismissed.
+\item Blocks of components should be treated as candidate event realizations, not merely correlated features.
+\item Abstractions should be evaluated for temporal coherence, not just interventional accuracy.
+\end{itemize}
+
+These practices do not require new tools, only more careful interpretation of existing experiments.
+
+---
+
+% ==================================================
+\section{Closing Remarks}
+% ==================================================
+
+Causal mediation analysis provided mechanistic interpretability with its first principled foothold in causal science. The introduction of event-nodes completes that bridge by accounting for regime selection, irreversibility, and history-sensitive structure.
+
+The resulting framework remains minimal, conservative, and operational. It explains why current methods work when they do, why they fail when they fail, and how those failures can themselves be informative.
+
+In this sense, mechanistic interpretability does not merely inspect models—it reconstructs the space of futures they make possible.
+
+% ==================================================
+\section{Formal Results and Proofs}
+% ==================================================
+
+This section collects the formal results underlying the framework developed above.
+All proofs are constructive and rely only on the definitions already introduced.
+
+% --------------------------------------------------
+\subsection{Texture Interventions Preserve Admissible Futures}
+% --------------------------------------------------
+
+\begin{proposition}[Texture Interventions Are Structurally Reversible]
+Let \(v\) be a texture-node. For any history \(\Hist_t\) and any admissible texture intervention
+\[
+\doop(X_v := x'),
+\]
+the admissible futures are preserved:
+\[
+\Adm(\Hist_t) = \Adm(\Hist_t[\doop(X_v := x')]).
+\]
+\end{proposition}
+
+\begin{proof}
+By definition, a texture-node intervention substitutes a value within a fixed generative regime.
+The structural equations governing regime selection are unchanged, and no rewrite rules are triggered.
+
+Thus, for any continuation \(f \in \Fut_t\), the same continuation remains reachable under value substitution.
+Only realized outputs differ, not the set of possible continuations.
+\end{proof}
+
+\begin{remark}
+This formalizes the intuition that steering vectors, activation patching, and neuron substitution
+do not commit the system to new long-term structures.
+\end{remark}
+
+---
+
+% --------------------------------------------------
+\subsection{Event Interventions Restrict Futures}
+% --------------------------------------------------
+
+\begin{proposition}[Event Interventions Are Structurally Irreversible]
+Let \(e\) be an event-node. There exist regimes \(r,r' \in \Reg_e\) such that
+\[
+\Adm(\Hist_t) \neq \Adm(\Hist_t[\doop(E_e := r')]).
+\]
+\end{proposition}
+
+\begin{proof}
+Event-nodes trigger rewrite rules that alter the generator subgraph used to produce texture values.
+These rewrites modify which downstream computations are well-defined.
+
+By construction of the admissible futures map, any rewrite that removes or replaces generator families
+eliminates entire classes of continuations.
+No sequence of texture-node interventions can reintroduce generators that have been structurally removed.
+
+Therefore, admissible futures differ, establishing irreversibility.
+\end{proof}
+
+---
+
+% --------------------------------------------------
+\subsection{Event Normal Form and Interchange Validity}
+% --------------------------------------------------
+
+\begin{theorem}[Event-Normal-Form Criterion for Interchange]
+Let two executions \(\Hist_t^{(1)}\) and \(\Hist_t^{(2)}\) reach time \(t\).
+An interchange intervention substituting texture values from one run into the other
+is well-defined if and only if
+\[
+\text{ENF}(\Hist_t^{(1)}) = \text{ENF}(\Hist_t^{(2)}),
+\]
+where \(\text{ENF}\) denotes event normal form.
+\end{theorem}
+
+\begin{proof}
+(\(\Rightarrow\))  
+If interchange succeeds, substituted values are interpreted coherently.
+This requires identical generator graphs at the substitution site.
+Thus, all rewrite rules induced by event-nodes must have been applied identically,
+yielding the same event normal form.
+
+(\(\Leftarrow\))  
+If event normal forms coincide, the texture graphs share identical interfaces and generators.
+Type safety guarantees that texture substitution preserves semantics.
+Hence interchange is well-defined.
+\end{proof}
+
+\begin{remark}
+This explains why many empirical interchange failures are systematic rather than noisy.
+\end{remark}
+
+---
+
+% --------------------------------------------------
+\subsection{Why Causal Tracing Highlights Blocks}
+% --------------------------------------------------
+
+\begin{lemma}[Distributed Realization of Event-Nodes]
+An event-node may be realized as a connected subgraph of texture-nodes
+whose collective state determines regime selection.
+\end{lemma}
+
+\begin{proof}
+Event-nodes are abstract causal variables.
+Their physical realization need not be localized.
+Any collection of texture-nodes whose joint configuration determines which rewrite rules fire
+constitutes a realization of the same event-node.
+
+Thus, restoring any proper subset of the realizing block is insufficient,
+while restoring the block as a whole recovers the regime.
+\end{proof}
+
+\begin{corollary}
+Causal tracing highlights contiguous blocks of components
+because it is detecting realizations of event-nodes rather than individual mediators.
+\end{corollary}
+
+---
+
+% --------------------------------------------------
+\subsection{Partial Mediation and Soft Regimes}
+% --------------------------------------------------
+
+\begin{proposition}[Gradual Degradation Implies Soft Event-Nodes]
+If restoring texture-nodes yields a smooth increase in output probability
+rather than a discrete jump, then the corresponding event-node
+is probabilistic (soft).
+\end{proposition}
+
+\begin{proof}
+Discrete event-nodes induce sharp regime switches.
+Smooth behavioral changes imply interpolation between generator families.
+This requires that the regime variable be represented as a distribution
+over generators rather than a single choice.
+
+Therefore, gradual degradation signals a soft event-node.
+\end{proof}
+
+---
+
+% --------------------------------------------------
+\subsection{Validity of Causal Abstractions}
+% --------------------------------------------------
+
+\begin{theorem}[Abstraction Validity Criterion]
+A causal abstraction \(A\) of a system \(M\) is valid if and only if:
+\begin{enumerate}
+\item For all texture-node interventions, \(A\) and \(M\) are interventional equivalent.
+\item For all event-node interventions, \(A\) preserves the same irreversibility structure.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Necessity follows from definition: violating either condition produces divergent counterfactuals.
+
+For sufficiency, condition (1) ensures behavioral equivalence,
+while condition (2) ensures identical admissible futures.
+Together, these guarantee equivalence under all well-typed interventions.
+\end{proof}
+
+---
+
+% --------------------------------------------------
+\subsection{Limits of Reconstruction}
+% --------------------------------------------------
+
+\begin{proposition}[Non-Uniqueness of Event Decompositions]
+There may exist multiple, non-isomorphic event-node decompositions
+that yield identical observable causal behavior.
+\end{proposition}
+
+\begin{proof}
+Event-nodes are abstractions over histories.
+Different partitions of histories into regime classes may induce the same rewrite behavior.
+As long as admissible futures and texture mappings coincide, the decompositions are observationally equivalent.
+\end{proof}
+
+\begin{remark}
+This establishes that mechanistic understanding is inherently non-unique,
+even when causally correct.
+\end{remark}
+
+---
+
+% --------------------------------------------------
+\subsection{Summary of Formal Results}
+% --------------------------------------------------
+
+The results above establish that:
+\begin{itemize}
+\item texture interventions are reversible,
+\item event interventions restrict futures,
+\item interchange requires regime alignment,
+\item causal tracing detects event realizations,
+\item abstractions must preserve irreversibility,
+\item and full reconstruction is not unique.
+\end{itemize}
+
+Together, these results justify the typed causal framework
+as a minimal and sufficient extension of classical causal mediation analysis.
+
+\end{document}

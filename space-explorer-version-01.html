@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stars 1995 — Event-Historical Space Explorer</title>
+  <style>
+    html, body { margin:0; height:100%; overflow:hidden; background:#000; }
+    #hud {
+      position: fixed; left: 10px; top: 10px; color: #8f8;
+      font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      text-shadow: 0 0 6px rgba(0,255,0,.35);
+      user-select: none;
+      max-width: 520px;
+      background: rgba(0,0,0,0.25);
+      padding: 10px 12px;
+      border: 1px solid rgba(0,255,0,0.22);
+      border-radius: 10px;
+      backdrop-filter: blur(2px);
+    }
+    #hud b { color:#bfb; }
+    #hud .dim { color: rgba(180,255,180,.75); }
+    #reticle {
+      position: fixed; inset: 0; pointer-events:none;
+      display:flex; align-items:center; justify-content:center;
+      color:#8f8; opacity:.8;
+      text-shadow: 0 0 10px rgba(0,255,0,.35);
+      font: 16px ui-monospace, monospace;
+    }
+    #reticle::before { content:"+"; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div><b>Stars 1995</b> — event-historical navigation (no teleporting, only accumulated transforms)</div>
+    <div class="dim">W/S: thrust · A/D: strafe · Q/E: up/down · Arrow keys / Mouse: look · Shift: boost · Space: brake</div>
+    <div class="dim">F: toggle “index labels” (metonymy layer) · C: toggle “cluster hulls” (synecdoche layer)</div>
+    <div style="margin-top:8px" id="stats"></div>
+  </div>
+  <div id="reticle"></div>
+
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+    // ------------------------------------------------------------
+    // Scene / Camera / Renderer
+    // ------------------------------------------------------------
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x000000, 0.00012);
+
+    const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 200000);
+    camera.position.set(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 1);
+    document.body.appendChild(renderer.domElement);
+
+    // ------------------------------------------------------------
+    // "Ship" transform (event-history state)
+    // We treat motion as an accumulated irreversible history:
+    // state_{t+1} = state_t ∘ event_t
+    // ------------------------------------------------------------
+    const ship = new THREE.Object3D();
+    ship.add(camera);
+    scene.add(ship);
+
+    // ------------------------------------------------------------
+    // Stars: points + per-star "index labels" (metonymy)
+    // ------------------------------------------------------------
+    const STAR_COUNT = 45000;
+    const SPACE_RADIUS = 60000;  // initial cloud radius
+
+    const positions = new Float32Array(STAR_COUNT * 3);
+    const colors = new Float32Array(STAR_COUNT * 3);
+    const sizes = new Float32Array(STAR_COUNT);
+
+    // Simple seeded RNG (stable feel)
+    let seed = 1337;
+    function rand() {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    }
+
+    function randomInSphere(radius) {
+      // rejection sampling
+      for (;;) {
+        const x = (rand() * 2 - 1) * radius;
+        const y = (rand() * 2 - 1) * radius;
+        const z = (rand() * 2 - 1) * radius;
+        if (x*x + y*y + z*z <= radius*radius) return {x,y,z};
+      }
+    }
+
+    // Color palette: mostly greenish/white, occasional warm stars
+    function starColor() {
+      const t = rand();
+      if (t < 0.75) return { r: 0.70 + 0.30*rand(), g: 0.85 + 0.15*rand(), b: 0.70 + 0.30*rand() }; // pale green-white
+      if (t < 0.90) return { r: 0.85 + 0.15*rand(), g: 0.80 + 0.20*rand(), b: 0.70 + 0.30*rand() }; // warm
+      return { r: 0.70 + 0.30*rand(), g: 0.75 + 0.25*rand(), b: 0.90 + 0.10*rand() }; // bluish
+    }
+
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const p = randomInSphere(SPACE_RADIUS);
+      positions[i*3+0] = p.x;
+      positions[i*3+1] = p.y;
+      positions[i*3+2] = p.z;
+
+      const c = starColor();
+      colors[i*3+0] = c.r;
+      colors[i*3+1] = c.g;
+      colors[i*3+2] = c.b;
+
+      sizes[i] = 0.6 + rand() * 1.8;
+    }
+
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    geom.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
+
+    // Custom shader for crisp retro points with mild glow
+    const starMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      vertexColors: true,
+      uniforms: {
+        uPixelRatio: { value: renderer.getPixelRatio() },
+        uSizeScale: { value: 1.0 },
+      },
+      vertexShader: `
+        attribute float size;
+        varying vec3 vColor;
+        uniform float uPixelRatio;
+        uniform float uSizeScale;
+
+        void main() {
+          vColor = color;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          // Make points shrink with distance but keep a retro readable floor
+          float dist = max(1.0, -mvPosition.z);
+          float s = size * uSizeScale * uPixelRatio * (120.0 / dist);
+          gl_PointSize = clamp(s, 1.0, 6.0);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+        void main() {
+          // circular point
+          vec2 uv = gl_PointCoord.xy - vec2(0.5);
+          float d = length(uv);
+          float core = smoothstep(0.35, 0.0, d);
+          float glow = smoothstep(0.6, 0.1, d) * 0.35;
+          float a = core + glow;
+          gl_FragColor = vec4(vColor, a);
+        }
+      `,
+    });
+
+    const stars = new THREE.Points(geom, starMat);
+    scene.add(stars);
+
+    // ------------------------------------------------------------
+    // Synecdoche layer: clusters (part->whole) as translucent hull-spheres
+    // ------------------------------------------------------------
+    const clusterGroup = new THREE.Group();
+    scene.add(clusterGroup);
+
+    const CLUSTER_COUNT = 18;
+    const clusters = [];
+    for (let k = 0; k < CLUSTER_COUNT; k++) {
+      const center = randomInSphere(SPACE_RADIUS * 0.75);
+      const radius = 1800 + rand()*5200;
+
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 18, 18),
+        new THREE.MeshBasicMaterial({
+          color: 0x00ff66,
+          transparent: true,
+          opacity: 0.05,
+          wireframe: true
+        })
+      );
+      mesh.position.set(center.x, center.y, center.z);
+      mesh.scale.set(radius, radius, radius);
+      clusterGroup.add(mesh);
+
+      clusters.push({ center: new THREE.Vector3(center.x, center.y, center.z), radius, mesh });
+    }
+
+    // ------------------------------------------------------------
+    // Metonymy layer: index labels for a few "named" stars
+    // (cheap: HTML overlay list rather than 3D text)
+    // ------------------------------------------------------------
+    const labelData = [];
+    const NAMED = 24;
+    for (let j = 0; j < NAMED; j++) {
+      const idx = Math.floor(rand() * STAR_COUNT);
+      const name = `IDX-${String(j+1).padStart(2,"0")}.${String(idx).slice(0,4)}`;
+      const pos = new THREE.Vector3(
+        positions[idx*3+0], positions[idx*3+1], positions[idx*3+2]
+      );
+      labelData.push({ idx, name, pos });
+    }
+
+    let showLabels = true;
+    let showClusters = true;
+
+    // ------------------------------------------------------------
+    // Controls: “ship” 6DOF-ish with inertia (retro-ish)
+    // ------------------------------------------------------------
+    const keys = new Set();
+    addEventListener("keydown", (e) => {
+      keys.add(e.code);
+      if (e.code === "KeyF") showLabels = !showLabels;
+      if (e.code === "KeyC") {
+        showClusters = !showClusters;
+        clusterGroup.visible = showClusters;
+      }
+    });
+    addEventListener("keyup", (e) => keys.delete(e.code));
+
+    // Mouse look (click to lock pointer)
+    let pointerLocked = false;
+    renderer.domElement.addEventListener("click", () => {
+      renderer.domElement.requestPointerLock?.();
+    });
+    document.addEventListener("pointerlockchange", () => {
+      pointerLocked = document.pointerLockElement === renderer.domElement;
+    });
+
+    let yaw = 0, pitch = 0;
+    const lookSpeed = 0.0022;
+    document.addEventListener("mousemove", (e) => {
+      if (!pointerLocked) return;
+      yaw   -= e.movementX * lookSpeed;
+      pitch -= e.movementY * lookSpeed;
+      pitch = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
+    });
+
+    // Velocity / inertia (history accumulation)
+    const vel = new THREE.Vector3();
+    let speed = 0;
+    const statsEl = document.getElementById("stats");
+
+    function forwardVector() {
+      const v = new THREE.Vector3(0, 0, -1);
+      v.applyQuaternion(ship.quaternion);
+      return v;
+    }
+    function rightVector() {
+      const v = new THREE.Vector3(1, 0, 0);
+      v.applyQuaternion(ship.quaternion);
+      return v;
+    }
+    function upVector() {
+      const v = new THREE.Vector3(0, 1, 0);
+      v.applyQuaternion(ship.quaternion);
+      return v;
+    }
+
+    // ------------------------------------------------------------
+    // "World wrapping" illusion: keep starfield near the ship by recentering
+    // (stars are an indexical skin; your history is in ship transform)
+    // ------------------------------------------------------------
+    function recenterIfFar() {
+      const p = ship.position;
+      const d = p.length();
+      if (d < 25000) return;
+
+      // Shift everything opposite your drift, preserving relative configuration.
+      const shift = p.clone();
+      ship.position.set(0,0,0);
+
+      // Shift stars + clusters (cheap; avoids float precision issues far away)
+      stars.position.sub(shift);
+      clusterGroup.position.sub(shift);
+
+      // Also shift label positions (stored in world coords)
+      for (const L of labelData) L.pos.sub(shift);
+    }
+
+    // ------------------------------------------------------------
+    // Animation loop
+    // ------------------------------------------------------------
+    let last = performance.now();
+    function tick(now) {
+      const dt = Math.min(0.04, (now - last) / 1000);
+      last = now;
+
+      // Apply orientation from mouse + arrow keys
+      const arrowYaw = (keys.has("ArrowLeft") ? 1 : 0) - (keys.has("ArrowRight") ? 1 : 0);
+      const arrowPitch = (keys.has("ArrowUp") ? 1 : 0) - (keys.has("ArrowDown") ? 1 : 0);
+      yaw += arrowYaw * dt * 1.4;
+      pitch += arrowPitch * dt * 1.1;
+      pitch = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
+
+      ship.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, "YXZ"));
+
+      // Thrust controls
+      const boost = keys.has("ShiftLeft") || keys.has("ShiftRight");
+      const thrust = (keys.has("KeyW") ? 1 : 0) - (keys.has("KeyS") ? 1 : 0);
+      const strafe = (keys.has("KeyD") ? 1 : 0) - (keys.has("KeyA") ? 1 : 0);
+      const lift   = (keys.has("KeyE") ? 1 : 0) - (keys.has("KeyQ") ? 1 : 0);
+
+      const accel = (boost ? 180 : 85);
+      const brake = keys.has("Space");
+
+      // Inertial integration (event-historical)
+      const a = new THREE.Vector3();
+      a.add(forwardVector().multiplyScalar(thrust * accel));
+      a.add(rightVector().multiplyScalar(strafe * accel));
+      a.add(upVector().multiplyScalar(lift * accel));
+
+      vel.add(a.multiplyScalar(dt));
+
+      // Damping / brake
+      const damp = brake ? 0.30 : 0.985;
+      vel.multiplyScalar(Math.pow(damp, dt * 60));
+
+      // Cap velocity for comfort
+      const maxV = boost ? 1800 : 900;
+      if (vel.length() > maxV) vel.setLength(maxV);
+
+      ship.position.addScaledVector(vel, dt);
+      speed = vel.length();
+
+      recenterIfFar();
+
+      // HUD stats + metonymic label readout
+      const pos = ship.position; // always near origin because recentering
+      let nearest = null;
+      let nearestD = Infinity;
+
+      // Find nearest named index (cheap: only NAMED stars)
+      for (const L of labelData) {
+        const d = L.pos.distanceTo(stars.position.clone().add(ship.position)); // ship local to recentered world
+        if (d < nearestD) { nearestD = d; nearest = L; }
+      }
+
+      // Cluster membership (synecdoche)
+      let inside = 0;
+      const shipWorld = ship.position.clone().add(stars.position); // approximate world in recentered coords
+      for (const c of clusters) {
+        if (shipWorld.distanceTo(c.center) < c.radius) inside++;
+      }
+
+      statsEl.innerHTML =
+        `speed: <b>${speed.toFixed(1)}</b> u/s<br>` +
+        `drift: <span class="dim">${vel.x.toFixed(1)}, ${vel.y.toFixed(1)}, ${vel.z.toFixed(1)}</span><br>` +
+        `metonymy: ${showLabels ? `<b>ON</b>` : `OFF`} · synecdoche: ${showClusters ? `<b>ON</b>` : `OFF`}<br>` +
+        `nearest index: <b>${nearest ? nearest.name : "—"}</b> at ${nearest ? nearestD.toFixed(0) : "—"} u<br>` +
+        `cluster overlap: <b>${inside}</b>`;
+
+      // Render
+      renderer.render(scene, camera);
+
+      // Labels: show only a few nearest to reticle as text in HUD (metonymy overlay)
+      // (Keeps it very 1995 and avoids heavy text rendering.)
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    // Resize
+    addEventListener("resize", () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+      starMat.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+    });
+
+    // Toggle cluster visibility initial
+    clusterGroup.visible = showClusters;
+  </script>
+</body>
+</html>
+

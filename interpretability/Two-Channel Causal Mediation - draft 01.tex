@@ -1,0 +1,174 @@
+\documentclass[11pt]{article}
+
+% --------------------------------------------------
+% Packages
+% --------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{csquotes}
+\usepackage{hyperref}
+\usepackage{booktabs}
+
+\geometry{margin=1in}
+\setstretch{1.15}
+
+% --------------------------------------------------
+% Theorem environments
+% --------------------------------------------------
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+% --------------------------------------------------
+% Macros
+% --------------------------------------------------
+\newcommand{\doop}{\mathrm{do}}
+\newcommand{\Adm}{\mathcal{A}}
+\newcommand{\Hist}{\mathcal{H}}
+
+% --------------------------------------------------
+% Title
+% --------------------------------------------------
+\title{Two-Channel Causal Mediation:\\
+Event-Nodes, Texture-Nodes, and Irreversibility in Mechanistic Interpretability}
+\author{Flyxion}
+\date{December 2025}
+
+\begin{document}
+\maketitle
+
+% ==================================================
+\begin{abstract}
+% ==================================================
+Causal mediation analysis has become a central methodological tool in mechanistic interpretability, enabling researchers to decompose the effect of inputs on model outputs through internal components such as neurons, vectors, and attention heads. However, existing applications implicitly assume that all mediators are value-carrying variables whose causal role is exhausted by their instantaneous state. In this essay, we formalize a minimal extension of the causal mediation framework by distinguishing two irreducible classes of internal variables: \emph{texture-nodes}, which carry values, and \emph{event-nodes}, which encode regime selections and irreversible structural commitments. We show that standard causal tracing techniques primarily measure texture mediation, while implicitly probing event mediation without explicitly modeling it. To resolve this mismatch, we introduce a typed causal graph formalism, event-triggered graph rewrites, and a two-channel mediation theorem that decomposes both behavioral effects and structural effects on admissible futures. This framework clarifies substitution failures, regime shifts, and irreversibility in neural systems, while remaining fully compatible with existing causal–mechanistic practice.
+\end{abstract}
+
+\tableofcontents
+
+% ==================================================
+\section{Introduction}
+% ==================================================
+
+Mechanistic interpretability seeks to explain the behavior of neural networks by identifying the internal mechanisms that causally produce their outputs. In recent years, causal concepts—interventions, counterfactuals, and mediation—have increasingly structured this effort. Among these, causal mediation analysis provides a principled language for decomposing the total effect of an input on an output into contributions carried by intermediate variables.
+
+Despite its success, current applications of causal mediation in neural networks tacitly assume that all mediators are of a single kind: variables whose explanatory role is exhausted by the numerical value they take at a moment in time. This assumption is rarely stated, yet it governs how interventions are designed, how restoration experiments are interpreted, and how causal abstractions are validated.
+
+This essay argues that this assumption is incomplete. Certain internal components of neural systems do not merely carry values; they encode \emph{structural commitments} that constrain which future computations remain possible. These commitments introduce irreversibility, regime selection, and substitution asymmetries that cannot be explained by value mediation alone.
+
+We propose a minimal extension of causal mediation analysis that makes this distinction explicit.
+
+% ==================================================
+\section{Causal Mediation Analysis}
+% ==================================================
+
+Causal mediation analysis originates in statistics and medicine, where it is used to decompose the effect of a treatment variable $X$ on an outcome $Y$ through an intermediate mediator $Z$. The total effect of $X$ on $Y$ is decomposed into a direct effect and an indirect effect flowing through $Z$.
+
+In the context of neural networks, $X$ typically denotes an input (such as a prompt), $Y$ an output (such as a token distribution), and $Z$ an internal component (a neuron, activation vector, or attention head). Interventions are performed by fixing $Z$ to values it would have taken under alternative inputs, yielding counterfactual measurements of mediation.
+
+This framework is agnostic to the internal semantics of $Z$. It treats all mediators as value-bearing variables whose causal influence is evaluated via substitution.
+
+% ==================================================
+\section{Causal Tracing in Neural Networks}
+% ==================================================
+
+Causal tracing adapts mediation analysis to deep networks by introducing controlled corruption and restoration experiments. A typical procedure involves adding noise to an input representation, observing the degradation of output behavior, and selectively restoring internal components to their clean values.
+
+Empirically, such experiments reveal structured pathways of mediation: early components retrieve information, later components route it, and specific blocks suffice to recover correct behavior. These findings are often described in terms of information flow.
+
+However, causal tracing already exceeds a purely value-based ontology. Noise does not merely perturb values; it can disrupt the regime under which downstream computations are interpreted. Restoration can recover not only output accuracy, but also coherence, consistency, and the space of admissible continuations.
+
+This motivates a refinement of the causal model.
+
+% ==================================================
+\section{Texture-Nodes and Event-Nodes}
+% ==================================================
+
+\begin{definition}[Texture-Node]
+A \emph{texture-node} is a causal variable whose role is exhausted by the value it carries at a given time. Interventions on texture-nodes are value substitutions.
+\end{definition}
+
+\begin{definition}[Event-Node]
+An \emph{event-node} is a causal variable whose role is to select or record a structural regime that constrains future admissible states. Interventions on event-nodes alter which computations remain possible.
+\end{definition}
+
+Texture-nodes correspond to activations, residual stream values, and steering vectors. Event-nodes correspond to regime selections, generator choices, gating commitments, or algorithmic branches.
+
+An intuitive analogy is provided by procedural graphics: texture parameters modulate surface appearance, while selecting a different material or noise generator changes the entire space of possible textures.
+
+% ==================================================
+\section{Typed Causal Graphs and Rewrites}
+% ==================================================
+
+We model neural mechanisms as typed causal graphs in which each node is assigned type $\mathbf{T}$ (texture) or $\mathbf{E}$ (event). Texture updates compute values; event updates select regimes.
+
+Event-nodes may trigger \emph{graph rewrite rules} that replace subgraphs of the texture computation with alternative generators, provided interface types are preserved. These rewrites formalize regime switching while maintaining compositional structure.
+
+Irreversibility arises when an event-node intervention restricts the set of reachable futures in a way that cannot be undone by later value substitutions.
+
+% ==================================================
+\section{Two Channels of Causal Mediation}
+% ==================================================
+
+With this distinction in place, mediation decomposes along two independent channels:
+
+\begin{itemize}
+\item \textbf{Texture mediation}: how value substitutions transmit effects.
+\item \textbf{Event mediation}: how regime selections transmit effects by constraining futures.
+\end{itemize}
+
+Behavioral outputs depend on both channels. Structural properties—such as which continuations remain coherent or permissible—depend primarily on event mediation.
+
+% ==================================================
+\section{The Two-Channel Mediation Theorem}
+% ==================================================
+
+\begin{theorem}[Two-Channel Mediation]
+Let a system admit texture variables $T$, event variables $E$, output $Y$, and admissible futures $\Adm$. Then the total effect of an input intervention decomposes into texture-mediated and event-mediated components for both $Y$ and $\Adm$.
+
+Moreover:
+\begin{enumerate}
+\item If the intervention leaves $E$ invariant, event mediation vanishes and texture mediation suffices.
+\item Texture mediation does not, in general, imply event mediation.
+\item If event state is identifiable from a restored texture interface, texture restoration forces event restoration.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}[Sketch]
+The result follows from a telescoping decomposition of nested counterfactuals in a typed structural causal model. Counterexamples demonstrate non-implication, while identifiability yields sufficiency.
+\end{proof}
+
+This theorem explains why causal tracing can recover correct outputs while leaving the system in an altered regime, and why substitution sometimes fails despite value alignment.
+
+% ==================================================
+\section{Implications for Mechanistic Interpretability}
+% ==================================================
+
+The distinction between texture-nodes and event-nodes clarifies several empirical phenomena:
+
+\begin{itemize}
+\item Why mediation often appears block-structured rather than localized.
+\item Why multiple abstractions can be simultaneously valid.
+\item Why regime shifts appear as heuristic mixtures or strategy changes.
+\item Why irreversibility arises without information loss.
+\end{itemize}
+
+Importantly, no existing causal–mechanistic technique is invalidated. Rather, their scope is made explicit.
+
+% ==================================================
+\section{Conclusion}
+% ==================================================
+
+Causal mediation analysis provides a powerful lens for mechanistic interpretability, but its standard formulation implicitly assumes a single class of mediators. By distinguishing texture-nodes from event-nodes, we obtain a minimal extension that accounts for regime selection, irreversibility, and structural commitment without abandoning causal rigor.
+
+This two-channel view reframes causal tracing as a method that already probes event structure, albeit indirectly. Making this structure explicit enables clearer explanations, sharper abstractions, and principled diagnostics of substitution failure and collapse.
+
+The result is not a new metaphysics, but a more accurate causal vocabulary for systems whose behavior is shaped as much by irreversible events as by transient values.
+
+\end{document}

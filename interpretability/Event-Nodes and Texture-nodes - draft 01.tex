@@ -1,0 +1,280 @@
+\documentclass[11pt]{article}
+
+% --------------------------------------------------
+% Packages
+% --------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{csquotes}
+\usepackage{hyperref}
+
+\geometry{margin=1in}
+\setstretch{1.15}
+
+% --------------------------------------------------
+% Theorem Environments
+% --------------------------------------------------
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+% --------------------------------------------------
+% Macros
+% --------------------------------------------------
+\newcommand{\Fut}{\mathcal{F}}
+\newcommand{\State}{\Sigma}
+\newcommand{\Event}{\mathcal{E}}
+\newcommand{\Gen}{\mathcal{G}}
+
+% --------------------------------------------------
+% Title
+% --------------------------------------------------
+\title{Event-Nodes and Texture-Nodes:\\
+Extending Causal Mechanistic Interpretability with Event-Historical Structure}
+\author{Flyxion}
+\date{December 2025}
+
+\begin{document}
+\maketitle
+
+% ==================================================
+\begin{abstract}
+% ==================================================
+
+Recent work in mechanistic interpretability has advanced a rigorously causal
+framework for understanding neural networks by treating internal components as
+variables within an interventional causal model. While this paradigm succeeds
+in distinguishing correlation from mechanism and enables algorithmic
+abstraction via counterfactual testing, it remains implicitly state-centric and
+only weakly sensitive to irreversibility and history.
+
+This essay introduces a minimal extension to the causal--mechanistic framework
+by distinguishing two types of causal nodes: \emph{texture-nodes}, which carry
+instantaneous values and are exhaustively characterized by value substitution,
+and \emph{event-nodes}, which record irreversible structural commitments that
+constrain the space of future admissible states. Using a procedural generation
+analogy, texture-nodes correspond to parameter values of a generator, while
+event-nodes correspond to the selection of the generator itself.
+
+We show that this distinction preserves the full rigor of causal abstraction
+while explaining substitution failure, semantic incompatibility, algorithmic
+mixtures, and structural irreversibility without invoking metaphysical
+assumptions. Mechanistic understanding is reframed as the reconstruction of both
+value-level mediation and event-level constraint structure under intervention.
+
+\end{abstract}
+
+\tableofcontents
+
+% ==================================================
+\section{Introduction}
+% ==================================================
+
+Mechanistic interpretability seeks to answer a precise question: what internal
+structures of a neural network are responsible for its behavior, and in what
+sense? A purely observational approach—examining activations, attention maps,
+or weight magnitudes—fails to answer this question, as correlation alone cannot
+establish causal responsibility.
+
+Recent work has therefore adopted a causal paradigm, treating neural networks
+as systems amenable to intervention, counterfactual reasoning, and algorithmic
+abstraction. Under this view, understanding a model mechanistically requires
+identifying internal components whose manipulation predictably alters behavior
+in ways consistent with a hypothesized computation.
+
+However, this paradigm remains implicitly committed to a state-based ontology:
+interventions act on instantaneous variable values, and history matters only
+insofar as it affects present behavior. This essay argues that such a framework
+is incomplete. Certain causal phenomena—irreversibility, commitment,
+substitution failure, and algorithmic regime shifts—cannot be fully explained
+without treating events themselves as first-class causal objects.
+
+We propose a minimal extension: a typed causal graph distinguishing
+\emph{texture-nodes} from \emph{event-nodes}.
+
+% ==================================================
+\section{Causal Mechanistic Interpretability}
+% ==================================================
+
+In the narrow technical sense, mechanistic interpretability is defined by causal
+explanatory adequacy. A component is mechanistically relevant if intervening on
+it changes model behavior in a systematic and predictable way.
+
+Interventions are typically implemented as value substitutions: fixing an
+internal activation to a value it would not naturally assume, or replacing it
+with the value observed under a different input. Counterfactual success is
+measured by alignment between low-level interventions and high-level algorithmic
+predictions.
+
+This methodology supports \emph{causal abstraction}: if interventions on
+low-level variables produce the same counterfactual outcomes as interventions
+on a high-level algorithm, the algorithm is considered an abstraction of the
+network.
+
+Despite its power, this framework leaves open questions concerning history,
+irreversibility, and the conditions under which substitution itself is well
+defined.
+
+% ==================================================
+\section{Texture-Nodes: Value-Carrying Variables}
+% ==================================================
+
+\begin{definition}[Texture-Node]
+A \emph{texture-node} is a causal variable whose role is exhaustively determined
+by the value it instantiates at a given time.
+\end{definition}
+
+Formally, a texture-node corresponds to a variable \( x_t \in \State \), where
+causal influence is evaluated by substituting \( x_t \mapsto x_t' \) and
+observing downstream effects.
+
+Texture-nodes include neurons, attention heads, MLP activations, and linear
+directions used in activation steering. Their causal relevance is established
+through value-level interventions and mediation analysis.
+
+Texture-nodes admit reversible manipulation: if the original value can be
+restored, the system returns to its prior functional state.
+
+% ==================================================
+\section{Event-Nodes: Constraint-Carrying Commitments}
+% ==================================================
+
+\begin{definition}[Event-Node]
+An \emph{event-node} is a causal variable whose role is not reducible to an
+instantaneous value, but consists in imposing a structural constraint on the
+space of admissible future states.
+\end{definition}
+
+An event-node induces a transformation
+\[
+\Fut_{t+1} \subseteq \Fut_t,
+\]
+where \( \Fut_t \) denotes the set of reachable futures from time \( t \).
+
+Unlike texture-nodes, event-nodes are not exhaustively characterized by value
+substitution. Their causal influence is evaluated by changes in what the system
+can or cannot subsequently do.
+
+Event-nodes are generally irreversible: no sequence of later texture-node
+interventions can restore the original future space once a structural
+commitment has been made.
+
+% ==================================================
+\section{Generator Functions and Procedural Structure}
+% ==================================================
+
+The distinction between event-nodes and texture-nodes can be clarified through a
+procedural generation analogy.
+
+Let \( \Gen \) be a family of generator functions, each parameterized by a vector
+\( \theta \in \mathbb{R}^n \). A generator \( G \in \Gen \) defines a family of
+outputs
+\[
+y = G(\theta).
+\]
+
+Texture-nodes correspond to the parameters \( \theta \) or to ratios
+\( \theta_i / \theta_j \), which function as vector-like directions in parameter
+space. Adjusting these values modifies surface appearance without changing the
+generative regime.
+
+Event-nodes correspond to the selection of the generator \( G \) itself. Once a
+generator is chosen, all admissible parameterizations are conditioned on that
+choice. No amount of parameter tuning reproduces the output family of a
+different generator.
+
+This distinction explains why some interventions modulate behavior smoothly,
+while others produce qualitative regime shifts.
+
+% ==================================================
+\section{Irreversibility and History}
+% ==================================================
+
+Standard causal analysis treats irreversibility as a consequence of information
+loss. Event-nodes introduce a second, more fundamental notion.
+
+\begin{definition}[Structural Irreversibility]
+An intervention is \emph{structurally irreversible} if it reduces the space of
+admissible futures in a way that cannot be undone by subsequent value-level
+interventions.
+\end{definition}
+
+Structural irreversibility does not depend on signal destruction. It arises from
+commitment to a generative structure rather than from noise or ablation.
+
+This explains why two systems with identical current states may behave
+differently under future interventions: they may share texture-state while
+differing in event-history.
+
+% ==================================================
+\section{Causal Abstraction with Typed Nodes}
+% ==================================================
+
+A causal abstraction must now satisfy two criteria:
+
+\begin{enumerate}
+\item \textbf{Texture Correspondence}: value-level interventions align between
+the abstraction and the underlying system.
+\item \textbf{Event Correspondence}: structural commitments and irreversibility
+relations are preserved.
+\end{enumerate}
+
+Multiple abstractions may remain valid at different levels, but abstractions that
+erase event-level structure mischaracterize the system’s causal organization,
+even if short-horizon input--output behavior is preserved.
+
+Algorithmic mixtures and regime switching are naturally interpreted as
+event-node transitions rather than as noise or failure.
+
+% ==================================================
+\section{Failure, Substitution, and Semantic Incompatibility}
+% ==================================================
+
+Interchange interventions assume semantic compatibility between substituted
+values and their new contexts. Event-nodes explain why this assumption sometimes
+fails.
+
+Substitution failure does not indicate a mysterious semantic breakdown; it
+indicates that the substituted value was generated under a different event
+history and is incompatible with the current future constraints.
+
+Novel behavior under intervention signals an incorrect or incomplete causal
+graph, often due to unmodeled event-nodes.
+
+% ==================================================
+\section{What Counts as Understanding}
+% ==================================================
+
+Mechanistic understanding is not merely the ability to control or predict
+behavior. It consists in reconstructing:
+
+\begin{itemize}
+\item how values mediate effects (texture-level),
+\item which commitments constrain futures (event-level),
+\item and how these interact under intervention.
+\end{itemize}
+
+Understanding is necessarily partial and revisable. No single abstraction
+exhausts the system’s causal structure, but some abstractions fail by erasing
+irreversibility and history.
+
+% ==================================================
+\section{Conclusion}
+% ==================================================
+
+By distinguishing texture-nodes from event-nodes, we obtain a minimal extension
+to causal mechanistic interpretability that preserves its empirical rigor while
+accounting for irreversibility, history sensitivity, and structural commitment.
+
+This extension requires no new metaphysics and no abandonment of causal
+abstraction. It merely clarifies what interventions act upon and what kinds of
+causal structure must be preserved for an explanation to remain valid.
+
+Mechanistic interpretability, properly extended, becomes not only the study of
+what internal variables do, but of what systems have irreversibly become.
+
+\end{document}

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Stars 1995 — Semantic Space Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: black;
+      color: #9f9;
+      font-family: monospace;
+    }
+
+    #hud {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(0,255,0,0.35);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      text-shadow: 0 0 6px rgba(0,255,0,0.45);
+      max-width: 460px;
+    }
+
+    #hud b { color: #cfc; }
+
+    #reticle {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      color: #9f9;
+      font-size: 18px;
+      text-shadow: 0 0 12px rgba(0,255,0,0.6);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="hud">
+    <b>Stars 1995 — Event-Historical Explorer</b><br>
+    W/S thrust · A/D yaw · R/F pitch · Q/E roll · Space brake · C clusters
+    <div id="stats" style="margin-top:8px"></div>
+  </div>
+
+  <div id="reticle">+</div>
+
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+    /* ============================================================
+       SCENE / CAMERA
+    ============================================================ */
+
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      200000
+    );
+    camera.position.set(0,0,0);
+    camera.rotation.set(0,0,0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 1);
+    document.body.appendChild(renderer.domElement);
+
+    /* ============================================================
+       UNIVERSE GROUP (THIS MOVES)
+    ============================================================ */
+
+    const universe = new THREE.Group();
+    scene.add(universe);
+
+    /* ============================================================
+       STARFIELD (BRIGHT, 1995 STYLE)
+    ============================================================ */
+
+    const STAR_COUNT = 45000;
+    const STAR_RADIUS = 60000;
+
+    const positions = new Float32Array(STAR_COUNT * 3);
+    const colors = new Float32Array(STAR_COUNT * 3);
+
+    let seed = 1337;
+    function rand() {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    }
+
+    function randomInSphere(r) {
+      for (;;) {
+        const x = (rand()*2 - 1) * r;
+        const y = (rand()*2 - 1) * r;
+        const z = (rand()*2 - 1) * r;
+        if (x*x + y*y + z*z <= r*r) return {x,y,z};
+      }
+    }
+
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const p = randomInSphere(STAR_RADIUS);
+      positions[i*3+0] = p.x;
+      positions[i*3+1] = p.y;
+      positions[i*3+2] = p.z;
+
+      // bright green-white phosphor look
+      const g = 0.8 + rand()*0.2;
+      colors[i*3+0] = g;
+      colors[i*3+1] = 1.0;
+      colors[i*3+2] = g;
+    }
+
+    const starGeom = new THREE.BufferGeometry();
+    starGeom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    starGeom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+    const starMat = new THREE.PointsMaterial({
+      size: 3.2,
+      sizeAttenuation: true,
+      vertexColors: true,
+      transparent: true,
+      opacity: 1.0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    const stars = new THREE.Points(starGeom, starMat);
+    universe.add(stars);
+
+    /* ============================================================
+       METONYMY: NAMED STAR INDICES
+    ============================================================ */
+
+    const NAMED = 24;
+    const namedStars = [];
+
+    for (let i = 0; i < NAMED; i++) {
+      const idx = Math.floor(rand() * STAR_COUNT);
+      namedStars.push({
+        name: `IDX-${String(i+1).padStart(2,"0")}`,
+        position: new THREE.Vector3(
+          positions[idx*3],
+          positions[idx*3+1],
+          positions[idx*3+2]
+        )
+      });
+    }
+
+    /* ============================================================
+       SYNECDOCHE: CLUSTER HULLS
+    ============================================================ */
+
+    const clusterGroup = new THREE.Group();
+    universe.add(clusterGroup);
+
+    const clusters = [];
+    const CLUSTERS = 16;
+
+    for (let i = 0; i < CLUSTERS; i++) {
+      const c = randomInSphere(STAR_RADIUS * 0.7);
+      const r = 2500 + rand()*5000;
+
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 18, 18),
+        new THREE.MeshBasicMaterial({
+          color: 0x00ff88,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.06
+        })
+      );
+
+      mesh.position.set(c.x, c.y, c.z);
+      mesh.scale.set(r, r, r);
+      clusterGroup.add(mesh);
+
+      clusters.push({
+        center: new THREE.Vector3(c.x, c.y, c.z),
+        radius: r
+      });
+    }
+
+    /* ============================================================
+       CONTROLS
+    ============================================================ */
+
+    const controls = {
+      thrust: 0,
+      yaw: 0,
+      pitch: 0,
+      roll: 0,
+      speed: 0,
+      distance: 0
+    };
+
+    let showClusters = true;
+
+    window.addEventListener("keydown", e => {
+      switch (e.key) {
+        case "w": controls.thrust =  1; break;
+        case "s": controls.thrust = -1; break;
+        case "a": controls.yaw    =  1; break;
+        case "d": controls.yaw    = -1; break;
+        case "r": controls.pitch  =  1; break;
+        case "f": controls.pitch  = -1; break;
+        case "q": controls.roll   = -1; break;
+        case "e": controls.roll   =  1; break;
+        case " ": controls.speed *= 0.5; break;
+        case "c":
+          showClusters = !showClusters;
+          clusterGroup.visible = showClusters;
+          break;
+      }
+    });
+
+    window.addEventListener("keyup", e => {
+      switch (e.key) {
+        case "w":
+        case "s": controls.thrust = 0; break;
+        case "a":
+        case "d": controls.yaw = 0; break;
+        case "r":
+        case "f": controls.pitch = 0; break;
+        case "q":
+        case "e": controls.roll = 0; break;
+      }
+    });
+
+    /* ============================================================
+       UPDATE LOOP + METRICS
+    ============================================================ */
+
+    const statsEl = document.getElementById("stats");
+    let last = performance.now();
+
+    function animate(t) {
+      const dt = Math.min(0.05, (t - last) / 1000);
+      last = t;
+
+      // speed model
+      controls.speed += controls.thrust * 90 * dt;
+      controls.speed *= 0.985;
+      controls.speed = THREE.MathUtils.clamp(controls.speed, 0, 1500);
+
+      controls.distance += controls.speed * dt;
+
+      // rotate universe (view)
+      universe.rotation.y += controls.yaw   * dt * 0.9;
+      universe.rotation.x += controls.pitch * dt * 0.7;
+      universe.rotation.z += controls.roll  * dt * 0.5;
+
+      // move universe forward
+      universe.position.z += controls.speed * dt;
+
+      if (Math.abs(universe.position.z) > 30000) {
+        universe.position.z = 0;
+      }
+
+      /* -------- METONYMY METRIC -------- */
+      let nearest = null;
+      let nearestD = Infinity;
+
+      for (const s of namedStars) {
+        const worldPos = s.position.clone().applyEuler(universe.rotation).add(universe.position);
+        const d = worldPos.length();
+        if (d < nearestD) {
+          nearestD = d;
+          nearest = s;
+        }
+      }
+
+      /* -------- SYNECDOCHE METRIC -------- */
+      let inside = 0;
+      for (const c of clusters) {
+        const center = c.center.clone().applyEuler(universe.rotation).add(universe.position);
+        if (center.length() < c.radius) inside++;
+      }
+
+      statsEl.innerHTML =
+        `speed: <b>${controls.speed.toFixed(1)}</b> u/s<br>` +
+        `distance: <b>${controls.distance.toFixed(0)}</b> u<br>` +
+        `metonymy: nearest <b>${nearest ? nearest.name : "—"}</b> @ ${nearest ? nearestD.toFixed(0) : "—"} u<br>` +
+        `synecdoche: cluster overlap <b>${inside}</b>`;
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
+

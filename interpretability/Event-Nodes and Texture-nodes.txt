@@ -1,0 +1,158 @@
+Event-Nodes and Texture-Nodes:
+Extending Causal Mechanistic Interpretability with Irreversible
+Structure
+Flyxion
+December 2025
+Abstract
+Mechanistic interpretability has increasingly converged on a causal paradigm in which neural
+networks are analyzed through interventions, counterfactuals, and causal abstractions. While
+this framework successfully distinguishes correlation from mechanism, it remains implicitly
+state-centered and treats irreversibility as a contingent byproduct of information loss. This essay
+proposes a minimal, formal extension of the causalmechanistic framework by introducing two
+typed classes of causal nodes: texture-nodes, which carry instantaneous values, and event-nodes,
+which record regime selections that irreversibly constrain future admissible behavior. Drawing
+an explicit analogy to procedural material systemswhere generator selection and parameter
+ratios play distinct roleswe develop typing rules, a generalized causal tracing method, and graph
+rewrite semantics that preserve causal rigor while accounting for history sensitivity, structural
+irreversibility, and algorithmic regime switching. The result is a uniﬁed account in which causal
+abstraction remains valid, but is explicitly temporal, plural, and constraint-aware.
+1
+Introduction
+Recent work in mechanistic interpretability has emphasized the necessity of causal reasoning for
+understanding neural networks.
+Interventions, rather than mere inspection, are taken as the
+criterion for distinguishing true mechanisms from correlational artifacts. Within this paradigm,
+understanding a model means reverse-engineering the algorithm it implements by demonstrating
+systematic interventional correspondence between low-level components and high-level computational
+structure.
+Despite its success, this framework implicitly privileges instantaneous internal states and treats
+history as relevant only insofar as it manifests in present activations.
+Irreversibility appears
+primarily as epistemic degradation caused by noise or ablation, rather than as a constitutive feature
+of mechanism itself. As a result, several phenomenacommitment, collapse, regime switching, and
+substitution failureremain awkward to express within a purely state-based causal graph.
+This essay introduces a minimal extension that resolves these limitations without abandoning
+causal rigor. The core move is a typed distinction between two kinds of causal nodes: texture-nodes,
+which carry values, and event-nodes, which select generative regimes and irreversibly constrain
+1
+
+future behavior. The extension is minimal in the sense that it adds no new metaphysics, only new
+types for causal variables and interventions.
+2
+From State-Based Causality to Typed Causal Nodes
+Standard causal models represent systems as directed acyclic graphs whose nodes carry variables up-
+dated by structural equations. Interventions replace the value of a variable, and causal responsibility
+is assessed by downstream changes in behavior.
+We retain this structure but introduce a typing function that distinguishes value-carrying nodes
+from constraint-carrying nodes.
+Deﬁnition 1 (Typed Causal Graph). A typed causal model is a tuple
+M = (G, τ, Val, Reg, Adm)
+where G = (V, E) is a directed graph, τ : V →{T, E} assigns each node a type, Val is the space
+of texture values, Reg is the space of event regimes, and Adm maps realized histories to sets of
+admissible futures.
+Texture-nodes (T) represent internal quantities whose causal role is exhausted by their instanta-
+neous value. Event-nodes (E) represent structural choices whose eﬀects are not reducible to a value,
+but instead alter which future states remain reachable.
+This distinction parallels the diﬀerence between modifying parameters of a procedural generator
+and switching the generator itself.
+3
+Texture-Nodes
+A texture-node carries a value Xv ∈Valv and updates according to a structural equation
+Xv := fv(XPa(v), EPa(v)).
+Interventions on texture-nodes are standard do-operations:
+do(v := x),
+x ∈Valv.
+Texture-nodes are fully replayable: their causal role can be tested by substituting values and
+observing behavioral changes. Steering vectors, activation patching, and diﬀerence-in-mean methods
+all operate at this level.
+Importantly, texture values often arise from generator functions parameterized by ratio-like
+quantities. These ratios behave as vector directions in parameter space, but their meaning depends
+on the generator selected upstream.
+2
+
+4
+Event-Nodes
+An event-node carries a regime value Ev ∈Regv that selects a generative mode or structural
+conﬁguration. Its update rule may depend on both texture and event parents:
+Ev := gv(XPa(v), EPa(v)).
+Interventions on event-nodes take the form
+do(v := r),
+r ∈Regv.
+Unlike texture interventions, event interventions need not be reversible. They can permanently
+restrict the space of admissible futures.
+Deﬁnition 2 (Structural Irreversibility). An intervention on an event-node e is structurally
+irreversible at time t if
+Adm(Ht) ̸= Adm(Ht[R ←r′]),
+where Ht is the realized history up to t.
+Irreversibility here is not informational but structural: even perfect replay cannot restore the
+original counterfactual space.
+5
+Generator Selection and Parameter Ratios
+Consider a texture-node generated by a procedural function Gr selected by an event-node with
+regime r:
+X = Gr(ρ(θ), . . .),
+where ρ(θ) denotes ratios of generator parameters.
+Changing ρ(θ) modiﬁes the realized texture without altering the generator family. Changing r
+selects a diﬀerent generator altogether, producing a qualitatively diﬀerent space of possible outputs.
+Parameter ratios thus behave as vectors only relative to a ﬁxed regime.
+This clariﬁes why some activation directions generalize while others fail under context shifts:
+the underlying generator has changed.
+6
+Causal Tracing with Event-Nodes
+Standard causal tracing corrupts an input and restores internal activations to identify mediators.
+With typed nodes, two distinct restoration operations are available.
+• Texture restoration: do(Xv := X⋆
+v)
+• Event restoration: do(Ev := E⋆
+v)
+3
+
+Texture restoration measures recovery of output behavior. Event restoration measures recovery
+of admissible futures. A node is a structural mediator if restoring its regime reinstates counterfactual
+possibilities even when output accuracy remains unstable.
+This explains why some interventions preserve ﬂuency while destroying coherence: the texture is
+intact, but the regime has shifted.
+7
+Graph Rewrite Semantics
+Event-nodes can be given explicit operational meaning as graph rewrite triggers. The texture
+computation graph contains labeled rewrite sites. A rewrite rule has the form
+(s, r) ⇒G(r)
+s ,
+indicating that site s is replaced by subgraph G(r)
+s
+when regime r is active.
+Rewrites must preserve interface types, ensuring that regime switching is structural rather than
+destructive. Texture parameters live inside the selected subgraph; event-nodes determine which
+subgraph exists.
+This formalizes regime switching as algorithmic structure, not noise.
+8
+Causal Abstraction Revisited
+Causal abstraction is traditionally validated by interventional equivalence.
+Under the typed
+framework, abstraction requires two correspondences:
+1. Texture correspondence: value-level interventions align.
+2. Event correspondence: regime transitions and irreversibility align.
+An abstraction that preserves outputs but misrepresents regime structure is behaviorally accurate
+but temporally incoherent. Multiple abstractions may remain valid, but each carries an explicit
+scope and loss proﬁle.
+9
+What Counts as Understanding
+Understanding is no longer mere control or prediction. It is the ability to reconstruct which regimes
+were selected, which futures were foreclosed, and how value-level variation unfolds within those
+constraints.
+A system may pass all texture-level tests while remaining opaque at the event level. Such cases
+mark the boundary of state-based explanation, not its failure.
+4
+
+10
+Conclusion
+By distinguishing texture-nodes from event-nodes, the causalmechanistic paradigm is extended just
+enough to account for history sensitivity, irreversibility, and regime selection without abandoning
+its core commitments. Interventions remain the criterion of explanation, but their targets are now
+typed. Causal tracing becomes structural as well as behavioral. Graph rewrite rules make explicit
+what was previously implicit in algorithmic mixture.
+The resulting framework preserves the strengths of causal interpretability while making explicit
+the limits of state-only analysis. Mechanisms are not merely paths through variables, but trajectories
+through constrained possibility spaces.
+5
+

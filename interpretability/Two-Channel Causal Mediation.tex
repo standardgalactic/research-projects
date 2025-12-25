@@ -1,0 +1,183 @@
+\documentclass[11pt]{article}
+
+% --------------------------------------------------
+% Packages
+% --------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{csquotes}
+\usepackage{hyperref}
+\usepackage{booktabs}
+
+\geometry{margin=1in}
+\setstretch{1.15}
+
+% --------------------------------------------------
+% Theorem environments
+% --------------------------------------------------
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+% --------------------------------------------------
+% Macros
+% --------------------------------------------------
+\newcommand{\doop}{\mathrm{do}}
+\newcommand{\Adm}{\mathcal{A}}
+\newcommand{\Hist}{\mathcal{H}}
+\newcommand{\Reg}{\mathcal{R}}
+
+% --------------------------------------------------
+% Title
+% --------------------------------------------------
+\title{Two-Channel Causal Mediation, Regime Structure, and\\
+Resilience in Mechanistic and Knowledge Networks}
+\author{Flyxion}
+\date{December 2025}
+
+\begin{document}
+\maketitle
+
+% ==================================================
+\begin{abstract}
+% ==================================================
+Causal mediation analysis provides a principled framework for decomposing how the effect of an intervention propagates through intermediate variables. In mechanistic interpretability, this framework has been adapted to neural networks through techniques such as causal tracing, which identify internal components sufficient to transmit information from input to output. However, existing approaches implicitly conflate two distinct kinds of mediation: mediation by instantaneous values and mediation by structural or regime-level commitments. This paper formalizes that distinction by introducing a typed causal framework with two classes of nodes: \emph{texture-nodes}, which carry values, and \emph{event-nodes}, which encode irreversible or semi-irreversible structural constraints on future computation. We prove a two-channel mediation theorem that decomposes total causal effects into texture-mediated and event-mediated components, clarifying when standard causal tracing is sufficient and when it is provably incomplete. We further show how event-nodes induce graph rewrite semantics analogous to generator selection in procedural graphics, and we extend the framework to the analysis of large-scale knowledge networks, where resilience under targeted perturbation depends critically on event-level structure rather than value-level redundancy alone.
+\end{abstract}
+
+% ==================================================
+\section{Introduction}
+% ==================================================
+
+Causal reasoning has long provided the conceptual backbone for understanding complex systems across disciplines, from medicine and economics to social science. In recent years, similar tools have been imported into the study of neural networks under the banner of mechanistic interpretability. The central aim of this research program is not merely to observe correlations between internal activations and behavior, but to identify which internal components are causally responsible for particular outputs.
+
+One of the earliest and most influential bridges between classical causality and mechanistic interpretability is \emph{causal mediation analysis}. Mediation analysis decomposes the total effect of an intervention into components that flow through intermediate variables. In neural networks, these intermediates are neurons, attention heads, residual streams, or learned representations. Techniques such as causal tracing operationalize this idea by corrupting inputs and selectively restoring internal states to measure their causal contribution.
+
+Despite its success, this approach quietly assumes that all causal mediation is exhausted by value substitution. In practice, however, neural networks — and complex information systems more generally — exhibit regime changes, heuristic switching, and irreversible commitments that cannot be reduced to instantaneous values. This paper argues that a minimal extension of causal mediation theory is required to account for these phenomena.
+
+% ==================================================
+\section{Classical Causal Mediation}
+% ==================================================
+
+Consider a classical mediation setup with variables \(X\), \(Z\), and \(Y\), where \(X\) affects \(Y\) and \(Z\) is a potential mediator. The total effect of \(X\) on \(Y\) may be decomposed into a direct effect and an indirect effect flowing through \(Z\).
+
+In structural causal models, this is formalized using interventions:
+\[
+\mathrm{TE}(X \to Y) 
+= \mathbb{E}[Y \mid \doop(X=x')] - \mathbb{E}[Y \mid \doop(X=x)].
+\]
+
+The mediated effect through \(Z\) is evaluated by holding \(Z\) fixed to values it would have taken under one intervention while varying \(X\). Importantly, this framework treats \(Z\) as a variable whose causal role is fully determined by the value it holds.
+
+In medical and social-scientific contexts, this assumption is often sufficient. In computational systems, however, it becomes limiting.
+
+% ==================================================
+\section{Causal Tracing in Neural Networks}
+% ==================================================
+
+Causal tracing adapts mediation analysis to neural networks by treating internal components as mediators. A typical experiment proceeds as follows:
+
+\begin{enumerate}
+\item A clean input produces a correct output.
+\item Noise is added to the input representation, degrading performance.
+\item Internal components are restored to their clean values.
+\item The degree to which the output recovers is measured.
+\end{enumerate}
+
+These experiments successfully identify pathways by which information is retrieved and propagated, for example showing that certain MLP blocks retrieve factual information while attention heads route it to the output.
+
+However, the interpretation of these results relies on language such as \emph{retrieval}, \emph{routing}, and \emph{regime of computation}. Such language already exceeds what a purely value-based mediation framework can formally express.
+
+% ==================================================
+\section{Texture-Nodes and Event-Nodes}
+% ==================================================
+
+To resolve this mismatch, we introduce a typed causal framework.
+
+\begin{definition}[Texture-Node]
+A \emph{texture-node} is a causal variable whose influence is fully determined by the instantaneous value it carries. Interventions on texture-nodes take the form \( \doop(T := t) \).
+\end{definition}
+
+\begin{definition}[Event-Node]
+An \emph{event-node} is a causal variable whose influence consists in selecting or constraining a family of admissible future computations. Interventions on event-nodes take the form \( \doop(E := r) \), where \(r\) is a regime or generator identifier.
+\end{definition}
+
+Texture-nodes correspond to activations, vectors, and parameters. Event-nodes correspond to regime selection, heuristic switching, or irreversible commitments that alter what computations remain possible.
+
+% ==================================================
+\section{Generator Semantics and Graph Rewriting}
+% ==================================================
+
+Event-nodes admit a natural interpretation as graph rewrite triggers. Once an event-node selects a regime, the effective computation graph is rewritten accordingly. Subsequent texture values are interpreted relative to the selected generator.
+
+This is analogous to procedural graphics pipelines, where choosing a noise generator (e.g.\ Perlin versus Voronoi) irreversibly determines the space of textures that can be produced, even though parameter ratios within that generator function as continuous vectors.
+
+Thus, two systems may share identical texture values while implementing different computations due to distinct event histories.
+
+% ==================================================
+\section{Two-Channel Mediation}
+% ==================================================
+
+We now formalize the distinction.
+
+\begin{theorem}[Two-Channel Mediation]
+Let \(X\) be an input, \(T\) a texture state, \(E\) an event state, and \(Y\) an output. Then the total effect of \(X\) on \(Y\) decomposes into texture-mediated and event-mediated components:
+\[
+\mathrm{TE}_Y = \mathrm{ME}^T_Y + \mathrm{ME}^E_Y.
+\]
+Moreover, texture mediation alone is sufficient to characterize the total effect if and only if the intervention on \(X\) leaves the event state invariant.
+\end{theorem}
+
+\begin{remark}
+This theorem explains why standard causal tracing succeeds in some regimes and fails in others. When no regime change occurs, restoring values suffices. When regimes diverge, value restoration may recover outputs while leaving the system structurally misaligned.
+\end{remark}
+
+% ==================================================
+\section{Irreversibility and History Sensitivity}
+% ==================================================
+
+Event-nodes introduce a notion of irreversibility that is structural rather than informational. An event may permanently reduce the space of admissible futures even if all information is preserved. This explains why some substitutions are ill-posed: the generator required to interpret a substituted value no longer exists.
+
+History therefore matters not as narrative, but as constraint.
+
+% ==================================================
+\section{Extension to Knowledge Networks}
+% ==================================================
+
+The same distinction applies to large-scale knowledge systems such as collaborative encyclopedias. Articles, links, and edits form texture-level structures, while governance decisions, user bans, policy changes, and community norms function as event-nodes.
+
+Removing a high-degree article may degrade accessibility but leave the regime intact. Removing or silencing a class of contributors, by contrast, may irreversibly alter the future evolution of the knowledge network even if existing content remains unchanged.
+
+Resilience analysis must therefore track both:
+\begin{itemize}
+\item Redundancy and connectivity (texture-level robustness)
+\item Regime stability and recovery capacity (event-level robustness)
+\end{itemize}
+
+Network resilience is not merely a property of graphs, but of histories.
+
+% ==================================================
+\section{Implications}
+% ==================================================
+
+This framework yields several consequences:
+
+\begin{enumerate}
+\item Mechanistic interpretability requires regime awareness, not just activation tracing.
+\item Successful control or prediction does not guarantee correct abstraction.
+\item Knowledge systems may fail catastrophically through event perturbations even when content appears intact.
+\end{enumerate}
+
+Understanding, in both neural and social systems, is therefore inseparable from the constraints imposed by irreversible events.
+
+% ==================================================
+\section{Conclusion}
+% ==================================================
+
+Causal mediation analysis remains a powerful and mature tool, but its naive application to complex computational systems obscures an essential distinction between value transmission and structural commitment. By introducing event-nodes alongside texture-nodes, we obtain a minimal yet expressive extension that unifies mechanistic interpretability, regime change, and network resilience under a single causal lens. This two-channel perspective clarifies both the successes and the limits of existing techniques, and it opens a path toward genuinely historical models of computation and knowledge.
+
+\end{document}
