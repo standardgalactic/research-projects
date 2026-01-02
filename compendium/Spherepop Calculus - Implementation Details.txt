@@ -1,0 +1,166 @@
+Spherepop Calculus: Internalizing Probability,
+Concurrency, and Geometry
+Flyxion
+September 28, 2025
+Abstract
+Spherepop Calculus (SPC) is a novel computational formalism extend-
+ing lambda calculus with geometric scope (Sphere and Pop), concurrent
+composition (Merge), probabilistic branching (Choice), and structural
+symmetries (Rotate).
+This paper explores SPC's design, emphasizing
+the doomCoin p construct as a canonical example of its probabilistic and
+tensorial semantics. We compare SPC with traditional and probabilistic
+lambda calculi, highlighting its ability to internalize probability, concur-
+rency, and geometric structure. Implementations in Haskell and a Racket
+evaluator skeleton demonstrate practical realizations of SPC's concepts.
+1
+Introduction
+Spherepop Calculus (SPC) reimagines lambda calculus by introducing geomet-
+ric scoping through Sphere and Pop, parallel composition via Merge, proba-
+bilistic branching with Choice, and structural operations like Rotate. Unlike
+traditional lambda calculus, SPC natively supports concurrent and probabilis-
+tic computations within a type discipline extending the Calculus of Construc-
+tions, with semantics in a presheaf topos enriched with the distribution monad.
+This paper elucidates SPC's design, focusing on doomCoin p as a pedagogical
+archetype, and provides practical implementations in Haskell and Racket.
+2
+Core Constructs of Spherepop Calculus
+SPC extends lambda calculus with these primitives:
+• Sphere/Pop: geometric scoping of abstraction/application, where Sphere(x:A. t)
+denotes a function and Pop(f, u) applies it.
+• Merge: parallel/nondeterministic composition, interpreted as a tensor
+product.
+• Choice: probabilistic branching, returning either A (internal) or Dist(A).
+• Rotate: cyclic rotation over homogeneous Boolean tensors.
+1
+
+2.1
+Syntax and Typing
+t, u
+::=
+Var(x) | Sphere(x:A. t) | Pop(t, u) | Merge(t, u) | Choice(p, t, u) | Rotate(k, t)
+| LitUnit | LitBool b | LitNat n | If(b, t, u) | Add(t, u)
+Γ, x:A ⊢t : B
+Γ ⊢Sphere(x:A. t) : A →B
+Γ ⊢f : A →B
+Γ ⊢u : A
+Γ ⊢Pop(f, u) : B
+Γ ⊢t : A
+Γ ⊢u : B
+Γ ⊢Merge(t, u) : A ⊗B
+Γ ⊢t : A
+Γ ⊢u : A
+p ∈[0, 1]
+Γ ⊢Choice(p, t, u) : A
+Γ ⊢t : Bool⊗k, k ≥1
+Γ ⊢Rotate(k, t) : Bool⊗k
+2.2
+Operational Semantics
+Pop(Sphere(x:A. t), v) −→t[v/x]
+Choice(p, t, u)
+p=⇒t
+Choice(p, t, u)
+1−p
+===⇒u
+Merge(v, w) −→v⊗w
+Rotate
+(
+k, v1⊗· · ·⊗vn
+)
+−→v1+k mod n⊗· · ·⊗vn+k mod n
+2.3
+Categorical Semantics
+Sphere/Pop are exponentials/evaluation morphisms, Merge is a tensor product,
+and Choice is convex combination in the distribution monad.
+3
+Canonical Example: doomCoin p
+doomCoin p ≡Choice
+(
+p, LitBool #t, LitBool #f
+)
+.
+3.1
+Syntax and Typing
+Γ ⊢LitBool #t : Bool
+Γ ⊢LitBool #f : Bool
+p ∈[0, 1]
+Γ ⊢doomCoin p : Bool or Dist(Bool)
+3.2
+Operational Semantics
+doomCoin p
+p=⇒LitBool #t
+doomCoin p
+1−p
+===⇒LitBool #f
+For example,
+Merge
+(
+Choice(0.2, #t, #f), Choice(0.5, #t, #f)
+) 0.2·0.5
+====⇒#t⊗#t
+(and other paths).
+2
+
+3.3
+Denotational Semantics
+JdoomCoin pK = p · δ#t + (1 −p) · δ#f.
+For Merge(doomCoin p1, . . . , doomCoin pn), the observable anyDoom yields:
+Pr
+[
+anyDoom(Merge(doomCoin p1, . . . , doomCoin pn))
+]
+= 1 −
+n
+∏
+i=1
+(1 −pi).
+doomCoin p
+p · δ#t + (1 −p) · δ#f
+Dist(Bool)
+Dist(Bool⊗n)
+Dist(Bool)
+J·K
+Choice
+tensor
+Merge
+anyDoom
+Figure 1: Categorical flow: doomCoin p to anyDoom via tensor product.
+3.4
+Rationale
+doomCoin p is canonical because it (i) makes p intrinsic, (ii) uses the Bernoulli
+base case, (iii) leverages tensorial independence, and (iv) is pedagogically clear.
+4
+Comparison with Lambda Calculi
+• Lambda Calculus: external oracle (e.g., λr. if r < p then #t else #f).
+• Probabilistic Lambda Calculus: choice(p, e1, e2) but no geometric/ten-
+sorial structure.
+• SPC: unifies Choice, Merge, and Sphere/Pop [1-3].
+5
+Operational Semantics (Appendix)
+Pop(Sphere(x:A. t), v) −→t[v/x] E-Beta
+Choice(p, t, u)
+p=⇒t
+E-Choice-1
+Choice(p, t, u)
+1−p
+===⇒u
+E-Ch
+6
+Implementation in Haskell
+(See spherepop.hs.) Type checking for Merge, Choice, Rotate; big-step evalua-
+tion via a distribution monad; anyDoom as an observable.
+7
+Racket Evaluator
+(See spherepop.rkt.) Mirrors Haskell: typing/evaluation, distribution monad,
+and anyDoom.
+3
+
+References
+[1] Alonzo Church. An unsolvable problem of elementary number theory. Amer-
+ican Journal of Mathematics, 58(2):345-363, 1936.
+[2] Dexter Kozen. Semantics of probabilistic programs. Journal of Computer
+and System Sciences, 22(3):328-350, 1981.
+[3] Robin Milner, Joachim Parrow, and David Walker. A calculus of mobile
+processes, i. Information and Computation, 100(1):1-40, 1992.
+4
+

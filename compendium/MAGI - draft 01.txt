@@ -1,0 +1,878 @@
+MAGI and the Geometry of Learning:
+A Stratified Riemannian Framework Extending SGDM
+Flyxion
+November 27, 2025
+Abstract
+This chapter develops a geometric theory of learning based on the Manifold-Aligned
+Generative Inference (MAGI) framework and establishes its relationship to classi-
+cal momentum-based optimization methods, particularly Stochastic Gradient Descent
+with Momentum (SGDM). MAGI situates learning within a Whitney-stratified Rie-
+mannian semantic manifold that encodes coherent representational structure.
+The
+dynamics employ stratified Morse potentials, tangent-space projection, and the Rie-
+mannian exponential map to constrain motion to semantically valid directions. SGDM
+arises as a degenerate case of MAGI when the manifold is replaced by the ambient Eu-
+clidean space and all geometric constraints are removed. Formal definitions, lemmas,
+propositions, and full proofs are provided, including a theorem showing that MAGI
+strictly suppresses normal components of the gradient while SGDM permits their accu-
+mulation. The resulting framework reveals momentum-based optimization as a special
+case of a deeper geometric theory in which learning corresponds to constrained infer-
+ence on a stratified manifold.
+1
+Introduction
+Classical optimization methods in machine learning treat parameter spaces as undifferen-
+tiated Euclidean domains. Gradient descent and its momentum-based variants, including
+Stochastic Gradient Descent with Momentum (SGDM), assume that all directions in the am-
+bient space are semantically valid and that the geometry of meaningful representation plays
+no explicit role in the learning process. The resulting algorithms are powerful but exhibit
+characteristic failure modes: drift into regions with no coherent interpretation, oscillation
+in directions orthogonal to underlying data manifolds, and sensitivity to local distortions of
+coordinate systems.
+The Manifold-Aligned Generative Inference (MAGI) framework provides a structured
+alternative. MAGI is built upon the premise that learning does not occur in an arbitrary
+1
+
+Euclidean space but instead unfolds along a stratified Riemannian semantic manifold that
+captures the intrinsic geometry of meaningful representations. This manifold, denoted M ⊂
+Rn, is Whitney-stratified and equipped with a system of Riemannian metrics across its
+strata. Learning proceeds through a constrained form of heavy-ball dynamics that projects
+gradients onto tangent spaces, suppressing motion orthogonal to the manifold and ensuring
+that updates remain coherent with the underlying semantic structure.
+A central contribution of this chapter is the demonstration that SGDM arises naturally
+as a degenerate case of MAGI when all geometric structure is suppressed. When M is taken
+to be the entire ambient space, when the stratification is trivial, and when the tangent
+projection operator is the identity, the MAGI update reduces exactly to the SGDM update.
+This containment relation reveals SGDM as a boundary case of a more general geometric
+theory.
+The geometric enhancements introduced by MAGI provide stability properties that SGDM
+cannot match. In particular, the explicit suppression of normal components ensures that mo-
+tion orthogonal to the semantic manifold is eliminated, whereas SGDM permits such compo-
+nents to accumulate through the momentum term. A formal theorem presented later in the
+chapter proves that the normal component of the gradient cannot increase under the MAGI
+update except through the intrinsic variation of the potential along tangential directions.
+The remainder of this chapter develops the theory in detail. The next section provides
+differential geometric preliminaries, including Riemannian manifolds, tangent and normal
+bundles, exponential maps, and retractions. Subsequent sections introduce Whitney strat-
+ification, stratified Morse potentials, and their relevance to structured learning dynamics.
+The Riemannian heavy-ball equation is derived and compared to its Euclidean counterpart,
+establishing the analytic foundation for the MAGI update rule. The MAGI dynamics are
+then developed formally, followed by proofs of their structural properties and their relation-
+ship to SGDM. The chapter concludes with an extended discussion of the implications of
+this framework for geometry-aware learning and manifold-constrained optimization.
+2
+Differential Geometric Preliminaries
+The MAGI framework is grounded in the differential geometry of smooth manifolds, their
+tangent and normal bundles, and the behavior of vector fields under constraints imposed by
+geometric structure. To establish the mathematical foundation for the MAGI update rule
+and its relation to SGDM, this section introduces the necessary preliminaries. The treatment
+follows standard references such as do Carmo (1992), Lee (2018), and Klingenberg (1995),
+adapted to the stratified setting used later in the chapter.
+A smooth manifold is a topological space that locally resembles Euclidean space. For-
+mally, a smooth d-dimensional manifold S is a Hausdorff, second-countable topological
+space equipped with a collection of charts {(Ui, ϕi)}, where each Ui ⊂S is open and each
+2
+
+ϕi : Ui →Rd is a homeomorphism onto an open subset of Rd. Smoothness is defined by
+requiring that all chart transitions ϕj ◦ϕ−1
+i
+be smooth maps. The tangent space at a point
+x ∈S, written TxS, is defined as the vector space of derivations at x, or equivalently as the
+set of equivalence classes of smooth curves passing through x.
+For a smooth embedded submanifold S ⊂Rn, the tangent space admits a concrete
+characterization. A vector v ∈Rn belongs to TxS precisely when there exists a smooth curve
+γ : (−ε, ε) →S such that γ(0) = x and γ′(0) = v. The normal space NxS is defined as the
+orthogonal complement of TxS in Rn with respect to the standard inner product, written
+NxS = (TxS)⊥. For every u ∈Rn, one thus obtains a unique orthogonal decomposition
+u = uT + uN with uT ∈TxS and uN ∈NxS. The orthogonal projection onto the tangent
+space is denoted ΠTxS.
+A Riemannian metric g on a smooth manifold S is a smoothly varying inner product
+gx on each tangent space TxS. The pair (S, g) is then called a Riemannian manifold. The
+metric determines canonical geometric notions including lengths of tangent vectors, lengths
+of curves, and angles between vectors. It also induces the Levi-Civita connection, which
+defines covariant differentiation along curves and yields the notion of parallel transport.
+The connection allows the definition of geodesics, curves that locally minimize length and
+generalize straight lines in Euclidean space.
+A central tool in Riemannian geometry is the exponential map. For each x ∈S, the
+exponential map x : TxS →S is defined by mapping a tangent vector v to the point γv(1),
+where γv is the unique geodesic satisfying γv(0) = x and γ′
+v(0) = v. For sufficiently small
+∥v∥, the exponential map is a diffeomorphism onto a neighborhood of x. In the special case
+where S = Rn with its standard metric, the exponential map reduces to the translation map
+x(v) = x + v.
+In optimization on manifolds, one often replaces the exponential map with a retraction, a
+smooth mapping Rx : TxS →S satisfying Rx(0) = x and DRx(0) = Id. Retractions provide
+first-order accurate approximations to the exponential map and are easier to compute in
+practice. For embedded submanifolds, a common choice is the orthogonal projection onto
+the manifold. In this chapter, however, all theoretical statements are formulated in terms of
+the exponential map to maintain geometric precision.
+A vector field on a manifold is a smooth assignment of a tangent vector to each point.
+The gradient of a smooth function F : S →R is defined as the unique vector field ∇F
+satisfying gx(∇F(x), v) = dFx(v) for all v ∈TxS. When S is an embedded submanifold
+of Rn and the metric is induced from the ambient space, the gradient on S is obtained
+from the ambient Euclidean gradient ∇RnF by applying the tangent projection, so that
+∇F(x) = ΠTxS(∇RnF(x)). This observation will play a central role in the formulation of the
+MAGI update rule, where the gradient of the potential is always projected onto the tangent
+bundle of the semantic manifold.
+Discrete-time optimization algorithms often approximate continuous-time gradient flow.
+3
+
+For a smooth Riemannian manifold (S, g), gradient flow is defined by the differential equation
+˙xt = −∇F(xt), where x : [0, ∞) →S is a smooth curve.
+Momentum-based dynamics
+correspond to second-order differential equations, where a velocity vector evolves according
+to an inertial term and a damping coefficient. The Riemannian analog of Polyak's heavy-
+ball equation takes the form ∇˙xt ˙xt + γ ˙xt + ∇F(xt) = 0, where ∇˙xt ˙xt denotes the covariant
+derivative of the velocity along the trajectory. The MAGI update rule is a discrete-time
+approximation of such Riemannian heavy-ball dynamics.
+The differential geometric material introduced in this section forms the basis for the more
+specialized structures used in MAGI. The next section introduces Whitney stratification,
+which governs how manifolds of different dimensions intersect and how tangent and normal
+spaces behave near singularities. The stratified setting will later support the definition of
+stratified Morse potentials and furnish the geometric apparatus needed to describe stratum
+transitions within the MAGI framework.
+3
+Whitney Stratification and Tangent-Normal Geom-
+etry
+The semantic manifold used in the MAGI framework is not assumed to be a single smooth
+manifold. Instead, it may possess singularities, corners, or lower-dimensional semantic modes
+that meet along boundaries. The appropriate geometric structure for capturing such phe-
+nomena is a Whitney stratification. Whitney stratified spaces arise naturally in singularity
+theory, algebraic geometry, and the study of piecewise-smooth data manifolds. The stratified
+structure ensures that the constituent smooth pieces, or strata, fit together in a geometri-
+cally coherent manner. This section recalls the essential definitions and properties needed
+for subsequent developments.
+Let M ⊂Rn be a closed subset. A Whitney stratification of M is a decomposition
+M =
+G
+α∈A
+Sα
+into a finite or countable collection of pairwise disjoint connected smooth submanifolds Sα
+(the strata) such that the decomposition satisfies the frontier condition: if Sα ∩Sβ ̸= ∅and
+α ̸= β, then Sα ⊂Sβ and necessarily dim Sα < dim Sβ. Thus, higher-dimensional strata
+lie in the closure of lower-dimensional ones, and the stratification is equipped with a partial
+order defined by Sα ≺Sβ when Sα ⊂Sβ.
+The critical requirement is the Whitney condition. For each pair of strata (Sα, Sβ) with
+Sα ≺Sβ, one demands Whitney's conditions (a) and (b).
+Condition (a) asserts that if
+one takes a sequence of points xi ∈Sβ converging to a point x ∈Sα and a sequence of
+tangent vectors vi ∈TxiSβ converging to a vector v in Rn, then v lies in TxSα. Condition (b)
+4
+
+strengthens this requirement by controlling the limiting behavior of secant lines: if xi ∈Sβ
+converges to x ∈Sα and yi ∈Sα also converges to x, then the corresponding secant lines xiyi
+must converge to a line lying in the tangent cone of Sα at x. Whitney (b) implies Whitney
+(a), and in practice one usually works with the two conditions together, as they ensure
+smooth variation of tangent planes and prevent the strata from meeting in geometrically
+pathological ways.
+The semantic manifold in MAGI is taken to be a Whitney-stratified subset of Rn, with
+strata representing coherent representational modes.
+Each stratum Sα carries a smooth
+Riemannian metric gα, typically the pullback of the ambient Euclidean metric. Because the
+strata are embedded submanifolds, each point x ∈Sα possesses a tangent space TxSα and an
+associated normal space NxSα = (TxSα)⊥⊂Rn. For a point x lying on a lower-dimensional
+stratum Sα, nearby points on a higher-dimensional stratum Sβ can have tangent planes
+that approach the tangent plane of Sα in a controlled manner by Whitney (a), and secant
+lines connecting these points behave well by Whitney (b). These properties ensure that
+the tangent projection operator behaves continuously across strata and that the geometric
+constraints implemented by MAGI are well-defined even near singularities.
+Several consequences of Whitney stratification are essential for the MAGI framework.
+First, the decomposition of a vector u ∈Rn into a tangent part uT = ΠTxSα(u) and a normal
+part uN = ΠNxSα(u) depends smoothly on x as long as x remains in the same stratum. If x
+approaches a point on a boundary stratum, Whitney (a) guarantees that the limiting tangent
+spaces vary continuously, so the tangent and normal projections possess well-defined limits.
+Second, the behavior of gradient fields across strata is well-controlled. If V : M →R
+is smooth when restricted to each stratum, then its gradient ∇V is a stratified vector field
+whose tangential components behave smoothly along each stratum. The normal components
+may jump when crossing strata of different dimensions, reflecting the fact that the function
+may change semantic mode, but such jumps are governed by the geometry of the stratification
+rather than arbitrary coordinate artifacts.
+Third, retractions and exponential maps defined on each stratum are compatible with
+the stratified structure. When a trajectory of the MAGI update rule approaches a lower-
+dimensional stratum, the Whitney conditions ensure that the limiting behavior of tangent
+vectors and geodesics is well-behaved, providing a natural mechanism for stratum transitions.
+These geometric considerations form the core of the MAGI update rule, which projects
+gradients onto tangent spaces and enables discrete transitions between strata when normal
+components grow sufficiently large.
+The next section introduces stratified Morse theory,
+which furnishes the structured potential functions used to guide these dynamics.
+5
+
+4
+Stratified Morse Potentials and Structured Learning
+Landscapes
+In classical optimization, the objective function is an arbitrary smooth map f : Rn →R.
+Such functions may possess flat regions, degenerate critical points, saddle plateaus, and
+pathological behavior near singularities. These features complicate optimization and ob-
+scure the geometric or semantic structure underlying learned representations. The MAGI
+framework replaces arbitrary losses with stratified Morse potentials defined on Whitney strat-
+ified spaces. This section introduces the relevant aspects of Morse theory and its stratified
+extension, emphasizing their significance for structured learning.
+Morse theory studies the topology of smooth manifolds by examining the structure of
+non-degenerate critical points of smooth functions. On a smooth d-dimensional manifold S,
+a smooth function F : S →R is a Morse function if all its critical points are non-degenerate;
+that is, if dFx = 0, then the Hessian D2Fx is a non-singular bilinear form on TxS. A classical
+theorem states that the topology of the sublevel sets {x ∈S : F(x) ≤a} changes only when
+a passes through the value of a critical point and that the nature of the change is determined
+by the Morse index of that critical point. Morse theory thus connects the geometry of critical
+points to the global structure of the manifold.
+The setting of MAGI requires an extension of Morse theory to stratified spaces.
+A
+function V : M →R defined on a Whitney stratified space M = F
+α Sα is a stratified
+Morse function if the restriction V |Sα is a Morse function on each stratum and if, moreover,
+the collection of critical points across all strata behaves in a manner compatible with the
+stratification.
+The precise definition follows Goresky and MacPherson (1988).
+For each
+stratum Sα, one demands that the critical points of V |Sα be non-degenerate in the usual
+Morse sense and that the gradient of V be transverse to the boundary between strata in a
+way that reflects the Whitney conditions.
+Stratified Morse functions possess several desirable properties. First, the critical structure
+of V reflects the topology of each stratum as well as the way strata fit together. Second,
+the stable and unstable manifolds associated with critical points are stratified subspaces
+whose geometry aligns with the stratification of M. Third, stratified Morse theory provides a
+classification of gradient flows in neighborhoods of singular strata, ensuring that the behavior
+of the gradient flow is predictable even when M is not smooth.
+In the context of learning, stratified Morse potentials offer a principled alternative to
+arbitrary loss functions.
+The manifold M represents the space of semantically coherent
+representations, partitioned into strata corresponding to different modes or structural tem-
+plates. The potential V is constructed to respect this structure: its critical points encode
+meaningful semantic equilibria, and its gradients generate flows that guide the representation
+toward stable semantic configurations. Unlike generic losses, which may exhibit pathological
+behavior, stratified Morse potentials ensure that the landscape has well-structured critical
+6
+
+points and that gradient flows behave predictably across strata.
+For each stratum Sα, the gradient of V relative to the Riemannian metric gα is given by
+the projected ambient gradient:
+∇V (x) = ΠTxSα
+
+∇Rn eV (x)
+
+,
+where eV : Rn →R is any smooth extension of V off the manifold (which always exists lo-
+cally). The normal component ΠNxSα(∇Rn eV (x)) measures the degree to which V "pulls" the
+representation off the stratum. When this normal component is small, the stratum provides
+a consistent semantic mode. When it is large, the current semantic mode is inadequate, and
+a stratum transition may be required.
+The MAGI dynamics use stratified Morse potentials in a way that directly parallels clas-
+sical gradient descent on smooth manifolds but with additional geometric structure. On each
+stratum the potential determines a gradient direction, and the update follows a Riemannian
+heavy-ball discretization.
+When the normal component becomes large, a transition to a
+lower-dimensional stratum is triggered, reflecting a change in semantic mode. The stratified
+Morse structure ensures that, even across such transitions, the critical points and flows of
+the potential remain well-behaved.
+Stratified Morse theory therefore provides the analytical framework needed to define po-
+tentials that capture structured semantic landscapes. The next section introduces momentum-
+based dynamics on manifolds, leading to the Riemannian heavy-ball equation and its discrete
+approximations. These dynamics form the continuous-time analogue of the MAGI update
+rule, allowing for a rigorous comparison with SGDM and its Euclidean heavy-ball roots.
+5
+Riemannian Heavy-Ball Dynamics and the Euclidean
+Limit
+Momentum-based optimization methods such as Polyak's heavy-ball method and SGDM
+arise as discretizations of second-order differential equations on Euclidean space.
+In the
+MAGI framework, these dynamics must be formulated on a Riemannian manifold, with
+tangent projections ensuring that velocities remain restricted to the tangent bundle of the
+active stratum. This section develops the continuous-time Riemannian heavy-ball equation
+and derives its discrete-time approximations, ultimately connecting these constructions to
+the MAGI update rule and establishing the Euclidean limit in which SGDM is recovered.
+On a Riemannian manifold (S, g), the gradient of a smooth function F : S →R is defined
+by the relation
+gx(∇F(x), v) = dFx(v)
+7
+
+for all v ∈TxS. Gradient flow corresponds to the first-order differential equation
+˙xt = −∇F(xt),
+which generalizes classical gradient descent in Euclidean space. To incorporate momentum,
+one introduces a velocity field vt = ˙xt and considers the second-order equation
+∇˙xt ˙xt + γ ˙xt + ∇F(xt) = 0,
+where ∇˙xt ˙xt is the covariant derivative of the velocity along the trajectory, and γ > 0 is a
+damping coefficient. This equation describes heavy-ball dynamics on a Riemannian manifold,
+with inertia governed by the covariant acceleration and damping analogous to viscous friction.
+In the Euclidean case, the Levi-Civita connection reduces to ordinary differentiation, and
+the equation becomes
+¨xt + γ ˙xt + ∇F(xt) = 0,
+which is the classical heavy-ball equation introduced by Polyak.
+To derive discrete-time approximations, consider a small time step η > 0. A first-order
+discretization of the velocity is given by
+vk+1 = vk −η (γvk + ∇F(xk)) ,
+which simplifies to
+vk+1 = (1 −ηγ)vk −η∇F(xk).
+The position update is obtained by moving along the geodesic with initial velocity vk+1 for
+time η:
+xk+1 =xk (ηvk+1).
+Rescaling parameters to align more closely with machine learning conventions, one defines
+β = 1 −ηγ and replaces η in the gradient term by a learning rate ηk, yielding
+vk+1 = βvk + ∇F(xk),
+xk+1 =xk (−ηkvk+1).
+In Euclidean space, the exponential map is linear, so the position update becomes
+xk+1 = xk −ηkvk+1.
+This is precisely the SGDM update rule
+vk+1 = βvk + ∇f(xk),
+xk+1 = xk −ηkvk+1.
+8
+
+The Riemannian formulation illustrates the geometric nature of the momentum term.
+The velocity evolves within the tangent bundle, and the exponential map transports the
+point along a geodesic, ensuring that the updated position remains on the manifold. When
+S is a submanifold of Rn and the embedding is isometric, the gradient computed in ambient
+coordinates must be projected onto TxS before being used in the velocity update:
+vk+1 = βvk + ΠTxS(∇Rn eF(x)).
+This observation is essential to the MAGI update rule, where the tangent projection provides
+the defining geometric constraint.
+Several derivations in the literature approximate the exponential map using first-order re-
+tractions, which simplifies computation but retains the correct geometric interpretation. In
+this chapter, the exponential map is used explicitly to preserve theoretical clarity.
+The
+equivalence between the exponential map and a retraction near the origin ensures that
+the discrete-time updates approximate the continuous-time Riemannian heavy-ball equation
+with first-order accuracy.
+The momentum coefficient β must satisfy 0 ≤β < 1 for stable dynamics in the ab-
+sence of additional regularization. In the Riemannian case, the stability analysis involves
+the spectral properties of the covariant Hessian of F and the damping term γ. These con-
+siderations become more complex in the stratified setting, where transitions between strata
+introduce discrete changes in tangent spaces, and the potential function may change struc-
+ture.
+Nonetheless, the Riemannian heavy-ball formulation provides the continuous-time
+foundation for the MAGI update rule.
+With this foundation established, the next section develops the full MAGI update rule,
+incorporating tangent projection, stratified Morse potentials, and stratum transitions. This
+formulation generalizes both SGDM and Riemannian momentum methods by constraining
+dynamics to the tangent spaces of a Whitney-stratified manifold and by enforcing semantic
+coherence through geometric structure.
+6
+The MAGI Update Rule: Formal Definition and Fun-
+damental Properties
+The MAGI framework integrates the geometric structures introduced earlier into a unified
+algorithmic and analytic formalism. The goal is to constrain learning dynamics to a stratified
+semantic manifold while retaining the stabilizing influence of momentum. This section de-
+velops the MAGI update rule with full mathematical rigor, beginning with formal definitions
+of the semantic manifold, tangent and normal decompositions, stratified Morse potentials,
+and the update mechanism itself. Several lemmas establish foundational properties that will
+9
+
+later support the proofs of the main theorems.
+Let M ⊂Rn be a Whitney-stratified Riemannian submanifold with stratification
+M =
+G
+α∈A
+Sα,
+where each Sα is a smooth embedded submanifold endowed with the Riemannian metric
+gα induced from the ambient Euclidean metric.
+For each x ∈Sα, the tangent space is
+TxM := TxSα, and the normal space is NxM := (TxM)⊥. The orthogonal projections onto
+these spaces are denoted ΠTxM and ΠNxM, respectively.
+Let V : M →R be a stratified Morse potential. For any smooth extension eV : Rn →R
+defined in a neighborhood of M, define the stratified gradient of V at a point x ∈Sα by
+∇V (x) = ΠTxM
+
+∇Rn eV (x)
+
+.
+The normal component of the ambient gradient is then
+∇⊥V (x) = ΠNxM
+
+∇Rn eV (x)
+
+.
+We now define the MAGI update rule in its complete form.
+[MAGI Update Rule] Let xk ∈M lie in stratum Sαk, and let vk ∈TxkM be the associated
+tangent velocity. Let ηk > 0 be the learning rate and β ∈[0, 1) the momentum coefficient.
+Then the MAGI update is given by
+vk+1 = βvk + ΠTxkM
+
+∇Rn eV (xk)
+
+,
+xk+1 =xk (−ηkvk+1),
+provided that the normal component satisfies ∥∇⊥V (xk)∥< θ for some fixed threshold
+θ > 0. If ∥∇⊥V (xk)∥≥θ, a stratum transition is triggered, and xk+1 is projected to a
+lower-dimensional stratum according to the transition rule described below.
+The tangent projection ensures that all velocity updates remain inside the tangent bundle
+TM. The exponential map ensures that the updated point lies on the same stratum unless
+a transition is explicitly triggered.
+The next lemma formalizes the fact that the MAGI update rule produces tangent veloc-
+ities.
+For every iteration k, the velocity vk+1 produced by the MAGI update rule lies in the
+tangent space TxkM.
+Proof. By the induction hypothesis, vk ∈TxkM. The update rule defines
+vk+1 = βvk + ΠTxkM
+
+∇Rn eV (xk)
+
+.
+10
+
+Since both vk and the projected gradient lie in TxkM, their linear combination does as well.
+Thus vk+1 ∈TxkM.
+The next result establishes that the MAGI position update remains on the manifold,
+reflecting the geometric constraints of the framework.
+If no stratum transition is triggered, the updated point xk+1 lies in the same stratum Sαk
+as xk.
+Proof. The exponential map xk : TxkSαk →Sαk maps tangent vectors to points on the same
+stratum. Since vk+1 ∈TxkSαk, it follows that xk+1 =xk (−ηkvk+1) ∈Sαk.
+The threshold condition on ∥∇⊥V (xk)∥identifies situations where the current stratum
+fails to provide a semantically coherent representation.
+The next lemma formalizes this
+interpretation.
+If ∥∇⊥V (xk)∥= 0, then xk is a critical point of V with respect to all admissible ambient
+perturbations.
+Proof. If ∇⊥V (xk) = 0, then ∇Rn eV (xk) lies entirely in TxkM.
+By the definition of the
+stratified gradient, ∇V (xk) = ∇Rn eV (xk). If, in addition, ∇V (xk) = 0, then xk is a critical
+point of V |Sαk. Since there is no normal component, perturbations normal to the stratum
+do not decrease V , establishing that xk is a full critical point of V on M.
+The MAGI update rule therefore respects the geometric structure of the manifold and
+provides a principled mechanism for determining when the semantic mode represented by
+the current stratum is inadequate.
+We next introduce the formal mechanism for stratum transitions.
+[Stratum Transition Rule] If ∥∇⊥V (xk)∥≥θ, a transition is triggered. Let Sβ be a
+stratum satisfying Sβ ≺Sαk and
+TxkSβ = lim
+i→∞TxiSαk
+for some sequence xi ∈Sαk approaching xk. The updated point xk+1 is then defined as the
+projection of xk onto Sβ along the normal direction, followed by a tangent-space update
+within Sβ:
+xk+1 =(β)
+xk
+ −ηkΠTxkSβ(∇Rn eV (xk))
+
+.
+Whitney condition (a) ensures that the limiting tangent planes exist, and condition (b)
+ensures that the geometric transition is well-posed.
+The next lemma establishes that MAGI dynamics remain well-defined even near singu-
+larities.
+Let (xk) be a MAGI trajectory that approaches a point x∗lying in a lower-dimensional
+stratum Sβ. Then the tangent projection ΠTxkM converges to ΠTx∗Sβ.
+11
+
+Proof. This follows immediately from Whitney condition (a), which guarantees that the
+limiting tangent spaces of a sequence of points on a higher-dimensional stratum approaching a
+point on a lower-dimensional stratum converge to the tangent space of the lower-dimensional
+stratum.
+These results establish the well-definedness and geometric consistency of the MAGI up-
+date rule. The next section develops its analytic properties, culminating in the proof that
+MAGI strictly suppresses normal components of the gradient, whereas SGDM does not.
+7
+Normal-Component Suppression and Stability of Tan-
+gent Dynamics
+One of the central advantages of the MAGI framework over classical momentum-based op-
+timization is its structural suppression of normal components. In ambient Euclidean space,
+SGDM freely accumulates motion in directions orthogonal to the underlying semantic man-
+ifold, since the velocity update
+vSGDM
+k+1
+= βvk + ∇f(xk)
+contains no mechanism for eliminating ΠNxkM(∇f(xk)).
+As a consequence, oscillations,
+drift, and instability may occur along off-manifold directions, even when the underlying
+representation space is intrinsically low-dimensional.
+In contrast, the MAGI update rule explicitly projects gradients onto tangent spaces,
+ensuring that no new normal component is ever introduced through the momentum term.
+The only source of normal components at subsequent iterates arises from intrinsic curvature
+or stratified changes in the potential. This section develops the formal statement and proof
+of this stability property.
+We begin by establishing a relationship between the tangent and normal components of
+the gradient at consecutive iterates.
+Let xk, xk+1 ∈Sα lie in the same stratum. Then
+∇Rn eV (xk+1) = ∇Rn eV (xk) + D∇Rn eV (xk)[ xk+1 −xk ] + O(∥xk+1 −xk∥2).
+Proof. The ambient gradient is smooth in a neighborhood of xk because eV is smooth on Rn.
+A first-order Taylor expansion yields
+∇Rn eV (xk+1) = ∇Rn eV (xk) + D∇Rn eV (xk)[ xk+1 −xk ] + R(xk+1, xk),
+12
+
+where the remainder term satisfies
+∥R(xk+1, xk)∥≤C∥xk+1 −xk∥2
+for some constant C depending on local bounds on the Hessian of eV .
+This proves the
+claim.
+Since the MAGI update satisfies
+xk+1 =xk (−ηkvk+1),
+and vk+1 ∈TxkM, the displacement xk+1 −xk can be approximated at first order by −ηkvk+1
+when ηk is small. Substituting this into the previous lemma yields the following approxima-
+tion.
+Let xk, xk+1 ∈Sα be consecutive MAGI iterates. Then
+∇Rn eV (xk+1) = ∇Rn eV (xk) −ηkD∇Rn eV (xk)[vk+1] + O(η2
+k∥vk+1∥2).
+Projecting this decomposition onto the normal bundle yields the central relationship
+needed for the main theorem.
+For MAGI updates, the normal component of the gradient at the next iterate satisfies
+ΠNxk+1M(∇Rn eV (xk+1)) = ΠNxk+1M
+
+∇Rn eV (xk) −ηkD∇Rn eV (xk)[vk+1]
+
++ O(η2
+k∥vk+1∥2).
+Proof. This follows immediately by applying the orthogonal projection ΠNxk+1M to the Taylor
+expansion and using the linearity of the projection operator.
+We now state the main structural theorem.
+[Normal-Component Suppression Theorem] Let (xk) be a sequence generated by the
+MAGI update rule on a single stratum Sα with sufficiently small step size ηk. Then for all
+k,
+ΠNxk+1M(∇Rn eV (xk+1))
+ ≤
+ΠNxkM(D∇Rn eV (xk)[ vk+1])
+ + O(η2
+k∥vk+1∥2).
+In particular, the update introduces no new normal component beyond the intrinsic geomet-
+ric variation of the potential along tangent directions.
+Proof. We begin with the decomposition
+∇Rn eV (xk+1) = ∇Rn eV (xk) −ηkD∇Rn eV (xk)[vk+1] + O(η2
+k∥vk+1∥2).
+Applying ΠNxk+1M yields
+ΠNxk+1M(∇Rn eV (xk+1)) = ΠNxk+1M(∇Rn eV (xk))−ηkΠNxk+1M(D∇Rn eV (xk)[vk+1])+O(η2
+k∥vk+1∥2).
+13
+
+Since ΠTxkM(∇Rn eV (xk)) is used in the velocity update, the normal component of the
+gradient at step k does not enter vk+1. Therefore, ΠNxkM(∇Rn eV (xk)) does not appear on
+the right-hand side of the velocity update and cannot accumulate through momentum.
+Moreover, because vk+1 ∈TxkM and the normal projection at xk+1 converges to the
+normal projection at xk as ηk →0 (by smoothness of the projection operator on each
+stratum), we may replace ΠNxk+1M with ΠNxkM up to O(ηk) error.
+As a result, the normal component at xk+1 satisfies
+ΠNxk+1M(∇Rn eV (xk+1))
+ ≤
+ΠNxkM(D∇Rn eV (xk)[vk+1])
+ + O(η2
+k∥vk+1∥2).
+No term involving ΠNxkM(∇Rn eV (xk)) appears. Thus the MAGI dynamics introduce no new
+normal component beyond the intrinsic variation of the potential along tangent directions.
+This structural theorem highlights the key geometric distinction between MAGI and
+SGDM. Even when the underlying potential varies in complex ways, MAGI strictly sup-
+presses extrinsic normal components. The only normal component observed at xk+1 arises
+from how V varies intrinsically along tangent directions, in accordance with the manifold's
+curvature and stratified structure.
+In contrast, SGDM updates satisfy
+ΠNxkM(vSGDM
+k+1
+) = βΠNxkM(vk) + ΠNxkM(∇f(xk)),
+which implies direct accumulation of normal components through both the gradient and the
+momentum term. This distinction underlies the superior stability properties of the MAGI
+framework.
+8
+Stratum Transitions as Discrete Geometric Events
+The MAGI framework must operate not only on smooth strata but also in neighborhoods
+where strata of differing dimensions meet. In such cases, the dynamics cannot be described
+solely by smooth Riemannian geometry. Instead, transitions between strata constitute dis-
+crete geometric events determined by the Whitney stratification and the structure of the
+stratified Morse potential. This section develops the mathematical formulation of stratum
+transitions, establishes their well-posedness, and derives key analytical properties supporting
+the overall stability of the MAGI framework.
+Let x ∈Sα lie in a stratum of dimension dα, and let V : M →R be the stratified
+Morse potential.
+Recall that the ambient gradient decomposes into tangent and normal
+components:
+∇Rn eV (x) = ∇V (x) + ∇⊥V (x),
+14
+
+where ∇V (x) ∈TxSα and ∇⊥V (x) ∈NxSα. When ∥∇⊥V (x)∥is small, the current semantic
+mode is adequate, and the update proceeds within Sα. When the normal component grows
+sufficiently large, the current stratum no longer provides a geometrically coherent model of
+the local behavior of V , and a lower-dimensional stratum must be selected.
+We begin by formalizing the notion of stratum admissibility.
+[Admissible Strata] Let x ∈Sα and fix a threshold θ > 0. A stratum Sβ with Sβ ≺Sα is
+admissible at x if the following two conditions hold:
+(1) The tangent space TxSβ arises as the limit of the tangent spaces TxiSα for some
+sequence xi ∈Sα converging to x.
+(2) The normal component satisfies ∥∇⊥V (x)∥≥θ.
+Condition (1) ensures geometric compatibility by Whitney condition (a). Condition (2)
+ensures the semantic inadequacy of Sα at x.
+The first lemma establishes the existence of admissible strata when the normal component
+exceeds the threshold.
+[Existence of Transition Targets] If ∥∇⊥V (xk)∥≥θ, then there exists at least one stratum
+Sβ with Sβ ≺Sαk that is admissible at xk.
+Proof. Whitney condition (a) implies that whenever a sequence xi ∈Sαk converges to a
+point xk lying in the closure of a lower-dimensional stratum Sβ, the tangent spaces TxiSαk
+converge to TxkSβ. Since the stratification is locally finite, there are finitely many strata in
+any neighborhood of xk, so at least one such Sβ exists. Because ∥∇⊥V (xk)∥≥θ, the current
+stratum is semantically inadequate, and thus at least one such Sβ is admissible.
+Uniqueness of the transition target is not guaranteed globally; however, the geometry of
+stratified Morse functions provides a criterion for choosing the appropriate lower-dimensional
+stratum.
+[Local Uniqueness of Transition Targets] Suppose ∥∇⊥V (xk)∥≥θ and V is a stratified
+Morse potential. Then there exists a neighborhood U of xk in which all admissible strata Sβ
+with Sβ ⊂Sαk satisfy
+dim Sβ = min{dγ : Sγ admissible at xk}.
+In particular, locally minimal strata are well-defined transition targets.
+Proof. Stratified Morse functions satisfy transversality conditions that ensure that if a tra-
+jectory of the gradient flow approaches a point xk lying in a lower-dimensional stratum, then
+the descent direction aligns with a unique normal direction associated with the minimal
+stratum containing xk in its closure. The set of admissible strata is finite near xk, since the
+stratification is locally finite. Among these, the minimal dimension determines the direc-
+tion in which the normal component of the gradient has nonzero projection. Therefore the
+minimal-dimension admissible stratum is uniquely determined in a neighborhood of xk.
+15
+
+We now provide the formal transition rule used in the MAGI update.
+[Stratum Transition Update] Let xk lie in stratum Sαk and suppose ∥∇⊥V (xk)∥≥θ.
+Let Sβ be the unique locally minimal admissible stratum. The stratum transition update is
+given by
+xk+1 =(β)
+xk
+
+−ηkΠTxkSβ
+
+∇Rn eV (xk)
+
+,
+where (β) denotes the exponential map on the stratum Sβ.
+This is consistent with the intuition that a significant normal component indicates that
+the lower-dimensional stratum better models the local structure of the potential.
+The next lemma establishes that transitions decrease the potential value to first order.
+[Descent Property of Transitions] Let xk+1 be defined by a stratum transition from Sαk
+to Sβ. Then for sufficiently small ηk,
+V (xk+1) < V (xk).
+Proof. The projected gradient ΠTxkSβ(∇Rn eV (xk)) is the steepest descent direction in the
+tangent space of the target stratum. Since Sβ is chosen so that the normal component of the
+gradient in Sαk is large, movement along Sαk would not decrease V efficiently. In contrast,
+movement along Sβ aligns with the significant component of the gradient. Applying the
+exponential map with small step ηk produces a first-order decrease of V :
+V ((β)
+xk (−ηkw)) = V (xk) −ηk∥w∥2 + O(η2
+k),
+with w = ΠTxkSβ(∇Rn eV (xk)) ̸= 0, ensuring strict descent.
+We now show that the transition update is geometrically consistent with the Whitney
+stratification.
+[Geometric Consistency of Stratum Transitions] Let xk ∈Sαk and suppose ∥∇⊥V (xk)∥≥
+θ. Let Sβ be the minimal admissible stratum. Then the stratum transition update xk+1
+satisfies:
+(1) xk+1 ∈Sβ,
+(2) Txk+1Sβ = limi→∞TxiSαk for any sequence xi ∈Sαk approaching xk,
+(3) the update aligns with the steepest descent direction of V restricted to Sβ.
+Proof. Part (1) follows from the fact that (β) maps tangent vectors of Sβ into Sβ.
+Part (2) follows from Whitney condition (a), which ensures that tangent spaces converge
+appropriately across strata. The choice of Sβ as the minimal admissible stratum ensures
+that the limiting tangent plane corresponds precisely to TxkSβ.
+Part (3) follows from the projection of the gradient onto TxkSβ, which yields the steepest
+descent direction for V |Sβ.
+The exponential update performs a geodesic step along this
+direction, ensuring that the transition decreases the potential to first order.
+16
+
+The stratum transition mechanism thus provides a coherent geometric interpretation of
+how learning dynamics move between different semantic modes. In the MAGI framework,
+these transitions are triggered only when the normal component of the gradient signals
+that the current stratum is semantically inadequate. Combined with the normal-component
+suppression property established in the previous section, this ensures that the dynamics
+remain stable and coherent even in the presence of singularities and structural changes in
+the representation.
+The next section establishes the formal inclusion of SGDM within the MAGI framework,
+culminating in the equivalence theorem that identifies SGDM as a degenerate geometric limit
+of MAGI.
+9
+SGDM as a Degenerate Geometric Limit of MAGI
+Having developed the full geometric machinery of the MAGI framework, we now turn to
+the precise relationship between MAGI and classical Stochastic Gradient Descent with Mo-
+mentum (SGDM). Intuitively, SGDM corresponds to the special case in which the semantic
+manifold is taken to be the entire ambient Euclidean space, the tangent projection becomes
+the identity, the stratification is trivial, and the potential is an arbitrary smooth function
+rather than a stratified Morse potential. In this section, we formalize this intuition by proving
+a strict equivalence theorem that identifies SGDM as a degenerate limit of MAGI, obtained
+by collapsing all geometric structure.
+We begin by recalling the MAGI update rule in full generality.
+Let M ⊂Rn be a
+Whitney-stratified submanifold, let V : M →R be a stratified Morse potential, and let ηk
+and β denote the learning rate and momentum coefficient. For xk ∈Sαk and vk ∈TxkM,
+the MAGI update is given (in the absence of a stratum transition) by
+vk+1 = βvk + ΠTxkM(∇Rn eV (xk)),
+xk+1 =xk (−ηkvk+1).
+We now impose the following simplifying assumptions:
+(1) The semantic manifold equals the entire ambient space: M = Rn.
+(2) The stratification is trivial: there is a single stratum S0 = Rn.
+(3) The tangent and normal bundles satisfy TxM = Rn and NxM = {0}.
+(4) The tangent projection operator becomes the identity: ΠTxM = I.
+(5) The exponential map becomes Euclidean translation: x(v) = x + v.
+(6) The potential is arbitrary smooth: V = f for f : Rn →R with no Morse or stratifi-
+cation constraints.
+Under these conditions, we obtain the SGDM update rule. Formally, we aim to prove
+17
+
+the following.
+[MAGI-SGDM Equivalence Theorem] Let the MAGI update rule be restricted by as-
+sumptions (1)-(6) above. Then for every k,
+vk+1 = βvk + ∇f(xk),
+xk+1 = xk −ηkvk+1,
+which is precisely the Stochastic Gradient Descent with Momentum update.
+Proof. Under assumption (1), the manifold M is the entire Euclidean space Rn.
+Under
+assumption (2), the stratification contains only one stratum S0, so every point lies in the
+same stratum with dimension n. Assumption (3) implies that TxM = Rn and NxM = {0}
+for all x. Hence by assumption (4), the tangent projection satisfies
+ΠTxM(u) = u
+for all u ∈Rn.
+Because M = Rn, the gradient of V relative to M equals the ambient gradient of its
+extension:
+∇V (x) = ΠTxM(∇Rn eV (x)) = ∇Rn eV (x).
+Assumption (6) identifies V with an arbitrary smooth function f : Rn →R. We therefore
+have
+∇V (xk) = ∇f(xk).
+Substituting this into the MAGI velocity update yields
+vk+1 = βvk + ΠTxkM(∇Rnf(xk)) = βvk + ∇f(xk),
+which is exactly the SGDM velocity update.
+Applying assumption (5), the exponential map reduces to Euclidean translation,
+xk(−ηkvk+1) = xk −ηkvk+1,
+yielding the SGDM position update.
+Therefore, the MAGI update reduces identically to the SGDM update under assumptions
+(1)-(6), completing the proof.
+This theorem establishes SGDM as a special case of MAGI in which all geometric struc-
+ture is suppressed. In MAGI, the tangent projection operator plays the essential role of
+eliminating normal components and enforcing motion confined to the semantic manifold.
+When ΠTxM = I, the constraint is vacuous. Likewise, the Riemannian exponential collapses
+to Euclidean translation, and stratified Morse potentials collapse to arbitrary smooth losses.
+The next result clarifies the strictness of the inclusion.
+18
+
+The inclusion
+SGDM ⊊MAGI
+is strict whenever the semantic manifold M is not the entire ambient space or whenever the
+stratification is non-trivial.
+Proof. If M ̸= Rn, then TxM is a strict subspace of Rn for all x in lower-dimensional strata,
+and ΠTxM is no longer the identity.
+In this case, the MAGI velocity update suppresses
+normal components, whereas SGDM does not. Therefore the two update rules differ on any
+point x /∈Rn or whenever ∇f(x) has a nonzero normal component. If the stratification
+is non-trivial, then transitions between strata may occur, a phenomenon absent in SGDM.
+Thus equality can hold only in the trivial case M = Rn with a single stratum.
+To further illuminate the geometric nature of this inclusion, we now characterize the
+difference in terms of normal components.
+Let M ⊂Rn be any proper Whitney-stratified submanifold. Then for any x ∈M and any
+gradient field ∇f with ΠNxM(∇f(x)) ̸= 0, the SGDM velocity update introduces a nonzero
+normal component, while the MAGI update does not.
+Proof. Under SGDM,
+vSGDM
+k+1
+= βvk + ∇f(xk),
+so
+ΠNxkM(vSGDM
+k+1
+) = βΠNxkM(vk) + ΠNxkM(∇f(xk)).
+If ΠNxkM(∇f(xk)) ̸= 0, then the right-hand side is nonzero regardless of β. In contrast,
+under MAGI, the velocity update is
+vMAGI
+k+1
+= βvk + ΠTxkM(∇f(xk)),
+and ΠNxkM(vMAGI
+k+1 ) = 0. Thus SGDM introduces normal components whereas MAGI elimi-
+nates them.
+This establishes that SGDM can be viewed as the MAGI update performed on a semantic
+manifold of maximal dimension, in which all directions are considered semantically valid.
+The MAGI framework therefore generalizes SGDM by restricting dynamics to a structured
+geometric space and preventing motion along extrinsic or semantically incoherent directions.
+The next section extends this comparison by developing a hierarchy of learning dynamics,
+ranging from unconstrained Euclidean gradient descent to the fully stratified and geometri-
+cally constrained MAGI framework.
+19
+
+10
+A Hierarchy of Optimization Dynamics
+The equivalence theorem identifying SGDM as a degenerate geometric limit of MAGI natu-
+rally suggests a broader hierarchy of optimization dynamics. This hierarchy reflects increas-
+ingly sophisticated geometric constraints imposed on the learning process, with each level
+subsuming the previous. The structure of this hierarchy reveals how traditional optimization
+implicitly assumes a trivial geometric setting, while MAGI generalizes momentum dynamics
+into a full theory of learning constrained by semantic geometry.
+At the lowest level lies standard gradient descent in Euclidean space, expressed by
+xk+1 = xk −ηk∇f(xk).
+This update rule treats the entire ambient space as equally valid, with no distinction be-
+tween semantically meaningful and meaningless directions. Gradient descent exhibits no
+mechanism for temporal smoothing or inertial acceleration.
+The next level introduces momentum, yielding the SGDM update
+vk+1 = βvk + ∇f(xk),
+xk+1 = xk −ηkvk+1.
+Momentum adds inertial structure and accelerates motion along shallow directions, but the
+geometric interpretation remains Euclidean and unconstrained. All directions in the ambient
+space retain equal status.
+A further refinement incorporates Riemannian geometry, replacing the Euclidean space
+with a smooth Riemannian manifold (S, g):
+vk+1 = βvk + ∇F(xk),
+xk+1 =xk (−ηkvk+1).
+In this setting, the geometry influences the dynamics through the Riemannian exponen-
+tial map and the Levi-Civita connection. However, the manifold is smooth and of fixed
+dimension; no mechanism exists for discrete changes in semantic mode.
+The MAGI update rule occupies the highest level in this hierarchy. It incorporates all
+of the above structures—momentum, Riemannian geometry, and geodesic updates—while
+introducing additional constraints derived from semantic considerations. These include tan-
+gent projection, stratified Morse potentials, and formally defined stratum transitions.
+The resulting inclusion relations may be expressed symbolically as
+GD ⊂SGDM ⊂Riemannian Momentum ⊂MAGI.
+This hierarchy is strict. Each successive method introduces structural properties unattain-
+able by its predecessor. Gradient descent lacks inertial smoothing. SGDM lacks geometric
+20
+
+constraints. Riemannian momentum lacks stratification and normal-component suppression.
+MAGI introduces all of these features in a unified geometric framework.
+11
+Geometric and Analytic Implications
+The analysis developed thus far highlights several profound differences between MAGI and
+its Euclidean predecessors. These differences arise from the combination of tangent-space
+projection, stratified potentials, and the geometric mechanism for semantic transitions.
+The most immediate implication is enhanced stability. MAGI restricts learning dynamics
+to directions of semantic coherence by projecting ambient gradients onto tangent spaces. In
+doing so, it strictly suppresses normal components, as proven in the Normal-Component
+Suppression Theorem. This property provides a structural solution to instability induced by
+off-manifold drift, a pervasive challenge in modern representation learning.
+A second implication concerns the geometry of the potential landscape. Stratified Morse
+potentials exhibit well-structured critical sets, stable and unstable manifolds compatible with
+the stratification, and predictable behavior under gradient flow. This is markedly different
+from arbitrary losses, which may contain plateaus, ridges, or degeneracies that confound
+optimization algorithms.
+A third implication is interpretability. Because the strata represent semantic modes or
+representational templates, transitions between strata correspond to discrete changes in se-
+mantic interpretation. The MAGI framework therefore not only constrains learning dynamics
+but also reveals their underlying structure through the geometry of the stratification.
+A fourth implication concerns the curvature of the semantic manifold. Under MAGI,
+curvature directly affects the variation of tangent spaces along trajectories and governs the
+behavior of the projected gradient. The explicit dependence on geometric structure permits
+theoretical analyses unavailable in the Euclidean setting, including comparisons of conver-
+gence rates under curvature constraints.
+12
+Semantic Interpretation of Geometric Constraints
+The conceptual distinction between tangent and normal components provides a semantic
+interpretation of the geometric structure. Tangent directions represent permissible semantic
+variation, while normal directions correspond to incoherent or inadmissible perturbations
+that alter representational meaning.
+MAGI treats these directions differently by design.
+The tangent projection enforces semantic coherence by discarding motion orthogonal to the
+manifold. The normal component of the gradient acts as a signal for semantic inadequacy, in-
+dicating that the current representational mode cannot adequately account for the structure
+of the potential.
+21
+
+Under this interpretation, the stratum transition mechanism is understood as a semantic
+shift. When the magnitude of the normal component exceeds a threshold, the dynamics
+interpret this as a need to adopt a new representational mode.
+Whitney condition (a)
+ensures that such transitions correspond to well-defined limiting tangent spaces, and the
+stratified Morse structure ensures that they occur at topologically meaningful locations. The
+transition update acts as a discrete correction, restoring semantic coherence by relocating
+the representation to a lower-dimensional stratum better aligned with the intrinsic geometry
+of the potential.
+13
+Synthesis and Conclusion
+The MAGI framework unifies geometric dynamics, stratified topology, and momentum-based
+optimization into a single theory of learning constrained by semantic structure. By situat-
+ing learning on a Whitney-stratified Riemannian manifold and employing stratified Morse
+potentials, MAGI aligns the optimization process with the intrinsic geometry of represen-
+tational meaning. The tangent projection mechanism enforces coherence, the exponential
+map ensures consistency with manifold geometry, and the stratum transition rule addresses
+singularities and structural changes in representation.
+The analysis conducted in this chapter demonstrates that SGDM is a degenerate case
+of MAGI, arising precisely when all geometric constraints are suppressed. This equivalence
+provides a new perspective on classical optimization techniques, revealing them as special
+cases of a broader geometric theory. The strict inclusion hierarchy developed here shows how
+MAGI inherits the strengths of SGDM while remedying several of its structural deficiencies.
+Taken together, these results present MAGI as a geometric completion of momentum-
+based optimization methods. Rather than performing unconstrained descent in an undiffer-
+entiated Euclidean space, MAGI constrains trajectories to a stratified semantic manifold and
+ensures that all motions respect the geometric and representational structure of the space.
+These constraints yield improved stability, interpretability, and geometric consistency, and
+they open new avenues for analyzing learning dynamics through the tools of differential
+geometry and stratified Morse theory.
+References
+22
+

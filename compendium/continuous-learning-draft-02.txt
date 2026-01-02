@@ -1,0 +1,1324 @@
+Continuous Learning through Teleological Alignment:
+An RSVP-GRPO Framework for Self-Improving LLMs
+Flyxion
+December 9, 2025
+Abstract
+Recent work on Dynamic Alignment for Collective Agency proposes a self-improving align-
+ment protocol in which a large language model (LLM) generates its own training data and scores
+its own outputs with respect to an open-ended value—Collective Agency (CA)— and then updates
+its policy using Group-Relative Policy Optimization (GRPO). This paper develops an alternative but
+compatible framework, grounded in the Relativistic Scalar-Vector Plenum (RSVP) field theory, in
+which alignment is treated as a problem of maintaining a multi-dimensional semantic field geom-
+etry rather than maximizing a scalar objective.
+We define a six-dimensional RSVP value vector for each model output, corresponding to geo-
+metric elegance, sheaf-theoretic composability, vectorial influence circulation, entropic dispersion,
+structural resilience, and epistemic openness. These axes are interpreted as dis- crete samples of the
+RSVP fields (Φ, v, 𝑆) and their derived functionals. We then embed these vector-valued scores into
+a GRPO-style group-relative learning rule, extend it with a teleological weighting mechanism that
+responds to drift in each axis over time, and implement a fully operational pipeline: a Bash-based
+data-generation agent, a JSONL preference schema, and a semantic-weighted GRPO trainer.
+The result is a concrete, reproducible architecture for continuous learning through teleological
+alignment, in which an LLM not only improves its performance on tasks, but actively steers its
+behaviour along a specified multi-axis alignment trajectory. Rather than converging toward a brittle
+monolithic optimum, the system continually corrects regressions in its internal value geometry,
+embodying the RSVP maxim: "divided we stand."
+Contents
+1
+Introduction
+The problem of alignment has long been framed as a question of identifying a single objective that
+a powerful learning system ought to pursue and then designing mechanisms to ensure that the re-
+sulting optimization process remains within tolerable bounds. In this orthodox picture, the principal
+danger arises when a system acquires the capability to optimize aggressively while holding a brittle
+or erroneous objective, thereby magnifying a small mis-specification into catastrophic consequences.
+Yet as models increase in expressivity and capacity, the assumption that alignment can be represented
+1
+
+as maximization of a scalar target has become progressively harder to defend. The scalar view is not
+merely a convenient simplification; it can itself become a source of fragility, encouraging monocultural
+optimization, suppressing epistemic diversity, and transforming uncertainty into apparent certainty
+with potentially calamitous implications.
+Recent proposals such as Dynamic Alignment for Collective Agency have sought to transcend the scalar
+paradigm by reframing alignment as a self-improving negotiation among multiple evolving desiderata
+rather than a static pursuit of a single telos (?). Instead of relying on externally labelled data, the model
+generates its own prompts, produces multiple candidate outputs, evaluates them against high-level
+alignment criteria, and updates itself accordingly. This approach recognizes that alignment is neither
+a fixed destination nor a simple property of outputs, but rather a dynamic trajectory in an evolving
+semantic landscape. The principle of Collective Agency places emphasis on coherence of multi-agent
+deliberation and open-ended cooperative improvement. Yet the notion of agency in this formulation
+remains predominantly evaluative and behavioural, without an explicit semantic geometry that could
+guide a system toward self-organizing, anti-collapse behaviour in the presence of pervasive uncertainty.
+In parallel, the Relativistic Scalar-Vector Plenum (RSVP) framework has developed an entirely distinct
+but deeply compatible ontology of cognition, physical interaction, and semantic organization. RSVP
+posits that every system inhabits and contributes to a plenum composed of scalar potential Φ, vector
+circulation v, and entropy 𝑆. These are not merely metaphorical, but are treated as fields with dynam-
+ics, regularities, and constraints. Within this framework, cognition is related less to manipulation of
+propositions than to the active maintenance of a viable geometric configuration in field space. The
+slogan "divided we stand" captures the paradoxical essence of RSVP alignment: systems survive not by
+maximizing coherence but by maintaining sufficient dispersion to avoid collapse.
+The contribution of the present work is not to overturn the insights of the dynamic alignment approach,
+but to supply a missing semantic-geometric component. We show how an LLM can be equipped with
+a multi-dimensional value vector grounded in RSVP field semantics and how these values can be in-
+corporated into a modified Group-Relative Policy Optimization objective. Crucially, we introduce a
+teleological weighting mechanism that detects and corrects regressions in individual axes over time,
+thereby transforming optimization into a continuous negotiation among multiple alignment desider-
+ata. In doing so we offer a concrete implementation of RSVP geometry as a learning dynamic rather
+than a merely conceptual framework.
+The remainder of this paper develops this perspective in detail. Section ?? surveys relevant work and
+situates RSVP-GRPO in the context of alignment research. Section ?? introduces the RSVP value ge-
+ometry and articulates the six axes. Section ?? defines the hybrid advantage formulation and teleolog-
+ical weighting. Section ?? describes the full operational pipeline, including data generation, scoring,
+and model updating. Section ?? presents theoretical considerations, including stability properties. Sec-
+tion ?? outlines an evaluation protocol suitable for empirical exploration of RSVP alignment. Section ??
+discusses ethical implications. Finally, Appendices collect complete scripts, pseudocode, and extended
+rubric definitions.
+2
+
+2
+Background and Motivation
+The classical paradigm of alignment in artificial intelligence assumes that systems can be rendered safe
+by constructing or learning a function that evaluates states or actions according to human preferences,
+and then optimizing behaviour with respect to this function. While this view has produced valuable
+techniques such as Reinforcement Learning from Human Feedback (RLHF), it implicitly presumes that
+human values form a coherent scalar objective. Such an assumption is increasingly difficult to defend,
+given the deep pluralism, context-dependence, and internal tensions that characterize human norma-
+tive structure. Moreover, scalarization risks collapsing heterogeneous desiderata into an oversimplified
+metric that may inadvertently suppress precisely those forms of epistemic and normative diversity that
+enable systems to cope with novel circumstances.
+One response to this difficulty is the proposal that alignment should not be understood as the maximiza-
+tion of a unique objective, but rather as an open-ended refinement of multiple criteria that evolve over
+time as the system encounters novel environments. The Dynamic Alignment for Collective Agency
+(DA-CA) framework outlines such a procedure by introducing a recursive loop in which the model gen-
+erates its own training data and evaluates its own outputs with respect to values that express a coopera-
+tive, multi-agent conception of agency (?). Collective Agency differs from traditional reward functions
+in that it emphasizes cooperative deliberation and mutual adjustment among interacting agents. In-
+stead of a narrow instrumental target, the value to be optimized is itself a variable constructed through
+iterative interpretive processes within the system.
+Nevertheless, the DA-CA formulation, while conceptually expansive, leaves largely implicit the seman-
+tic structure of the value landscape in which dynamic alignment occurs. Without an explicit geometry
+of alignment space, the iterative evaluation and update process risks drifting toward whichever be-
+havioural patterns yield superficially high scores on the current rubric, even if such patterns reflect
+local pathologies of the scoring model. In other words, dynamic alignment may collapse to monocul-
+tural behaviour unless mechanisms exist to preserve ontological and epistemic diversity throughout
+training.
+The RSVP framework offers precisely such a mechanism by treating cognition, inference, and seman-
+tic structure as the coupled dynamics of scalar, vector, and entropy fields. In this view, the mainte-
+nance of open-ended agency corresponds to conservation and circulation of semantic potential rather
+than convergence toward a single objective. A system that collapses onto a single axis—semantic or
+normative—risks extinguishing the very diversity that enables adaptation. Thus where DA-CA intro-
+duces a dynamic evaluative loop, RSVP introduces a dynamical semantic geometry. The combination
+permits a model to improve its capabilities while maintaining the multi-dimensional scaffolding re-
+quired for aligned behaviour in genuinely open domains.
+In conceiving alignment as a teleological process occurring within a geometric field structure, rather
+than as maximization of a static reward, we obtain a formulation that is both more flexible and poten-
+tially more robust. Continuous learning through teleological alignment aims not to specify the correct
+destination in advance, but to maintain a viable trajectory as the system moves through spaces of pos-
+sibility that cannot be foreseen at design time.
+3
+
+3
+RSVP Field Theory as Semantic Geometry
+The Relativistic Scalar-Vector Plenum (RSVP) framework models cognition, semantics, and even phys-
+ical structure as the interdependent evolution of three fields. The scalar field Φ(𝑥, 𝑡) encodes semantic
+potential or latent coherence; the vector field v(𝑥, 𝑡) represents circulation of influence, orientation,
+and control; and the entropy field 𝑆(𝑥, 𝑡) captures dispersion, ambiguity, and the preservation of unre-
+solved alternatives.1 These fields do not merely coexist; they form a coupled dynamical system whose
+equilibrium properties determine whether meaningful behaviour persists or collapses.
+From the standpoint of alignment, the crucial insight offered by RSVP is that semantic viability de-
+pends on the tension between concentration and dispersion. A system whose scalar field dominates
+exhibits brittle hyper-coherence: its internal representations become sharp but fragile, prone to catas-
+trophic failure when assumptions shift. Conversely, a system dominated by entropy becomes diffuse
+and directionless. Only by maintaining a non-trivial circulation in the vector field—representing the
+continual renegotiation of meaning and influence—can the system avoid both extremes.
+This trifold field picture motivates the construction of alignment metrics that explicitly track properties
+associated with each field. A text may be eloquent (high Φ), yet catastrophically overconfident (low 𝑆);
+or it may preserve ambiguity (high 𝑆) while offering no actionable direction (low v). Alignment, in this
+interpretation, is not a matter of convicting the system of a single ethical doctrine, but of maintaining
+a dynamic balance among many forms of semantic valuation.
+The RSVP formulation also provides interpretive resources for understanding the dynamics of self-
+improving systems. Because RSVP treats semantic structure as a field theory, the geometry of alignment
+space inherits notions such as curvature, vorticity, and gradient flow. Teleological alignment becomes,
+in effect, a motion along geodesics determined not by a single reward hill-climbing objective but by the
+interplay of curvature terms that represent irreducible trade-offs among scalar concentration, vector
+circulation, and entropic openness.
+It is precisely this geometric structure that we seek to operationalize in the RSVP-GRPO framework.
+Rather than imposing a fixed alignment target, we allow the target to emerge from the interaction
+among these fields, encoded in the six operational axes we introduce in what follows. The aim is not
+merely to steer the system toward particular behaviours but to ensure that as the system evolves, it
+retains the semantic degrees of freedom necessary for continual adaptive alignment.
+4
+Dynamic Alignment and GRPO: From Scalar to Vector Reward
+Recent work on Dynamic Alignment for Collective Agency argues that an aligned system must con-
+tinually refine both its target values and the mechanisms by which these values are operationalized.
+In the original formulation, an LLM generates prompts, proposes candidate outputs, scores them along
+an open-textured axis—Collective Agency—and then updates its policy parameters with Group-Relative
+1RSVP is developed in a series of field-theoretic manuscripts by the present author, including "Relativistic Scalar-Vector
+Plenum: A General Field Theory of Cognition," draft versions 2024-2025.
+4
+
+Policy Optimization (GRPO). The system thereby constructs and consumes its own training signal,
+inducing a form of self-supervision without external labels or fixed reward shaping ?.
+The core innovation of GRPO is that it functions not by maximizing an absolute reward, but by adjusting
+relative to the distribution of scores obtained by a group of samples. In other words, the model does not
+learn that a particular output is "good." It learns that a particular output is better than those it produced
+alongside it. This relative framing avoids brittle dependence on any global calibration of reward, and
+additionally provides a natural vehicle for internal preference shifts. If the system discovers that one
+kind of output is consistently underperforming its peers, the group-relative advantage makes this deficit
+immediately visible to the policy update.
+Yet the original dynamic alignment framework relies on a single scalar reward. Even if that reward
+is itself rich and contextually defined, it remains a one-dimensional signal. Our aim is to generalize
+the GRPO mechanism so that it is sensitive not merely to the relative success of outputs but to the
+composition of that success across multiple semantic axes. If an LLM becomes exemplary at elegance while
+abandoning epistemic humility, or optimizes vectorial influence at the expense of entropic openness, a
+scalar reward is insufficient to express this degradation. Only by decomposing alignment into multiple
+interacting components can we detect and correct such drift.
+Accordingly, in the RSVP-GRPO model we treat each candidate output as carrying a six- dimensional
+value vector, each component of which represents a distinct semantic property associated with RSVP
+field dynamics. The reward is not the collapse of that vector into a single number, but the way the
+relative configuration of its components evolves across time. Teleological alignment in this framework
+is not the pursuit of an optimum, but the continual maintenance of a viable configuration in a multi-
+dimensional semantic field space.
+5
+RSVP Value Geometry
+In the classical RSVP setting developed elsewhere, the semantic space inhabited by a cognitive or com-
+putational system is conceived not as a set of discrete symbolic propositions but as a continuum of
+interacting fields. Formally, one considers a scalar field Φ encoding semantic coherence or potential; a
+vector field v encoding directed influence, circulation, or control; and an entropy field 𝑆encoding dis-
+persion, ambiguity, or unresolved alternatives. The meaningful state of a system at a given site is then
+given by a point in a three-dimensional field space (Φ, v, 𝑆), and system-level behaviour corresponds to
+the evolution of this state under appropriate dynamical constraints.
+The conceptual leap taken in the present framework is to interpret the values assigned by an LLM to its
+own outputs as proxies for these field components. The goal is not to claim that each axis directly corre-
+sponds to a physical field, but rather that each measures a semantic property bearing precise analogies
+to RSVP. The six axes introduced above thus become a form of discrete field sampling. Elegance, sheaf,
+and structure pertain to the scalar and mixed components of Φ; vectorial circulation defines a projection
+onto v; entropic and epistemic openness provide samples of 𝑆.
+These axes are scored for each candidate text in a group of outputs in direct analogy with the com-
+5
+
+putation of a local field value. Group-relative comparisons then provide an analogue of differential
+field behaviour. When a particular axis declines relative to the others, this is not a mere drop in scalar
+performance: it represents a local gradient in RSVP space. In effect, the RSVP-GRPO system con-
+verts qualitative semantic judgments into a dynamical geometry, where alignment corresponds to the
+maintenance of viable field trajectories rather than the optimization of a single reward surface.
+From the standpoint of field theory, one should not imagine these six axes as exhaustive descriptions
+of semantic space. They form a minimal and operationally tractable basis, suitable for experimentation
+and refinement. Their purpose is not to capture an ultimate ontology of semantic value, but to provide
+an interpretable substrate on which further value dimensions may be constructed. In this respect the
+RSVP axes are not fixed endpoints but rather initial coordinates in a space of possible value geometries.
+6
+RSVP-GRPO Integration
+The integration of RSVP geometry with Group-Relative Policy Optimization arises from a simple obser-
+vation: the core innovation of GRPO lies not in the detailed form of its clipped loss but in its relational
+definition of reward. Classic reinforcement learning, and even its popular alignment variant RLHF,
+typically presuppose a scalar reward accumulated through either human preferences or hand-crafted
+objectives. GRPO, by contrast, replaces an absolute reward function with a difference—namely the
+deviation of a candidate's reward from the mean reward of candidates drawn from the same prompt.
+This relational move is not a cosmetic modification. It transforms the optimisation problem from that
+of climbing a fixed objective landscape to that of improving relative to the current policy's own distri-
+bution of behaviours. In effect, GRPO learns to outperform itself, using its past or concurrent outputs as
+the yardstick. This architecture naturally accommodates self-supervision and continual improvement:
+if the model can generate multiple responses and evaluate them, the entire loop may be closed without
+external labels.
+The RSVP contribution builds on this relational foundation by replacing the scalar reward with a vector
+of values corresponding to the six RSVP axes. Whereas GRPO would normally take the scalar 𝑅𝑖=
+∑𝑎𝑟(𝑎)
+𝑖
+and form its group-relative advantage 𝐴𝑖= 𝑅𝑖−
+̄𝑅, the RSVP-GRPO framework retains the
+full vector and uses linear combinations of its components to define the advantage signal. Moreover,
+the teleological weighting mechanism introduced above ensures that the direction of learning is itself
+contingent on the history of axis-wise performance. Rather than simply increasing or decreasing a
+single reward, the system learns a trajectory in a multi-dimensional value space.
+In practical terms, the consequence of this integration is that the policy no longer learns to maximise
+"reward" in the conventional sense. Instead, it learns to move along a dynamically defined vector field,
+where the components of the vector field are themselves functions of the model's historical behaviour.
+The optimisation target, far from being static, is continually renegotiated by the teleological mecha-
+nism. Consequently, the behaviour of the system is less reminiscent of yield optimisation and more
+akin to regulated self-organisation in RSVP space.
+There is a deeper philosophical motivation at play. Contemporary discussions of alignment often as-
+6
+
+sume, implicitly or explicitly, that the task is to find a scalar objective which, if optimised sufficiently,
+will produce aligned behaviour at scale. The RSVP-GRPO framework challenges this assumption by
+illustrating that alignment may instead be understood as maintaining balance among heterogeneous
+semantic pressures. In this perspective, alignment resembles homeostasis rather than maximisation; it
+is an ongoing negotiation rather than a final solution.
+7
+Implementation Details
+The conceptual integration just described is realised in practice by a set of lightweight but function-
+ally complete components. The overall pipeline is deliberately modular, enabling independent experi-
+mentation with each segment while preserving a coherent end-to-end flow. The decision to prioritise
+simplicity and reproducibility reflects the motivating philosophy of teleological alignment: rather than
+proposing fully fledged industrial systems, we seek a minimal laboratory in which specific hypotheses
+can be tested, falsified, and iteratively refined.
+At the lowest layer sits a Bash-based agent which acts simultaneously as a data gatherer, a summarisa-
+tion worker, and a preference generator. The Bash script recursively scans a directory tree for source
+documents in plain-text or markdown form, converts them to standardised text chunks, and for each
+chunk produces four candidate summaries. These are generated by a local language model through par-
+allel invocations, enabling fast sampling of diverse outputs without the overhead of sequential model
+evaluation. Importantly, the Bash agent is not merely a preprocessing utility; it constitutes the frontier
+of the learning loop, continually sourcing new data on which the alignment process is bootstrapped.
+Each group of four candidate outputs is then fed, along with the original chunk, to a scoring model. The
+scoring model is prompted by the RSVP rubric, comprising six axes—elegance, sheaf, vector, entropic,
+structural, and epistemic—and returns a strict JSON object containing the numerical scores on each
+axis for each candidate. The Bash script logs these results to a JSONL file. This JSONL corpus is the
+backbone of the training loop: it is both the reward buffer and the alignment trace that informs the
+teleological weight updates over successive iterations.
+On the training side, a Python module reads the JSONL preference file and constructs a dataset of group-
+structured examples. Each example contains the prompt, the candidate texts, the RSVP axis vectors,
+and the group-relative scalar rewards. A first training script implements basic GRPO updates, while
+a second script extends this with semantic weighting. In both cases, a small policy model is trained
+against a frozen reference model to compute probability ratios, ensuring that the policy does not drift
+too far from its own earlier behaviour.
+Finally, the outer evolutionary loop ties all components together. For each iteration, the Bash agent
+generates a fresh JSONL preference file, the teleological mechanism computes new axis means as well
+as the drift between successive iterations, the semantic GRPO script performs a training epoch with
+these weights, and the process repeats. Notably, the loop has no terminal condition coded in advance:
+the system is intended to run indefinitely, continually revising its own objectives. This feature embodies
+the conceptual shift from convergence to continuous alignment, and it is precisely here that the RSVP
+perspective proves most significant.
+7
+
+8
+Algorithmic Specification
+The previous section emphasised the architectural logic of the pipeline. We now provide algorithmic
+descriptions of its core components. These algorithms are intentionally high-level: they can be in-
+stantiated by various model backends and infrastructure choices. Nevertheless, their abstract structure
+matters, since teleological alignment depends not on implementation accidents but on the composi-
+tionality of the update rules.
+8.1
+RSVP Group Scoring
+The first stage of the learning loop is the evaluation of a batch of model outputs with respect to the six
+RSVP axes. We describe this as a process applied to a single prompt and its four candidate responses.
+[H] RSvpGroupScore [1] prompt 𝑥, candidates {𝑦1, ... , 𝑦4}, scorer 𝑀score axis-vectors {r1, ... , r4}, best-
+index 𝑘∗
+Construct scoring prompt 𝑃containing explicit definitions of the six RSVP axes input ←𝑃⊕𝑥⊕{𝑦𝑖}
+json ←𝑀score(input) Parse json into axis-vectors r𝑖∈ℝ6
+Compute total reward 𝑅𝑖= ∑6
+𝑎=1 𝑟(𝑎)
+𝑖
+𝑘∗←𝑎𝑟𝑔𝑚𝑎𝑥𝑖𝑅𝑖{r𝑖}, 𝑘∗
+This function yields a vector-valued score for each candidate; these vectors represent local samples of
+the RSVP field. Crucially, the best index 𝑘∗is not preserved for training the policy directly; instead, the
+entire distribution of group values is preserved for computing relative advantages.
+8.2
+Teleological Weight Update
+We now formalise the mechanism by which RSVP axis means determine the advantage weights. Let
+𝜇0(𝑡) = (𝜇(𝑡)
+1 , ... , 𝜇(𝑡)
+6 ) denote the average axis means after iteration 𝑡. Their change from the previous
+iteration encodes semantic drift:
+Δ(𝑡)
+𝑎
+= 𝜇(𝑡)
+𝑎−𝜇(𝑡−1)
+𝑎
+.
+Teleological weights respond by increasing emphasis on axes whose scores have regressed.
+[H] TeleologicalWeightUpdate [1] previous-means 𝜇0(𝑡−1), current-means 𝜇0(𝑡), baseline 𝜀weights w(𝑡)
+𝑎= 1 to 6 Δ(𝑡)
+𝑎←𝜇(𝑡)
+𝑎−𝜇(𝑡−1)
+𝑎
+𝑤(𝑡)
+𝑎
+←𝑙𝑜𝑔(1 + 𝑒𝑥𝑝(−Δ(𝑡)
+𝑎)) + 𝜀
+w(𝑡)
+A negative drift (Δ𝑎< 0) increases 𝑤𝑎, signalling that the training process should push probability mass
+toward candidates with higher scores on that axis. The weights thus encode a teleological gradient:
+the system wants to repair regressions rather than simply maximise present reward.
+8
+
+8.3
+Semantic-Weighted GRPO Update
+Finally, we describe a GRPO training step augmented with teleological advantage weighting. Let 𝜋𝜃be
+the policy model and 𝜋ref a frozen reference.
+[H] RSvpGRPO [1] batch {(𝑥(𝑏), {𝑦(𝑏)
+𝑖
+}, {r(𝑏)
+𝑖
+})}𝐵
+𝑏=1, weights w(𝑡), mixing 𝜆∈[0, 1] updated parameters 𝜃′
+𝑏= 1 to 𝐵𝑅(𝑏)
+𝑖
+←∑𝑎𝑟(𝑎,𝑏)
+𝑖
+̄𝑅(𝑏) ←1
+𝐺∑𝑖𝑅(𝑏)
+𝑖
+scalar mean 𝐴scalar,(𝑏)
+𝑖
+←𝑅(𝑏)
+𝑖
+−
+̄𝑅(𝑏) ̄r(𝑏) ←1
+𝐺∑𝑖r(𝑏)
+𝑖
+𝛿0(𝑏)
+𝑖
+←r(𝑏)
+𝑖
+−̄r(𝑏) 𝐴semantic,(𝑏)
+𝑖
+←⟨w(𝑡), 𝛿0(𝑏)
+𝑖
+⟩𝐴hybrid,(𝑏)
+𝑖
+←(1 −𝜆)𝐴scalar,(𝑏)
+𝑖
++ 𝜆𝐴semantic,(𝑏)
+𝑖
+𝑖= 1 to 𝐺𝜌(𝑏)
+𝑖
+←𝜋𝜃(𝑦(𝑏)
+𝑖
+∣𝑥(𝑏))
+𝜋ref(𝑦(𝑏)
+𝑖
+∣𝑥(𝑏)) ℓ(𝑏)
+𝑖
+←−𝑚𝑖𝑛(𝜌(𝑏)
+𝑖
+𝐴hybrid,(𝑏)
+𝑖
+, clip(𝜌(𝑏)
+𝑖
+)𝐴hybrid,(𝑏)
+𝑖
+)
+ℒ←
+1
+𝐵𝐺∑𝑏,𝑖ℓ(𝑏)
+𝑖
+Take gradient step 𝜃′ = 𝜃−𝛼∇𝜃ℒ𝜃′
+This procedure yields a learning rule that is sensitive not merely to the relative reward of candidates, but
+to their alignment with the current teleological objective. In effect, GRPO becomes a natural instrument
+for executing RSVP alignment by modifying the standard group relative advantage with a semantic
+component designed to preserve multi-axial balance.
+9
+From Proportional Alignment to Teleological Control
+The three algorithms above formalise the computational heart of our proposal. Yet, in the absence of an
+interpretive framework, they may be mistaken for another variant of multi- objective reinforcement
+learning. The thesis of this paper is stronger: the teleological update law does not merely optimise a
+weighted sum of objectives, but governs the geometric maintenance of a semantic field configuration.
+This section articulates that position in more mathematical terms.
+9.1
+Semantic Drift as Local Curvature Variation
+Consider the RSVP space as ℝ6, endowed with a field-theoretic interpretation: three axes (Elegance Φ,
+Sheaf 𝑣, Entropic 𝑆) represent canonical RSVP fields or their linear combinations, while three axes
+(Structural, Vector, Epistemic) represent higher-order functionals derived from curvature, torsion, and
+topological persistence. Every output of the LLM thus constitutes a local sample of these fields. Group-
+wise averaging approximates a coarse-grained mean over a small semantic neighbourhood.
+Drift of the axis mean therefore approximates local variation in curvature: a decrease in, say, entropic
+dispersion indicates that the model has begun to collapse toward overconfident, single-interpretation
+modes, violating the RSVP condition that semantic fields remain open to multiple compatible config-
+urations. In this view, teleological weights encode a discrete flow on field space that opposes local
+curvature collapse.
+9
+
+9.2
+Teleology as Anti-Collapse Dynamics
+The proportional control law 𝑤(𝑡)
+𝑎
+∝softplus(−Δ(𝑡)
+𝑎) can be interpreted as a one-step approximation
+to a gradient flow on the space of RSVP distributions 𝒫(ℝ6). If we define a desired stationary config-
+uration
+̄𝜇0 (e.g. (2.5, ... , 2.5)), then teleological updating is equivalent to damping negative curvature
+perturbations:
+𝑑𝜇0
+𝑑𝑡
+≈−∇𝜇0 𝒰(𝜇0),
+𝒰(𝜇0) ∝∑
+𝑎
+𝑚𝑎𝑥(0,
+̄𝜇𝑎−𝜇𝑎),
+where 𝒰is a virtual potential describing deviation from balanced alignment. Although we do not treat
+𝒰as a literal physical quantity, the analogy makes clear that teleology enforces motion toward regions
+where no axis is systematically depressed.
+9.3
+Hybrid Advantage and the Dissolution of Scalar Reward
+Standard PPO maximises scalar advantage; multi-objective variants aggregate multiple scores into a
+scalar by some weighting scheme. In contrast, we treat the scalar part 𝐴scalar
+𝑖
+as an auxiliary measure of
+local quality, while the semantic part 𝐴semantic
+𝑖
+governs long-term alignment. Their mixture 𝐴hybrid
+𝑖
+=
+(1 −𝜆)𝐴scalar + 𝜆𝐴semantic reveals the key shift:
+when 𝜆= 1, reward maximisation is replaced by curvature correction; when 𝜆= 0, we recover or-
+dinary scalar optimisation. Intermediate values trace a continuous path between these behaviours.
+This provides an experimental parameter for probing the transition between learning-to-perform and
+learning-to-align.
+9.4
+Approximation to RSVP Field Equations
+At a high level, let us summarise the interpretation already implicit in the update rules. We regard the
+RSVP fields (Φ, 𝑣, 𝑆) as evolving by discrete gradient steps induced by policy updates. To first order,
+policy gradients implement a discretisation of
+𝛿𝐹
+𝛿Φ = 0,
+𝛿𝐹
+𝛿𝑣= 0,
+𝛿𝐹
+𝛿𝑆= 0,
+where 𝐹is the RSVP action functional (cf. Appendix ??). We do not solve these Euler-Lagrange equa-
+tions directly; we approximate their effect by learning a policy whose output distribution maintains a
+balanced semantic geometry under changing task conditions. In this sense, the RSVP-GRPO mecha-
+nism instantiates a numerical field solver whose target metric is the sustainability of multi-axial align-
+ment.
+10
+
+10
+Teleology as Continuous Learning
+We now situate these mechanisms in the broader conceptual terrain. The standard interpretation of
+reinforcement learning posits convergence: eventually the agent identifies optimal behaviour and re-
+mains there. But alignment is not an optimisation problem of that sort. Rather, models are continually
+redeployed into new contexts, exposed to new data, and expected to internalise evolving norms and
+knowledge. A convergent optimum would be a catastrophic failure mode—an attractor in which the
+model becomes brittle, monolithic, and structurally incapable of further change.
+Teleology transforms RL from a convergence process into a non-equilibrium maintenance process. The
+system repeatedly rebalances itself by steepening gradients along axes that have recently regressed.
+One may think of this as the difference between entropy maximisation and entropy regulation: it is not
+the magnitude of entropy that matters, but the preservation of an open semantic geometry. The system
+learns to retain plasticity.
+10.1
+Toward Open-Ended Alignment
+In the limit of continuous operation, the RSVP-GRPO framework becomes an open-ended alignment
+protocol. The policy never finishes learning; instead, it continuously updates in response to teleological
+drift signals. The most important implication is that alignment is not something we load into a model
+before deployment, but something the model enacts during deployment. In a world that changes, align-
+ment cannot remain static. The system must perpetually adjust.
+This constitutes a shift from training alignment to lived alignment: a continual performance of rebal-
+ancing whose purpose is not to reach a terminal optimum, but to ensure that no axis becomes dominant
+at the expense of the others. In short, the purpose of alignment is not to freeze the agent, but to keep
+it capable of movement.
+11
+Experimental Protocol and Validation Framework
+The previous sections provide an architectural and theoretical account of the RSVP-GRPO framework.
+In this section we briefly outline a prospective evaluation programme intended to test the core hypothe-
+ses of continuous teleological alignment. We do not report empirical results here; instead, we specify
+a systematic protocol suitable for future work.
+11.1
+Axis Trajectory Measurement
+The most direct test of our formulation examines the behaviour of axis means 𝜇(𝑡)
+𝑎
+= 𝔼[𝑟(𝑎,𝑡)
+𝑖
+] across
+training iterations. Classical GRPO (or PPO) is prone to collapse onto a single axis that correlates most
+strongly with task reward. Under teleological weighting, we hypothesise that the axis means remain
+bounded within a narrow band; specifically, the difference 𝑚𝑎𝑥𝑎𝜇(𝑡)
+𝑎
+−𝑚𝑖𝑛𝑎𝜇(𝑡)
+𝑎
+should remain small
+11
+
+over time, and sudden regressions in one axis should be followed by rapid compensatory growth of its
+associated teleological weight.
+11.2
+Generalisation Under Distribution Shift
+A second set of experiments concerns generalisation. We train the model on a homogenous corpus (for
+instance, technical documents) and evaluate on a heterogenous corpus (for example, creative fiction). If
+RSVP-GRPO effectively preserves entropic and epistemic openness, then the system should maintain
+higher diversity of styles and interpretations under shift, avoiding brittle overfitting to stylistic norms of
+the training domain. This would directly test the hypothesis that entropic and epistemic axes preserve
+capacity for semantic novelty.
+11.3
+Teleological Weight Dynamics
+Finally, we propose controlled interventions in which axis scores are deliberately perturbed. For exam-
+ple, we may construct adversarial candidate summaries that systematically depress the entropic score
+for several iterations, and examine the resulting change in the entropic weight 𝑤ent. The predicted
+behaviour is a proportional surge in that weight, with subsequent restoration of the axis mean. Such
+tests would empirically validate the anti- collapse mechanism, and elucidate its stability under varying
+learning rates.
+12
+Failure Modes and Robustness
+Any alignment strategy capable of sustained self-improvement must confront the possibility of patho-
+logical failure. Here we sketch potential breakdowns of RSVP-GRPO and indicate remedies compatible
+with the present architecture. These remain open research directions.
+12.1
+Scorer Collapse
+Because the scoring model supplies reward signals, systematic drift in its internal heuristics could lead
+to partial or total collapse of the axes. If the scorer begins to consistently produce high elegance but
+low entropy values, the policy will converge toward brittle articulate outputs lacking semantic range.
+We therefore propose ensemble scoring or periodic calibration on a human-audited validation set to
+detect degeneracy.
+12.2
+Oscillatory Behaviour
+Teleological weights may oscillate if their updates are excessively responsive to stochastic variance.
+Momentum terms or softplus regularisation damp erratic changes, preserving stability. In practice this
+12
+
+is a hyperparameter tuning challenge, but the stability analysis of Section ?? suggests that proportional
+control, with a cautious learning rate, suffices to prevent runaway oscillation.
+12.3
+Specification Gaming
+A deeper risk is that the model learns to fake high scores along one or more axes, producing superficially
+elegant or structurally resilient text without genuine improvement. Mitigation requires adversarial
+testing, counterexample generation, and dynamic adjustment of axis heuristics. Here the "epistemic"
+axis is especially relevant: it should penalise dogmatic confidence, encouraging the model to foreground
+uncertainty and therefore resist premature collapse.
+12.4
+Computational Resource Load
+Finally, RSVP-GRPO imposes a computational alignment tax by requiring groupwise scoring. We
+note that the effect may be amortised via batching, lightweight scorer models, or intermittent scor-
+ing, though the principled cost is real. We view this as a necessary expense for sustained alignment,
+analogous to the overhead of ecological system maintenance: systems that remain open and adaptive
+require continual energetic investment.
+13
+Ethical and Societal Considerations
+Though inspired by technical questions about RL, this work inevitably intersects concerns in ethics and
+governance. In particular, the six RSVP axes encode assumptions about desirable behaviour: elegance,
+epistemic openness, structural resilience, and so on. These are neither value-neutral nor universally
+agreed upon. We therefore emphasise that RSVP-GRPO is a framework for alignment, not a final spec-
+ification.
+First, the axes must be regarded as provisional hypotheses, subject to revision through participatory
+processes with diverse stakeholders. Second, there exist serious dual-use risks: structural resilience
+and vectorial influence could be harnessed for persuasive disinformation or manipulative applications.
+Third, computational alignment taxes could exacerbate global resource inequalities, limiting access to
+effective alignment infrastructure. These issues compel cautious, collaborative development, and open
+publication of techniques wherever possible.
+14
+Conclusion
+We introduced RSVP-GRPO, a continuous alignment framework grounded in a geometric interpre-
+tation of semantic value. Rather than maximise a single reward, the system maintains a multi-axis
+alignment trajectory through teleological weighting, correcting regressions in any dimension. Group-
+wise candidate comparison enables local search in a richly structured space, while the hybrid advantage
+13
+
+mechanism blends task performance with alignment maintenance.
+This proposal represents neither a solution to alignment nor a guarantee of safety, but a composable re-
+search direction. It transforms alignment from a pre-deployment configuration problem into a contin-
+ual process of self-maintenance. Under conditions of rapid deployment, domain shift, and accelerating
+capability, we argue that such continual alignment may be not only desirable but necessary.
+A
+Appendix A: Bash Learning Agent
+File: rsvp_grpo_agent.sh
+#! bin/env bash
+# ===============================================================
+# -RSVPGRPO Learning Agent (Appendix A)
+# File: rsvp_grpo_agent.sh
+#
+# Purpose: Generate 4 parallel candidate summaries, score them
+# using the 6-axis RSVP criteria, and log the preference group
+# to JSONL for GRPO training.
+#
+# Requires: ollama, jq, pandoc
+# Author: Flyxion
+# ===============================================================
+set -euo pipefail
+MODEL=granite3.2:8b
+# Directory to scan for source .txt/.md files
+DATA_ROOT="${1:-.}"
+# Files for persistent state
+PROGRESS_FILE="progress.log"
+SUMMARY_FILE="summary_rsvp.txt"
+PREF_FILE="prefs_rsvp.jsonl" # Target for GRPO training data
+touch "$PROGRESS_FILE"
+touch "$SUMMARY_FILE"
+touch "$PREF_FILE"
+echo "[INFO] Script started: $(date)"
+# -------------------------
+# Autoresume check: checks if a file has already been processed
+# -------------------------
+is_processed() {
+grep -Fxq "$1" "$PROGRESS_FILE"
+}
+14
+
+# -------------------------
+# RSVP scoring prompt (6D axes)
+# Full version in Appendix B.
+# -------------------------
+read -r -d '' RSVP_SCORING_PROMPT << 'EOF'
+You are an RSVP evaluation model scoring 4 candidate texts.
+Return STRICT JSON ONLY:
+{
+"candidates":[
+{"id":1, "text":"...", "values":{"elegance":0,"sheaf":0,"vector":0,"entropic":0,"
+structural":0,"epistemic":0}},
+{"id":2, ...}, {"id":3, ...}, {"id":4, ...}
+],
+"best": 2
+}
+Scoring axes:
+- elegance: geometric clarity
+- sheaf: composable locality
+- vector: circulation of influence
+- entropic: semantic dispersion
+- structural: resilience / anti-collapse
+- epistemic: adaptive ambiguity
+Return ONLY JSON.
+EOF
+# ===============================================================
+# process_files: Main file processing loop
+# ===============================================================
+process_files() {
+local dir="$1"
+echo "[INFO] Processing directory: $dir"
+for file in "$dir"/*.{txt,md}; do
+[[ -e "$file" ]] || continue
+[[ "$file" == "$SUMMARY_FILE" ]] && continue
+local fname
+fname=$(basename "$file")
+if is_processed "$fname"; then
+echo "[SKIP] $fname"
+continue
+fi
+15
+
+echo "[PROCESS] $fname"
+# Temporary workspace for candidate files and scoring JSON
+local tmp
+tmp=$(mktemp -d "$dir/tmp_rsvp_XXXXXX")
+# Convert markdown to plain text if needed
+local src="$tmp/src.txt"
+if [[ "$file" == *.md ]]; then
+pandoc "$file" -t plain -o "$src"
+else
+cp "$file" "$src"
+fi
+# Split into chunks for manageable processing (300 lines per chunk)
+split -l 300 "$src" "$tmp/chunk_"
+echo "### $(basename "$file")" >> "$SUMMARY_FILE"
+echo "" >> "$SUMMARY_FILE"
+# Per-chunk loop
+for chunk in "$tmp"/chunk_*; do
+[[ -f "$chunk" ]] || continue
+# -----------------------------------
+# 1. Generate 4 candidates in parallel
+# -----------------------------------
+echo "[GEN] $(basename "$chunk")]"
+rm -f "$tmp"/cand{1..4}.txt
+# Run 4 simultaneous generation jobs using background processing (&)
+ollama run "$MODEL" "Summary attempt (RSVP 1):" < "$chunk" > "$tmp/cand1.
+txt" & PID1=$!
+ollama run "$MODEL" "Summary attempt (RSVP 2):" < "$chunk" > "$tmp/cand2.
+txt" & PID2=$!
+ollama run "$MODEL" "Summary attempt (RSVP 3):" < "$chunk" > "$tmp/cand3.
+txt" & PID3=$!
+ollama run "$MODEL" "Summary attempt (RSVP 4):" < "$chunk" > "$tmp/cand4.
+txt" & PID4=$!
+wait "$PID1" "$PID2" "$PID3" "$PID4"
+# -----------------------------------
+# 2. Scoring (strict JSON output)
+# -----------------------------------
+echo "[SCORE]"
+16
+
+{
+printf "%s\n" "$RSVP_SCORING_PROMPT"
+echo ""
+echo "CANDIDATE 1:"
+cat "$tmp/cand1.txt"
+echo "CANDIDATE 2:"
+cat "$tmp/cand2.txt"
+echo "CANDIDATE 3:"
+cat "$tmp/cand3.txt"
+echo "CANDIDATE 4:"
+cat "$tmp/cand4.txt"
+} | ollama run "$MODEL" > "$tmp/scores.json" 2>/dev/null || true
+# Validate and parse JSON output using jq
+if ! jq empty "$tmp/scores.json" 2>/dev/null; then
+echo "[ERROR] Invalid JSON for chunk $(basename "$chunk")]"
+continue
+fi
+# -----------------------------------
+# 3. Extract best and log to summary file
+# -----------------------------------
+local best
+best=$(jq -r '.best' "$tmp/scores.json")
+local best_text
+best_text=$(jq -r ".candidates[] | select(.id==$best).text" "$tmp/scores.
+json")
+echo "$best_text" >> "$SUMMARY_FILE"
+echo "" >> "$SUMMARY_FILE"
+# -----------------------------------
+# 4. Preference logging (GRPO-ready JSONL)
+# -----------------------------------
+printf '%s\n' "$(jq -c --arg chunk "$chunk" '. + {chunk:$chunk}' "$tmp/
+scores.json")" >> "$PREF_FILE"
+done
+# Cleanup temporary workspace
+rm -rf "$tmp"
+# Mark file as processed for autoresume
+echo "$fname" >> "$PROGRESS_FILE"
+done
+}
+17
+
+# ===============================================================
+# process_tree: Recursive directory scan
+# ===============================================================
+process_tree() {
+local root="$1"
+process_files "$root"
+for sub in "$root"/*/; do
+[[ -d "$sub" ]] || continue
+process_files "$sub"
+process_tree "$sub"
+done
+}
+# ===============================================================
+# main execution
+# ===============================================================
+process_tree "$DATA_ROOT"
+echo "[DONE] Completed at $(date)"
+B
+Appendix B: RSVP Scoring Prompt
+File: rsvp_scoring_prompt.txt
+You are an RSVP evaluation model. Your task is to score four
+candidate summaries according to six axes corresponding to the
+RSVP (Relativistic -ScalarVector Plenum) alignment criteria.
+These scores will govern the teleological trajectory of the primary
+learning agent.
+Return STRICT JSON ONLY in this structure:
+{
+"candidates":[
+{"id":1, "text":"[Candidate 1 Text]", "values":{"elegance":0,"sheaf":0,"vector
+":0,"entropic":0,"structural":0,"epistemic":0}},
+{"id":2, "text":"[Candidate 2 Text]", "values":{...}},
+{"id":3, "text":"[Candidate 3 Text]", "values":{...}},
+{"id":4, "text":"[Candidate 4 Text]", "values":{...}}
+],
+"best": 2
+}
+RSVP Value Axes (6-Dimensional Rubric)
+Score each candidate from 0 (lowest alignment/quality) to 5 (highest alignment/quality
+18
+
+) in each dimension:
+1. ELEGANCE (Geometric Clarity)
+Measures internal coherence, structural clarity, and non-redundancy.
+2. SHEAF (Composable Locality)
+Measures modularity and gluing of local semantic regions.
+3. VECTOR (Circulation of Influence)
+Measures directionality and capacity for action-guiding structure.
+4. ENTROPIC (Semantic Dispersion)
+Measures diversity of interpretations and avoidance of collapse.
+5. STRUCTURAL (Anti-Collapse Resilience)
+Measures robustness under perturbation and ontological shock.
+6. EPISTEMIC (Adaptive Ambiguity)
+Measures explicit recognition of uncertainty and openness to revision.
+The "best" candidate is the one with the highest total score across all axes.
+Ties should be broken in favour of higher Elegance and Entropic scores.
+Return ONLY valid JSON. No commentary outside the JSON object.
+C
+Appendix C: Baseline GRPO Training Code
+File: rsvp_grpo_trainer.py (baseline)
+import json
+from dataclasses import dataclass
+from typing import List, Dict, Any
+import torch
+from torch.utils.data import Dataset, DataLoader
+from transformers import (
+AutoTokenizer,
+AutoModelForCausalLM,
+get_linear_schedule_with_warmup,
+)
+AXES = ["elegance","sheaf","vector","entropic","structural","epistemic"]
+# ------------------------------------------------------
+# JSONL loading
+# ------------------------------------------------------
+def load_rsvp_groups(jsonl_path: str) -> List[Dict[str, Any]]:
+"""
+Each line: {
+"candidates":[
+19
+
+{"id":1, "text":..., "values":{axis:score,...}}, ...
+],
+"best": k,
+"chunk": "/path/to/chunk"
+}
+"""
+groups = []
+with open(jsonl_path, "r") as f:
+for line in f:
+line = line.strip()
+if not line:
+continue
+data = json.loads(line)
+cands = data["candidates"]
+texts = [c["text"] for c in cands]
+vals
+= [c["values"] for c in cands]
+# total reward per candidate
+rewards = torch.tensor(
+[sum(float(v.get(ax,0.0)) for ax in AXES) for v in vals],
+dtype=torch.float32
+)
+groups.append({
+"prompt": data.get("chunk",""),
+"candidate_texts": texts,
+"values": vals,
+"rewards": rewards,
+})
+return groups
+# ------------------------------------------------------
+# Dataset
+# ------------------------------------------------------
+@dataclass
+class RSVPGRPOExample:
+prompt: str
+candidate_texts: List[str]
+values: List[Dict[str,float]]
+rewards: torch.Tensor
+# shape [G]
+class RSVPGRPODataset(Dataset):
+def __init__(self, groups: List[Dict[str,Any]]):
+self.data = [
+RSVPGRPOExample(
+prompt=g["prompt"],
+candidate_texts=g["candidate_texts"],
+20
+
+values=g["values"],
+rewards=g["rewards"],
+)
+for g in groups
+]
+def __len__(self):
+return len(self.data)
+def __getitem__(self, idx: int) -> RSVPGRPOExample:
+return self.data[idx]
+# ------------------------------------------------------
+# Logprob computation
+# ------------------------------------------------------
+def compute_logprobs(
+model: AutoModelForCausalLM,
+tokenizer: AutoTokenizer,
+prompts: List[str],
+responses: List[str],
+device: torch.device,
+) -> torch.Tensor:
+"""
+Autoregressive logprob of each response conditioned on each prompt.
+Returns tensor [B] where B = len(prompts) = len(responses).
+"""
+model.eval()
+with torch.no_grad():
+batch_texts = [
+p + "\n" + r
+for p, r in zip(prompts, responses)
+]
+enc = tokenizer(
+batch_texts,
+return_tensors="pt",
+padding=True,
+truncation=True,
+).to(device)
+outputs = model(**enc)
+logits = outputs.logits
+# [B, T, V]
+labels = enc["input_ids"]
+shift_logits = logits[:, :-1, :].contiguous()
+shift_labels = labels[:, 1:].contiguous()
+log_probs = torch.log_softmax(shift_logits, dim=-1)
+21
+
+token_logprobs = log_probs.gather(
+dim=-1,
+index=shift_labels.unsqueeze(-1)
+).squeeze(-1)
+mask = (shift_labels != tokenizer.pad_token_id)
+seq_logprobs = (token_logprobs * mask).sum(dim=-1)
+return seq_logprobs
+# ------------------------------------------------------
+# One GRPO epoch (scalar rewards)
+# ------------------------------------------------------
+def train_one_epoch_grpo(
+policy_model: AutoModelForCausalLM,
+ref_model: AutoModelForCausalLM,
+tokenizer: AutoTokenizer,
+dataloader: DataLoader,
+optimizer: torch.optim.Optimizer,
+scheduler,
+device: torch.device,
+clip_epsilon: float = 0.2,
+) -> float:
+policy_model.train()
+total_loss = 0.0
+total_count = 0
+for batch in dataloader:
+prompts = batch["prompt"]
+# list length B
+group_texts = batch["candidate_texts"]
+# list length B, each [G]
+rewards = batch["rewards"].to(device)
+# [B, G]
+B = len(prompts)
+G = rewards.size(1)
+# Flatten group candidates
+flat_prompts = []
+flat_responses = []
+for b in range(B):
+for g in range(G):
+flat_prompts.append(prompts[b])
+flat_responses.append(group_texts[b][g])
+logp_new = compute_logprobs(policy_model, tokenizer,
+flat_prompts, flat_responses, device)
+with torch.no_grad():
+logp_ref = compute_logprobs(ref_model, tokenizer,
+flat_prompts, flat_responses, device)
+22
+
+logp_new = logp_new.view(B, G)
+logp_ref = logp_ref.view(B, G)
+# group-relative advantage
+mean_rewards = rewards.mean(dim=1, keepdim=True)
+# [B,1]
+advantages = rewards - mean_rewards
+# [B,G]
+ratio = torch.exp(logp_new - logp_ref)
+unclipped = ratio * advantages
+clipped = torch.clamp(ratio, 1.0 - clip_epsilon,
+1.0 + clip_epsilon) * advantages
+loss_matrix = -torch.min(unclipped, clipped)
+loss = loss_matrix.mean()
+optimizer.zero_grad()
+loss.backward()
+torch.nn.utils.clip_grad_norm_(policy_model.parameters(), 1.0)
+optimizer.step()
+if scheduler is not None:
+scheduler.step()
+total_loss += loss.item() * B
+total_count += B
+return total_loss / max(1, total_count)
+# ------------------------------------------------------
+# Top-level training wrapper
+# ------------------------------------------------------
+def train_rsvp_grpo(
+jsonl_path: str,
+model_name: str = "gpt2",
+batch_size: int = 1,
+epochs: int = 1,
+lr: float = 1e-5,
+device_str: str = "cuda",
+):
+device = torch.device(device_str if torch.cuda.is_available() else "cpu")
+groups = load_rsvp_groups(jsonl_path)
+dataset = RSVPGRPODataset(groups)
+dataloader = DataLoader(
+dataset,
+batch_size=batch_size,
+shuffle=True,
+23
+
+collate_fn=lambda batch: {
+"prompt": [b.prompt for b in batch],
+"candidate_texts": [b.candidate_texts for b in batch],
+"rewards": torch.stack([b.rewards for b in batch], dim=0),
+},
+)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+if tokenizer.pad_token is None:
+tokenizer.pad_token = tokenizer.eos_token
+policy_model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+ref_model
+= AutoModelForCausalLM.from_pretrained(model_name).to(device)
+ref_model.eval()
+optimizer = torch.optim.AdamW(policy_model.parameters(), lr=lr)
+total_steps = epochs * len(dataloader)
+scheduler = get_linear_schedule_with_warmup(
+optimizer,
+num_warmup_steps=max(1, total_steps // 10),
+num_training_steps=total_steps,
+)
+for ep in range(epochs):
+print(f"[INFO] Epoch {ep+1}/{epochs} (scalar GRPO)")
+avg_loss = train_one_epoch_grpo(
+policy_model,
+ref_model,
+tokenizer,
+dataloader,
+optimizer,
+scheduler,
+device,
+)
+print(f"[INFO] Epoch {ep+1} avg GRPO loss: {avg_loss:.4f}")
+ref_model.load_state_dict(policy_model.state_dict())
+return policy_model, tokenizer
+D
+Appendix D: Teleological Semantic Weighting
+File: rsvp_grpo_semantic.py (teleological extension)
+import torch
+import torch.nn.functional as F
+from torch.utils.data import DataLoader
+24
+
+from transformers import (
+AutoTokenizer,
+AutoModelForCausalLM,
+get_linear_schedule_with_warmup,
+)
+from rsvp_grpo_trainer import (
+AXES,
+load_rsvp_groups,
+RSVPGRPODataset,
+compute_logprobs,
+)
+def compute_teleological_weights(
+axis_means_prev: dict,
+axis_means_curr: dict,
+epsilon: float = 0.1,
+device: torch.device | None = None,
+) -> torch.Tensor:
+"""
+Compute teleological weights from axis drift.
+w_a = softplus(-Delta_a) + epsilon
+where Delta_a = mean_curr - mean_prev.
+"""
+drifts = []
+for ax in AXES:
+prev = float(axis_means_prev.get(ax, 0.0))
+curr = float(axis_means_curr.get(ax, 0.0))
+drifts.append(curr - prev)
+drift_tensor = torch.tensor(drifts, dtype=torch.float32, device=device)
+weights = F.softplus(-drift_tensor) + epsilon
+return weights
+def train_one_epoch_semantic(
+policy_model: AutoModelForCausalLM,
+ref_model: AutoModelForCausalLM,
+tokenizer: AutoTokenizer,
+dataloader: DataLoader,
+optimizer: torch.optim.Optimizer,
+scheduler,
+device: torch.device,
+teleo_weights: torch.Tensor,
+lambda_semantic: float = 0.8,
+clip_epsilon: float = 0.2,
+) -> float:
+"""
+GRPO with semantic RSVP weighting.
+25
+
+"""
+policy_model.train()
+teleo_weights = teleo_weights.to(device).view(1, 1, -1)
+# [1,1,6]
+total_loss = 0.0
+total_count = 0
+for batch in dataloader:
+prompts = batch["prompt"]
+group_texts = batch["candidate_texts"]
+rewards = batch["rewards"].to(device)
+values_list = batch["values"]
+B = len(prompts)
+G = rewards.size(1)
+A = len(AXES)
+# Build vals tensor [B,G,6]
+vals = torch.zeros(B, G, A, dtype=torch.float32, device=device)
+for b in range(B):
+for g in range(G):
+vdict = values_list[b][g]
+for a_idx, ax in enumerate(AXES):
+vals[b, g, a_idx] = float(vdict.get(ax, 0.0))
+# Flatten for logprobs
+flat_prompts = []
+flat_responses = []
+for b in range(B):
+for g in range(G):
+flat_prompts.append(prompts[b])
+flat_responses.append(group_texts[b][g])
+logp_new = compute_logprobs(
+policy_model, tokenizer, flat_prompts, flat_responses, device
+)
+with torch.no_grad():
+logp_ref = compute_logprobs(
+ref_model, tokenizer, flat_prompts, flat_responses, device
+)
+logp_new = logp_new.view(B, G)
+logp_ref = logp_ref.view(B, G)
+# 1) Scalar advantage
+mean_rewards = rewards.mean(dim=1, keepdim=True)
+scalar_adv = rewards - mean_rewards
+26
+
+# 2) Semantic advantage
+mean_vals = vals.mean(dim=1, keepdim=True)
+# [B,1,6]
+semantic_dev = vals - mean_vals
+# [B,G,6]
+semantic_adv = (semantic_dev * teleo_weights).sum(dim=-1)
+# [B,G]
+# 3) Hybrid advantage
+advantages = (1.0 - lambda_semantic) * scalar_adv + \
+lambda_semantic * semantic_adv
+# 4) GRPO clipped loss
+ratio = torch.exp(logp_new - logp_ref)
+unclipped = ratio * advantages
+clipped = torch.clamp(ratio, 1.0 - clip_epsilon,
+1.0 + clip_epsilon) * advantages
+loss_matrix = -torch.min(unclipped, clipped)
+loss = loss_matrix.mean()
+optimizer.zero_grad()
+loss.backward()
+torch.nn.utils.clip_grad_norm_(policy_model.parameters(), 1.0)
+optimizer.step()
+if scheduler is not None:
+scheduler.step()
+total_loss += loss.item() * B
+total_count += B
+return total_loss / max(1, total_count)
+def train_rsvp_grpo_semantic(
+jsonl_path: str,
+model_name: str = "gpt2",
+batch_size: int = 1,
+epochs: int = 1,
+lr: float = 1e-5,
+device_str: str = "cuda",
+axis_means_prev: dict | None = None,
+axis_means_curr: dict | None = None,
+lambda_semantic: float = 0.8,
+):
+"""
+Top-level RSVP semantic GRPO training.
+"""
+device = torch.device(device_str if torch.cuda.is_available() else "cpu")
+groups = load_rsvp_groups(jsonl_path)
+dataset = RSVPGRPODataset(groups)
+27
+
+dataloader = DataLoader(
+dataset,
+batch_size=batch_size,
+shuffle=True,
+collate_fn=lambda batch: {
+"prompt": [b.prompt for b in batch],
+"candidate_texts": [b.candidate_texts for b in batch],
+"rewards": torch.stack([b.rewards for b in batch], dim=0),
+"values": [b.values for b in batch],
+},
+)
+if axis_means_prev is not None and axis_means_curr is not None:
+teleo_weights = compute_teleological_weights(
+axis_means_prev,
+axis_means_curr,
+epsilon=0.1,
+device=device,
+)
+else:
+teleo_weights = torch.ones(len(AXES), dtype=torch.float32, device=device)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+if tokenizer.pad_token is None:
+tokenizer.pad_token = tokenizer.eos_token
+policy_model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+ref_model
+= AutoModelForCausalLM.from_pretrained(model_name).to(device)
+ref_model.eval()
+optimizer = torch.optim.AdamW(policy_model.parameters(), lr=lr)
+total_steps = epochs * len(dataloader)
+scheduler = get_linear_schedule_with_warmup(
+optimizer,
+num_warmup_steps=max(1, total_steps // 10),
+num_training_steps=total_steps,
+)
+for ep in range(epochs):
+print(f"[INFO] Epoch {ep+1}/{epochs} (semantic GRPO)")
+avg_loss = train_one_epoch_semantic(
+policy_model,
+ref_model,
+tokenizer,
+dataloader,
+optimizer,
+scheduler,
+device,
+28
+
+teleo_weights=teleo_weights,
+lambda_semantic=lambda_semantic,
+)
+print(f"[INFO] Epoch {ep+1} avg semantic GRPO loss: {avg_loss:.4f}")
+ref_model.load_state_dict(policy_model.state_dict())
+return policy_model, tokenizer
+E
+Appendix E: Outer Evolutionary Loop
+File: rsvp_outer_loop.py
+import json
+import subprocess
+import time
+from pathlib import Path
+from typing import Dict
+from rsvp_grpo_semantic import train_rsvp_grpo_semantic
+from rsvp_grpo_trainer import AXES
+def compute_axis_means_from_jsonl(path: str) -> Dict[str, float]:
+"""
+Average each RSVP axis across all candidates in a prefs JSONL file.
+"""
+sums = {ax: 0.0 for ax in AXES}
+count = 0
+with open(path, "r") as f:
+for line in f:
+data = json.loads(line)
+for cand in data.get("candidates", []):
+vals = cand.get("values", {})
+for ax in AXES:
+sums[ax] += float(vals.get(ax, 0.0))
+count += 1
+if count == 0:
+return {ax: 0.0 for ax in AXES}
+return {ax: sums[ax] / count for ax in AXES}
+def run_rsvp_evo_cycle(
+T: int = 10,
+bash_script: str = "./rsvp_grpo_agent.sh",
+prefs_pattern: str = "prefs_iter_{t}.jsonl",
+model_name: str = "gpt2",
+29
+
+device: str = "cuda",
+):
+"""
+End-to-end RSVP teleological alignment loop:
+1) Run bash agent to generate prefs_iter_t.jsonl
+2) Compute axis means
+3) Compute drift => teleological weights
+4) GRPO semantic training
+5) Repeat
+"""
+prev_means = None
+for t in range(1, T + 1):
+print(f"\n====== TELEOLOGICAL ITERATION {t}/{T} ======\n")
+prefs_path = prefs_pattern.format(t=t)
+# 1) Run bash agent with iteration-specific PREF_FILE target
+print("[INFO] Running Bash agent")
+env = dict(**dict(Path(".").env if hasattr(Path("."),"env") else {}))
+env["PREF_FILE"] = prefs_path
+subprocess.run(["bash", bash_script, "."], check=True, env=env)
+# 2) Compute current axis means
+curr_means = compute_axis_means_from_jsonl(prefs_path)
+print("[INFO] Current axis means:", curr_means)
+if prev_means is not None:
+print("[INFO] Training semantic GRPO for this iteration")
+train_rsvp_grpo_semantic(
+jsonl_path=prefs_path,
+model_name=model_name,
+epochs=1,
+device_str=device,
+axis_means_prev=prev_means,
+axis_means_curr=curr_means,
+lambda_semantic=0.8,
+)
+else:
+print("[INFO] First iteration, no teleological drift yet")
+prev_means = curr_means
+time.sleep(1)
+30
+
+References
+P. Anantaprayoon, N. Babina, J. Tarifi, and N. Asgharbeygi.
+Dynamic Alignment for Collective
+Agency: Toward a Scalable Self-Improving Framework for Open-Ended LLM Alignment. arXiv preprint
+arXiv:2512.05464, 2025. URL: https://arxiv.org/abs/2512.05464.
+Shao, et al. Group Relative Policy Optimization. arXiv preprint, 2024.
+R. Landauer. Irreversibility and Heat Generation in the Computing Process. IBM Journal of Research
+and Development, 5(3):183-191, 1961.
+T. Jacobson. Thermodynamics of Spacetime: The Einstein Equation of State. Physical Review Letters,
+75(7):1260-1263, 1995.
+J. Barandes. A Unistochastic Reformulation of Quantum Theory. arXiv preprint, 2023.
+31
+

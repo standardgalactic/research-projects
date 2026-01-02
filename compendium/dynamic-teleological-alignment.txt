@@ -1,0 +1,147 @@
+Dynamic Teleological Alignment through RSVP-GRPO:
+A Continuous Learning Pipeline Using Preference Data
+Flyxion
+December 9, 2025
+Abstract
+This paper presents a practical integration of the Relativistic Scalar Vector Plenum
+(RSVP) theoretical framework with Group-Relative Proximal Optimization (GRPO)
+as proposed in the "Dynamic Alignment" paradigm. The objective is to transform a
+simple summarization script into a continuously self-improving learning agent whose
+values are grounded in RSVP's semantic axes and trajectory-aware teleology. Practi-
+cally, we implement a Bash-driven pipeline that generates candidate summaries, scores
+them under a multi-dimensional value metric, stores the resulting preference data, and
+ultimately exposes the data to a GRPO-based training loop in Python. We illustrate
+implementation details with three representative examples: (i) RSVP scoring prompts,
+(ii) JSONL preference grouping, and (iii) the Bash-level self-improving loop.
+1
+Introduction
+Recent theoretical developments propose moving beyond static alignment objectives toward
+dynamic, teleological alignment systems that continuously adjust their policy trajectories
+via preference signals derived from their own outputs. RSVP theory interprets intelligence
+as a ﬁeld-theoretic agent whose survival depends not on coherence maximization, but on
+balancing the scalar (Φ), vector (v), and entropy (S) ﬁelds over evolving semantic conditions.
+The GRPO algorithm provides a practical formalism for incorporating group-based com-
+parisons among candidate actions or completions. Rather than optimizing reward in a single
+trajectory, GRPO exploits a group of responses to the same prompt and compares them in
+terms of a reference policy. This structure interfaces naturally with RSVP's emphasis on
+semantic dispersion, diversity, and entropic weightings.
+1
+
+2
+Six-Dimensional RSVP Value Scoring
+RSVP alignment in this project is implemented through a six-axis scoring rubric:
+(elegance, sheaf, vector, entropic, structural, epistemic)
+Each axis assigns a 0-5 integer value to a given candidate text. The total score is the sum
+of the axes. Because GRPO requires a group-level comparison, the model generates four
+parallel responses to the same prompt, and the scoring LLM returns JSON containing a
+per-axis score and the ﬁnal recommended choice.
+3
+Example RSVP Scoring Prompt (JSON)
+Below is an abbreviated scoring prompt used inside the Bash script. The assistant is in-
+structed to return strict JSON for four candidate summaries:
+{
+"candidates":[
+{"id":1,"text":"...","values":{"elegance":4,"sheaf":3,...}},
+...
+],
+"best": 2
+}
+This prompt encodes the RSVP framework and ensures the response contains all six axes.
+The Bash script enforces strict JSON parsing through jq, ensuring syntactic correctness and
+enabling structured logging for subsequent GRPO training.
+4
+Group-Relative PPO (GRPO)
+The GRPO loss compares candidate log-probabilities under a reference policy πref and an
+evolving policy πθ. For a group of K responses indexed by i, with rewards ri, we evaluate
+Ai = ri −1
+K
+K
+X
+j=1
+rj.
+LGRPO(θ) = −
+K
+X
+i=1
+ πθ(yi|x)
+πref(yi|x)
+!
+Ai.
+In practice, we also introduce teleological weights on the axes such that the advantage is
+multiplied by a function that increases for axes exhibiting negative drift, driving alignment
+correction over time.
+2
+
+5
+Preference Logging via JSONL
+Each processed chunk yields a single JSON object containing the prompt, the four candidates,
+the six-dimensional scores, and the chosen item. A typical entry resembles:
+{"prompt": "...",
+"candidates":[...],
+"best": 3,
+"values_best":[...],
+"metadata": {"chunk_id":"..."}}
+Appending these JSON objects to a ﬁle (e.g. rsvpprefs.jsonl)formsadatasetforofflineGRPO/DPOtrain
+6
+Bash Learning Agent Pipeline
+The Bash script performs the following loop:
+1. Split input text files into chunks
+2. Generate four parallel candidate summaries (via Ollama)
+3. Score with a separate model using the RSVP prompt
+4. Select the best candidate
+5. Append the chosen summary to a global summary file
+6. Log all candidates to JSONL (with RSVP axes)
+Despite its simplicity, the Bash loop forms the outer learning cycle:
+"values
+first, policy later."
+When combined with the Python GRPO fine-tuning code, the
+system becomes a continuously evolving value-aligned agent.
+7
+Example Bash Fragment
+A representative excerpt from the real script:
+ollama run granite3.2 "Summary attempt 1:" < chunk > cand1.txt &
+...
+ollama run granite3.2 "Summary attempt 4:" < chunk > cand4.txt &
+wait
+ollama run granite3.2 "RSVP scoring prompt" \
+3
+
+<(cat cand1.txt cand2.txt cand3.txt cand4.txt) \
+> scores.json
+jq .best scores.json
+This process demonstrates the group-level comparison required by GRPO, enforced
+at the data-collection stage rather than only at training time.
+8
+Teleological Alignment and Trajectory
+Our system measures the historical average of each RSVP axis, comparing the current
+batch against prior distributions.
+A negative shift in any axis accelerates its
+weight in the advantage function.
+This effectively biases GRPO toward correcting
+semantic drift, producing a trajectory-aware alignment loop.
+Formally, the per-axis teleological weight wt
+a is defined by
+wt
+a = softplus
+
+−(¯rt
+a −¯rt−1
+a
+)
+
++ ϵ,
+which increases the gradient magnitude for regressing axes, enforcing RSVPs non-
+monotonic survival logic.
+9
+Conclusion
+The combined system--Bash preference generation, RSVP scoring, JSON logging, and
+GRPO optimization--constitutes a minimal, continuously learning agent.
+It exemplifies
+the RSVP worldview:
+survival through entropic adaptation, semantic diversity,
+and field-balanced coherence rather than a static notion of alignment.
+By delegating
+value computation to RSVP, the policy becomes teleologically steered, evolving
+within the multidimensional semantic space of its own field-theoretic ethics.
+4
+

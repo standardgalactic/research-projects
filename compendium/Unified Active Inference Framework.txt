@@ -1,0 +1,181 @@
+Appendix: Mathematical Formalization of the Unified Active In-
+ference Architecture
+A. Aspect Relegation Theory (ART)
+A.1 Hierarchical Generative Model
+Let ℓ∈{1, . . . , L} denote levels in a hierarchical predictive coding model.
+• Observations: y(ℓ)
+• Predictions: ˆy(ℓ) = g(ℓ)(θ(ℓ)), where p(θ(ℓ)|θ(ℓ+1)) encodes hierarchical priors
+• Prediction errors:
+ϵ(ℓ) = y(ℓ) −ˆy(ℓ)
+A.2 Precision Estimation
+Precision is the inverse variance of the prediction error, estimated over a temporal window:
+π(ℓ) =
+1
+1
+N
+∑N
+t=1(ϵ(ℓ)
+t )2
+A.3 Reflex Arc Gating Function
+Reflex Arcs select between System 1 and System 2 probabilistically:
+P(Γ(ℓ) = S1) = σ
+(
+β(π(ℓ) −πthresh) + γ(Cthresh −C(T))
+)
+where σ is the sigmoid function, and β, γ are scaling parameters.
+A.4 Task Complexity Estimation
+Task complexity is domain-specific, e.g., for semantic graphs:
+C(T) = H(G) = −
+∑
+i∈V
+p(i) log p(i)
+where p(i) is the probability of visiting node i.
+A.5 Free Energy Objective
+The variational free energy and ART loss are:
+L =
+L
+∑
+ℓ=1
+[
+π(ℓ)(ϵ(ℓ))2 + KL(q(θ(ℓ)) ∥p(θ(ℓ)|θ(ℓ+1)))
+]
++ λ · E[E(Γ(ℓ))]
+where E(Γ(ℓ)) is the cognitive cost.
+A.6 Adaptive Threshold Updates
+Thresholds are adapted via gradient descent:
+πthresh ←πthresh −η
+∂L
+∂πthresh
+,
+Cthresh ←Cthresh −η
+∂L
+∂Cthresh
+1
+
+B. Domain-Specific Systems
+B.1 Haplopraxis: Sensorimotor Precision and Task Entropy
+• Prediction error: ϵS(t) = yt −ˆyt, where ˆyt = f(at, θ(ℓ))
+• Precision: πS =
+1
+1
+N
+∑N
+t=1 ϵS(t)2
+• Task complexity: CHap = H(τ) = −∑
+n∈τ p(n) log p(n), where p(n) =
+count(n)
+∑
+m∈τ count(m)
+• Free energy:
+FS = πS · E[ϵ2
+S] + KL(q(θ(ℓ)) ∥p(θ(ℓ)|θ(ℓ+1))) + λCHap
+B.2 Yarncrawler: Mythic Schema Update Dynamics
+• Belief transition:
+b(vj, t + 1) =
+∑
+vi∈V
+b(vi, t) · P(vj | vi),
+P(vj | vi) =
+exp(πC · wij)
+∑
+k∈V exp(πC · wik)
+• Prediction error: ϵC = KL(b(v) ∥ˆb(v)) = ∑
+vi∈V b(vi) log b(vi)
+ˆb(vi), where ˆb(v) = p(v|θ(ℓ+1))
+• Complexity: CYarn = H(G) = −∑
+vi∈V b(vi) log b(vi)
+• Free energy:
+FC = πC · ϵC + KL(q(θ(ℓ)) ∥p(θ(ℓ)|θ(ℓ+1))) + λH(G)
+B.3 Womb Body Bioforge: Ecological Inference
+• Prediction error: ϵE = KL(p(S|y) ∥p(S|ˆy))
+• Precision: πE =
+1
+E[ϵ2
+E]
+• Complexity: CBio = H(S) = −∑
+s∈S p(s) log p(s)
+• Free energy:
+FE = πE · ϵE + KL(q(θ(ℓ)) ∥p(θ(ℓ)|θ(ℓ+1))) + λH(S)
+B.4 Zettelkasten Academizer: Semantic Foraging
+• Prediction error: ϵZ = ∑
+i,j wij · d(si, sj), where d(si, sj) is the semantic distance between nodes
+• Precision: πZ =
+1
+1
+N
+∑N
+t=1 ϵZ(t)2
+• Complexity: CZet = H(G) = −∑
+i∈V p(i) log p(i)
+• Free energy:
+FZ = πZ · ϵZ + KL(q(θ(ℓ)) ∥p(θ(ℓ)|θ(ℓ+1))) + λH(G)
+B.5 Inforganic Codex: Hybrid Cognitive Architecture
+• Prediction error: ϵI(t) = yt −ˆyt, where ˆyt = u(t) is the PID control signal:
+u(t) = KpϵI(t) + Ki
+∫t
+0
+ϵI(τ)dτ + Kd
+dϵI(t)
+dt
+• Precision: πI =
+1
+1
+N
+∑N
+t=1 ϵI(t)2
+• Complexity: CInf = H(M) = −∑
+m∈M p(m) log p(m), where M is the trail-based memory state space
+• Free energy:
+FI = πI · E[ϵ2
+I] + KL(q(θ(ℓ)) ∥p(θ(ℓ)|θ(ℓ+1))) + λH(M)
+2
+
+C. Summary Table
+System
+Prediction Error
+Precision
+Task Complexity
+Free Energy
+Haplopraxis
+ϵS = y −ˆy
+πS =
+1
+Var[ϵS]
+H(τ)
+πSE[ϵ2
+S] + KL(q ∥p) + λH(τ)
+Bioforge
+ϵE = KL(p ∥ˆp)
+πE =
+1
+E[ϵ2
+E]
+H(S)
+πEϵE + KL(q ∥p) + λH(S)
+Zettelkasten
+ϵZ = ∑wijd(si, sj)
+πZ =
+1
+Var[ϵZ]
+H(G)
+πZϵZ + KL(q ∥p) + λH(G)
+Yarncrawler
+ϵC = KL(b ∥ˆb)
+πC =
+1
+E[ϵ2
+C]
+H(G)
+πCϵC + KL(q ∥p) + λH(G)
+Inforganic Codex
+ϵI = y −ˆy
+πI =
+1
+Var[ϵI]
+H(M)
+πIE[ϵ2
+I] + KL(q ∥p) + λH(M)
+Table 1: Summary of domain-specific terms across systems. The
+KL-divergence term is KL(q(θ(ℓ)) ∥p(θ(ℓ)|θ(ℓ+1))).
+3
+

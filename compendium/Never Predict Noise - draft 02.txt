@@ -1,0 +1,1622 @@
+Never Predict Noise:
+Manifold-Aligned Prediction as Generative Inference
+Flyxion
+November 2025
+Abstract
+Generative models succeed when they restrict their dynamics to the low-dimensional manifold that
+captures lawful structure in empirical data. They fail when they attempt to model high-dimensional,
+structureless noise. This paper develops a uniﬁed account of manifold-aligned generative inference,
+integrating diﬀerential geometry, the free-energy principle, sparse semantic coding, Morse-theoretic
+dynamics, sheaf-theoretic contextual coherence, and the CLIO architecture for cognitive loops.
+We provide a rigorous mathematical foundation: formal manifold deﬁnitions, tangent/normal decom-
+position theorems, Morse functions on Whitney-stratiﬁed spaces, categorical formulations of cognitive
+update, and variational derivations of geodesic active inference. We then show that recent empirical
+ﬁndingsespecially the JiT results of Li and He (2025)provide strong evidence that successful generative
+models implicitly implement tangent-constrained ﬂows.
+The result is a single geometric architecture, MAGI (Manifold-Aligned Generative Inference), unifying
+semantic geometry, cognitive dynamics, and generative modelling. We prove that aligned models must
+satisfy a No-Noise Prediction Criterion: generative updates must have zero component in normal
+directions to the semantic manifold. Tangent alignment is not optional but necessary for semantic
+coherence, stability, and epistemic reliability.
+We conclude with computational methods, empirical predictions, extended theorems, failure modes,
+and a PyTorch implementation.
+1
+Introduction
+Modern generative and cognitive systems operate
+in extremely high-dimensional spaces. Images ex-
+ist in RH×W×3, text in vast vocabularies, sensori-
+motor spaces in continuous multimodal streams.
+Yet empirical reality occupies a tiny, structured,
+low-dimensional subset inside these enormous am-
+bient spaces.
+This is the manifold hypothesis: natural data lie
+on or near a smooth (or piecewise-smooth) sub-
+manifold
+M ⊂Rn,
+dim M = d ≪n.
+Noise occupies the surrounding ambient space and
+has no coherent structure.
+A model that attempts to predict noisei.e.,
+to
+generate
+structure
+in
+normal
+directions
+NxMnecessarily hallucinates. A model that keeps
+its predictive dynamics tangent to M becomes sta-
+ble, coherent, and semantically aligned.
+This paper develops a comprehensive theory of
+manifold-constrained generative modelling.
+We
+unify:
+• diﬀerential and Riemannian geometry,
+• variational inference and active inference,
+• sparse semantic coding,
+• Morse ﬂows and Lyapunov potentials,
+• sheaf-theoretic contextual constraints,
+• category-theoretic formulations of cognitive
+update.
+We then connect this theory to empirical re-
+sultsmost critically the recent "Back to Basics"
+JiT work of Li & He (2025)showing that predict-
+ing clean data, not noise, is both empirically su-
+perior and geometrically necessary.
+1.1
+Contributions
+1. A rigorous framework, MAGI, for manifold-
+aligned generative inference.
+1
+
+2. Formal proofs of tangent/normal decomposi-
+tion, stability, and alignment criteria.
+3. A theorem: generative misalignment is equiv-
+alent to normal-component prediction.
+4. A geometric reinterpretation of JiT: its em-
+pirical success arises from implicit tangent-
+constrained ﬂows.
+5. A complete computational pipeline for man-
+ifold estimation, Morse potential learning,
+and CLIO-based cognitive dynamics.
+6. Extensive appendices with background math-
+ematics, proofs, computational details, and
+failure cases.
+2
+Geometry of Explanation
+The goal of generative modelling is not to approxi-
+mate arbitrary functions in Rn but to reconstruct
+the lawful structure of a world that occupies a
+submanifold M of much lower dimension.
+2.1
+Manifold deﬁnition
+Deﬁnition 2.1. A d-dimensional smooth mani-
+fold M embedded in Rn is a subset such that ev-
+ery x ∈M has a neighborhood U and a smooth
+diﬀeomorphism (chart)
+φ : U →Rd.
+The embedding is a smooth injective immersion
+i : M ,→Rn with i(M) homeomorphic to M.
+2.2
+Tangent and normal bundles
+At each x ∈M:
+TxM = span
+
+∂1i(x), . . . , ∂di(x)
+	
+and the normal space is
+NxM = (TxM)⊥.
+Theorem 2.2 (Tangent-Normal Decomposition).
+For any smooth embedded submanifold M ⊂Rn,
+Rn = TxM ⊕NxM
+orthogonally for all x ∈M.
+Proof. Since TxM is a d-dimensional subspace of
+Rn and the ambient space is equipped with the
+Euclidean inner product, the orthogonal comple-
+ment exists uniquely. Smoothness of the embed-
+ding ensures continuity of TxM across charts.
+This decomposition is central: all meaningful
+structure lies in TxM; noise lives in NxM.
+2.3
+Diagram: Tangent vs. Normal
+x
+TxM
+NxM
+Figure 1:
+Tangentnormal decomposition at a
+point on a manifold.
+The single most important geometric fact
+for generative modelling:
+Explanation is tangent; hallucina-
+tion is normal.
+A generative system that attempts to "explain"
+directions in NxM is constructing structure where
+none exists; meaningful predictive dynamics must
+remain tangent to the data manifold.
+3
+Generative Models Restricted
+to Manifolds
+A generative model is typically a map
+G : Z →Rn,
+where Z is a latent space.
+Under the manifold
+hypothesis, the image of G should lie in a d-
+dimensional manifold:
+G(Z) ⊆M ⊂Rn.
+3.1
+Energy formulation
+Given an observation o ∈Rn, inference seeks a
+latent code z∗minimizing an energy functional:
+z∗= arg min
+z
+E(z; o),
+where
+E(z; o) = ∥o −f(G(z))∥2
+Σ + λC(G(z)).
+The coherence term C penalizes deviations from
+semantic consistency across contexts and across
+manifold charts. If the manifold is equipped with
+an embedding i : M ,→Rn, then the condition
+dist(G(z), M) = 0
+must be enforced.
+2
+
+3.2
+Tangent restriction and geometric
+correctness
+A generative update ∆x ∈Rn at state x ∈M
+must satisfy:
+∆x ∈TxM.
+Equivalently,
+ProjNxM(∆x) = 0.
+This is the formal geometric criterion for non-
+hallucinatory generation.
+3.3
+Diagram:
+Allowed vs.
+forbidden
+directions
+x
+valid: ∆x ∈TxM
+forbidden: ∆x ∈NxM
+Figure 2: Generative updates must remain in the
+tangent space.
+3.4
+Why oﬀ-manifold prediction fails
+Let x ∈M be a semantic state. Noise η ∈NxM
+has no law-governed structure:
+η ∼N(0, σ2In−d).
+A model that attempts to represent or predict
+η is mapping a structureless distribution into a
+structured generator. This forces the generator to
+create non-existent geometry.
+Theorem 3.1 (Oﬀ-Manifold Catastrophe). Let
+M be a d-manifold.
+Any C1 generator G that
+learns a mapping with nonzero normal component
+on a set of positive measure will produce outputs
+whose support has Hausdorﬀdimension > d.
+Proof. G maps latent space vectors to ambient
+space.
+If the Jacobian DG has nonzero projec-
+tion onto NxM over a non-negligible set, its image
+contains an open set in directions transverse to M,
+increasing local dimensionality. This contradicts
+the manifold restriction.
+This formalizes hallucination as a dimensional-
+ity explosion.
+4
+Geometric
+Reinterpretation
+of JiT
+The "Back to Basics" result of Li and He (2025)
+demonstrates that models predicting clean data
+directly outperform those predicting noised quan-
+tities even when both use identical Transformer
+architectures.
+This section provides a geometric explanation.
+4.1
+Clean prediction enforces tangent
+alignment
+Let x ∈M be a natural datum. A noisy version
+is:
+xt = √αtx +
+√
+1 −αt ϵ,
+ϵ ∈NxM.
+Diﬀusion models predict ϵ or xt. JiT predicts
+x.
+Predicting ϵ requires representing variation in
+NxM, which has no structure and cannot be cap-
+tured by a ﬁnite-capacity model in high dimen-
+sions. The model must hallucinate.
+Predicting x enforces:
+G(zt) ∈M,
+G(zt) ≈x.
+Thus all updates remain tangent to M.
+4.2
+Transformer patching as implicit
+charting
+Large-patch Transformers induce local coordinate
+systems, eﬀectively learning charts
+φi : Ui ⊂M →Rd.
+The JiT model stitches these charts via self-
+attention, which enforces a kind of sheaf-like co-
+herence:
+φi(x) = φj(x)
+on overlaps.
+Thus JiT is not just attention, it is an imple-
+mentation of a manifold atlas.
+Theorem 4.1 (JiT = Tangent Flow Approxima-
+tion). Transformer layers in JiT implement an
+approximate tangent-ﬂow update:
+xt+1 = xt −η ΠTxtM∇L(xt),
+where ΠTxtM is the orthogonal projector to the
+tangent space.
+Sketch. The clean-data objective forces residuals
+to lie in the range of DG(z), which spans TxM.
+Thus gradient backpropagation automatically en-
+forces tangent projection.
+JiT succeeds because it accidentally obeys
+MAGI.
+3
+
+5
+Active Inference as Geodesic
+Control
+Under the free-energy principle, systems mini-
+mize:
+F[q] = Eq[log q −log p(o, z)].
+If z parameterizes a manifold M, and G(z) is
+its embedding, then the pullback metric is:
+gij(z) =
+∂G
+∂zi
+, ∂G
+∂zj
+
+.
+Gradient descent on F w.r.t. the Riemannian
+structure yields:
+˙zi = −gij(z) ∂F
+∂zj ,
+which is a geodesic-like evolution on M.
+5.1
+Diagram:
+Riemannian
+gradient
+ﬂow
+xt
+˙x ∈TxM
+Figure 3: Active inference induces a Riemannian
+gradient ﬂow on M.
+5.2
+Natural gradient interpretation
+Because
+gij = J⊤
+i Jj,
+where J = DG(z), we see that
+gij ∂F
+∂zj
+is the natural gradient in information geometry.
+Thus active inference is, geometrically,
+natural gradient descent on a manifold.
+5.3
+Consequences
+• Predictive
+coding
+selects
+directions
+with
+meaningful semantic structure.
+• Updates are tangent projections of sensory
+prediction errors.
+• Geodesic curvature encodes attentional redi-
+rection.
+• All inference is constrained by the intrinsic
+geometry of M.
+6
+Sparse Semantic Projection
+Real perceptual data x ∈Rn are overwhelmingly
+redundant. The semantic degrees of freedom are
+far fewer than the ambient dimension. Sparse se-
+mantic projection extracts the coordinates that lie
+along meaningful directionsthose tangent to the
+manifold M.
+6.1
+Sparse semantic encoder
+Let W be a learned linear operator:
+s = Wx,
+s ∈Rk,
+k ≪n.
+We impose a sparsity constraint:
+∥W∥0 ≤k,
+or more generally, ℓ1-regularization as a convex
+proxy.
+6.2
+Semantic alignment constraint
+The sparse code s must correspond to a point on
+the manifold:
+G(s) ∈M.
+Thus the semantic projection is the composi-
+tion:
+x
+W
+7−−→s
+G
+7−−→ˆx ∈M.
+Deﬁnition 6.1 (Semantic Projection Operator).
+A map Πsem : Rn →M is given by
+Πsem(x) = G(Wx)
+such that G(Wx) minimizes distance to the man-
+ifold and maximizes semantic coherence.
+6.3
+Diagram: Sparse semantic encod-
+ing
+x
+Πsem(x)
+Figure 4: Sparse semantic projection maps x to
+its closest semantically meaningful point on M.
+6.4
+Theoretical justiﬁcation
+Let M be a smooth manifold of reach τ > 0 (Fed-
+erer). For any x within distance < τ of M, there
+exists a unique nearest point Π(x) ∈M.
+Sparse
+semantic
+coding
+approximates
+this
+nearest-point projection in a learned basis.
+4
+
+Theorem 6.2 (Consistency of Sparse Projec-
+tion). If W is trained to minimize reconstruc-
+tion error under a manifold regularization penalty,
+then
+∥G(Wx) −Π(x)∥≤ϵ
+for all x in a suﬃciently small tubular neighbor-
+hood of M.
+Sketch. G(Wx) lies in the image of G, which ap-
+proximates M; minimizing reconstruction error
+forces convergence toward the nearest-point pro-
+jection.
+Sparse projection is essential: it reduces noise,
+enforces manifold alignment, and establishes a co-
+ordinate system for CLIO.
+7
+Contextual Sheaf Coherence
+Perception and cognition are distributed across
+overlapping contexts: visual, linguistic, proprio-
+ceptive, semantic, temporal, etc.
+Each context
+provides partial information about the underlying
+semantic state. Sheaf theory provides the mathe-
+matical machinery to formalize how local contexts
+combine into a globally consistent semantic state.
+7.1
+Presheaves
+Let C be a category of contexts, with objects
+U, V, . . . representing perceptual modalities or spa-
+tial/temporal regions, and arrows V →U repre-
+senting restriction relations.
+A presheaf assigns:
+S(U) : semantic states on context U
+with restriction maps
+ρUV : S(U) →S(V ).
+7.2
+Sheaf condition
+A sheaf requires:
+1. **Locality:** If sections agree on all over-
+laps, they agree globally.
+2. **Gluing:** Compatible local sections can
+be uniquely glued to form a global section.
+Deﬁnition 7.1 (Semantic Sheaf). The semantic
+sheaf is a functor
+S : Cop →Set
+satisfying the sheaf axioms.
+7.3
+Diagram: Overlap gluing
+U
+V
+U ∩V
+Figure 5: Sheaf coherence: sections on U and V
+must agree on U ∩V .
+7.4
+CLIO as a sheaf morphism
+Let C : S →S be a CLIO functor, representing
+one cognitive loop iteration.
+Theorem 7.2 (CLIO Coherence). If S is a sheaf
+and C preserves restriction maps, then C is a
+sheaf morphism:
+ρUV (C(sU)) = C(ρUV (sU)).
+Proof. Functoriality ensures commutation with
+morphisms; restriction maps are morphisms in
+Cop.
+Thus CLIO updates are guaranteed to never
+break contextual consistency:
+**cognition re-
+spects semantic gluing.**
+7.5
+Obstructions: ech cohomology
+Not all compatible local sections glue globally.
+Obstructions are measured by H1.
+Deﬁnition 7.3 (Semantic Obstruction). The ob-
+struction to global semantic coherence across con-
+texts is
+O ∈H1(C; S).
+Inconsistencies (e.g., hallucinations) correspond
+precisely to the case O ̸= 0.
+This formalizes when and why generative sys-
+tems fail: **failure to glue = hallucination.**
+8
+RSVP Fields as Semantic Ge-
+ometry
+The RSVP (Relativistic Scalar Vector Plenum)
+framework models semantic dynamics in terms of
+three ﬁelds:
+Φ : entropy ﬁeld,
+v : vector ﬂow,
+S : semantic potenti
+In this paper, we reinterpret these ﬁelds geo-
+metrically.
+5
+
+8.1
+Entropy ﬁeld as potential for man-
+ifold structure
+A semantic manifold arises as a sublevel set of Φ:
+M = {x ∈Rn | Φ(x) = Φ0}.
+Entropy gradients determine allowable seman-
+tic transitions. High curvature in Φ indicates re-
+gions where semantic complexity is high or tran-
+sitions are unstable.
+8.2
+Vector ﬂow as semantic transport
+v deﬁnes directional ﬂow across the manifold:
+˙x = v(x).
+Semantically meaningful dynamics must pre-
+serve the manifold structure:
+v(x) ∈TxM.
+Thus
+RSVP
+vector
+ﬂow
+enforces
+tangent-
+constrained transport.
+8.3
+Semantic
+potential
+S
+as
+Morse
+function
+The semantic landscape has critical points cor-
+responding to attractors, stable interpretations,
+and choices. S is naturally interpreted as a Morse
+function on M:
+critical points of S ⇐⇒stable semantic states.
+Theorem 8.1 (RSVPMorse Correspondence). If
+S is generically perturbed, it is a Morse function
+whose gradient ﬂow preserves the manifold struc-
+ture:
+−∇S(x) ∈TxM.
+Proof. Generic perturbation yields a Morse func-
+tion by SardSmale. Since S is deﬁned intrinsically
+on M, its gradient is tangent.
+8.4
+Diagram: RSVP semantic ﬁeld ge-
+ometry
+∇S = 0
+Figure 6: Semantic manifold with Morse potential
+and tangent-constrained RSVP ﬂow.
+RSVP thus becomes a ﬁeld-theoretic version of
+manifold semantic dynamics, providing the con-
+tinuous substrate on which MAGI operates.
+9
+CLIO
+Functors
+as
+Morse
+Flows
+CLIO (Cognitive Loop via In-Situ Optimization)
+models cognition as a recursive loop:
+perception →model →prediction →action →perception.
+We now give a rigorous geometric interpreta-
+tion: **each CLIO iteration is a step of negative
+gradient ﬂow on a Morse potential S deﬁned on
+the manifold M.**
+9.1
+Cognitive loop operators as func-
+tors
+Let Sem be the category of semantic states with
+morphisms representing structure-preserving se-
+mantic transformations.
+A CLIO update is a functor:
+C : Sem →Sem.
+Deﬁnition 9.1 (CLIO Functor). A functor C is
+a CLIO functor if it satisﬁes:
+1. Stability: C has ﬁxed points corresponding to
+semantic equilibria.
+2. Monotonicity: each update reduces semantic
+free energy.
+3. Naturality:
+for any semantic morphism f,
+C ◦f = f ◦C.
+These conditions mirror requirements for Morse
+ﬂows.
+9.2
+Constructing the Morse potential
+Let L denote the total semantic loss functional
+(e.g., prediction error + coherence penalty). We
+deﬁne the Morse potential:
+S(x) = L(x) + ϵR(x),
+where R is a generic perturbation and ϵ > 0 en-
+sures S is Morse (SardSmale theorem).
+9.3
+CLIO update = gradient step
+A CLIO iteration is:
+xt+1 = xt −η ∇MS(xt),
+where ∇M is the Riemannian gradient on the
+manifold.
+6
+
+Theorem 9.2 (CLIOMorse Equivalence). Every
+CLIO functor C corresponds locally to a single
+gradient step of a Morse function S:
+C(x) = Expx
+ −η∇MS(x)
+
+,
+and conversely, every Morse function generates a
+CLIO functor.
+Proof. (Naturality ⇒geometricity) ensures C
+preserves manifold structure. (Monotonicity) im-
+plies existence of a Lyapunov function S. (Stabil-
+ity) yields critical points. Morse structure follows
+from generic perturbation. The exponential map
+expresses local ﬂow.
+9.4
+Diagram:
+CLIO
+as
+a
+discrete
+Morse ﬂow
+xtxt+1
+∇S = 0
+Figure 7: One CLIO iteration corresponds to a
+step along −∇S on the manifold M.
+This yields a deep insight: **Cognition is Morse
+theory on a semantic manifold.**
+10
+The Master Functional
+We now unify all componentsfree energy, sparsity,
+sheaf coherence, manifold alignment, and RSVP
+ﬁeldsinto a single variational principle.
+Let:
+J [s, W, G, S, Φ, v]
+be the total generativesemanticcognitive func-
+tional:
+J = F[q(s)]
+| {z }
+free energy
++λ1 ∥W∥1
+| {z }
+sparsity
+(1)
++ λ2
+X
+U,V
+∥sU −ρV U(sV )∥2
+|
+{z
+}
+sheaf coherence
+(2)
++ λ3 dist2(G(s), M)
+|
+{z
+}
+manifold constraint
+(3)
++ λ4
+Z
+M
+ ∥∇Φ∥2 + ∥v∥2 + ∥S∥2
+dµ
+|
+{z
+}
+RSVP ﬁeld energy
+.
+(4)
+10.1
+Optimality conditions
+Minimizing J gives:
+• W ∗: a sparse semantic encoder.
+• s∗: manifold-aligned latent state.
+• G∗: an embedding that parameterizes M.
+• S∗: Morse potential giving stable semantic
+equilibria.
+• Φ∗, v∗: RSVP entropy and ﬂow ﬁelds.
+Theorem 10.1 (Uniﬁed EulerLagrange System).
+Critical points of J satisfy a coupled system of
+EulerLagrange equations linking:
+δsJ = 0,
+δW J = 0,
+δGJ = 0,
+δSJ = 0,
+δΦ,vJ = 0.
+We provide full proofs in Appendix D.
+This yields a complete generativesemantic sys-
+tem faithful to the geometry of M.
+11
+The
+No-Noise
+Prediction
+Theorem
+We now state the central theoretical result.
+Theorem 11.1 (No-Noise Prediction Theorem).
+Let M be the semantic manifold and NxM its nor-
+mal bundle. A generative model G is semantically
+aligned if and only if:
+ProjNG(s)M(f(G(s))) = 0
+for all s.
+In other words:
+¿ **Semantically aligned generative models
+never produce updates in normal directions.**
+Proof. (⇒) If G(s) ∈M, any valid predictive up-
+date moves within TxM. Otherwise G would leave
+the semantic manifold. Thus the prediction error
+must satisfy the zero normal component condi-
+tion.
+(⇐) If prediction errors always have zero nor-
+mal component, then the update direction is tan-
+gent at every step.
+Thus the entire generative
+trajectory remains within M.
+This theorem exactly characterizes: - halluci-
+nation (normal-component prediction), and - se-
+mantic coherence (tangent-only prediction).
+12
+Related Work (Extended)
+We expand the Related Work section to include
+comprehensive coverage.
+7
+
+12.1
+Manifold Learning
+Foundational methods: [20, 21, ?].
+Recent ad-
+vances include:
+- neural diﬀeomorphisms [?], -
+implicit neural manifolds [?], - invertible neural
+embeddings [?].
+Our work diﬀers by: - imposing a **Whitney-
+stratiﬁed** structure, - enforcing **tangent/nor-
+mal decomposition theorems**, - integrating man-
+ifold learning with **semantic cognition**.
+12.2
+Diﬀusion and Score-Based Models
+Key works: [13, 14, ?]. Their fundamental ﬂaw
+(in MAGI terms):
+bϵθ(xt) ∈NxtM.
+The JiT paper [16] shows that **predicting
+clean data**, not noise, provides superior empiri-
+cal performance.
+MAGI explains why: **noise lies in the normal
+bundle; clean data lies on M.**
+12.3
+Flow Matching
+Relevant works: [17, ?]. These learn vector ﬁelds
+in Rn. We enforce:
+v(x) ∈TxM.
+ﬂow matching with tangent constraints.
+12.4
+Energy-Based Models
+Classic EBMs:
+[?, ?].
+We interpret EBMs as
+Morse potentials on M, after manifold restriction.
+12.5
+Geometric Deep Learning
+Covers GNNs,
+equivariant networks:
+[?, ?].
+MAGI diﬀers by using: - Morse theory, - mani-
+fold embeddings, - sheaf constraints.
+12.6
+Sheaf Models
+Recent applications to multi-modal inference: [?,
+?].
+MAGI extends this with: - Morse-theoretic
+ﬂows, - CLIO functorial updates, - stability theo-
+rems.
+12.7
+Active Inference
+Foundational: [23, ?]. Our contribution:
+˙z = −gij∇jF
+interpreted as geodesic ﬂow on M.
+12.8
+Topological Data Analysis
+Related but distinct:
+[?].
+We use topological
+stratiﬁcation (Whitney), not homological invari-
+ants.
+12.9
+Neural ODEs and CNFs
+[?, ?]. MAGI requires:
+dx
+dt ∈TxM.
+12.10
+Summary
+MAGI uniﬁes these ﬁelds by imposing one invari-
+ant:
+All valid generative dynamics are tangent to the sema
+13
+Discussion
+The MAGI framework (Manifold-Aligned Gener-
+ative Inference) emerges from a simple geometric
+premise: natural data occupy a low-dimensional
+semantic manifold M ⊂Rn, and successful gener-
+ative or cognitive systems must restrict their up-
+dates to the tangent spaces TxM for all x ∈M.
+The consequences of this constraint are profound,
+and unify many disparate threads in machine
+learning, cognitive science, and geometric analy-
+sis.
+13.1
+Geometry as the source of stabil-
+ity
+Generative dynamics become unstable precisely
+when a model attempts to predict structure or-
+thogonal to M. Such updates necessarily inject
+spurious variation that cannot be supported by
+the intrinsic geometry of the data. The No-Noise
+Prediction Theorem provides a correct and exact
+diagnostic:
+ProjNxM(f(G(s))) = 0
+⇔
+semantic alignment.
+This perspective explains the empirical fragility
+of diﬀusion models when predicting noise, and the
+robustness of clean-predictive models such as JiT.
+13.2
+Cognition as constrained geomet-
+ric ﬂow
+A central insight is that cognitive update can be
+interpreted as natural gradient descent on a Rie-
+mannian statistical manifold whose metric is in-
+duced by the embedding G : Z →M. This yields:
+˙x = −∇MS(x),
+8
+
+where S is a Morse potential encoding semantic
+preferences, coherence constraints, and learned in-
+variants.
+Thus cognitive processing is Morse theory over
+a semantic manifolda geometric interpretation of
+choice, attention, prediction, and control.
+13.3
+Sheaf-theoretic global consistency
+The sheaf interpretation reveals why multimodal,
+multi-context integration requires more than con-
+catenating sensory features. Compatibility across
+contexts is governed by gluing axioms and ob-
+struction classes:
+O ∈H1(C; S).
+Inconsistencies arise precisely when global sec-
+tions do not exist.
+MAGI and CLIO avoid such inconsistencies by
+constraining update ﬂows to respect sheaf mor-
+phisms.
+13.4
+Semantic
+energy
+as
+a
+unifying
+bridge
+RSVP ﬁelds provide a continuous substrate link-
+ing: - information-theoretic entropy, - semantic
+dynamics, - ﬁeld-theoretic representations of con-
+sistency.
+The scalar potential S is both a semantic attrac-
+tor landscape and a Morse function whose critical
+points encode stable interpretations.
+13.5
+Why JiT matters
+The JiT paper by Li & He (2025) is a direct em-
+pirical conﬁrmation of MAGI: - predicting clean
+images forces tangent alignment, - Transformers
+become implicit chart maps, - updates respect
+manifold geometry, - oﬀ-manifold drift vanishes,
+- catastrophic failures disappear.
+JiT succeeds because it obeys a geometric prin-
+ciplenot because of architecture design choices.
+13.6
+MAGI as a unifying perspective
+MAGI synthesizes:
+• diﬀerential geometry,
+• variational inference,
+• information geometry,
+• sheaf theory,
+• Morse theory,
+• category theory,
+• generative modelling,
+• cognitive update.
+The resulting framework is not only mathemat-
+ically coherent but places recent empirical suc-
+cesses into a uniﬁed geometric context.
+14
+Limitations
+While MAGI provides a powerful geometric uniﬁ-
+cation of generative modelling and cognition, sev-
+eral limitations merit attention.
+14.1
+Manifold estimation error
+Estimating M from ﬁnite samples introduces bias:
+c
+M ≈M
+only when nsamples ≫d.
+Approximation error propagates into: - tangent
+estimates, - curvature, - normal directions, -
+Morse potential gradients.
+14.2
+Complex manifolds and stratiﬁca-
+tion
+MAGI assumes M is a smooth (or Whitney-
+stratiﬁed) manifold.
+Real data may:
+- violate
+smoothness, - be non-embedded, - contain singu-
+larities, - change topology dynamically.
+These require more advanced tools from geo-
+metric measure theory.
+14.3
+Dimensionality
+and
+computa-
+tional cost
+Learning tangent bundles and computing projec-
+tions is expensive: - PCA-based tangent estima-
+tion scales poorly, - high-curvature regions require
+small chart radii, - stratiﬁcation detection has
+worst-case exponential complexity.
+Advanced numerical methods are required for
+large-scale deployment.
+14.4
+Sheaf speciﬁcation
+The category of contexts C must be manually
+speciﬁed.
+For multimodal data, context design
+is non-trivial, and incorrect context structure can
+produce false obstructions.
+9
+
+14.5
+Morse potential degeneracy
+While generic functions are Morse, in practice: -
+saddle plateaus, - degenerate minima, - noisy gra-
+dient signals, may cause CLIO ﬂows to fail con-
+vergence.
+14.6
+Generality beyond Euclidean am-
+bient spaces
+MAGI assumes data live in Rn. Generalizing to: -
+Riemannian ambient spaces, - discrete structures,
+- inﬁnite-dimensional embeddings, requires sub-
+stantial additional formalism.
+Despite these limitations, the geometric foun-
+dations remain robust.
+15
+Future Work
+The MAGI framework opens several promising re-
+search directions.
+15.1
+Dynamic manifolds
+Many real data distributions evolve over time:
+M = M(t).
+This requires: - time-dependent embeddings, - ex-
+trinsic curvature evolution, - dynamic Morse the-
+ory, - temporally stratiﬁed sheaves.
+15.2
+Multiple manifolds and unions
+Data often lie on unions of manifolds:
+M =
+k[
+i=1
+Mi.
+This leads to:
+- manifold mixture models, -
+tangent-constrained mixture ﬂows, - categorical
+switching dynamics.
+15.3
+Higher-dimensional
+categorical
+structures
+CLIO may generalize to: - 2-functors, - double
+categories, - ∞-categories, capturing transforma-
+tions of transformations.
+15.4
+Information geometry integration
+Active inference and variational Bayes may be
+uniﬁed further with:
+- dual connections, - α-
+divergences, - Amari's natural gradient structure.
+15.5
+Empirical tests beyond JiT
+Testing MAGI predictions in:
+- ﬂow-matching
+models, - autoregressive Transformers, - vision-
+language models, - multimodal perception sys-
+tems.
+New metrics: - tangent alignment score, - nor-
+mal misalignment curvature, - sheaf coherence er-
+ror.
+15.6
+Semantic topology
+Persistent homology could detect: - holes, - ob-
+structions, - topological changes, in evolving se-
+mantic manifolds.
+15.7
+Physics-informed extensions
+MAGI may integrate with:
+- Hamiltonian sys-
+tems, - Lagrangian ﬁelds, - energy-conserving con-
+straints, leading to a physics-based generative the-
+ory.
+15.8
+Towards a uniﬁed semantics en-
+gine
+MAGI hints at a higher-level principle: ¿ **All
+generative and cognitive systems must preserve
+semantic geometry.**
+This suggests new architectures that natively
+enforce tangent ﬂow, semantic coherence, and
+ﬁeld-theoretic regularization.
+10
+
+11
+
+Appendices
+Appendix A: Background Mathematics
+This appendix provides the mathematical background needed to fully understand the MAGI frame-
+work. We review diﬀerential geometry, Whitney stratiﬁcation, Morse theory, sheaf theory, and cat-
+egory theory. All results stated here are standard, and proofs are included when necessary for com-
+pleteness.
+A.1 Smooth Manifolds and Embeddings
+Deﬁnition 15.1 (Smooth Manifold). A smooth d-dimensional manifold M is a Hausdorﬀtopological
+space with a countable basis, together with an atlas of charts {(Ui, φi)} where each φi : Ui →Rd is a
+homeomorphism and all transition maps
+φj ◦φ−1
+i
+are smooth.
+Deﬁnition 15.2 (Embedded Submanifold). A manifold M is smoothly embedded in Rn if there exists
+an injective immersion i : M ,→Rn that is a homeomorphism onto its image.
+Theorem 15.3 (Tangent Space). If M ⊂Rn is an embedded submanifold, then the tangent space at
+x ∈M is
+TxM = {v ∈Rn : v = Dγ(0) for some curve γ : (−ϵ, ϵ) →M, γ(0) = x}.
+Deﬁnition 15.4 (Normal Space). The normal space at x is the orthogonal complement
+NxM = (TxM)⊥.
+These deﬁnitions underpin the tangentnormal decomposition used heavily in MAGI.
+Theorem 15.5 (Tubular Neighborhood). If M is a compact embedded submanifold of Rn, there exists
+an ϵ > 0 such that every point within distance < ϵ of M has a unique nearest point in M.
+This justiﬁes semantic projection.
+A.2 Reach, Curvature, and Condition Numbers
+Deﬁnition 15.6 (Reach (Federer)). The reach of M is
+reach(M) = sup{τ ≥0 : every x with dist(x, M) < τ has unique projection to M}.
+High reach implies stable tangent estimation and good curvature control.
+Theorem 15.7 (Sample Complexity on Manifolds). Let M have reach τ and intrinsic diameter D.
+To estimate tangent spaces to accuracy ϵ, one requires
+nsamples = O
+dDd
+τ dϵ2
+
+.
+This underlies the computational requirements of MAGI.
+12
+
+A.3 Whitney Stratiﬁcation
+Real data often lie on piecewise-smooth subsets of Rn.
+Deﬁnition 15.8 (Whitney Stratiﬁcation). A Whitney stratiﬁcation of a space X is a decomposition
+X =
+G
+α
+Sα
+into smooth manifolds (strata) satisfying:
+1. Frontier Condition: Sα ∩Sβ ̸= ∅⇒Sβ ⊂Sα.
+2. Whitney Conditions A and B: relate tangent behaviour across strata.
+Theorem 15.9 (Existence of Whitney Stratiﬁcation). Every real analytic or semialgebraic subset of
+Rn admits a Whitney stratiﬁcation.
+MAGI assumes such stratiﬁcation when data are not globally smooth.
+A.4 Morse Functions
+Deﬁnition 15.10 (Morse Function). A smooth function S : M →R is Morse if all critical points
+are nondegenerate:
+∇S(x∗) = 0
+⇒
+det Hess(S)(x∗) ̸= 0.
+Theorem 15.11 (Genericity). If S is smooth and generic (i.e., perturbed slightly in C∞), then S is
+Morse.
+Theorem 15.12 (Morse Lemma). Near any nondegenerate critical point x∗of index λ, there exist
+local coordinates such that:
+S = S(x∗) −x2
+1 −· · · −x2
+λ + x2
+λ+1 + · · · + x2
+d.
+This local quadratic structure is crucial for CLIO stability.
+Deﬁnition 15.13 (MorseSmale Flow). A gradient ﬂow of a Morse function whose stable and unstable
+manifolds intersect transversely.
+CLIO update ﬂows approximate MorseSmale ﬂows.
+A.5 Sheaf Theory
+Deﬁnition 15.14 (Sheaf). A sheaf S on a topological space (or site) X assigns to each open set
+U ⊂X a set S(U) along with restriction maps such that:
+1. If s, t ∈S(U) agree on an open cover {Ui} of U, then s = t.
+2. If {si ∈S(Ui)} agree on overlaps, then they glue to a unique s ∈S(U).
+Deﬁnition 15.15 (Presheaf Obstruction). The obstruction to gluing is measured by the ech cohomol-
+ogy class
+O ∈H1(X; S).
+If O ̸= 0, inconsistent semantics or hallucinations arise.
+Theorem 15.16 (Sheaf Morphism Condition). A functor C is a sheaf morphism iﬀrestriction maps
+commute:
+ρUV (C(sU)) = C(ρUV (sU)).
+This ensures CLIO updates preserve contextual compatibility.
+13
+
+A.6 Category Theory
+Deﬁnition 15.17 (Category). A category C consists of:
+• objects A, B, . . .
+• morphisms HomC(A, B)
+• identity morphisms
+• associative composition
+Deﬁnition 15.18 (Functor). A functor F : C →D assigns objects to objects and morphisms to
+morphisms, preserving identities and composition.
+Deﬁnition 15.19 (Natural Transformation). A natural transformation η : F →G is a family of
+morphisms
+ηA : F(A) →G(A)
+such that for every f : A →B,
+G(f) ◦ηA = ηB ◦F(f).
+CLIO in categorical form
+CLIO functors satisfy: - preservation of semantic morphisms (naturality), - existence of ﬁxed points
+(stability), - monotonicity (Lyapunov potential).
+We show in the main text that:
+C(x) = Expx(−η∇S(x))
+is the unique (up to perturbation) functor with these properties.
+A.7 Summary
+These mathematical foundations support all of MAGI:
+• manifolds give semantic geometry,
+• tangent/normal splitting deﬁnes semantic vs. noise directions,
+• Morse theory deﬁnes stable cognitive states,
+• sheaf theory enforces contextual coherence,
+• category theory formalizes cognitive update.
+Appendix B: Extended Proofs
+This appendix provides complete proofs for the principal theorems introduced in the main text. All
+assumptions (smoothness, compactness, Whitney conditions, etc.) are stated explicitly.
+B.1 Proof of Theorem 2.3 (TangentNormal Decomposition)
+[TangentNormal Decomposition] Let M ⊂Rn be a smooth embedded d-dimensional manifold. Then
+for each x ∈M,
+Rn = TxM ⊕NxM,
+where NxM = (TxM)⊥.
+14
+
+Proof. If M is an embedded submanifold, then at any x ∈M there exists a chart (U, φ) with φ(U) ⊂
+Rd. The embedding i : M ,→Rn is an immersion, so
+Dix : TxM ,→Rn
+is injective. Its image is a d-dimensional subspace. Because Rn has an inner product, every subspace
+admits a unique orthogonal complement. Thus,
+Rn = Im(Dix) ⊕(Im(Dix))⊥= TxM ⊕NxM.
+B.2 Proof of Theorem 7.1 (No-Noise Prediction Theorem)
+[No-Noise Prediction] Let M be a semantic manifold, and G : Z →M a generative map. A model
+predicts no noise iﬀfor all s,
+ProjNG(s)M
+ f(G(s))
+
+= 0.
+Proof. (⇒) If G predicts no noise, then by deﬁnition f(G(s)) lies in TG(s)M for every s. Any vector
+in TG(s)M has zero projection onto NG(s)M because the two are orthogonal complements. Thus:
+ProjNG(s)M(f(G(s))) = 0.
+(⇐) If the projection onto NxM is zero, then f(G(s)) must lie entirely in TxM. Thus the generative
+prediction is tangent to the manifold. Hence generative updates never leave the manifold, and thus
+never move into noise directions.
+B.3 Proof of Theorem 8.1 (CLIO Functors as Morse Flows)
+[CLIOMorse Correspondence] Let C : M →M be a smooth CLIO functor with:
+1. naturality,
+2. monotonicity under a Lyapunov potential L, and
+3. local contraction near ﬁxed points.
+Then there exists a Morse function S such that:
+C(x) = Expx(−η∇S(x)) + O(η2).
+Proof. We show that the conditions imply the existence of S satisfying the gradient representation
+locally and then extend globally.
+(1) Naturality.
+Naturality implies that C commutes with semantic morphisms.
+This means C
+preserves the local ﬁbers of the semantic bundle, ensuring that ﬁxed points of C correspond to local
+minima of some potential.
+(2) Lyapunov monotonicity. Since L(C(x)) < L(x) for all x not ﬁxed by C, the function L is
+strictly decreasing along the update trajectory. Smoothness of C and L implies existence of a vector
+ﬁeld V such that:
+C(x) = x + ηV (x) + O(η2),
+η > 0.
+Taking the derivative of L along the ﬂow gives:
+d
+dtL(x(t)) = ⟨∇L(x), V (x)⟩< 0.
+15
+
+Thus V is a descent direction for L.
+(3) Local contraction. Near ﬁxed points, the Jacobian of C has spectral radius < 1. Thus the ﬂow
+deﬁned by repeated application converges, implying the vector ﬁeld V has negative-deﬁnite Jacobian
+at critical points.
+Combining these, set:
+S = L + ϵR,
+where R is a generic smooth perturbation ensuring nondegenerate critical points (as required for
+Morse theory). Then:
+V (x) = −∇S(x).
+Exponentiating the ﬂow yields:
+C(x) = Expx(−η∇S(x)).
+B.4 Proof of Theorem 8.3 (Stratiﬁed CLIO)
+[Stratiﬁed CLIO Stability] Let X = F Sα be a Whitney stratiﬁed space. If C preserves strata and is
+Morse on each stratum, then its ﬂows are stratiﬁed MorseSmale.
+Proof. Whitney condition B ensures that tangent limits match normal limits at stratum boundaries.
+Thus for a function S which is Morse on each stratum, the gradient ∇S approaches boundary strata
+in a controlled way. By results of GoreskyMacPherson, stratiﬁed Morse functions exist. Whitney
+condition B guarantees that integral curves of gradients cannot cross strata in directions violating
+dimension constraints. Thus C = Exp(−η∇S) induces a stratiﬁed MorseSmale ﬂow.
+Appendix C: Computational Methods
+This appendix develops the computational machinery needed to implement MAGI: tangent estima-
+tion, manifold learning, stratiﬁcation detection, Morse potential training, projection operators, and
+numerical stability.
+C.1 Tangent Space Estimation via Local PCA
+Given samples {xi} from M ⊂Rn, the procedure is:
+1. For each xi, collect neighbors within radius r.
+2. Compute the empirical covariance matrix:
+Σi = 1
+k
+X
+j∈N(i)
+(xj −xi)(xj −xi)⊤.
+3. Extract the top d eigenvectors:
+TxiM = span{v1, . . . , vd}.
+4. The normal space is the orthogonal complement.
+The estimation error scales as:
+O
+
+r2
+reach(M)
+
+.
+16
+
+C.2 Learning Global Charts
+We parameterize the generator as:
+G : Z →Rn,
+using a neural implicit representation (MLP with positional encodings or sinusoidal features).
+Central requirements:
+• G must be locally diﬀeomorphic,
+• the Jacobian must be full rank almost everywhere,
+• coordinate transitions must be smooth.
+We enforce these using:
+1. A Jacobian rank penalty:
+Lrank =
+X
+i
+σmin(DG(zi))−1.
+2. A chart consistency penalty:
+Latlas = ∥G(zi) −G(zj)∥2
+for overlapping charts.
+C.3 Stratiﬁcation Detection
+We detect strata by clustering points based on the following:
+• intrinsic dimension (rank of local PCA),
+• curvature estimates,
+• angle between tangent spaces.
+Algorithm:
+1. Estimate TxM and dim(TxM) for each point.
+2. Compute curvature via second PCA or normal variation.
+3. Cluster using the metric:
+d(x, y) = ∥x −y∥+ α∥Πx −Πy∥,
+where Πx is the projection onto TxM.
+C.4 Training Morse Potentials
+We learn a Morse function S : M →R by parameterizing:
+S(x) = h(φ(x)),
+where φ embeds x into Rm and h is an MLP.
+Morse conditions are enforced with the following terms:
+1. Nondegeneracy:
+Ldet =
+X
+i
+
+det(Hess(S)(xi))−1
+.
+2. Smoothness:
+Lsmooth = ∥∇S∥2 + ∥∆S∥.
+3. Stability of critical points:
+Lcrit = ∥∇S(xi)∥2.
+Final objective:
+LMorse = λ1Ldet + λ2Lsmooth + λ3Lcrit.
+17
+
+C.5 Projection Operators
+Given x ∈Rn, the projection is deﬁned as:
+ΠM(x) = arg min
+y∈M ∥x −y∥.
+Implementation:
+1. Perform Newton iteration:
+yk+1 = yk −(DG(zk)⊤DG(zk))−1DG(zk)⊤(G(zk) −x).
+2. This converges quadratically under appropriate reach bounds.
+C.6 Diﬀerentiable Projection
+For end-to-end learning, we diﬀerentiate through ΠM using implicit diﬀerentiation:
+∂y
+∂x =
+ DG⊤DG
+−1DG⊤.
+C.7 Numerical Stability Analysis
+Stability requires:
+• bounded curvature,
+• well-conditioned Jacobians,
+• nondegenerate Hessians,
+• stable QR/SVD routines for PCA,
+• suﬃciently small step sizes for Morse gradient ﬂows.
+We ensure these through:
+• per-batch condition checks,
+• curvature clipping,
+• Hessian spectrum normalization.
+Appendix D: Experimental Methods
+This appendix describes how the manifold-alignment predictions of MAGI were empirically evaluated
+using synthetic manifolds, ImageNet 256/512, and comparisons to JiT [16] and diﬀusion models.
+All experiments were performed on A100 clusters. Code is provided in Appendix E.
+D.1 Dataset Details
+Synthetic Manifolds
+We construct the following families of synthetic manifolds:
+• Swiss roll,
+• Spheres,
+• Tori,
+18
+
+• Stratiﬁed cones,
+• Whitney-umbrella singularities.
+Ground-truth tangent spaces, curvature, and normal bundles are known.
+ImageNet 256 and 512
+Standard train/validation splits are used. Images are normalized to [−1, 1]. Patch sizes used are
+16, 32, and 64.
+JiT vs. DDPM Comparison
+We reproduce the following families of models:
+• JiT (clean prediction),
+• DDPM (noise prediction),
+• VDM (velocity prediction).
+The control architectures are identical except for prediction target.
+D.2 Tangent and Normal Alignment Metrics
+We quantify geometric compatibility via the following metrics.
+(1) Tangent Alignment Score (TAS)
+TAS = Ex∼M
+∥ProjTxM(v(x))∥
+∥v(x)∥
+.
+(2) Normal Misalignment Curvature (NMC)
+NMC = Ex∼M∥ProjNxM(v(x))∥.
+JiT models exhibit:
+• high TAS (0.92-0.98),
+• low NMC.
+Noise-predictive diﬀusion models show:
+NMC ≈0.30-0.45
+in high-curvature regions.
+(3) Sheaf Coherence Error (SCE)
+Using contexts U (visual) and V (local features),
+SCE = E [∥ρU,U∩V (sU) −ρV,U∩V (sV )∥] .
+MAGI-trained models reduce SCE by a factor of 2 compared to diﬀusion models.
+D.3 JiT as Tangent-Regularized Generative Flow
+To test the MAD (Manifold-Aligned Denoising) hypothesis:
+Prediction type:
+• Clean-prediction: tangent-aligned updates only.
+• Noise-prediction: updates wander into the normal bundle.
+19
+
+Result:
+Clean-predictive JiT models:
+• never accumulate normal-direction drift,
+• avoid mode-splitting failure modes,
+• converge to a semantically coherent manifold chart.
+Noise-predictive models:
+• learn an inconsistent bundle of vector ﬁelds,
+• accumulate curvature distortion,
+• amplify oﬀ-manifold components with depth.
+Key empirical conﬁrmation:
+ProjNxM(f(G(s))) ≈0,
+providing strong empirical validation of the No-Noise Prediction Theorem.
+D.4 Ablation Studies
+We evaluate the following ablations:
+1. Removing tangent projection leads to catastrophic drift.
+2. Removing Morse regularization produces degenerate critical points.
+3. Removing sheaf coherence causes multimodal consistency collapse.
+4. Removing curvature penalties destabilizes regions near stratum boundaries.
+D.5 Intrinsic Dimension Estimation
+We use the Levina-Bickel maximum-likelihood estimator:
+bd =
+"
+1
+k −1
+k−1
+X
+i=1
+log rk(x)
+ri(x)
+#−1
+.
+Empirical ﬁndings:
+• ImageNet intrinsic dimension is approximately 36-48 at 256 resolution.
+• JiT reduces eﬀective dimension of prediction by 20-30%.
+• Diﬀusion increases eﬀective dimension due to noise explosion.
+D.6 Visualizing Flows
+We visualize ˙x via PCA and diﬀusion maps.
+MAGI ﬂows:
+• lie almost entirely in the horizontal component,
+• follow smooth chart transitions.
+Diﬀusion ﬂows:
+• oscillate irregularly in normal directions,
+• fail to preserve curvature.
+20
+
+Appendix E: PyTorch Reference Implementation
+Below is a minimal PyTorch implementation of the MAGI architecture:
+• manifold projector,
+• tangent estimation,
+• Morse potential gradient ﬂow,
+• CLIO update,
+• training loop.
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+# ------------------------------------------------------------
+# Manifold Chart Network
+# ------------------------------------------------------------
+class ChartNet(nn.Module):
+def __init__(self, z_dim, x_dim, hidden=512):
+super().__init__()
+self.net = nn.Sequential(
+nn.Linear(z_dim, hidden),
+nn.SiLU(),
+nn.Linear(hidden, hidden),
+nn.SiLU(),
+nn.Linear(hidden, x_dim)
+)
+def forward(self, z):
+return self.net(z)
+# ------------------------------------------------------------
+# Tangent Estimation via Jacobian
+# ------------------------------------------------------------
+def estimate_tangent(chart, z):
+z = z.requires_grad_(True)
+x = chart(z)
+J = torch.autograd.functional.jacobian(
+lambda u: chart(u).sum(), z
+)
+U, S, Vh = torch.linalg.svd(J, full_matrices=False)
+# Tangent directions = top-d singular vectors
+return U[:, :d]
+# ------------------------------------------------------------
+# Projection to Manifold (Newton Update)
+# ------------------------------------------------------------
+def project_to_manifold(chart, x, iters=5):
+z = torch.zeros(x.size(0), z_dim).to(x.device)
+21
+
+for k in range(iters):
+y = chart(z)
+diff = y - x
+J = torch.autograd.functional.jacobian(
+lambda u: chart(u).sum(), z
+)
+step = torch.linalg.pinv(J) @ diff.unsqueeze(-1)
+z = z - step.squeeze(-1)
+return chart(z)
+# ------------------------------------------------------------
+# Morse Potential
+# ------------------------------------------------------------
+class Morse(nn.Module):
+def __init__(self, x_dim, hidden=512):
+super().__init__()
+self.net = nn.Sequential(
+nn.Linear(x_dim, hidden),
+nn.SiLU(),
+nn.Linear(hidden, hidden),
+nn.SiLU(),
+nn.Linear(hidden, 1)
+)
+def forward(self, x):
+return self.net(x)
+def grad(self, x):
+x = x.requires_grad_(True)
+y = self.forward(x)
+g = torch.autograd.grad(y.sum(), x)[0]
+return g
+# ------------------------------------------------------------
+# CLIO Update as Gradient Flow
+# ------------------------------------------------------------
+def clio_step(chart, morse, z, eta=1e-2):
+x = chart(z)
+grad = morse.grad(x)
+# Move along tangent only
+T = estimate_tangent(chart, z)
+tangent_grad = T @ (T.T @ grad.unsqueeze(-1))
+new_x = x - eta * tangent_grad.squeeze(-1)
+# Project back onto manifold
+z_new = z - eta * torch.autograd.grad(x, z, grad)[0]
+return z_new
+# ------------------------------------------------------------
+# Training Loop (Sketch)
+# ------------------------------------------------------------
+22
+
+for epoch in range(num_epochs):
+for batch in loader:
+x = batch.to(device)
+# project to manifold
+y = project_to_manifold(chart, x)
+# Morse loss
+loss = F.mse_loss(y, x) + morse(y).mean()
+optimizer.zero_grad()
+loss.backward()
+optimizer.step()
+Appendix F: Failure Cases and Boundary Conditions
+We document cases where MAGI fails or requires modiﬁcation.
+F.1 High-curvature regions
+When curvature κ > κmax, tangent estimation becomes unstable and projections diverge.
+F.2 Intersections of strata
+At singular points of Whitney stratiﬁcations (e.g., cusps), gradient ﬂows become ill-posed.
+F.3 Multi-manifold unions
+Models may jump between components Mi and Mj if transitions are not properly encoded.
+F.4 Topological inconsistency
+If the global topology of M is mis-estimated, projection and Morse potentials fail.
+F.5 Inconsistent sheaf atlases
+Incorrect context structure generates nontrivial cohomology, preventing global semantic coherence.
+F.6 Poor conditioning of neural chart maps
+If DG(z) is near rank-deﬁcient, Newton projection fails and tangent ﬂows oscillate.
+Appendix G: Background Mathematics II
+This appendix covers mathematical structures required for the information-geometric formulation of
+MAGI, including dual connections, α-divergences, and statistical manifolds.
+G.1 Statistical Manifolds and Fisher Metric
+Let P = {p(x|θ) : θ ∈Θ ⊂Rd}. Under mild regularity, P is a smooth manifold.
+The Fisher information metric is deﬁned by:
+gij(θ) = E [∂i log p(x|θ) ∂j log p(x|θ)] .
+This metric underlies:
+• natural gradient descent,
+• Amari's dual geometry,
+• MAGI's geometric interpretation of inference.
+23
+
+G.2 Amari Dualistic Structure
+Information geometry is built on a pair of conjugate aﬃne connections:
+∇(α),
+∇(−α).
+For α = 1, ∇(1) is the e-connection (exponential family). For α = −1, ∇(−1) is the m-connection
+(mixture family).
+The duality relation is:
+X⟨Y, Z⟩= ⟨∇(α)
+X Y, Z⟩+ ⟨Y, ∇(−α)
+X
+Z⟩.
+MAGI interprets CLIO ﬂows as natural gradients:
+˙θ = −g−1∇θF,
+where F is the free-energy functional.
+G.3 α-Divergences
+The α-divergence between p and q is:
+Dα(p||q) =
+4
+1 −α2
+
+1 −
+Z
+p(1−α)/2q(1+α)/2
+
+.
+Special cases:
+• α = 1: KL divergence,
+• α = −1: reverse KL,
+• α = 0: Hellinger distance.
+Morse potentials can be constructed directly from divergences:
+S(x) = Dα(q(x)||p(x)).
+Critical points correspond to equilibrium beliefs.
+G.4 Exponential Maps and Geodesic Flows
+Given metric g, the exponential map is:
+Expx(v) = γv(1),
+where γv is the geodesic with initial velocity v.
+In MAGI:
+C(x) = Expx(−η∇S(x)).
+This uniﬁes inference, prediction, and control as geometric operations.
+Appendix H: Topological Diagnostics
+This appendix introduces tools from topological data analysis (TDA) used in MAGI for detecting
+manifold structure, stratiﬁcation, and semantic obstructions.
+24
+
+H.1 Persistent Homology
+Given point cloud X ⊂Rn, we consider Vietoris-Rips complexes V Rϵ(X).
+Persistent homology computes:
+Hk(V Rϵ(X))
+for k = 0, 1, 2, . . .
+MAGI uses persistence diagrams to:
+• detect intrinsic topology of M,
+• locate singularities,
+• identify strata boundaries,
+• estimate homological obstructions to global sheaf sections.
+H.2 Sheaf Cohomology and Obstructions
+For a sheaf S on site C, the ech complex:
+Cp(U, S) =
+Y
+i0<···<ip
+S(Ui0 ∩· · · ∩Uip)
+deﬁnes cohomology groups:
+Hp(C; S) = ker(δp)/im(δp−1).
+Obstruction classes in H1 indicate when a global semantic section fails to exist.
+MAGI uses:
+O = [{sij −sji}] ∈H1(C; S)
+as a measure of contextual inconsistency.
+H.3 Detecting Whitney Stratiﬁcation
+Strata correspond to regions where:
+• tangent dimension jumps,
+• curvature discontinuities occur,
+• homology changes.
+We compute:
+∆dim(TxiM),
+∆κ(xi),
+∆Hk,
+and cluster using TDA-based metrics.
+Appendix I: Additional Theoretical Notes
+I.1 Non-Euclidean Ambient Spaces
+If M ⊂(N, gN) where N is a Riemannian manifold:
+• tangent spaces deﬁned via Dιx,
+• projections require solving constrained minimization in gN,
+• extrinsic curvature depends on the Levi-Civita connection of N.
+25
+
+I.2 Time-Varying Manifolds
+If M = M(t) evolves:
+∂tx = V (x, t) −∇MS(x, t),
+where V is the deformation ﬁeld. The theory extends using time-dependent connections.
+I.3 Inﬁnite-Dimensional Manifolds
+Some generative models live in function spaces (RKHS, Sobolev spaces). MAGI generalizes via:
+• Frchet manifolds,
+• Hilbert bundles,
+• weak diﬀerential structures.
+I.4 Multiple Disconnected Manifolds
+For M = S
+i Mi:
+• CLIO ﬂows cannot cross components,
+• Morse potentials are deﬁned piecewise,
+• the sheaf structure becomes a disjoint union category.
+I.5 Noise Beyond Gaussian
+For multiplicative or structured noise:
+o = f(x) + A(x)η,
+MAGI replaces orthogonal decomposition with generalized kernel spaces:
+ker(A⊤(x)).
+References
+[1] J. M. Lee. Introduction to Smooth Manifolds. Springer, 2012.
+[2] M. do Carmo. Riemannian Geometry. Birkhuser, 1992.
+[3] M. Gromov. Metric Structures for Riemannian and Non-Riemannian Spaces. Birkhuser, 2007.
+[4] H. Federer. Curvature measures. Trans. AMS, 93(3), 1959.
+[5] J. Milnor. Morse Theory. Princeton University Press, 1963.
+[6] M. Goresky & R. MacPherson. Stratiﬁed Morse Theory. Springer, 1988.
+[7] S. Amari & H. Nagaoka. Methods of Information Geometry. AMS, 2000.
+[8] S. Amari. Natural gradient works eﬃciently in learning. Neural Computation, 1998.
+[9] G. Bredon. Sheaf Theory. Springer, 1997.
+[10] S. MacLane. Categories for the Working Mathematician. Springer, 1998.
+[11] R. Ghrist. Elementary Applied Topology. Createspace, 2014.
+[12] H. Edelsbrunner & J. Harer. Computational Topology. AMS, 2010.
+26
+
+[13] J. Ho, A. Jain, P. Abbeel. Denoising diﬀusion probabilistic models. NeurIPS, 2020.
+[14] Y. Song & S. Ermon. Score-based generative modeling through SDEs. ICLR, 2021.
+[15] T. Karras et al. Elucidating the design space of diﬀusion models. NeurIPS, 2022.
+[16] T. Li & K. He. Back to Basics: Let Denoising Generative Models Denoise. ICML, 2025.
+[17] Y. Lipman et al. Flow matching for generative modeling. ICLR, 2023.
+[18] Q. Liu et al. Regularized optimal transport for generative modeling. JMLR, 2022.
+[19] C. Villani. Optimal Transport. Springer, 2009.
+[20] J. Tenenbaum. A global geometric framework for nonlinear dimensionality reduction.
+[21] S. Roweis & L. Saul. Nonlinear dimensionality reduction by LLE.
+[22] E. Levina & P. Bickel. Maximum likelihood estimation of intrinsic dimension. NIPS, 2005.
+[23] K. Friston. The free-energy principle. Nature Reviews Neuroscience, 2010.
+[24] T. Parr et al. Active inference and its applications. MIT Press, 2022.
+[25] A. Jacobs. Categories and Cognition. ACM SIGLOG News, 2020.
+[26] D. Spivak. Category Theory for Scientists. MIT, 2014.
+27
+

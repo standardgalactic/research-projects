@@ -1,0 +1,313 @@
+Spherepop OS: A Deterministic Semantic Operating System Formal
+Speciﬁcation and Architectural Rationale
+Flyxion
+December 13, 2025
+Abstract
+Spherepop OS is a semantic operating system whose primary abstraction is not the process,
+ﬁle, or thread, but a deterministic, append-only relational event substrate. The system is designed
+to support collaborative, time-aware, and introspectable computation by enforcing strict causal
+ordering, replayability, and separation between authoritative state transitions and derived views.
+This document presents a formal speciﬁcation of Spherepop OS, together with the rationale for
+each architectural choice. Particular emphasis is placed on determinism, observational purity,
+and the treatment of geometry, layout, and speculation as non-causal metadata layered atop
+an immutable event log. The resulting system occupies an intermediate position between an
+operating system kernel, a distributed database, and a semantic ﬁeld theory of computation.
+1
+Motivation and Design Goals
+Contemporary operating systems are historically organized around mutable global state, imperative
+control ﬂow, and opaque side eﬀects. While these designs have proven eﬀective for single-user,
+single-machine computation, they exhibit deep structural limitations when extended to collaborative,
+distributed, or semantically rich environments. In particular, traditional systems struggle to provide
+strong guarantees of determinism, introspectability, and time-consistent reasoning.
+Spherepop OS is motivated by the following design goals:
+G1. Deterministic Replay: Any system state must be reproducible exactly from an authoritative
+log.
+G2. Total Causal Order: All state transitions must admit a global, unambiguous ordering.
+G3. View-Cause Separation: Observations, visualizations, and speculative reasoning must not
+interfere with authoritative state.
+G4. Semantic Primacy: Relations, equivalence, and meaning precede processes and ﬁles as
+ﬁrst-class concepts.
+G5. Collaborative Introspection: Multiple observers may join, leave, rewind, and speculate
+without destabilizing the system.
+These goals jointly rule out large classes of conventional kernel and database architectures,
+motivating a log-centric, event-sourced design with strict discipline around causality and derivation.
+1
+
+2
+Core Ontology
+Deﬁnition 2.1 (Semantic Object). A semantic object is an abstract entity identiﬁed by a stable
+handle. Objects have no intrinsic meaning except insofar as they participate in relations, equivalence
+classes, and events.
+Deﬁnition 2.2 (Relation). A relation is a typed, directed association between two semantic objects.
+Relations are ﬁrst-class and may carry ﬂags or metadata.
+Deﬁnition 2.3 (Equivalence). An equivalence relation over objects identiﬁes multiple handles
+as representing a single canonical representative. Equivalence is induced by merge events and
+maintained via a union-ﬁnd structure.
+Importantly, objects, relations, and equivalence classes exist only as consequences of event replay.
+There is no mutable object table independent of the log.
+3
+Authoritative Event Log
+Axiom 3.1 (Append-Only Authority). All authoritative state transitions in Spherepop OS are
+recorded as events in a single append-only log. No other structure is permitted to introduce or modify
+semantic state.
+Each event is assigned a strictly increasing sequence identiﬁer (EID) by a single authoritative
+arbiter. The log is therefore totally ordered.
+Proposition 3.1 (Deterministic State). Given an initial empty state and a preﬁx of the event log,
+the resulting semantic state is uniquely determined.
+Proof. All kernel transitions are pure functions of prior state and the next event. Since the log is
+totally ordered and immutable, replay is deterministic.
+This property elevates the log from an implementation detail to the primary artifact of the
+system.
+4
+Kernel Semantics
+The Spherepop kernel is a deterministic interpreter of events. It maintains derived state such as
+equivalence classes and relation tables, but these structures are caches, not authorities.
+Deﬁnition 4.1 (Kernel). The kernel is the minimal deterministic machine that replays events and
+emits derived changes (diﬀs). It has no external side eﬀects and no hidden state.
+Kernel operations include:
+• Object creation (POP)
+• Merge (MERGE, inducing equivalence)
+2
+
+• Relation creation (LINK) and removal (UNLINK)
+• Region collapse (COLLAPSE)
+• Metadata attachment (SETMETA)
+Each operation is represented as a canonical event type with a ﬁxed binary schema.
+5
+Formal Execution Semantics
+We now make the kernel transition function explicit by presenting a small-step operational seman-
+tics for event application. The goal is not to specify implementation details, but to provide an
+unambiguous mathematical description of how authoritative state evolves in response to events.
+5.1
+Kernel State
+Deﬁnition 5.1 (Kernel State). A kernel state is a tuple
+σ = (O, U, R, M)
+• O is a ﬁnite set of object identiﬁers,
+• U : O →O is a union-ﬁnd parent map representing equivalence,
+• R ⊆O × O × T is a multiset of typed relations,
+• M : O →K ⇀V is a partial metadata map.
+We write repσ(o) for the canonical representative of o under U, after path compression.
+5.2
+Transition Relation
+Kernel execution is deﬁned by a labeled transition relation
+σ e−→σ′
+5.3
+POP (Object Creation)
+o /∈O
+(O,U,R,M)
+POP(o)
+−−−−−→(O∪{o}, U[o7→o], R, M)
+5.4
+MERGE (Equivalence Induction)
+o1, o2 ∈O
+σ
+MERGE(o1,o2)
+−−−−−−−−−→σ′
+where σ′ diﬀers from σ only in U, with
+U'(rep(o2)) = rep(o1).
+This rule is idempotent: merging already-equivalent objects yields no further change.
+5.5
+LINK (Relation Creation)
+(o1, o2, t) /∈R
+σ
+LINK(o1,o2,t)
+−−−−−−−−→(O,U,R∪{(rep(o1),rep(o2),t)},M)
+3
+
+5.6
+UNLINK (Relation Removal)
+(o1, o2, t) ∈R
+σ
+UNLINK(o1,o2,t)
+−−−−−−−−−−→(O,U,R\{(rep(o1),rep(o2),t)},M)
+5.7
+COLLAPSE (Bulk Equivalence)
+Let S ⊆O be a region to be collapsed, with chosen representative or ∈S.
+S ⊆O
+σ
+COLLAPSE(S,or)
+−−−−−−−−−−−→σ′
+where for all o ∈S, U′(rep(o)) = rep(or). Objects not equal to or remain in O but are no longer
+representatives.
+5.8
+SETMETA(MetadataAttachment)
+o ∈O
+σ
+SET META(o,k,v)
+−−−−−−−−−−−→(O,U,R,M[o7→(k7→v)])
+Metadata updates do not aﬀect O, U, or R.
+5.9
+Semantic Properties
+Proposition 5.1 (Determinism). For any kernel state σ and event e, there exists at most one state
+σ′ such that σ e−→σ′.
+Proposition 5.2 (Merge Conﬂuence). The ﬁnal equivalence relation induced by a set of MERGE
+events is independent of their order.
+Proof. Union-ﬁnd union is associative and commutative over equivalence classes. The induced
+partition is given by the reﬂexive-transitive closure of the merge relation and therefore does not
+depend on merge order.
+Proposition 5.3 (View Consistency). Derived views that collapse non-representative objects preserve
+semantic equivalence.
+5.10
+MERGE-Induced Relation Normalization
+We now make explicit the interaction between equivalence induction and relations.
+Axiom 5.1 (Representative Normalization). All relations are stored and interpreted in representative-
+normalized form. That is, for any relation (o1, o2, t) ∈R, it is invariant that o1 = rep(o1) and
+o2 = rep(o2).
+Proposition 5.4 (Relation Rewriting under MERGE). When an event MERGE(oa, ob) is applied,
+all relations incident to rep(ob) are rewritten to reference rep(oa).
+Proof. After MERGE, rep(ob) = rep(oa). Any relation previously referencing rep(ob) is therefore
+normalized to reference rep(oa). No semantic information is lost, since oa and ob are equivalent by
+deﬁnition.
+4
+
+6
+Replay Equivalence
+We now formalize the equivalence between full replay and incremental observation.
+Theorem 6.1 (Replay Equivalence). Let ℓ= e1, e2, . . . , en be an event sequence. Let σreplay be the
+state obtained by replaying ℓfrom the initial state σ0. Let σdiﬀbe the state obtained by applying the
+sequence of diﬀs derived from e1, . . . , en to σ0. Then σreplay and σdiﬀare semantically equivalent.
+Proof. Each diﬀis a deterministic function of a single event application. Since kernel transitions are
+deterministic and diﬀs are derived without side eﬀects, incremental application of diﬀs reconstructs
+the same representative-normalized state as direct replay of the log. Equivalence follows by induction
+on the length of ℓ.
+Proposition 6.1 (Merge Conﬂuence). The ﬁnal equivalence relation induced by a set of MERGE
+events is independent of their order.
+Proposition 6.2 (View Consistency). Derived views that collapse non-representative objects preserve
+semantic equivalence.
+7
+Meta-Theorem: Functoriality of Derived Views
+The core philosophical discipline of Spherepop OS is the separation of cause (events) from views
+(snapshots, diﬀs, geometry). The following meta-theorem states this separation as a functoriality
+principle: any admissible view is a structure-preserving map out of the event-sourced semantics.
+7.1
+Event Preﬁx Category
+Deﬁnition 7.1 (Preﬁx Category). Fix an event log ℓ= (e1, e2, . . .). Deﬁne the preﬁx category
+Pref(ℓ) as follows.
+• Objects are natural numbers n ∈N, interpreted as preﬁxes ℓ≤n := (e1, . . . , en).
+• There is a unique morphism mn→n+k : n →n + k for each k ≥0, representing preﬁx extension
+by k events.
+• Composition is given by addition: mn→n+k ◦mn+k→n+k+j = mn→n+k+j.
+7.2
+State Semantics as a Functor
+Deﬁnition 7.2 (State Semantics). Let State be the category whose objects are kernel states σ and
+whose morphisms are deterministic state updates induced by event application. Deﬁne the state
+semantics functor
+Sℓ: Pref(ℓ) →State
+by Sℓ(n) := σn, the state obtained by replaying ℓ≤n from σ0, and by mapping each generator mn→n+1
+to the single-step transition
+σn
+en+1
+−−−→σn+1.
+5
+
+Proposition 7.1 (Functoriality of Replay). The assignment Sℓis a functor.
+Proof. Identity morphisms correspond to applying zero events and therefore map to identity
+state updates. Composition in Pref(ℓ) corresponds to sequential event application, which equals
+composition of deterministic transitions in State by deﬁnition.
+7.3
+Derived Views
+Deﬁnition 7.3 (Admissible View). An admissible view is any functor
+V : State →View
+into some category of observer representations View (e.g. JSON graphs, NDJSON diﬀs, geometric
+layouts), such that V is non-interfering: it does not feed back into Sℓ.
+Theorem 7.1 (View Functoriality Meta-Theorem). For any log ℓand any admissible view functor
+V : State →View, the composite
+V ◦Sℓ: Pref(ℓ) →View
+exists and is a functor. In particular:
+(i) Causal Respect: view updates compose according to event order;
+(ii) Snapshot Coherence: V(σn) is uniquely determined by the preﬁx ℓ≤n;
+(iii) Transport Independence: any two admissible transports realizing the same V are observa-
+tionally equivalent;
+(iv) Gauge Freedom: if V quotients by a metadata gauge (e.g. layout hints), semantic content is
+preserved.
+Proof. Since Sℓis a functor and V is a functor, their composite is a functor. Items (i)-(iv) are
+immediate restatements: functoriality enforces respect for composition (event order), object mapping
+enforces preﬁx-determined snapshots, transport choices reﬁne the same arrow in View, and gauge
+quotienting corresponds to functoring into a category that identiﬁes gauge-equivalent metadata.
+Corollary 7.1 (Diﬀs and Snapshots as Two Views). Let Vsnap be the view that serializes full state
+(snapshot) and Vdiﬀbe the view that serializes incremental changes. Both are admissible views,
+hence both factor functorially through Sℓ. The Replay Equivalence theorem is the statement that
+these two views agree on semantic content up to the observer's equivalence relation.
+Corollary 7.2 (Late-Joiner Correctness). A late-joining observer that ﬁrst receives Vsnap(σk) and
+then receives Vdiﬀfor subsequent events reconstructs the same view as an observer that applied Vdiﬀ
+from the beginning.
+6
+
+8
+Diﬀs and Incremental Observation
+While the log is authoritative, clients require eﬃcient incremental observation.
+Deﬁnition 8.1 (Diﬀ). A diﬀis a derived, non-authoritative description of how kernel state changes
+as a result of applying a single event.
+Diﬀs may include object additions, removals, relation changes, or metadata updates. They are
+broadcast to observers but are never logged themselves.
+Axiom 8.1 (View Non-Interference). Diﬀs do not inﬂuence kernel state and may be dropped,
+reordered, or ignored by observers without aﬀecting correctness.
+This separation permits high-frequency visualization without compromising determinism.
+9
+Snapshots as Derived Views
+Deﬁnition 9.1 (Snapshot). A snapshot is a complete serialization of kernel state derived by
+replaying a preﬁx of the event log.
+Snapshots are used for bootstrapping late-joining clients and for historical inspection.
+Proposition 9.1 (Snapshot Purity). Snapshots introduce no new information beyond what is
+contained in the log preﬁx they represent.
+Snapshots are never logged and never assigned sequence identiﬁers. They are observational
+artifacts only.
+10
+Seekable Time and Historical Inspection
+Spherepop OS supports time navigation by allowing clients to request snapshots at arbitrary past
+EIDs.
+Deﬁnition 10.1 (Seek-to-EID Snapshot). A seekable snapshot is a snapshot derived by replaying
+the log up to a speciﬁed EID.
+This operation is implemented using a temporary kernel instance, ensuring isolation from live
+state.
+Corollary 10.1. Historical inspection cannot aﬀect the present state of the system.
+11
+Speculative Branches
+Speculation is treated as a local, non-authoritative overlay.
+Deﬁnition 11.1 (Speculative Branch). A speculative branch consists of a base EID and a client-local
+overlay log of hypothetical events.
+7
+
+Branches are replayed by applying the authoritative log up to the base EID, followed by the
+overlay events. Branches may be discarded or rebased freely.
+Axiom 11.1 (Speculative Isolation). Speculative events have no eﬀect on authoritative state unless
+explicitly re-submitted as proposals.
+This design permits safe exploration without timeline pollution.
+12
+Layout and Geometry as Metadata
+Spherepop OS distinguishes sharply between semantic structure and geometric presentation.
+Deﬁnition 12.1 (Layout Hint). A layout hint is non-causal metadata attached to an object,
+expressing advisory geometric information such as position, scale, or clustering intent.
+Layout hints may be modiﬁed freely by clients and are never interpreted by the kernel as semantic
+operations.
+Proposition 12.1. Geometry in Spherepop OS is a gauge choice, not a semantic constraint.
+This permits rich visualization while preserving semantic invariants.
+13
+Arbiter and Collaboration Model
+The arbiter is responsible for assigning sequence identiﬁers and appending events to the log.
+Deﬁnition 13.1 (Arbiter). The arbiter is the sole authority permitted to commit events to the log.
+Clients submit proposals, which are either accepted and sequenced or rejected.
+Accepted
+proposals are broadcast as diﬀs to all observers, including the originator.
+Axiom 13.1 (Single Sequencer). There exists exactly one arbiter per authoritative log.
+This ensures total causal order.
+14
+Rationale and Comparative Analysis
+Spherepop OS diﬀers from traditional operating systems and databases in several respects:
+• Unlike POSIX kernels, all state is replayable and inspectable.
+• Unlike CRDT-based systems, a single total order is enforced.
+• Unlike version control systems, speculation is ﬁrst-class and continuous.
+The architecture may be understood as an operating system for semantic time rather than for
+hardware resources.
+8
+
+15
+Conclusion
+Spherepop OS presents a disciplined rethinking of operating system structure grounded in determin-
+ism, causal clarity, and semantic primacy. By elevating the event log to the status of sole authority
+and rigorously separating causes from views, the system supports collaboration, introspection, and
+speculative reasoning without sacriﬁcing correctness. The design intentionally leaves room for future
+extensions, including richer semantic types, entropy-driven scheduling, and distributed arbitration,
+while preserving its core invariants.
+9
+
