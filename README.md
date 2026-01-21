@@ -1,5 +1,11 @@
 # Research Projects Overview
 
+[Civilizational Persistence](
+https://github.com/standardgalactic/research-projects/blob/main/persistence/README.md)
+
+[Audio Overviews](https://standardgalactic.github.io/research-projects/persistence/)
+
+
 This repository collects a set of interconnected research essays exploring a unified view of cognition, computation, artificial intelligence, philosophy, and reality. The documents range from beginner-oriented conceptual introductions to dense theoretical syntheses intended for ongoing research and development.
 
 Below is a brief guide to each document and how they relate, along with companion audio overviews and interactive materials.
