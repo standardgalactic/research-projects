@@ -1,10 +1,17 @@
 # Research Projects Overview
 
+[Physics After Spacetime](https://standardgalactic.github.io/research-projects/Physics%20After%20Spacetime.pdf)
+
+[Audio Overviews](https://standardgalactic.github.io/research-projects/processing/)
+
+---
+
 [Civilizational Persistence](
 https://github.com/standardgalactic/research-projects/blob/main/persistence/README.md)
 
 [Audio Overviews](https://standardgalactic.github.io/research-projects/persistence/)
 
+---
 
 This repository collects a set of interconnected research essays exploring a unified view of cognition, computation, artificial intelligence, philosophy, and reality. The documents range from beginner-oriented conceptual introductions to dense theoretical syntheses intended for ongoing research and development.
 
