@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>STELLAR DOMINION — 4X STRATEGY</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green: #33ff66;
+  --dim: #1a8033;
+  --dark: #001a0a;
+  --panel: #020d05;
+  --border: #1a5c30;
+  --yellow: #ffcc00;
+  --red: #ff3322;
+  --blue: #44aaff;
+  --cyan: #00ffee;
+  --orange: #ff8800;
+  --text: #aaffcc;
+}
+
+body {
+  background: #000;
+  color: var(--green);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  overflow: hidden;
+  width: 100vw; height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CRT scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* phosphor glow on text */
+h1, h2, h3, .glow {
+  text-shadow: 0 0 8px var(--green), 0 0 20px rgba(51,255,102,0.4);
+}
+
+#titlebar {
+  background: linear-gradient(180deg, #000d03 0%, var(--panel) 100%);
+  border-bottom: 2px solid var(--border);
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+#titlebar h1 {
+  font-family: 'VT323', monospace;
+  font-size: 28px;
+  color: var(--yellow);
+  text-shadow: 0 0 10px var(--yellow), 0 0 30px rgba(255,204,0,0.5);
+  letter-spacing: 4px;
+}
+
+#statusbar {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  flex: 1;
+}
+
+.stat { color: var(--text); }
+.stat span { color: var(--yellow); }
+
+#layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* LEFT PANEL */
+#left-panel {
+  width: 220px;
+  background: var(--panel);
+  border-right: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.panel-section {
+  border-bottom: 1px solid var(--border);
+  padding: 8px;
+}
+
+.panel-title {
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  color: var(--cyan);
+  text-shadow: 0 0 8px var(--cyan);
+  margin-bottom: 6px;
+  letter-spacing: 2px;
+}
+
+/* MAIN MAP */
+#main {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+#starmap {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+/* RIGHT PANEL */
+#right-panel {
+  width: 260px;
+  background: var(--panel);
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+/* BOTTOM BAR */
+#bottombar {
+  background: var(--panel);
+  border-top: 2px solid var(--border);
+  padding: 6px 12px;
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* BUTTONS */
+button {
+  background: var(--dark);
+  color: var(--green);
+  border: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+button:hover {
+  background: #001a0a;
+  border-color: var(--green);
+  color: #fff;
+  text-shadow: 0 0 6px var(--green);
+  box-shadow: 0 0 8px rgba(51,255,102,0.3);
+}
+button:active {
+  background: #003310;
+}
+button.primary {
+  background: #002810;
+  border-color: var(--green);
+  color: var(--green);
+}
+button.warn {
+  border-color: var(--red);
+  color: var(--red);
+}
+button.gold {
+  border-color: var(--yellow);
+  color: var(--yellow);
+}
+
+/* LIST ITEMS */
+.list-item {
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.list-item:hover { border-color: var(--dim); background: #001a0a; }
+.list-item.selected { border-color: var(--green); background: #001a08; color: #fff; }
+.list-item .badge { font-size: 11px; padding: 1px 4px; }
+
+/* PROGRESS BARS */
+.bar-row { display: flex; align-items: center; gap: 6px; margin: 2px 0; }
+.bar-label { width: 70px; color: #778; font-size: 11px; }
+.bar-track { flex: 1; height: 8px; background: #001a0a; border: 1px solid #1a4030; }
+.bar-fill { height: 100%; transition: width 0.3s; }
+.bar-val { width: 30px; text-align: right; font-size: 11px; }
+
+/* TECH TREE */
+#tech-modal, #fleet-modal, #combat-modal, #espionage-modal {
+  display: none;
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #000d03;
+  border: 2px solid var(--green);
+  box-shadow: 0 0 30px rgba(51,255,102,0.3), inset 0 0 20px rgba(0,0,0,0.8);
+  z-index: 100;
+  padding: 16px;
+  width: 640px;
+  max-height: 80vh;
+  overflow-y: auto;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.modal-title {
+  font-family: 'VT323', monospace;
+  font-size: 26px;
+  color: var(--cyan);
+  text-shadow: 0 0 10px var(--cyan);
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+
+.tech-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.tech-card {
+  border: 1px solid var(--border);
+  padding: 8px;
+  background: #010f05;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tech-card:hover { border-color: var(--cyan); background: #001a10; }
+.tech-card.researched { border-color: var(--green); background: #001f0a; }
+.tech-card.researched .tech-name { color: var(--green); }
+.tech-card.locked { opacity: 0.4; cursor: not-allowed; }
+.tech-name { color: var(--cyan); font-size: 13px; margin-bottom: 3px; }
+.tech-desc { color: #668; font-size: 11px; line-height: 1.4; }
+.tech-cost { color: var(--yellow); font-size: 11px; margin-top: 4px; }
+
+/* COMBAT */
+.combat-log {
+  height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  padding: 6px;
+  font-size: 12px;
+  line-height: 1.8;
+  background: #000a03;
+}
+.combat-line { color: var(--text); }
+.combat-line.hit { color: var(--yellow); }
+.combat-line.kill { color: var(--red); }
+.combat-line.win { color: var(--green); font-weight: bold; }
+.combat-line.lose { color: var(--red); font-weight: bold; }
+
+#overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 99;
+}
+
+/* FLEET DISPLAY */
+.fleet-card {
+  border: 1px solid var(--border);
+  padding: 6px;
+  margin: 4px 0;
+  background: #010f05;
+  cursor: pointer;
+}
+.fleet-card:hover { border-color: var(--blue); }
+.fleet-card.selected { border-color: var(--green); }
+
+/* MESSAGE LOG */
+#msg-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+  font-size: 11px;
+}
+.msg { padding: 2px 0; border-bottom: 1px solid #0a2010; color: var(--text); line-height: 1.5; }
+.msg.important { color: var(--yellow); }
+.msg.alert { color: var(--red); }
+.msg.good { color: var(--green); }
+
+/* Blinking cursor */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.cursor::after { content: '█'; animation: blink 1s infinite; font-size: 12px; }
+
+/* RACE DISPLAY */
+.race-icon { font-size: 20px; }
+.race-color-0 { color: #44aaff; }
+.race-color-1 { color: #ff4444; }
+.race-color-2 { color: #ffaa00; }
+.race-color-3 { color: #aa44ff; }
+.race-color-4 { color: #44ffaa; }
+
+.known-systems-indicator {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+</style>
+</head>
+<body>
+
+<div id="titlebar">
+  <h1>★ STELLAR DOMINION ★</h1>
+  <div id="statusbar">
+    <div class="stat">YEAR: <span id="s-year">2400</span></div>
+    <div class="stat">BC: <span id="s-credits">0</span></div>
+    <div class="stat">RP: <span id="s-rp">0</span></div>
+    <div class="stat">FLEET: <span id="s-fleet">0</span></div>
+    <div class="stat">EMPIRE: <span id="s-systems">0</span> SYS</div>
+    <div class="stat">SCORE: <span id="s-score">0</span></div>
+  </div>
+</div>
+
+<div id="layout">
+  <!-- LEFT: Empire overview -->
+  <div id="left-panel">
+    <div class="panel-section">
+      <div class="panel-title">◈ EMPIRE</div>
+      <div style="color:var(--cyan);margin-bottom:4px;">
+        <span class="race-icon race-color-0">⬡</span> TERRAN UNION
+      </div>
+      <div class="bar-row"><div class="bar-label">Economy</div><div class="bar-track"><div class="bar-fill" id="b-econ" style="background:var(--green);width:50%"></div></div><div class="bar-val" id="bv-econ">50</div></div>
+      <div class="bar-row"><div class="bar-label">Research</div><div class="bar-track"><div class="bar-fill" id="b-res" style="background:var(--cyan);width:30%"></div></div><div class="bar-val" id="bv-res">30</div></div>
+      <div class="bar-row"><div class="bar-label">Military</div><div class="bar-track"><div class="bar-fill" id="b-mil" style="background:var(--red);width:20%"></div></div><div class="bar-val" id="bv-mil">20</div></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">◈ SLIDERS</div>
+      <div style="font-size:11px;color:#668;margin-bottom:4px;">Distribute 100 points:</div>
+      <div style="margin:4px 0;"><div style="color:var(--text);margin-bottom:2px;">Economy <span id="sl-econ-val" style="color:var(--yellow)">50</span>%</div><input type="range" min="0" max="100" value="50" id="sl-econ" style="width:100%;accent-color:var(--green)" oninput="updateSliders('econ')"></div>
+      <div style="margin:4px 0;"><div style="color:var(--text);margin-bottom:2px;">Research <span id="sl-res-val" style="color:var(--cyan)">30</span>%</div><input type="range" min="0" max="100" value="30" id="sl-res" style="width:100%;accent-color:var(--cyan)" oninput="updateSliders('res')"></div>
+      <div style="margin:4px 0;"><div style="color:var(--text);margin-bottom:2px;">Military <span id="sl-mil-val" style="color:var(--red)">20</span>%</div><input type="range" min="0" max="100" value="20" id="sl-mil" style="width:100%;accent-color:var(--red)" oninput="updateSliders('mil')"></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">◈ RACES</div>
+      <div id="race-list"></div>
+    </div>
+
+    <div class="panel-section" style="flex:1">
+      <div class="panel-title">◈ EVENTS</div>
+      <div id="msg-log"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: Star map -->
+  <div id="main">
+    <canvas id="starmap"></canvas>
+  </div>
+
+  <!-- RIGHT: System/Fleet detail -->
+  <div id="right-panel">
+    <div class="panel-section">
+      <div class="panel-title cursor">◈ SELECTED</div>
+      <div id="system-detail">
+        <div style="color:#556;font-size:12px;margin-top:8px;">[ Click a star system ]</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">◈ FLEETS IN SECTOR</div>
+      <div id="fleet-list"></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-title">◈ BUILD QUEUE</div>
+      <div id="build-queue"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div id="bottombar">
+  <button class="primary gold" onclick="nextTurn()">▶ END TURN [ENTER]</button>
+  <button onclick="openTech()">⚗ RESEARCH</button>
+  <button onclick="openFleet()">⚔ BUILD FLEET</button>
+  <button onclick="openEspionage()">◈ ESPIONAGE</button>
+  <button onclick="openDiplomacy()">⚑ DIPLOMACY</button>
+  <button onclick="saveGame()">💾 SAVE</button>
+  <button onclick="loadGame()">📂 LOAD</button>
+  <div style="flex:1"></div>
+  <div style="color:#556;font-size:11px;" id="tooltip-bar">Hover over systems for info</div>
+</div>
+
+<!-- MODALS -->
+<div id="overlay" onclick="closeModals()"></div>
+
+<div id="tech-modal">
+  <div class="modal-title">⚗ RESEARCH LABORATORY</div>
+  <div style="color:var(--text);margin-bottom:10px;">Research Points: <span id="tm-rp" style="color:var(--cyan)">0</span> &nbsp;|&nbsp; Turn Output: <span id="tm-rpo" style="color:var(--cyan)">0</span>/turn</div>
+  <div class="tech-grid" id="tech-grid"></div>
+  <div style="margin-top:12px;text-align:right;"><button onclick="closeModals()">CLOSE</button></div>
+</div>
+
+<div id="fleet-modal">
+  <div class="modal-title">⚔ SHIPYARD</div>
+  <div id="fleet-modal-content"></div>
+  <div style="margin-top:12px;text-align:right;"><button onclick="closeModals()">CLOSE</button></div>
+</div>
+
+<div id="combat-modal">
+  <div class="modal-title">☠ SPACE COMBAT</div>
+  <div id="combat-content"></div>
+  <div style="margin-top:12px;text-align:right;"><button onclick="closeModals()">CLOSE</button></div>
+</div>
+
+<div id="espionage-modal">
+  <div class="modal-title">◈ INTELLIGENCE BUREAU</div>
+  <div id="espionage-content"></div>
+  <div style="margin-top:12px;text-align:right;"><button onclick="closeModals()">CLOSE</button></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════════════
+
+const RACES = [
+  { id: 0, name: 'TERRAN UNION', icon: '⬡', color: '#44aaff', traits: {growth:1,research:0,industry:1}, isPlayer: true },
+  { id: 1, name: 'KRALL EMPIRE', icon: '◆', color: '#ff4444', traits: {growth:0,research:0,industry:2}, isPlayer: false },
+  { id: 2, name: 'SETHIAN ACCORD', icon: '◎', color: '#ffaa00', traits: {growth:0,research:2,industry:0}, isPlayer: false },
+  { id: 3, name: 'VOID COLLECTIVE', icon: '◉', color: '#aa44ff', traits: {growth:-1,research:1,industry:1}, isPlayer: false },
+];
+
+const PLANET_TYPES = ['TERRAN','OCEAN','ARID','TUNDRA','BARREN','TOXIC','VOLCANIC'];
+const PLANET_COLORS = {'TERRAN':'#4488ff','OCEAN':'#22aacc','ARID':'#cc8833','TUNDRA':'#aabbcc','BARREN':'#887766','TOXIC':'#88aa22','VOLCANIC':'#ff4422'};
+const SYSTEM_NAMES = ['Sol','Vega','Deneb','Rigel','Antares','Betelgeuse','Aldebaran','Capella','Polaris','Sirius',
+  'Altair','Achernar','Fomalhaut','Procyon','Canopus','Mimosa','Acrux','Alkaid','Mizar','Dubhe',
+  'Menkar','Algol','Electra','Merope','Taygeta','Pleione','Celaeno','Atlas','Sterope','Alcyone'];
+
+const TECH_TREE = [
+  // Physics
+  { id:'ph1', cat:'PHYSICS', name:'Ion Drive', desc:'Improves ship speed +1', cost:50, effect:'speed', val:1, req:[], researchable:true },
+  { id:'ph2', cat:'PHYSICS', name:'Fusion Drive', desc:'Improves ship speed +2', cost:150, effect:'speed', val:2, req:['ph1'], researchable:false },
+  { id:'ph3', cat:'PHYSICS', name:'Hyperspace Drive', desc:'Improves ship speed +3', cost:400, effect:'speed', val:3, req:['ph2'], researchable:false },
+  { id:'ph4', cat:'PHYSICS', name:'Warp Field', desc:'Ships can jump 2 lanes', cost:800, effect:'range', val:2, req:['ph3'], researchable:false },
+  // Weapons
+  { id:'wp1', cat:'WEAPONS', name:'Laser Cannon', desc:'Ship attack +5', cost:60, effect:'attack', val:5, req:[], researchable:true },
+  { id:'wp2', cat:'WEAPONS', name:'Plasma Torpedo', desc:'Ship attack +12', cost:200, effect:'attack', val:12, req:['wp1'], researchable:false },
+  { id:'wp3', cat:'WEAPONS', name:'Antimatter Bomb', desc:'Ship attack +25', cost:600, effect:'attack', val:25, req:['wp2'], researchable:false },
+  { id:'wp4', cat:'WEAPONS', name:'Star Cannon', desc:'Instant system siege', cost:1500, effect:'siege', val:1, req:['wp3'], researchable:false },
+  // Shields
+  { id:'sh1', cat:'SHIELDS', name:'Deflector Shield', desc:'Ship defense +5', cost:80, effect:'defense', val:5, req:[], researchable:true },
+  { id:'sh2', cat:'SHIELDS', name:'Phase Shield', desc:'Ship defense +15', cost:250, effect:'defense', val:15, req:['sh1'], researchable:false },
+  { id:'sh3', cat:'SHIELDS', name:'Singularity Shield', desc:'Ship defense +30', cost:700, effect:'defense', val:30, req:['sh2'], researchable:false },
+  // Construction
+  { id:'co1', cat:'CONSTRUCT', name:'Advanced Alloys', desc:'Colony production +20%', cost:100, effect:'industry', val:20, req:[], researchable:true },
+  { id:'co2', cat:'CONSTRUCT', name:'Robotics', desc:'Colony production +40%', cost:300, effect:'industry', val:40, req:['co1'], researchable:false },
+  { id:'co3', cat:'CONSTRUCT', name:'Nanofactories', desc:'Colony production +80%', cost:900, effect:'industry', val:80, req:['co2'], researchable:false },
+  // Biology
+  { id:'bi1', cat:'BIOLOGY', name:'Genetic Farming', desc:'Population growth +30%', cost:90, effect:'growth', val:30, req:[], researchable:true },
+  { id:'bi2', cat:'BIOLOGY', name:'Biogenesis', desc:'Colonies max pop +50', cost:280, effect:'maxpop', val:50, req:['bi1'], researchable:false },
+  { id:'bi3', cat:'BIOLOGY', name:'Transcendence', desc:'Victory condition unlock', cost:2000, effect:'victory', val:1, req:['bi2','ph4'], researchable:false },
+  // Espionage
+  { id:'es1', cat:'ESPIONAGE', name:'Intelligence Net', desc:'See all AI stats', cost:120, effect:'intel', val:1, req:[], researchable:true },
+  { id:'es2', cat:'ESPIONAGE', name:'Sabotage Ops', desc:'Can sabotage AI systems', cost:400, effect:'sabotage', val:1, req:['es1'], researchable:false },
+];
+
+const SHIP_DESIGNS = [
+  { id:'scout', name:'SCOUT', cost:30, hp:10, attack:2, defense:2, speed:2, capacity:0, desc:'Fast exploration vessel' },
+  { id:'destroyer', name:'DESTROYER', cost:80, hp:30, attack:10, defense:5, speed:2, capacity:0, desc:'Standard combat ship' },
+  { id:'cruiser', name:'CRUISER', cost:200, hp:80, attack:25, defense:20, speed:1, capacity:0, desc:'Heavy warship' },
+  { id:'battleship', name:'BATTLESHIP', cost:500, hp:200, attack:60, defense:50, speed:1, capacity:0, desc:'Capital warship' },
+  { id:'colony', name:'COLONY SHIP', cost:150, hp:15, attack:0, defense:0, speed:1, capacity:1, desc:'Establishes new colonies' },
+  { id:'freighter', name:'FREIGHTER', cost:60, hp:20, attack:0, defense:2, speed:2, capacity:0, desc:'Boosts trade income' },
+];
+
+const BUILDINGS = [
+  { id:'factory', name:'Factory', cost:50, effect:'industry', val:10, desc:'+10 production/turn' },
+  { id:'research_lab', name:'Research Lab', cost:60, effect:'research', val:8, desc:'+8 RP/turn' },
+  { id:'missile_base', name:'Missile Base', cost:80, effect:'defense_ground', val:30, desc:'+30 ground defense' },
+  { id:'housing', name:'Housing Complex', cost:40, effect:'maxpop', val:20, desc:'+20 max population' },
+  { id:'starbase', name:'Starbase', cost:200, effect:'space_defense', val:50, desc:'+50 space defense' },
+  { id:'terraform', name:'Terraformer', cost:300, effect:'terraform', val:1, desc:'Improve planet quality' },
+];
+
+let game = {
+  year: 2400,
+  credits: 100,
+  rp: 0,
+  score: 0,
+  selectedSystem: null,
+  selectedFleet: null,
+  movingFleet: null,
+  sliders: { econ: 50, res: 30, mil: 20 },
+  tech: { researched: [], current: null, progress: 0 },
+  diplomacy: {}, // raceId -> relation
+  systems: [],
+  fleets: [],
+  messages: [],
+  turn: 1,
+};
+
+function initGame() {
+  // Init diplomacy
+  for (let r of RACES) {
+    if (!r.isPlayer) {
+      game.diplomacy[r.id] = { relation: 30 + Math.floor(Math.random()*40), war: false, trade: false };
+    }
+  }
+
+  // Create star systems
+  const names = [...SYSTEM_NAMES];
+  shuffle(names);
+  const positions = generatePositions(28, 800, 560, 60);
+
+  for (let i = 0; i < 28; i++) {
+    const raceOwner = i === 0 ? 0 : (i < 4 ? RACES[1 + (i-1)].id : null);
+    const planetType = PLANET_TYPES[Math.floor(Math.random() * PLANET_TYPES.length)];
+    const quality = 20 + Math.floor(Math.random() * 80);
+    const numPlanets = 1 + Math.floor(Math.random() * 4);
+
+    game.systems.push({
+      id: i,
+      name: names[i] || `STAR-${i}`,
+      x: positions[i].x,
+      y: positions[i].y,
+      owner: raceOwner,
+      explored: i === 0,
+      planetType: planetType,
+      quality: quality,
+      numPlanets: numPlanets,
+      colony: raceOwner !== null ? {
+        population: raceOwner === 0 ? 150 : 100 + Math.floor(Math.random()*100),
+        maxPop: 200 + quality,
+        industry: raceOwner === 0 ? 50 : 40 + Math.floor(Math.random()*40),
+        pollution: 5,
+        stability: 75 + Math.floor(Math.random()*20),
+        energy: 50,
+        buildings: [],
+        buildQueue: [],
+        buildProgress: 0,
+      } : null,
+      wormhole: null, // special lane
+    });
+  }
+
+  // Generate hyperlane graph (Delaunay-like: connect nearby systems)
+  game.lanes = [];
+  for (let i = 0; i < game.systems.length; i++) {
+    let nearby = game.systems
+      .map((s,j) => ({ j, d: dist(game.systems[i], s) }))
+      .filter(x => x.j !== i && x.d < 200)
+      .sort((a,b) => a.d - b.d)
+      .slice(0, 3);
+    for (let n of nearby) {
+      const key = [Math.min(i,n.j), Math.max(i,n.j)].join('-');
+      if (!game.lanes.find(l => l.key === key)) {
+        game.lanes.push({ key, a: i, b: n.j });
+      }
+    }
+  }
+
+  // Initial fleets
+  game.fleets = [
+    { id: 0, owner: 0, ships: [{type:'scout',hp:10,maxHp:10},{type:'destroyer',hp:30,maxHp:30}], systemId: 0, moving: false, dest: null, eta: 0, name: 'ALPHA FLEET' },
+    { id: 1, owner: 1, ships: [{type:'destroyer',hp:30,maxHp:30},{type:'destroyer',hp:30,maxHp:30}], systemId: 1, moving: false, dest: null, eta: 0, name: 'KRALL-1' },
+    { id: 2, owner: 2, ships: [{type:'scout',hp:10,maxHp:10},{type:'cruiser',hp:80,maxHp:80}], systemId: 2, moving: false, dest: null, eta: 0, name: 'SETH-1' },
+  ];
+
+  addMsg('GAME START: Year 2400. Explore the galaxy and achieve dominance.', 'good');
+  addMsg('Your home system: ' + game.systems[0].name + '. Expand and conquer.', 'important');
+}
+
+function generatePositions(n, W, H, minDist) {
+  const positions = [];
+  let attempts = 0;
+  while (positions.length < n && attempts < 5000) {
+    attempts++;
+    const x = 30 + Math.random() * (W - 60);
+    const y = 30 + Math.random() * (H - 60);
+    const ok = positions.every(p => Math.hypot(p.x - x, p.y - y) > minDist);
+    if (ok) positions.push({ x, y });
+  }
+  return positions;
+}
+
+function shuffle(a) { for (let i=a.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } }
+function dist(a,b) { return Math.hypot(a.x-b.x, a.y-b.y); }
+
+// ═══════════════════════════════════════════════════════════════
+// SLIDERS
+// ═══════════════════════════════════════════════════════════════
+function updateSliders(changed) {
+  const econ = parseInt(document.getElementById('sl-econ').value);
+  const res = parseInt(document.getElementById('sl-res').value);
+  const mil = parseInt(document.getElementById('sl-mil').value);
+  // Clamp so total ≤ 100
+  let total = econ + res + mil;
+  if (total > 100) {
+    const excess = total - 100;
+    if (changed === 'econ') {
+      game.sliders = { econ, res: Math.max(0,res-excess), mil: Math.max(0,mil) };
+      if (res - excess < 0) game.sliders.mil = Math.max(0, mil - (excess - res));
+    } else if (changed === 'res') {
+      game.sliders = { econ: Math.max(0,econ-excess), res, mil };
+    } else {
+      game.sliders = { econ, res, mil: Math.max(0,mil) };
+    }
+  } else {
+    game.sliders = { econ, res, mil };
+  }
+  document.getElementById('sl-econ').value = game.sliders.econ;
+  document.getElementById('sl-res').value = game.sliders.res;
+  document.getElementById('sl-mil').value = game.sliders.mil;
+  document.getElementById('sl-econ-val').textContent = game.sliders.econ;
+  document.getElementById('sl-res-val').textContent = game.sliders.res;
+  document.getElementById('sl-mil-val').textContent = game.sliders.mil;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MESSAGES
+// ═══════════════════════════════════════════════════════════════
+function addMsg(text, type='') {
+  game.messages.unshift({ text: `[${game.year}] ${text}`, type });
+  if (game.messages.length > 60) game.messages.pop();
+  renderMessages();
+}
+
+function renderMessages() {
+  const el = document.getElementById('msg-log');
+  el.innerHTML = game.messages.slice(0,20).map(m =>
+    `<div class="msg ${m.type}">${m.text}</div>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CANVAS / STAR MAP
+// ═══════════════════════════════════════════════════════════════
+const canvas = document.getElementById('starmap');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = document.getElementById('main').clientWidth;
+  canvas.height = document.getElementById('main').clientHeight;
+  render();
+}
+
+canvas.addEventListener('click', function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  // If moving fleet, set destination
+  if (game.movingFleet !== null) {
+    for (const sys of game.systems) {
+      if (dist({x:mx,y:my}, sys) < 12) {
+        orderFleetMove(game.movingFleet, sys.id);
+        game.movingFleet = null;
+        document.getElementById('tooltip-bar').textContent = 'Fleet ordered to move.';
+        render();
+        return;
+      }
+    }
+    game.movingFleet = null;
+    render();
+    return;
+  }
+
+  // Select system
+  let found = false;
+  for (const sys of game.systems) {
+    if (dist({x:mx,y:my}, sys) < 12) {
+      game.selectedSystem = sys;
+      game.selectedFleet = null;
+      found = true;
+
+      // Auto-explore
+      if (!sys.explored && isSystemReachable(sys)) {
+        sys.explored = true;
+        addMsg(`Scout report: ${sys.name} — ${sys.numPlanets} planets, ${sys.planetType} dominant.`, '');
+      }
+      break;
+    }
+  }
+  if (!found) {
+    game.selectedSystem = null;
+  }
+
+  renderRightPanel();
+  render();
+});
+
+canvas.addEventListener('mousemove', function(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  let tip = '';
+  for (const sys of game.systems) {
+    if (dist({x:mx,y:my}, sys) < 12) {
+      if (!sys.explored) {
+        tip = `${sys.name} — UNEXPLORED`;
+      } else {
+        const owner = sys.owner !== null ? RACES.find(r=>r.id===sys.owner).name : 'UNCOLONIZED';
+        tip = `${sys.name} | ${sys.planetType} | Owner: ${owner} | Planets: ${sys.numPlanets} | Quality: ${sys.quality}`;
+        if (sys.colony) tip += ` | Pop: ${sys.colony.population.toFixed(0)} | Ind: ${sys.colony.industry.toFixed(0)}`;
+      }
+      break;
+    }
+  }
+  document.getElementById('tooltip-bar').textContent = tip || (game.movingFleet !== null ? '→ Click destination system' : 'Hover over systems for info');
+});
+
+function isSystemReachable(target) {
+  const playerSystems = game.systems.filter(s => s.owner === 0);
+  // Can reach if connected by lane to a player system or explored system
+  for (const ps of playerSystems) {
+    if (game.lanes.some(l =>
+      (l.a === ps.id && l.b === target.id) ||
+      (l.b === ps.id && l.a === target.id)
+    )) return true;
+  }
+  // Or fleet is in a nearby system
+  for (const f of game.fleets.filter(f=>f.owner===0&&!f.moving)) {
+    const sys = game.systems[f.systemId];
+    if (game.lanes.some(l =>
+      (l.a === sys.id && l.b === target.id) ||
+      (l.b === sys.id && l.a === target.id)
+    )) return true;
+  }
+  return false;
+}
+
+function render() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Starfield background
+  ctx.fillStyle = '#000204';
+  ctx.fillRect(0, 0, W, H);
+
+  // Tiny background stars
+  const seed = 42;
+  for (let i = 0; i < 200; i++) {
+    const bx = ((seed*i*37+i*137)%W);
+    const by = ((seed*i*71+i*241)%H);
+    const bright = 0.1 + (i%5)*0.08;
+    ctx.fillStyle = `rgba(150,200,255,${bright})`;
+    ctx.fillRect(bx, by, 1, 1);
+  }
+
+  // Draw hyperlanes
+  for (const lane of game.lanes) {
+    const sa = game.systems[lane.a];
+    const sb = game.systems[lane.b];
+    const bothExplored = sa.explored && sb.explored;
+    ctx.beginPath();
+    ctx.moveTo(sa.x, sa.y);
+    ctx.lineTo(sb.x, sb.y);
+    if (bothExplored) {
+      ctx.strokeStyle = 'rgba(0,80,40,0.5)';
+      ctx.lineWidth = 1;
+    } else {
+      ctx.strokeStyle = 'rgba(0,40,20,0.2)';
+      ctx.lineWidth = 0.5;
+    }
+    ctx.stroke();
+  }
+
+  // Draw moving fleet paths
+  for (const fleet of game.fleets) {
+    if (fleet.moving && fleet.dest !== null) {
+      const from = game.systems[fleet.systemId];
+      const to = game.systems[fleet.dest];
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = fleet.owner === 0 ? '#44ffaa' : RACES[fleet.owner].color + '88';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Draw systems
+  for (const sys of game.systems) {
+    const isSelected = game.selectedSystem && game.selectedSystem.id === sys.id;
+
+    if (!sys.explored) {
+      // Unexplored: dim dot
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.beginPath();
+      ctx.arc(sys.x, sys.y, 3, 0, Math.PI*2);
+      ctx.fill();
+      continue;
+    }
+
+    // Glow effect
+    if (isSelected) {
+      const grad = ctx.createRadialGradient(sys.x, sys.y, 0, sys.x, sys.y, 20);
+      grad.addColorStop(0, 'rgba(255,255,100,0.4)');
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(sys.x, sys.y, 20, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // Owner ring
+    if (sys.owner !== null) {
+      const race = RACES.find(r=>r.id===sys.owner);
+      ctx.strokeStyle = race.color;
+      ctx.lineWidth = isSelected ? 3 : 1.5;
+      ctx.beginPath();
+      ctx.arc(sys.x, sys.y, 10, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    // Planet dot
+    const pColor = PLANET_COLORS[sys.planetType] || '#aaa';
+    const grad2 = ctx.createRadialGradient(sys.x-2, sys.y-2, 0, sys.x, sys.y, 7);
+    grad2.addColorStop(0, sys.colony ? '#ffffff' : '#aaaaaa');
+    grad2.addColorStop(1, pColor);
+    ctx.fillStyle = grad2;
+    ctx.beginPath();
+    ctx.arc(sys.x, sys.y, 6, 0, Math.PI*2);
+    ctx.fill();
+
+    // Label
+    ctx.fillStyle = isSelected ? '#ffff66' : (sys.owner===0 ? '#88ffcc' : '#99aabb');
+    ctx.font = `${isSelected ? 'bold ' : ''}10px Share Tech Mono`;
+    ctx.fillText(sys.name, sys.x + 10, sys.y + 4);
+
+    // Colony pop indicator
+    if (sys.colony && sys.owner === 0) {
+      const popPct = sys.colony.population / sys.colony.maxPop;
+      ctx.fillStyle = '#33ff66';
+      ctx.fillRect(sys.x - 8, sys.y + 8, 16 * popPct, 2);
+      ctx.strokeStyle = '#1a5c30';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(sys.x - 8, sys.y + 8, 16, 2);
+    }
+
+    // Stability warning
+    if (sys.colony && sys.colony.stability < 30 && sys.owner === 0) {
+      ctx.fillStyle = '#ff3322';
+      ctx.font = '12px Share Tech Mono';
+      ctx.fillText('⚠', sys.x - 18, sys.y + 4);
+    }
+  }
+
+  // Draw fleets
+  for (const fleet of game.fleets) {
+    if (fleet.moving) continue;
+    const sys = game.systems[fleet.systemId];
+    const race = RACES.find(r=>r.id===fleet.owner);
+    const offset = fleet.owner * 8;
+    const fx = sys.x + 14 + offset;
+    const fy = sys.y - 14;
+    ctx.fillStyle = race.color;
+    ctx.font = '10px Share Tech Mono';
+    ctx.fillText('▲', fx, fy);
+    if (game.selectedFleet === fleet.id) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.strokeRect(fx - 2, fy - 10, 12, 12);
+    }
+  }
+
+  // Update status bar
+  const playerSystems = game.systems.filter(s=>s.owner===0);
+const totalProd = playerSystems.reduce((t,s)=>
+  t + (s.colony.population * 0.3) * (s.colony.stability/100),
+0);
+  const econOut = Math.floor(totalProd * game.sliders.econ / 100);
+  const resOut = Math.floor(totalProd * game.sliders.res / 100);
+  const milOut = Math.floor(totalProd * game.sliders.mil / 100);
+
+  document.getElementById('s-year').textContent = game.year;
+  document.getElementById('s-credits').textContent = game.credits;
+  document.getElementById('s-rp').textContent = Math.floor(game.rp);
+  document.getElementById('s-fleet').textContent = game.fleets.filter(f=>f.owner===0).length;
+  document.getElementById('s-systems').textContent = playerSystems.length;
+  document.getElementById('s-score').textContent = computeScore();
+
+  // Empire bars
+  const maxProd = 1000;
+  document.getElementById('b-econ').style.width = Math.min(100,econOut/maxProd*100)+'%';
+  document.getElementById('b-res').style.width = Math.min(100,resOut/maxProd*100)+'%';
+  document.getElementById('b-mil').style.width = Math.min(100,milOut/maxProd*100)+'%';
+  document.getElementById('bv-econ').textContent = econOut;
+  document.getElementById('bv-res').textContent = resOut;
+  document.getElementById('bv-mil').textContent = milOut;
+}
+
+function computeScore() {
+  return game.systems.filter(s=>s.owner===0).length * 100 +
+    game.tech.researched.length * 50 +
+    Math.floor(game.credits / 10) +
+    game.turn * 5;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RIGHT PANEL
+// ═══════════════════════════════════════════════════════════════
+function renderRightPanel() {
+  const sys = game.selectedSystem;
+  const detail = document.getElementById('system-detail');
+  const fleetList = document.getElementById('fleet-list');
+  const buildQ = document.getElementById('build-queue');
+
+  if (!sys) {
+    detail.innerHTML = '<div style="color:#556;font-size:12px;margin-top:8px;">[ Click a star system ]</div>';
+    fleetList.innerHTML = '';
+    buildQ.innerHTML = '';
+    return;
+  }
+
+  if (!sys.explored) {
+    detail.innerHTML = `<div style="color:var(--cyan);font-size:16px;font-family:VT323,monospace;">${sys.name}</div>
+    <div style="color:#556;margin-top:6px;font-size:12px;">UNEXPLORED<br><br>Send a scout fleet to reveal this system.</div>`;
+    fleetList.innerHTML = '';
+    buildQ.innerHTML = '';
+    return;
+  }
+
+  const race = sys.owner !== null ? RACES.find(r=>r.id===sys.owner) : null;
+  const ownerStr = race ? `<span style="color:${race.color}">${race.icon} ${race.name}</span>` : '<span style="color:#556">UNCOLONIZED</span>';
+
+  let html = `
+    <div style="color:var(--yellow);font-size:18px;font-family:VT323,monospace;letter-spacing:2px;">${sys.name}</div>
+    <div style="color:#778;margin-bottom:6px;">Owner: ${ownerStr}</div>
+    <div style="color:var(--text);margin-bottom:2px;">Type: <span style="color:${PLANET_COLORS[sys.planetType]}">${sys.planetType}</span> &nbsp; Planets: ${sys.numPlanets} &nbsp; Quality: ${sys.quality}</div>`;
+
+  if (sys.colony) {
+    const c = sys.colony;
+    const stabColor = c.stability > 60 ? '#33ff66' : c.stability > 30 ? '#ffcc00' : '#ff3322';
+    html += `<hr style="border-color:var(--border);margin:6px 0">
+    <div style="margin:2px 0;display:flex;justify-content:space-between"><span style="color:#778">Population</span><span style="color:var(--text)">${c.population.toFixed(0)} / ${c.maxPop}</span></div>
+    <div style="display:flex;justify-content:space-between"><span style="color:#778">Industry</span><span style="color:var(--text)">${c.industry.toFixed(1)}</span></div>
+    <div style="display:flex;justify-content:space-between"><span style="color:#778">Pollution</span><span style="color:${c.pollution>30?'#ff8800':'var(--text)'}">${c.pollution.toFixed(1)}</span></div>
+    <div style="display:flex;justify-content:space-between"><span style="color:#778">Stability</span><span style="color:${stabColor}">${c.stability.toFixed(1)}%</span></div>`;
+
+    if (sys.owner === 0) {
+      html += `<hr style="border-color:var(--border);margin:6px 0">
+      <div style="font-family:VT323,monospace;color:var(--cyan);margin-bottom:4px;">ACTIONS:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+        <button onclick="colonyAction('industry')">+INDUSTRY (20)</button>
+        <button onclick="colonyAction('clean')">CLEAN (15)</button>
+        <button onclick="colonyAction('security')">SECURITY (10)</button>
+        <button onclick="colonyAction('housing')">HOUSING (25)</button>
+      </div>`;
+
+      // Build queue
+      html += `<hr style="border-color:var(--border);margin:6px 0">
+      <div style="font-family:VT323,monospace;color:var(--cyan);margin-bottom:4px;">BUILD STRUCTURE:</div>
+      <select id="build-sel" style="background:#000;color:var(--green);border:1px solid var(--border);width:100%;padding:3px;font-family:Share Tech Mono,monospace;">
+        ${BUILDINGS.map(b=>`<option value="${b.id}">${b.name} (${b.cost}BC) — ${b.desc}</option>`).join('')}
+      </select>
+      <button onclick="addToBuildQueue()" style="width:100%;margin-top:4px;">ADD TO BUILD QUEUE</button>`;
+
+      // Colonize button for unowned systems
+    } else if (sys.owner !== 0) {
+      html += `<hr style="border-color:var(--border);margin:6px 0">
+      <button class="warn" onclick="declareWar(${sys.owner})">DECLARE WAR</button>`;
+    }
+  } else {
+    // Uncolonized
+    html += `<hr style="border-color:var(--border);margin:6px 0"><div style="color:#556;font-size:12px;">No colony established.</div>`;
+    if (sys.owner === null) {
+      html += `<button onclick="colonize(${sys.id})" style="margin-top:8px;width:100%">COLONIZE (needs Colony Ship)</button>`;
+    }
+  }
+
+  detail.innerHTML = html;
+
+  // Build queue display
+  if (sys.colony && sys.owner === 0) {
+    buildQ.innerHTML = `<div style="font-size:11px;color:#778;margin-bottom:4px;">Queue:</div>` +
+      (sys.colony.buildQueue.length === 0 ? '<div style="color:#445;font-size:11px;">Empty</div>' :
+      sys.colony.buildQueue.map((item,i) => {
+        const b = BUILDINGS.find(x=>x.id===item);
+        return `<div class="list-item" style="font-size:11px;">${b?b.name:item} <button onclick="removeBuildItem(${sys.id},${i})" style="padding:0 4px;font-size:10px;">✕</button></div>`;
+      }).join(''));
+  } else {
+    buildQ.innerHTML = '';
+  }
+
+  // Fleets at this system
+  const localFleets = game.fleets.filter(f => !f.moving && f.systemId === sys.id);
+  fleetList.innerHTML = localFleets.map(f => {
+    const race2 = RACES.find(r=>r.id===f.owner);
+    const totalHp = f.ships.reduce((t,s)=>t+s.hp,0);
+    const totalMaxHp = f.ships.reduce((t,s)=>t+s.maxHp,0);
+    return `<div class="fleet-card ${game.selectedFleet===f.id?'selected':''}" onclick="selectFleet(${f.id})">
+      <div style="color:${race2.color};font-size:12px;">${race2.icon} ${f.name}</div>
+      <div style="color:#778;font-size:11px;">${f.ships.length} ships | HP: ${totalHp}/${totalMaxHp}</div>
+      ${f.owner===0 ? `<div style="margin-top:4px;display:flex;gap:4px;"><button onclick="startMoveFleet(${f.id})" style="font-size:11px;padding:2px 6px;">MOVE</button><button onclick="attemptColonize(${f.id},${sys.id})" style="font-size:11px;padding:2px 6px;">COLONIZE</button><button onclick="attackWith(${f.id},${sys.id})" style="font-size:11px;padding:2px 6px;" class="warn">ATTACK</button></div>` : ''}
+    </div>`;
+  }).join('') || '<div style="color:#445;font-size:11px;">No fleets here</div>';
+}
+
+function colonyAction(action) {
+  const sys = game.selectedSystem;
+  if (!sys || !sys.colony || sys.owner !== 0) return;
+  const c = sys.colony;
+  const costs = { industry:20, clean:15, security:10, housing:25 };
+  const cost = costs[action];
+  if (game.credits < cost) { addMsg(`Not enough credits! Need ${cost} BC.`, 'alert'); return; }
+  game.credits -= cost;
+  if (action === 'industry') { c.industry += 10; c.pollution += 3; }
+  else if (action === 'clean') { c.pollution = Math.max(0, c.pollution - 20); }
+  else if (action === 'security') { c.stability = Math.min(100, c.stability + 10); }
+  else if (action === 'housing') { c.maxPop += 30; }
+  addMsg(`${sys.name}: ${action} action performed.`, '');
+  render(); renderRightPanel();
+}
+
+function addToBuildQueue() {
+  const sys = game.selectedSystem;
+  if (!sys || !sys.colony || sys.owner !== 0) return;
+  const sel = document.getElementById('build-sel');
+  if (!sel) return;
+  if (sys.colony.buildQueue.length >= 5) { addMsg('Build queue full!', 'alert'); return; }
+  sys.colony.buildQueue.push(sel.value);
+  renderRightPanel();
+}
+
+function removeBuildItem(sysId, idx) {
+  const sys = game.systems[sysId];
+  if (sys && sys.colony) { sys.colony.buildQueue.splice(idx, 1); }
+  renderRightPanel();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FLEET OPERATIONS
+// ═══════════════════════════════════════════════════════════════
+function selectFleet(fleetId) {
+  game.selectedFleet = fleetId;
+  renderRightPanel();
+  render();
+}
+
+function startMoveFleet(fleetId) {
+  game.movingFleet = fleetId;
+  document.getElementById('tooltip-bar').textContent = '→ Click destination system to move fleet';
+}
+
+function orderFleetMove(fleetId, destId) {
+  const fleet = game.fleets.find(f=>f.id===fleetId);
+  if (!fleet) return;
+  const from = game.systems[fleet.systemId];
+  const to = game.systems[destId];
+  const d = dist(from, to);
+  fleet.moving = true;
+  fleet.dest = destId;
+  fleet.eta = Math.max(1, Math.ceil(d / 80));
+  addMsg(`${fleet.name} ordered to ${to.name} (ETA: ${fleet.eta} turns).`, '');
+}
+
+function attemptColonize(fleetId, sysId) {
+  const fleet = game.fleets.find(f=>f.id===fleetId);
+  const sys = game.systems[sysId];
+  if (!fleet || !sys) return;
+  const colonyShip = fleet.ships.find(s=>s.type==='colony');
+  if (!colonyShip) { addMsg('No Colony Ship in fleet!', 'alert'); return; }
+  if (sys.owner !== null) { addMsg('System already colonized!', 'alert'); return; }
+  // Remove colony ship from fleet
+  fleet.ships = fleet.ships.filter(s=>s!==colonyShip);
+  sys.owner = 0;
+  sys.explored = true;
+  sys.colony = {
+    population: 30, maxPop: 150 + sys.quality,
+    industry: 20, pollution: 2, stability: 70, energy: 30,
+    buildings: [], buildQueue: [], buildProgress: 0,
+  };
+  addMsg(`Colony established at ${sys.name}!`, 'good');
+  render(); renderRightPanel();
+}
+
+function attackWith(fleetId, sysId) {
+  const fleet = game.fleets.find(f=>f.id===fleetId);
+  const sys = game.systems[sysId];
+  if (!fleet || !sys) return;
+  const enemyFleet = game.fleets.find(f=>f.owner!==0&&!f.moving&&f.systemId===sysId);
+  if (!enemyFleet && sys.owner === 0) { addMsg('Nothing to attack here!', 'alert'); return; }
+  startCombat(fleet, enemyFleet, sys);
+}
+
+function colonize(sysId) {
+  addMsg('You need a Colony Ship fleet at this system to colonize.', 'alert');
+}
+
+function declareWar(raceId) {
+  const race = RACES.find(r=>r.id===raceId);
+  if (game.diplomacy[raceId].war) { addMsg(`Already at war with ${race.name}.`, 'alert'); return; }
+  game.diplomacy[raceId].war = true;
+  game.diplomacy[raceId].relation -= 50;
+  addMsg(`WAR DECLARED against ${race.name}!`, 'alert');
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMBAT
+// ═══════════════════════════════════════════════════════════════
+function startCombat(attFleet, defFleet, sys) {
+  const modal = document.getElementById('combat-modal');
+  const content = document.getElementById('combat-content');
+  const log = [];
+
+  // Get tech bonuses
+  const playerAttBonus = game.tech.researched.filter(t=>TECH_TREE.find(x=>x.id===t)?.effect==='attack').reduce((s,t)=>s+TECH_TREE.find(x=>x.id===t).val,0);
+  const playerDefBonus = game.tech.researched.filter(t=>TECH_TREE.find(x=>x.id===t)?.effect==='defense').reduce((s,t)=>s+TECH_TREE.find(x=>x.id===t).val,0);
+
+  let attShips = attFleet.ships.map(s=>({...s}));
+  let defShips = defFleet ? defFleet.ships.map(s=>({...s})) : [];
+  
+  // Ground defense from starbase
+  const groundDef = sys.colony?.buildings.includes('starbase') ? 50 : (sys.colony?.buildings.includes('missile_base') ? 30 : 0);
+  if (groundDef > 0 && !defFleet) {
+    defShips = [{ type:'station', hp: groundDef*2, maxHp: groundDef*2, attack: groundDef, defense: groundDef*0.5 }];
+    log.push({ text: `${sys.name} has orbital defenses!`, cls: 'hit' });
+  }
+
+  log.push({ text: `== COMBAT: ${attFleet.name} vs ${defFleet ? defFleet.name : sys.name + ' DEFENSES'} ==`, cls: '' });
+  log.push({ text: `Attacker: ${attShips.length} ships | Defender: ${defShips.length} ships`, cls: '' });
+
+  let round = 1;
+  while (attShips.length > 0 && defShips.length > 0 && round <= 20) {
+    log.push({ text: `— Round ${round} —`, cls: '' });
+    // Attack
+    for (const ship of attShips) {
+      if (defShips.length === 0) break;
+      const SHIP = SHIP_DESIGNS.find(s=>s.id===ship.type)||{attack:5,defense:5};
+      const target = defShips[Math.floor(Math.random()*defShips.length)];
+      const atk = SHIP.attack + playerAttBonus + Math.floor(Math.random()*10);
+      const def = (SHIP_DESIGNS.find(s=>s.id===target.type)||{defense:5}).defense;
+      const dmg = Math.max(1, atk - def + Math.floor(Math.random()*5));
+      target.hp -= dmg;
+      log.push({ text: `  → ${ship.type.toUpperCase()} hits ${target.type.toUpperCase()} for ${dmg} dmg (HP: ${Math.max(0,target.hp)}/${target.maxHp})`, cls:'hit' });
+      if (target.hp <= 0) {
+        log.push({ text: `  ✗ ${target.type.toUpperCase()} DESTROYED!`, cls:'kill' });
+        defShips = defShips.filter(s=>s!==target);
+      }
+    }
+    // Counterattack
+    for (const ship of defShips) {
+      if (attShips.length === 0) break;
+      const SHIP = SHIP_DESIGNS.find(s=>s.id===ship.type)||{attack:5,defense:5};
+      const target = attShips[Math.floor(Math.random()*attShips.length)];
+      const atk = SHIP.attack + Math.floor(Math.random()*10);
+      const def = (SHIP_DESIGNS.find(s=>s.id===target.type)||{defense:5}).defense + playerDefBonus;
+      const dmg = Math.max(1, atk - def + Math.floor(Math.random()*5));
+      target.hp -= dmg;
+      log.push({ text: `  ← ${ship.type.toUpperCase()} hits ${target.type.toUpperCase()} for ${dmg} dmg (HP: ${Math.max(0,target.hp)}/${target.maxHp})`, cls:'hit' });
+      if (target.hp <= 0) {
+        log.push({ text: `  ✗ ${target.type.toUpperCase()} DESTROYED!`, cls:'kill' });
+        attShips = attShips.filter(s=>s!==target);
+      }
+    }
+    round++;
+  }
+
+  const attWon = defShips.length === 0;
+  if (attWon) {
+    log.push({ text: `★ VICTORY! ${attFleet.name} wins!`, cls:'win' });
+    attFleet.ships = attShips;
+    if (defFleet) game.fleets = game.fleets.filter(f=>f!==defFleet);
+    // Capture system
+    if (sys.owner !== 0 && sys.owner !== null) {
+      const prevOwner = sys.owner;
+      sys.owner = 0;
+      addMsg(`${sys.name} CAPTURED from ${RACES.find(r=>r.id===prevOwner).name}!`, 'good');
+      game.diplomacy[prevOwner].relation -= 30;
+    }
+  } else {
+    log.push({ text: `✗ DEFEAT! ${attFleet.name} is destroyed!`, cls:'lose' });
+    if (defFleet) defFleet.ships = defShips;
+    game.fleets = game.fleets.filter(f=>f!==attFleet);
+    addMsg(`${attFleet.name} was defeated at ${sys.name}!`, 'alert');
+  }
+
+  content.innerHTML = `
+    <div class="combat-log">${log.map(l=>`<div class="combat-line ${l.cls}">${l.text}</div>`).join('')}</div>
+  `;
+  // Auto-scroll log
+  setTimeout(()=>{const el=document.querySelector('.combat-log');if(el)el.scrollTop=el.scrollHeight;},50);
+
+  document.getElementById('overlay').style.display = 'block';
+  modal.style.display = 'block';
+  render(); renderRightPanel();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TECH TREE
+// ═══════════════════════════════════════════════════════════════
+function openTech() {
+  const modal = document.getElementById('tech-modal');
+  document.getElementById('tm-rp').textContent = Math.floor(game.rp);
+  const playerSystems = game.systems.filter(s=>s.owner===0);
+  const totalProd = playerSystems.reduce((t,s)=>t+(s.colony?s.colony.industry*(s.colony.stability/100):0),0);
+  const resOut = Math.floor(totalProd * game.sliders.res / 100);
+  document.getElementById('tm-rpo').textContent = resOut;
+
+  const grid = document.getElementById('tech-grid');
+  grid.innerHTML = TECH_TREE.map(tech => {
+    const researched = game.tech.researched.includes(tech.id);
+    const reqsMet = tech.req.every(r => game.tech.researched.includes(r));
+    const locked = !reqsMet && !researched;
+    const isCurrent = game.tech.current === tech.id;
+    const pct = isCurrent ? Math.floor((game.tech.progress / tech.cost)*100) : 0;
+    return `<div class="tech-card ${researched?'researched':''} ${locked?'locked':''}" onclick="${!researched&&!locked?`startResearch('${tech.id}')`:''}" >
+      <div class="tech-name">${researched?'✓ ':isCurrent?'⟳ ':''} ${tech.name}</div>
+      <div style="font-size:10px;color:#445;margin-bottom:2px;">[${tech.cat}]</div>
+      <div class="tech-desc">${tech.desc}</div>
+      <div class="tech-cost">${researched?'DONE':isCurrent?`RESEARCHING... ${pct}%`:`Cost: ${tech.cost} RP`}</div>
+      ${tech.req.length>0?`<div style="font-size:10px;color:#445;margin-top:2px;">Req: ${tech.req.join(', ')}</div>`:''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('overlay').style.display = 'block';
+  modal.style.display = 'block';
+}
+
+function startResearch(techId) {
+  if (game.tech.current && game.tech.current !== techId) {
+    addMsg(`Switched research to ${TECH_TREE.find(t=>t.id===techId).name}. Progress reset.`, '');
+    game.tech.progress = 0;
+  }
+  game.tech.current = techId;
+  closeModals();
+  addMsg(`Research started: ${TECH_TREE.find(t=>t.id===techId).name}`, '');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FLEET BUILDER
+// ═══════════════════════════════════════════════════════════════
+function openFleet() {
+  const modal = document.getElementById('fleet-modal');
+  const content = document.getElementById('fleet-modal-content');
+  const playerSystems = game.systems.filter(s=>s.owner===0&&s.colony);
+
+  content.innerHTML = `
+    <div style="color:var(--text);margin-bottom:10px;">Credits: <span style="color:var(--yellow)">${game.credits}</span> BC &nbsp;|&nbsp; Build location:</div>
+    <select id="build-system" style="background:#000;color:var(--green);border:1px solid var(--border);padding:4px;font-family:Share Tech Mono,monospace;margin-bottom:12px;">
+      ${playerSystems.map(s=>`<option value="${s.id}">${s.name} (Industry: ${s.colony.industry.toFixed(0)})</option>`).join('')}
+    </select>
+    <div style="font-family:VT323,monospace;color:var(--cyan);font-size:18px;margin-bottom:8px;">SHIP DESIGNS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      ${SHIP_DESIGNS.map(s=>`
+        <div style="border:1px solid var(--border);padding:8px;background:#010f05;">
+          <div style="color:var(--yellow);font-size:14px;">${s.name}</div>
+          <div style="color:#778;font-size:11px;margin:3px 0;">${s.desc}</div>
+          <div style="font-size:11px;color:var(--text);">HP:${s.hp} ATK:${s.attack} DEF:${s.defense} SPD:${s.speed}</div>
+          <div style="margin-top:6px;"><button onclick="buildShip('${s.id}')" ${game.credits<s.cost?'disabled style="opacity:0.4"':''}>BUILD — ${s.cost} BC</button></div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="margin-top:12px;font-family:VT323,monospace;color:var(--cyan);font-size:18px;">YOUR FLEETS</div>
+    ${game.fleets.filter(f=>f.owner===0).map(f=>`
+      <div style="border:1px solid var(--border);padding:6px;margin:4px 0;background:#010f05;">
+        <div style="color:var(--green)">${f.name}</div>
+        <div style="color:#778;font-size:11px;">${f.ships.map(s=>s.type).join(', ')} | At: ${game.systems[f.systemId].name}</div>
+      </div>
+    `).join('') || '<div style="color:#445;font-size:12px;margin-top:4px;">No fleets</div>'}
+  `;
+
+  document.getElementById('overlay').style.display = 'block';
+  modal.style.display = 'block';
+}
+
+function buildShip(shipType) {
+  const selEl = document.getElementById('build-system');
+  if (!selEl) return;
+  const sysId = parseInt(selEl.value);
+  const ship = SHIP_DESIGNS.find(s=>s.id===shipType);
+  if (!ship || game.credits < ship.cost) { addMsg('Not enough credits!', 'alert'); return; }
+  game.credits -= ship.cost;
+
+  // Add to existing player fleet at this system, or create new
+  let fleet = game.fleets.find(f=>f.owner===0&&!f.moving&&f.systemId===sysId);
+  if (!fleet) {
+    const newId = Math.max(...game.fleets.map(f=>f.id), 0) + 1;
+    fleet = { id: newId, owner: 0, ships: [], systemId: sysId, moving: false, dest: null, eta: 0,
+      name: `FLEET-${newId}` };
+    game.fleets.push(fleet);
+  }
+  fleet.ships.push({ type: shipType, hp: ship.hp, maxHp: ship.hp });
+  addMsg(`Built ${ship.name} at ${game.systems[sysId].name}!`, 'good');
+  openFleet(); // refresh
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ESPIONAGE
+// ═══════════════════════════════════════════════════════════════
+function openEspionage() {
+  const hasIntel = game.tech.researched.includes('es1');
+  const hasSabotage = game.tech.researched.includes('es2');
+  const content = document.getElementById('espionage-content');
+
+  content.innerHTML = `
+    <div style="color:var(--text);margin-bottom:10px;">Intelligence capabilities: ${hasIntel ? '<span style="color:var(--green)">ACTIVE</span>' : '<span style="color:#556">LOCKED — research Intelligence Net</span>'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      ${RACES.filter(r=>!r.isPlayer).map(race => {
+        const dip = game.diplomacy[race.id];
+        const relColor = dip.relation > 60 ? '#33ff66' : dip.relation > 30 ? '#ffcc00' : '#ff3322';
+        const warStatus = dip.war ? '<span style="color:var(--red)">AT WAR</span>' : '<span style="color:var(--green)">PEACE</span>';
+        return `<div style="border:1px solid var(--border);padding:10px;background:#010f05;">
+          <div style="color:${race.color};font-size:16px;font-family:VT323,monospace;">${race.icon} ${race.name}</div>
+          <div style="margin:4px 0;font-size:11px;color:#778;">Status: ${warStatus}</div>
+          <div style="font-size:11px;color:#778;">Relation: <span style="color:${relColor}">${dip.relation}</span>/100</div>
+          ${hasIntel ? `
+          <div style="font-size:11px;color:#778;margin-top:4px;">Systems: ${game.systems.filter(s=>s.owner===race.id).length}</div>
+          <div style="font-size:11px;color:#778;">Fleet Size: ${game.fleets.filter(f=>f.owner===race.id).reduce((t,f)=>t+f.ships.length,0)} ships</div>
+          ` : '<div style="color:#445;font-size:11px;margin-top:4px;">[CLASSIFIED]</div>'}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:8px;">
+            <button onclick="sendGift(${race.id})">GIFT 50BC</button>
+            <button onclick="proposeTrade(${race.id})">TRADE PACT</button>
+            ${hasSabotage && !dip.war ? `<button class="warn" onclick="sabotage(${race.id})">SABOTAGE</button>` : ''}
+            ${dip.war ? `<button onclick="proposePeace(${race.id})">SUE PEACE</button>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+
+  document.getElementById('overlay').style.display = 'block';
+  document.getElementById('espionage-modal').style.display = 'block';
+}
+
+function openDiplomacy() { openEspionage(); } // Same screen for now
+
+function sendGift(raceId) {
+  if (game.credits < 50) { addMsg('Not enough credits!', 'alert'); return; }
+  game.credits -= 50;
+  game.diplomacy[raceId].relation = Math.min(100, game.diplomacy[raceId].relation + 15);
+  addMsg(`Gift sent to ${RACES.find(r=>r.id===raceId).name}. Relations improved.`, 'good');
+  openEspionage();
+}
+
+function proposeTrade(raceId) {
+  const dip = game.diplomacy[raceId];
+  if (dip.relation < 50) { addMsg('Relations too low for trade pact!', 'alert'); return; }
+  dip.trade = true;
+  addMsg(`Trade pact established with ${RACES.find(r=>r.id===raceId).name}!`, 'good');
+  openEspionage();
+}
+
+function sabotage(raceId) {
+  if (game.credits < 30) { addMsg('Sabotage requires 30 BC!', 'alert'); return; }
+  game.credits -= 30;
+  const race = RACES.find(r=>r.id===raceId);
+  const enemySystems = game.systems.filter(s=>s.owner===raceId&&s.colony);
+  if (enemySystems.length > 0) {
+    const target = enemySystems[Math.floor(Math.random()*enemySystems.length)];
+    target.colony.industry *= 0.7;
+    target.colony.stability -= 15;
+    addMsg(`SABOTAGE SUCCESS: ${race.name}'s ${target.name} industry damaged!`, 'good');
+  } else {
+    addMsg(`Sabotage against ${race.name} failed — no targets found.`, 'alert');
+  }
+  openEspionage();
+}
+
+function proposePeace(raceId) {
+  const dip = game.diplomacy[raceId];
+  if (Math.random() < 0.5) {
+    dip.war = false;
+    dip.relation += 20;
+    addMsg(`Peace established with ${RACES.find(r=>r.id===raceId).name}!`, 'good');
+  } else {
+    addMsg(`${RACES.find(r=>r.id===raceId).name} rejected peace offer!`, 'alert');
+  }
+  openEspionage();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RACE LIST
+// ═══════════════════════════════════════════════════════════════
+function renderRaceList() {
+  const el = document.getElementById('race-list');
+  el.innerHTML = RACES.map(race => {
+    const systems = game.systems.filter(s=>s.owner===race.id).length;
+    const fleets = game.fleets.filter(f=>f.owner===race.id&&!f.moving).reduce((t,f)=>t+f.ships.length,0);
+    const dip = race.isPlayer ? null : game.diplomacy[race.id];
+    const warStr = dip?.war ? ' <span style="color:var(--red)">⚔</span>' : (dip?.trade ? ' <span style="color:var(--green)">↔</span>' : '');
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;color:${race.isPlayer?'var(--green)':'var(--text)'}">
+      <span style="color:${race.color}">${race.icon}</span>
+      <span style="font-size:11px;flex:1;margin:0 4px;">${race.isPlayer?'YOU':race.name.split(' ')[0]}${warStr}</span>
+      <span style="font-size:11px;color:#778">${systems}★ ${fleets}⚔</span>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NEXT TURN
+// ═══════════════════════════════════════════════════════════════
+function nextTurn() {
+  game.year++;
+  game.turn++;
+
+  // Production
+  const playerSystems = game.systems.filter(s=>s.owner===0&&s.colony);
+  const totalProd = playerSystems.reduce((t,s)=>t+(s.colony.industry*(s.colony.stability/100)),0);
+  const econGain = Math.floor(totalProd * game.sliders.econ / 100);
+  const resGain = Math.floor(totalProd * game.sliders.res / 100);
+
+  game.credits += econGain;
+  game.rp += resGain;
+
+  // Trade bonuses
+  for (const race of RACES.filter(r=>!r.isPlayer)) {
+    if (game.diplomacy[race.id].trade) game.credits += 5;
+  }
+
+  // Colony simulation
+  for (const sys of game.systems.filter(s=>s.colony)) {
+    const c = sys.colony;
+    const growthRate = sys.owner === 0 ? game.sliders.econ / 100 : 0.5;
+
+    // Industry effects
+    c.pollution += c.industry * 0.015;
+    c.stability -= c.pollution * 0.008;
+    c.population = Math.min(c.maxPop, c.population + (c.stability / 100) * 4 * growthRate);
+
+    // Building effects (player only)
+    if (sys.owner === 0) {
+      for (const bld of c.buildings) {
+        const b = BUILDINGS.find(x=>x.id===bld);
+        if (!b) continue;
+        if (b.effect === 'industry') c.industry += b.val * 0.01;
+        if (b.effect === 'research') game.rp += b.val * 0.1;
+        if (b.effect === 'maxpop') {} // handled on build
+      }
+    }
+
+    // Collapse
+    if (c.stability < 15) {
+      c.industry *= 0.6;
+      c.population *= 0.7;
+      c.stability = 35;
+      if (sys.owner === 0) addMsg(`⚠ COLLAPSE at ${sys.name}! Stability crisis!`, 'alert');
+    }
+
+    // Bounds
+    c.stability = Math.min(100, Math.max(0, c.stability));
+    c.pollution = Math.max(0, c.pollution);
+    c.industry = Math.max(5, c.industry);
+    c.population = Math.max(1, c.population);
+
+    // Build queue
+    if (sys.owner === 0 && c.buildQueue.length > 0) {
+      const nextBuild = c.buildQueue[0];
+      const building = BUILDINGS.find(b=>b.id===nextBuild);
+      if (building) {
+        c.buildProgress += c.industry * 0.2;
+        if (c.buildProgress >= building.cost) {
+          c.buildings.push(nextBuild);
+          c.buildQueue.shift();
+          c.buildProgress = 0;
+          if (building.effect === 'maxpop') c.maxPop += building.val;
+          if (building.effect === 'industry') c.industry += building.val * 0.5;
+          addMsg(`${sys.name}: ${building.name} completed!`, 'good');
+        }
+      }
+    }
+  }
+
+  // Research
+  if (game.tech.current && !game.tech.researched.includes(game.tech.current)) {
+    game.tech.progress += resGain;
+    const tech = TECH_TREE.find(t=>t.id===game.tech.current);
+    if (tech && game.tech.progress >= tech.cost) {
+      game.tech.researched.push(game.tech.current);
+      game.tech.current = null;
+      game.tech.progress = 0;
+      addMsg(`BREAKTHROUGH: ${tech.name} researched!`, 'good');
+
+      // Check victory
+      if (tech.effect === 'victory') {
+        addMsg(`🌟 TRANSCENDENCE ACHIEVED! TOTAL VICTORY! 🌟`, 'good');
+      }
+    }
+  }
+
+  // Move fleets
+  for (const fleet of game.fleets.filter(f=>f.moving)) {
+    fleet.eta--;
+    if (fleet.eta <= 0) {
+      fleet.systemId = fleet.dest;
+      fleet.dest = null;
+      fleet.moving = false;
+      const sys = game.systems[fleet.systemId];
+      sys.explored = true;
+
+      if (fleet.owner === 0) {
+        addMsg(`${fleet.name} arrived at ${sys.name}.`, '');
+        // Auto-combat if enemy present
+        const enemyFleet = game.fleets.find(f=>f.owner!==0&&!f.moving&&f.systemId===fleet.systemId);
+        const warEnemy = sys.owner !== null && sys.owner !== 0 && game.diplomacy[sys.owner]?.war;
+        if (enemyFleet && warEnemy) {
+          addMsg(`Contact! Enemy fleet at ${sys.name}!`, 'alert');
+        }
+      }
+    }
+  }
+
+  // AI turns
+  runAI();
+
+  // Victory check
+  checkVictory();
+
+  // Relations drift
+  for (const race of RACES.filter(r=>!r.isPlayer)) {
+    const dip = game.diplomacy[race.id];
+    if (!dip.war) dip.relation = Math.min(100, dip.relation + 1);
+    else dip.relation = Math.max(0, dip.relation - 2);
+  }
+
+  // Scoring
+  game.score = computeScore();
+
+  renderRaceList();
+  renderRightPanel();
+  render();
+  renderMessages();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AI
+// ═══════════════════════════════════════════════════════════════
+function runAI() {
+  for (const race of RACES.filter(r=>!r.isPlayer)) {
+    const aiSystems = game.systems.filter(s=>s.owner===race.id&&s.colony);
+    
+    // Expand
+    if (Math.random() < 0.15) {
+      const unclaimed = game.systems.filter(s=>s.owner===null&&s.explored);
+      if (unclaimed.length > 0 && aiSystems.length > 0) {
+        // Find one adjacent to AI territory
+        for (const uc of unclaimed) {
+          const adjacent = game.lanes.some(l =>
+            (l.a === uc.id && aiSystems.some(s=>s.id===l.b)) ||
+            (l.b === uc.id && aiSystems.some(s=>s.id===l.a))
+          );
+          if (adjacent) {
+            uc.owner = race.id;
+            uc.explored = true;
+            uc.colony = { population: 50, maxPop: 150+uc.quality, industry: 30, pollution: 3, stability: 70, energy: 30, buildings: [], buildQueue: [], buildProgress: 0 };
+            break;
+          }
+        }
+      }
+    }
+
+    // War declaration
+    if (!game.diplomacy[race.id].war && Math.random() < 0.02 && aiSystems.length > 2) {
+      game.diplomacy[race.id].war = true;
+      addMsg(`⚠ ${race.name} has DECLARED WAR on the Terran Union!`, 'alert');
+    }
+
+    // AI fleet attack
+    if (game.diplomacy[race.id].war) {
+      const aiFleet = game.fleets.find(f=>f.owner===race.id&&!f.moving);
+      if (aiFleet) {
+        const playerSys = game.systems.filter(s=>s.owner===0);
+        if (playerSys.length > 0) {
+          const target = playerSys[Math.floor(Math.random()*playerSys.length)];
+          // Check if adjacent
+          const adjacent = game.lanes.some(l=>
+            (l.a===aiFleet.systemId&&l.b===target.id)||
+            (l.b===aiFleet.systemId&&l.a===target.id)
+          );
+          if (adjacent && Math.random() < 0.3) {
+            aiFleet.moving = true;
+            aiFleet.dest = target.id;
+            aiFleet.eta = 1;
+            addMsg(`⚠ ${race.name} fleet moving toward ${target.name}!`, 'alert');
+          }
+        }
+      }
+    }
+
+    // AI fleet arrives at player system - auto combat
+    for (const fleet of game.fleets.filter(f=>f.owner===race.id&&!f.moving)) {
+      const sys = game.systems[fleet.systemId];
+      if (sys.owner === 0 && game.diplomacy[race.id].war) {
+        const playerFleet = game.fleets.find(f=>f.owner===0&&!f.moving&&f.systemId===fleet.systemId);
+        if (playerFleet) {
+          addMsg(`⚔ BATTLE at ${sys.name}!`, 'alert');
+          startCombat(playerFleet, fleet, sys);
+        } else {
+          // No defense — capture
+          sys.owner = race.id;
+          addMsg(`✗ ${sys.name} CAPTURED by ${race.name}!`, 'alert');
+        }
+      }
+    }
+
+    // Explore
+    for (const fleet of game.fleets.filter(f=>f.owner===race.id&&!f.moving)) {
+      const adjLanes = game.lanes.filter(l=>l.a===fleet.systemId||l.b===fleet.systemId);
+      const unexplored = adjLanes.map(l=>l.a===fleet.systemId?l.b:l.a).filter(id=>!game.systems[id].explored);
+      if (unexplored.length > 0) game.systems[unexplored[0]].explored = true;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VICTORY
+// ═══════════════════════════════════════════════════════════════
+function checkVictory() {
+  const playerSystems = game.systems.filter(s=>s.owner===0).length;
+  const totalColonized = game.systems.filter(s=>s.owner!==null).length;
+  
+  if (playerSystems === 0) {
+    addMsg('═══ DEFEAT: Your empire has fallen. ═══', 'alert');
+  } else if (playerSystems >= totalColonized * 0.75) {
+    addMsg('═══ NEAR VICTORY: Dominant galactic power! ═══', 'good');
+  }
+  
+  if (game.year >= 2600) {
+    const score = computeScore();
+    addMsg(`═══ GAME END: Year 2600. Final Score: ${score} ═══`, 'good');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SAVE / LOAD
+// ═══════════════════════════════════════════════════════════════
+function saveGame() {
+  try {
+    const save = JSON.stringify(game);
+    const blob = new Blob([save], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `stellar-dominion-${game.year}.json`;
+    a.click();
+    addMsg('Game saved to file.', '');
+  } catch(e) {
+    addMsg('Save failed: ' + e.message, 'alert');
+  }
+}
+
+function loadGame() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        game = JSON.parse(ev.target.result);
+        addMsg('Game loaded!', 'good');
+        render(); renderRightPanel(); renderRaceList(); renderMessages();
+      } catch(err) {
+        addMsg('Load failed: invalid file.', 'alert');
+      }
+    };
+    reader.readAsText(f);
+  };
+  input.click();
+}
+
+function closeModals() {
+  document.getElementById('overlay').style.display = 'none';
+  document.getElementById('tech-modal').style.display = 'none';
+  document.getElementById('fleet-modal').style.display = 'none';
+  document.getElementById('combat-modal').style.display = 'none';
+  document.getElementById('espionage-modal').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.querySelector('[id$="-modal"][style*="block"]')) nextTurn();
+  if (e.key === 'Escape') closeModals();
+  if (e.key === 'r' || e.key === 'R') openTech();
+  if (e.key === 'f' || e.key === 'F') openFleet();
+  if (e.key === 'e' || e.key === 'E') openEspionage();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('resize', resizeCanvas);
+initGame();
+resizeCanvas();
+renderRaceList();
+renderMessages();
+render();
+</script>
+</body>
+</html>

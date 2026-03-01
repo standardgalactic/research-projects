@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Galaxy Prototype</title>
+<style>
+body {
+  margin: 0;
+  background: black;
+  color: #00ff88;
+  font-family: monospace;
+  display: flex;
+}
+#map {
+  border-right: 1px solid #00ff88;
+}
+#panel {
+  width: 300px;
+  padding: 12px;
+}
+button {
+  background: black;
+  color: #00ff88;
+  border: 1px solid #00ff88;
+  padding: 6px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<canvas id="map" width="800" height="600"></canvas>
+
+<div id="panel">
+  <h3 id="year"></h3>
+  <div id="systemInfo">Click a star</div>
+  <br>
+  <button onclick="nextTurn()">End Turn</button>
+  <button onclick="saveGame()">Save</button>
+  <button onclick="loadGame()">Load</button>
+</div>
+<script>
+
+let game = {
+  year: 2400,
+  credits: 0,
+  systems: [],
+  selectedSystem: null
+}
+
+function initGame() {
+  game.systems = []
+  for (let i = 0; i < 8; i++) {
+    game.systems.push({
+      id: i,
+      x: Math.random() * 760 + 20,
+      y: Math.random() * 560 + 20,
+      colony: {
+        population: 120,
+        industry: 60,
+        pollution: 15,
+        stability: 75,
+        energy: 50
+      }
+    })
+  }
+}
+
+initGame()
+
+function computeProduction() {
+  let total = 0
+  for (const system of game.systems) {
+    const c = system.colony
+    total += c.industry * (c.stability / 100)
+  }
+  return Math.floor(total)
+}
+
+function nextTurn() {
+
+  game.credits = computeProduction()
+
+  for (const system of game.systems) {
+    const c = system.colony
+
+    // core causal loop
+    c.pollution += c.industry * 0.02
+    c.stability -= c.pollution * 0.01
+    c.population += (c.stability / 100) * 4
+
+    // collapse check
+    if (c.stability < 15) {
+      c.industry *= 0.5
+      c.population *= 0.5
+      c.stability = 40
+    }
+
+    // bounds
+    if (c.stability > 100) c.stability = 100
+    if (c.stability < 0) c.stability = 0
+  }
+
+  game.year++
+  render()
+}
+
+function investIndustry() {
+  if (!game.selectedSystem) return
+  if (game.credits < 20) return
+
+  const c = game.selectedSystem.colony
+  c.industry += 10
+  c.pollution += 5
+  game.credits -= 20
+  render()
+}
+
+function cleanPollution() {
+  if (!game.selectedSystem) return
+  if (game.credits < 15) return
+
+  const c = game.selectedSystem.colony
+  c.pollution -= 15
+  if (c.pollution < 0) c.pollution = 0
+  game.credits -= 15
+  render()
+}
+
+function fundSecurity() {
+  if (!game.selectedSystem) return
+  if (game.credits < 10) return
+
+  const c = game.selectedSystem.colony
+  c.stability += 10
+  if (c.stability > 100) c.stability = 100
+  game.credits -= 10
+  render()
+}
+
+function buildEnergy() {
+  if (!game.selectedSystem) return
+  if (game.credits < 15) return
+
+  const c = game.selectedSystem.colony
+  c.energy += 15
+  game.credits -= 15
+  render()
+}
+
+const canvas = document.getElementById("map")
+const ctx = canvas.getContext("2d")
+
+canvas.addEventListener("click", function (e) {
+  const rect = canvas.getBoundingClientRect()
+  const mx = e.clientX - rect.left
+  const my = e.clientY - rect.top
+
+  for (const system of game.systems) {
+    const dx = mx - system.x
+    const dy = my - system.y
+    if (Math.sqrt(dx*dx + dy*dy) < 8) {
+      game.selectedSystem = system
+      break
+    }
+  }
+  render()
+})
+
+function render() {
+  ctx.fillStyle = "black"
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  for (const system of game.systems) {
+    let c = system.colony
+    let red = Math.floor((100 - c.stability) * 2)
+    let green = Math.floor(c.stability * 2)
+
+    ctx.fillStyle = `rgb(${red},${green},0)`
+    ctx.beginPath()
+    ctx.arc(system.x, system.y, 6, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  document.getElementById("year").innerText =
+    "Year: " + game.year + " | Credits: " + game.credits
+
+  if (game.selectedSystem) {
+    const c = game.selectedSystem.colony
+    document.getElementById("systemInfo").innerHTML =
+      "Population: " + c.population.toFixed(1) + "<br>" +
+      "Industry: " + c.industry.toFixed(1) + "<br>" +
+      "Pollution: " + c.pollution.toFixed(1) + "<br>" +
+      "Stability: " + c.stability.toFixed(1) + "<br><br>" +
+      "<button onclick='investIndustry()'>Invest Industry (20)</button><br>" +
+      "<button onclick='cleanPollution()'>Clean Pollution (15)</button><br>" +
+      "<button onclick='fundSecurity()'>Fund Security (10)</button><br>" +
+      "<button onclick='buildEnergy()'>Build Energy (15)</button>"
+  }
+}
+
+render()
+
+function saveGame() {
+  localStorage.setItem("galaxySave", JSON.stringify(game))
+}
+
+function loadGame() {
+  const save = localStorage.getItem("galaxySave")
+  if (save) {
+    game = JSON.parse(save)
+    render()
+  }
+}
+</script>
+
+</body>
+</html>
