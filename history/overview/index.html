@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complex Systems Audio Console</title>
+
+<style>
+
+body{
+margin:0;
+background:#000;
+color:#00ff88;
+font-family:"Courier New",monospace;
+text-align:center;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+min-height:100vh;
+text-shadow:0 0 6px #00ff88aa;
+overflow:hidden;
+}
+
+#boot{
+position:fixed;
+inset:0;
+background:#000;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:18px;
+letter-spacing:2px;
+}
+
+.console{
+opacity:0;
+transition:opacity 2s;
+}
+
+h1{
+margin-bottom:10px;
+letter-spacing:3px;
+}
+
+.subtitle{
+max-width:760px;
+font-size:0.9em;
+opacity:0.85;
+margin-bottom:20px;
+line-height:1.5;
+}
+
+canvas{
+width:360px;
+height:360px;
+border-radius:50%;
+background:radial-gradient(circle,#001a0f 0%,#000 70%);
+box-shadow:0 0 20px #00ff88aa,inset 0 0 40px #00ff8844;
+}
+
+.controls{
+margin-top:20px;
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+justify-content:center;
+align-items:center;
+}
+
+button,select,input[type=range]{
+background:#001a0f;
+border:1px solid #00ff88;
+color:#00ff88;
+font-family:inherit;
+padding:6px 10px;
+cursor:pointer;
+}
+
+button:hover{
+background:#003322;
+}
+
+button.active{
+background:#003322;
+}
+
+.timer{
+min-width:120px;
+}
+
+.progress{
+width:420px;
+}
+
+.scanlines{
+position:fixed;
+inset:0;
+pointer-events:none;
+background:repeating-linear-gradient(
+to bottom,
+rgba(0,255,136,0.05) 0px,
+rgba(0,255,136,0.05) 1px,
+transparent 2px,
+transparent 4px
+);
+}
+
+.flicker{
+position:fixed;
+inset:0;
+pointer-events:none;
+background:rgba(0,255,136,0.03);
+animation:flicker 0.15s infinite;
+}
+
+@keyframes flicker{
+0%{opacity:.02}
+50%{opacity:.06}
+100%{opacity:.02}
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="boot">INITIALIZING SYSTEM...</div>
+
+<div class="console" id="console">
+
+<h1>Complex Systems Audio Console</h1>
+
+<div class="subtitle">
+Two essays exploring complex systems through dynamic histories rather than static states.
+One introduces the Relativistic Scalar Vector Plenum as a field framework for biological
+and technological organization. The other defines computation through irreversible event
+histories built from extension, merge, and reduction.
+</div>
+
+<canvas id="viz"></canvas>
+
+<div class="controls">
+
+<button id="play">PLAY</button>
+<button id="loop">LOOP OFF</button>
+
+<select id="speed">
+<option value="0.8">0.8x</option>
+<option value="0.9">0.9x</option>
+<option value="1" selected>1.0x</option>
+<option value="1.2">1.2x</option>
+<option value="1.5">1.5x</option>
+<option value="2">2.0x</option>
+</select>
+
+<div class="timer" id="timer">00:00 / 00:00</div>
+
+</div>
+
+<input class="progress" id="progress" type="range" min="0" max="100" value="0">
+
+<div class="controls">
+
+<button data-track="Reality_as_an_irreversible_event_log.mp3">
+Reality as an Irreversible Event Log
+</button>
+
+<button data-track="Entropic_Field_Theory_of_Complex_Systems.mp3">
+Entropic Field Theory of Complex Systems
+</button>
+
+</div>
+
+</div>
+
+<div class="scanlines"></div>
+<div class="flicker"></div>
+
+<audio id="audio"></audio>
+
+<script>
+
+const audio=document.getElementById("audio")
+const canvas=document.getElementById("viz")
+const ctx=canvas.getContext("2d")
+const playBtn=document.getElementById("play")
+const loopBtn=document.getElementById("loop")
+const timer=document.getElementById("timer")
+const speedSel=document.getElementById("speed")
+const progress=document.getElementById("progress")
+
+const tracks=[
+"Reality_as_an_irreversible_event_log.mp3",
+"Entropic_Field_Theory_of_Complex_Systems.mp3"
+]
+
+let trackIndex=0
+
+audio.src=tracks[0]
+
+const AC=window.AudioContext||window.webkitAudioContext
+const audioCtx=new AC()
+
+const analyser=audioCtx.createAnalyser()
+analyser.fftSize=256
+
+const src=audioCtx.createMediaElementSource(audio)
+src.connect(analyser)
+analyser.connect(audioCtx.destination)
+
+const freqData=new Uint8Array(analyser.frequencyBinCount)
+
+canvas.width=360
+canvas.height=360
+
+let rotation=0
+
+function draw(){
+
+ctx.clearRect(0,0,360,360)
+
+ctx.save()
+ctx.translate(180,180)
+
+analyser.getByteFrequencyData(freqData)
+
+const bars=64
+for(let i=0;i<bars;i++){
+
+const value=freqData[i]
+const angle=i*(Math.PI*2/bars)
+
+const radius=120
+const height=value*0.5
+
+const x=Math.cos(angle)*(radius)
+const y=Math.sin(angle)*(radius)
+
+ctx.strokeStyle="#00ff88"
+ctx.beginPath()
+ctx.moveTo(x,y)
+ctx.lineTo(
+Math.cos(angle)*(radius+height),
+Math.sin(angle)*(radius+height)
+)
+ctx.stroke()
+
+}
+
+ctx.rotate(rotation)
+
+ctx.beginPath()
+ctx.arc(0,0,90,0,Math.PI*2)
+ctx.strokeStyle="#00ff88"
+ctx.lineWidth=2
+ctx.stroke()
+
+ctx.restore()
+
+rotation+=audio.paused?0.002:0.02
+
+requestAnimationFrame(draw)
+
+}
+
+draw()
+
+function formatTime(sec){
+
+const m=Math.floor(sec/60)
+const s=Math.floor(sec%60)
+
+return m.toString().padStart(2,"0")+":"+s.toString().padStart(2,"0")
+
+}
+
+function updateTimer(){
+
+if(audio.duration){
+
+timer.textContent=
+formatTime(audio.currentTime)+" / "+
+formatTime(audio.duration)
+
+progress.value=(audio.currentTime/audio.duration)*100
+
+}
+
+requestAnimationFrame(updateTimer)
+
+}
+
+updateTimer()
+
+playBtn.onclick=()=>{
+
+audioCtx.resume()
+
+if(audio.paused){
+
+audio.play()
+playBtn.textContent="PAUSE"
+
+}else{
+
+audio.pause()
+playBtn.textContent="PLAY"
+
+}
+
+}
+
+loopBtn.onclick=()=>{
+
+audio.loop=!audio.loop
+loopBtn.textContent=audio.loop?"LOOP ON":"LOOP OFF"
+
+}
+
+speedSel.onchange=()=>{
+
+audio.playbackRate=parseFloat(speedSel.value)
+
+}
+
+progress.oninput=()=>{
+
+audio.currentTime=(progress.value/100)*audio.duration
+
+}
+
+document.querySelectorAll("[data-track]").forEach((btn,i)=>{
+
+btn.onclick=()=>{
+
+trackIndex=i
+audio.src=tracks[i]
+audio.play()
+
+}
+
+})
+
+audio.onended=()=>{
+
+trackIndex=(trackIndex+1)%tracks.length
+audio.src=tracks[trackIndex]
+audio.play()
+
+}
+
+document.addEventListener("keydown",e=>{
+
+if(e.code==="Space"){
+
+e.preventDefault()
+playBtn.click()
+
+}
+
+if(e.code==="ArrowRight") audio.currentTime+=15
+if(e.code==="ArrowLeft") audio.currentTime-=15
+
+if(e.key==="1") document.querySelectorAll("[data-track]")[0].click()
+if(e.key==="2") document.querySelectorAll("[data-track]")[1].click()
+
+})
+
+setTimeout(()=>{
+
+document.getElementById("boot").style.display="none"
+document.getElementById("console").style.opacity=1
+
+},2500)
+
+</script>
+
+</body>
+</html>
