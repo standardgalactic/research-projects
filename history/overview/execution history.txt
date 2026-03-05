@@ -1,0 +1,1695 @@
+Execution, History, and Reduction:
+A Minimal Operational Kernel for Computation
+Flyxion
+March 4, 2026
+Abstract
+Modern computational theory frequently treats programs as static objects whose meaning
+is defined by membership relations over sets of states. However, real systems operate through
+irreversible event histories rather than timeless collections.
+This essay proposes a minimal operational kernel in which event histories constitute the
+primary structure of computation, while state and abstraction emerge as derived reductions of
+those histories. Within this framework, computation proceeds through the irreversible exten-
+sion of histories by events, the composition of compatible histories through merge operations,
+and the reduction of histories through controlled loss of information.
+From these operations arise deterministic replay, log-structured computation, and forms
+of execution governed by locally propagated constraints.
+The framework therefore replaces set-theoretic membership with replayable construc-
+tion histories, providing a unified account of execution, composition, and abstraction in both
+computational and physically constrained systems.
+Contents
+1
+The Failure of State Ontology
+2
+1.1
+The Snapshot Assumption
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3
+1.2
+Loss of Causal Structure
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3
+1.3
+Irreversibility of Execution . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3
+1.4
+Toward an Event-Historical Ontology . . . . . . . . . . . . . . . . . . . . . . . . .
+3
+2
+Event Histories as the Primitive Structure
+4
+2.1
+Events
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4
+2.2
+Histories . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4
+1
+
+2.3
+Execution as History Extension
+. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5
+2.4
+Partial Ordering of Events
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5
+2.5
+Derived State . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5
+3
+The Minimal Operational Kernel
+6
+3.1
+History Extension . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+6
+3.2
+History Merge . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7
+3.3
+Compatibility
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+7
+3.4
+History Reduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+8
+3.5
+Abstraction as Reduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+8
+3.6
+Kernel Sufficiency . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+9
+4
+Determinism and Replayability
+9
+4.1
+Deterministic Replay
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+9
+4.2
+State as a Derived Cache . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+10
+4.3
+Causal Correctness
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+10
+4.4
+Failure Recovery . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+10
+4.5
+Determinism Without Global Synchronization . . . . . . . . . . . . . . . . . . . .
+10
+4.6
+Implications . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+11
+5
+Composition Through History Merge
+11
+5.1
+Branching Histories . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+11
+5.2
+Merge as Joint Extension . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+11
+5.3
+Causal Preservation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+5.4
+Conflict and Compensation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+5.5
+Operational Mereology . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+5.6
+Examples . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+12
+5.7
+Composition Without Global Control . . . . . . . . . . . . . . . . . . . . . . . . .
+13
+5.8
+Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+13
+6
+Abstraction as Reduction
+13
+6.1
+Reduction Operators
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+14
+6.2
+State as a Reduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+14
+6.3
+Layered Abstractions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+14
+6.4
+Information Loss . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+15
+6.5
+Compression and Computation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+16
+6.6
+Algorithmic Compression of Histories . . . . . . . . . . . . . . . . . . . . . . . . .
+16
+2
+
+6.7
+Abstraction as Information Geometry . . . . . . . . . . . . . . . . . . . . . . . . .
+17
+6.8
+Summary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+17
+7
+The Algebra of Histories
+18
+7.1
+Prefix Ordering
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+18
+7.2
+Monotonic Growth
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+18
+7.3
+Merge Semilattice . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+18
+7.4
+Concurrency . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+19
+7.5
+Reduction Morphisms . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+19
+7.6
+Derived Structure . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+19
+7.7
+Interpretation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+20
+7.8
+Formalization of the History Algebra . . . . . . . . . . . . . . . . . . . . . . . . .
+21
+7.8.1
+History Poset . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+21
+7.8.2
+Extension Operator . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+21
+7.8.3
+Merge and Join . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+21
+7.8.4
+Reduction Morphisms
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+22
+7.8.5
+Summary
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+22
+7.9
+Fundamental Properties . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+22
+7.10 Interpretation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+23
+8
+Time, Causality, and Irreversibility
+24
+8.1
+Time as History Length . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+24
+8.2
+Causality . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+24
+8.3
+Irreversibility
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+24
+8.4
+Entropy and Information Loss . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+25
+8.5
+The Arrow of Execution
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+25
+8.6
+Replay and Reconstruction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+26
+8.7
+Interpretation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+27
+8.8
+Event Histories and Local Constraint Systems
+. . . . . . . . . . . . . . . . . . . .
+28
+8.8.1
+Spin Flips as Events . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+28
+8.8.2
+State as Derived Configuration
+. . . . . . . . . . . . . . . . . . . . . . . .
+28
+8.8.3
+Constraint Propagation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . .
+29
+8.8.4
+Material Reordering
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+29
+8.8.5
+Interpretation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+30
+8.9
+Monotone Constraint Dynamics . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+30
+8.9.1
+Constraint Monotonicity . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+30
+8.9.2
+Energy Interpretation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+31
+3
+
+8.9.3
+Local Update Rule
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+31
+8.9.4
+Descent Dynamics . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+31
+8.9.5
+Structural Equivalence . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+32
+8.9.6
+Interpretation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+32
+8.10 History Lattices and Potential Functions
+. . . . . . . . . . . . . . . . . . . . . . .
+33
+8.10.1
+Join-Semilattice Structure . . . . . . . . . . . . . . . . . . . . . . . . . . .
+33
+8.10.2
+Monotone Potential . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+34
+8.10.3
+Local Descent . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+34
+8.10.4
+Energy Landscape Interpretation . . . . . . . . . . . . . . . . . . . . . . .
+34
+8.10.5
+Stability and Fixed Points
+. . . . . . . . . . . . . . . . . . . . . . . . . . .
+35
+8.10.6
+Connection to Distributed Systems . . . . . . . . . . . . . . . . . . . . . .
+35
+8.10.7
+Interpretation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+35
+9
+Unified Constraint-Driven Computation
+35
+9.1
+Deterministic Replay Systems
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+36
+9.2
+Distributed Convergence . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+37
+9.3
+Version-Control Systems . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+37
+9.4
+Constraint-Based Programming . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+38
+9.5
+Physical Constraint Systems . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+38
+9.6
+Common Structure
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+39
+9.7
+Interpretation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+39
+10 Conclusion
+40
+4
+
+Introduction
+The dominant traditions of computer science describe programs in terms of transformations be-
+tween states. From early automata theory to modern programming-language semantics, compu-
+tational systems are typically modeled as structures that occupy well-defined configurations and
+evolve through transitions between them. These models have proven extraordinarily successful
+for reasoning about correctness, complexity, and program behavior.
+At the same time, the systems that modern computing actually relies upon increasingly oper-
+ate in ways that strain the assumptions of state-centered models. Large-scale distributed services,
+append-only logs, version-control systems, and event-sourced architectures do not treat state as
+the primary object of computation. Instead they record sequences of events whose cumulative
+effects determine the observable condition of the system.
+In such systems, the present configuration is best understood not as a self-contained object
+but as a compressed summary of the history that produced it. The ordering of events, the causal
+relations among them, and the constraints propagated through their interactions carry informa-
+tion that cannot be recovered from a snapshot alone.
+This observation suggests a different conceptual starting point for the theory of computation.
+Rather than treating states as primary and histories as auxiliary traces, one may reverse the
+relationship and treat histories as the fundamental structure from which states are derived.
+The aim of this essay is to develop a minimal operational framework built upon this reversal.
+In this framework, computation is interpreted as the irreversible construction of event histories
+under constraint. System states emerge as reductions of those histories, and abstraction itself is
+understood as a controlled compression of execution.
+The following sections develop this perspective step by step. We begin by examining the
+limitations of state-centered ontologies of computation and then introduce an alternative kernel
+in which event histories serve as the primitive structure of computational systems.
+1
+The Failure of State Ontology
+Most formal models of computation treat programs as transformations between states. A sys-
+tem is assumed to occupy a well-defined state, and computation is represented as a sequence of
+transitions between such states.
+This perspective is historically rooted in set-theoretic semantics. Programs are interpreted as
+relations over sets of possible states, and correctness is defined in terms of membership within
+these sets.
+While this approach has produced powerful theoretical tools, it imposes an ontological as-
+5
+
+sumption that does not accurately reflect the behavior of real computational systems.
+1.1
+The Snapshot Assumption
+State-based models assume that the complete condition of a system can be captured by a snapshot
+taken at a particular moment in time.
+In practice, however, many systems cannot be fully described by instantaneous snapshots.
+Distributed databases, version-control systems, and streaming computation engines all rely on
+persistent event histories rather than static states.
+A snapshot may summarize a system, but it does not explain how that system came to be.
+1.2
+Loss of Causal Structure
+When computation is modeled purely as state transformation, the causal structure of execution
+is obscured.
+Two states may appear identical while having arisen through entirely different sequences of
+events. These distinct histories can have radically different implications for correctness, safety,
+and reproducibility.
+For example, the state of a distributed ledger cannot be validated without examining the his-
+tory of transactions that produced it. Similarly, the meaning of a Git repository is not contained
+in the current tree but in the commit graph that generated it.
+In such systems, history is not auxiliary metadata. It is the primary structure of the system.
+1.3
+Irreversibility of Execution
+Execution is fundamentally irreversible. Once an event occurs, it cannot be undone without
+introducing additional compensating events.
+This irreversibility means that the evolution of a system is more accurately described as the
+growth of a history rather than the traversal of a state space.
+The state-space model attempts to compress this process into a sequence of snapshots, but
+this compression discards information about causal ordering and construction.
+1.4
+Toward an Event-Historical Ontology
+The limitations of state ontology suggest a different foundational assumption:
+Principle 1 (Event-Historical Primacy). The primary structure of computation is the irreversible
+history of events that construct a system.
+6
+
+Within this perspective, a state is not a primitive object but a derived summary produced by
+replaying a history.
+In other words, state becomes a projection of history.
+This shift from state to history has significant consequences. It changes how we understand
+determinism, composition, abstraction, and correctness.
+The remainder of this essay develops a minimal operational kernel built upon this premise.
+2
+Event Histories as the Primitive Structure
+If computation is fundamentally the construction of irreversible histories, then the primitive ob-
+ject of the theory must be the history itself rather than the state it produces.
+2.1
+Events
+We begin by defining the atomic unit of execution.
+Definition 1 (Event). An event is a record of an irreversible transition in a system. Formally, an
+event is an element
+e ∈E
+where E denotes the set of all possible events in a given computational universe.
+Events represent observable transitions such as message delivery, state mutation, computa-
+tion steps, or external inputs.
+The internal structure of events is not fixed by the theory; only their ordering relations are
+essential.
+2.2
+Histories
+A computational system evolves through the accumulation of events.
+Definition 2 (Event History). An event history H is a finite or countably infinite sequence of events
+H = (e1, e2, e3, . . . )
+such that each event represents a valid extension of the history that precedes it.
+The essential property of a history is that it grows monotonically: events may be appended
+but not removed.
+7
+
+Principle 2 (Irreversibility). If H is a history and e is an event appended to H, then the resulting
+history
+H′ = H · e
+strictly extends H.
+This extension operator defines the fundamental notion of execution.
+2.3
+Execution as History Extension
+Execution is therefore defined not as state transition but as the extension of histories.
+Definition 3 (Execution). An execution step is the operation
+H →H · e
+which appends an event e to the history H.
+Repeated application of this operation constructs the entire observable evolution of a system.
+2.4
+Partial Ordering of Events
+In many systems events are not totally ordered. Independent operations may occur concurrently.
+To capture this, histories can be generalized from sequences to partially ordered sets.
+Definition 4 (Event Poset). An event history may be represented as a partially ordered set
+(H, ≤)
+where ei ≤ej indicates that event ei causally precedes event ej.
+This structure captures concurrency while preserving causal order.
+2.5
+Derived State
+State now appears as a derived object.
+Definition 5 (State Projection). A state is a deterministic function
+σ : H →S
+that maps an event history H to a representation in some state space S.
+8
+
+Different projections may summarize different aspects of the same history.
+For example, a database snapshot, a filesystem tree, or the current contents of memory may
+all be produced by applying distinct projections to the same underlying history.
+Thus state is not fundamental. It is a compressed view of execution history.
+3
+The Minimal Operational Kernel
+Having established event histories as the primitive structure of computation, we may now identify
+the minimal operations required to construct and transform those histories. The objective of this
+section is to characterize a small set of operations sufficient to generate the class of computational
+systems described throughout this work.
+Within the event-historical framework, execution may be understood as the progressive con-
+struction and manipulation of histories through three fundamental transformations. The first
+transformation extends a history by the addition of a new event. This operation, referred to as
+extension, corresponds to the irreversible execution of a transition whose effects become incor-
+porated into the growing causal structure of the system.
+The second transformation combines compatible histories into a common continuation. This
+operation, referred to as merge, reconciles divergent execution paths by constructing a history
+that preserves the causal ordering of events from both inputs. When defined over compatible
+histories, merge corresponds to a join-like operation in the partially ordered space of histories.
+The third transformation derives simplified representations from existing histories. This oper-
+ation, referred to as reduction, maps histories into compressed descriptions that preserve selected
+properties while discarding others. Reductions give rise to states, abstractions, and summaries
+that allow systems to reason about their execution without retaining the full causal trace.
+Together, extension, merge, and reduction constitute a minimal operational kernel for history-
+based computation. Extension generates histories through execution, merge reconciles concur-
+rent or divergent histories, and reduction produces derived representations suitable for analysis
+and control. The interaction of these operations is sufficient to generate the space of executable
+systems considered in this framework.
+3.1
+History Extension
+Execution is the irreversible extension of an event history.
+Definition 6 (History Extension). Let H be a history and e an event. The extension operator
+extend(H, e)
+9
+
+produces a new history
+H′ = H · e.
+This operation represents the fundamental step of computation. Every observable transition
+in a system corresponds to the extension of its event history.
+Because extension is irreversible, histories grow monotonically.
+Principle 3 (Monotonic Growth). If H1 precedes H2 in execution, then H1 is a prefix of H2.
+This monotonicity guarantees that execution histories form a directed structure rather than
+a reversible trajectory.
+3.2
+History Merge
+Independent histories may be combined when their events are mutually consistent.
+Definition 7 (History Merge). Let H1 and H2 be histories that share a common prefix. A merge
+operation produces a history H3 that contains all events from both histories while preserving causal
+order.
+Formally, if
+H1 = H0 · A,
+H2 = H0 · B,
+then the merged history is a causal extension containing the events of both A and B.
+Merge therefore constructs a joint continuation of the two histories.
+This operation is central to distributed computation, version-control systems, and log-based
+architectures.
+3.3
+Compatibility
+Not all histories can be merged.
+Definition 8 (Compatibility). Two histories are compatible if their events can be combined without
+violating causal constraints or system invariants.
+Compatibility acts as the primary constraint on composition.
+If histories are incompatible, they cannot be merged directly; instead compensating events
+must be introduced.
+10
+
+3.4
+History Reduction
+The final primitive operation is reduction.
+Reduction compresses histories by discarding distinctions that are irrelevant for a given pur-
+pose.
+Definition 9 (History Reduction). A reduction is a mapping
+ρ : H →H′
+that preserves selected structural properties of a history while discarding others.
+Reductions include a wide range of familiar operations that derive compact representations
+from underlying execution histories. Examples include the generation of snapshots that sum-
+marize the configuration of a system at a particular point in its evolution, the construction of
+state representations that aggregate the effects of prior events, and the formation of higher-level
+abstractions that retain only those aspects of the history relevant for reasoning or control. Aggre-
+gation operations used in monitoring systems, database views, and analytical pipelines similarly
+produce condensed summaries of the underlying execution trace.
+Despite their practical importance, such operations do not introduce new structural informa-
+tion into the system. Instead, they operate by discarding portions of the causal structure encoded
+in the history. Formally, a reduction operator
+ρ : H →S
+maps histories to derived representations by compressing their internal structure while preserv-
+ing selected observables.
+The key observation is therefore that reductions do not generate new computational struc-
+ture. They remove information from existing histories by collapsing multiple distinct histories
+into a single representation. In this sense, reductions act as information-losing morphisms that
+project the detailed structure of execution histories into spaces of simplified descriptions. The
+structural complexity of the system remains entirely contained within the histories themselves,
+while reductions merely provide compressed views of that structure.
+3.5
+Abstraction as Reduction
+This leads to a reinterpretation of abstraction.
+Principle 4 (Abstraction as Reduction). An abstraction is a reduction of an event history that pre-
+serves only the distinctions relevant to a particular task.
+11
+
+Under this view, abstraction is not the creation of higher-level objects but the controlled loss
+of information.
+3.6
+Kernel Sufficiency
+These three operations—extension, merge, and reduction—are sufficient to construct the compu-
+tational structures observed in real systems.
+Execution produces histories.
+Composition merges histories.
+Abstraction reduces histories.
+From these operations arise deterministic replay, distributed consensus mechanisms, ver-
+sioned data structures, and reproducible computation.
+The remainder of the essay explores the consequences of this minimal kernel.
+4
+Determinism and Replayability
+Once computation is defined in terms of event histories, determinism can be reformulated in a
+more precise way.
+Traditional models treat determinism as a property of state-transition functions. A program
+is deterministic if the same state always produces the same next state.
+Within the event-historical framework, determinism is instead a property of replay.
+4.1
+Deterministic Replay
+Definition 10 (Replay). Given a history
+H = (e1, e2, . . . , en),
+replay is the process of re-executing the sequence of events in order to reconstruct the system state.
+Replay reconstructs a system by applying each event in the order specified by the history.
+Definition 11 (Replay Determinism). A system is replay-deterministic if identical histories always
+produce identical derived states.
+In other words, determinism arises when the projection
+σ : H →S
+is stable under replay.
+12
+
+4.2
+State as a Derived Cache
+Within this perspective, state is best understood as a cache derived from history.
+A snapshot can be generated by replaying the entire history, but systems often store partial
+summaries in order to accelerate this reconstruction.
+These summaries do not replace history; they merely compress it.
+If the cache becomes inconsistent, the system can recover by replaying the underlying event
+log.
+4.3
+Causal Correctness
+Replayability ensures that the causal ordering of events is preserved.
+If events are executed out of order or omitted, the resulting state may diverge from the one
+produced by the original history.
+Thus correctness is defined not by the final state alone but by the validity of the event sequence
+that generated it.
+Principle 5 (Causal Correctness). A system state is valid only if it can be reproduced by replaying
+a compatible event history.
+4.4
+Failure Recovery
+The replay model also provides a natural mechanism for recovery.
+If a system crashes or loses derived state, the history remains sufficient to reconstruct the
+system.
+Distributed systems, transaction logs, and append-only ledgers already employ this principle.
+In these architectures, durability resides in the event history rather than in the current state.
+4.5
+Determinism Without Global Synchronization
+Replayability allows deterministic outcomes even in systems where events occur concurrently.
+If the causal relations between events are preserved, the final reconstructed state remains
+stable.
+Thus determinism does not require a single global clock or centralized control. It requires
+only that the history preserve causal ordering constraints.
+13
+
+4.6
+Implications
+The event-historical view reframes determinism as a property of execution history rather than
+of instantaneous states.
+Deterministic systems therefore become those whose histories can be faithfully recorded and
+replayed.
+This principle underlies modern architectures such as event sourcing, distributed logs, and
+reproducible build systems.
+In the next section we examine how composition arises from the merging of compatible his-
+tories.
+5
+Composition Through History Merge
+Traditional programming models treat composition as the combination of objects or modules.
+Systems are assembled by placing components inside larger containers.
+Within an event-historical framework, composition is not a matter of containment. It is the
+construction of a shared history.
+Programs compose when their histories are merged.
+5.1
+Branching Histories
+Execution frequently produces divergent histories.
+Let H0 be a common prefix and suppose two execution paths extend it:
+H1 = H0 · A
+H2 = H0 · B
+where A and B are sequences of events.
+These histories represent two branches of execution.
+5.2
+Merge as Joint Extension
+Composition occurs when these branches are reconciled.
+Definition 12 (History Merge). Given compatible histories H1 and H2 with a common prefix H0, a
+merge constructs a history
+H3 = H0 · A ∪B
+that preserves the causal ordering of events in both branches.
+14
+
+The resulting history is a joint continuation that incorporates the contributions of both branches.
+5.3
+Causal Preservation
+A valid merge must preserve the causal ordering within each history.
+If event ei precedes ej in H1, the same ordering must hold in the merged history.
+Principle 6 (Causal Preservation). Merge operations must preserve the partial ordering of events
+present in each contributing history.
+This condition ensures that merged histories remain replayable.
+5.4
+Conflict and Compensation
+Not all histories are directly compatible.
+If two branches introduce contradictory events, a merge requires additional events that rec-
+oncile the conflict.
+Rather than deleting events, systems introduce compensating actions that restore consistency.
+This preserves the irreversibility of the history.
+5.5
+Operational Mereology
+This interpretation provides an alternative to set-theoretic mereology.
+In classical mereology, wholes are defined by membership relations among parts.
+In an operational framework, wholes are defined by construction history.
+A composite system is therefore the result of merging the histories of its contributing pro-
+cesses.
+5.6
+Examples
+The form of composition described by the history algebra appears in a wide range of computa-
+tional systems whose behavior is organized around the accumulation and reconciliation of event
+histories.
+Distributed version-control systems provide a particularly clear illustration. In systems such
+as Git, the evolution of a repository is represented as a directed acyclic graph of commits. Each
+commit corresponds to an event that extends a prior history, while merge commits reconcile
+divergent branches by constructing a new history that incorporates multiple predecessors. The
+repository structure therefore emerges from the composition of histories rather than from the
+modification of a single mutable object.
+15
+
+A closely related structure appears in conflict-free replicated data types (CRDTs), where repli-
+cas maintain operation logs that grow monotonically over time. Updates are propagated among
+replicas through merge operations that combine histories while preserving causal ordering. The
+resulting convergence properties arise directly from the join-semilattice structure imposed on
+these histories.
+Collaborative editing systems exhibit the same pattern at the level of user interaction. Individ-
+ual edits are recorded as operations that extend a shared document history. When multiple users
+edit concurrently, their independent histories are reconciled through merge procedures that pre-
+serve the causal relationships among operations while producing a coherent continuation of the
+document.
+Event-sourced architectures adopt a similar principle in the design of large-scale software
+systems. Instead of storing mutable state directly, these systems record the sequence of events
+that produced that state. The system state is reconstructed by replaying the event history, and
+divergent histories can be reconciled by combining their logs.
+Across these diverse domains, system structure arises through the composition and reconcil-
+iation of histories. Objects and states appear only as derived reductions of these histories, while
+the underlying execution trace remains the primary carrier of causal structure.
+5.7
+Composition Without Global Control
+Because merges operate on histories rather than global states, composition does not require cen-
+tral coordination.
+Independent processes can extend their local histories and later reconcile them through merge
+operations.
+This property allows large systems to scale without imposing a single controlling authority.
+5.8
+Summary
+Within the minimal operational kernel, composition is defined as the merge of compatible event
+histories.
+Programs do not combine by nesting objects. They combine by reconciling the histories of
+their execution.
+6
+Abstraction as Reduction
+If execution constructs histories and composition merges them, then abstraction must be under-
+stood as an operation on those histories.
+16
+
+Traditional programming theory often treats abstraction as the introduction of new concep-
+tual entities: types, classes, modules, interfaces, and other structural constructs.
+Within the event-historical framework, abstraction is not generative. It is reductive.
+Abstraction discards distinctions in a history while preserving those relevant to a given pur-
+pose.
+6.1
+Reduction Operators
+Definition 13 (History Reduction). A reduction is a mapping
+ρ : H →H′
+that transforms an event history H into a reduced representation H′ by removing information while
+preserving selected structural relations.
+Reductions may collapse multiple events into a single summary, discard ordering relations, or
+eliminate distinctions that are irrelevant for a particular task.
+6.2
+State as a Reduction
+The most familiar example of reduction is the construction of system state.
+A snapshot summarizes a history by retaining only the information necessary to describe the
+system at a particular moment.
+Formally, the state projection
+σ : H →S
+is a reduction from the event history into a state space.
+This projection discards the sequence of events that produced the state.
+6.3
+Layered Abstractions
+Within the event-historical framework, multiple reductions may be applied to the same under-
+lying history in order to derive distinct representations of the system. Each reduction selects
+and preserves particular structural properties of the execution trace while discarding others. The
+resulting representations therefore differ in the information they retain, even though they are
+derived from the same underlying history.
+For example, a single execution history within a computational environment may be reduced
+to produce a filesystem snapshot that summarizes the persistent storage state of the system. The
+same history may also be reduced to generate a database view reflecting the current contents of
+17
+
+structured data stores, a monitoring representation summarizing resource utilization and opera-
+tional metrics, or an audit report capturing security-relevant transitions and policy events. Each
+of these representations is constructed through a distinct reduction operator applied to the same
+history.
+These derived structures should not be interpreted as independent states of the system. In-
+stead, they represent different projections of a common execution trace. Each projection pre-
+serves those aspects of the history relevant to a particular analytical or operational purpose while
+compressing or discarding other details.
+From this perspective, the multiplicity of system representations encountered in practice does
+not imply the existence of multiple underlying realities. Rather, it reflects the existence of multiple
+reductions applied to a single evolving history. Layered abstractions therefore emerge as different
+informational views of the same event-historical substrate.
+6.4
+Information Loss
+Reduction operators inevitably introduce information loss. Formally, let
+ρ : H →S
+be a reduction mapping histories to a space of derived representations. Because ρ discards struc-
+tural information about the internal ordering of events, it is generally not injective.
+Consequently, distinct histories may collapse to the same reduced representation. That is,
+there may exist histories H1, H2 ∈H with
+H1 ̸= H2
+such that
+ρ(H1) = ρ(H2).
+This property expresses the fundamental loss of information produced by abstraction.
+Principle 7 (Irreversibility of Reduction). For histories H1, H2 ∈H,
+ρ(H1) = ρ(H2) ̸⇒H1 = H2.
+In other words, reductions cannot generally be inverted. Once the detailed ordering and struc-
+ture of a history have been compressed into a reduced representation, that information cannot
+be uniquely recovered from the reduction alone.
+18
+
+Abstraction therefore functions as a compression mechanism that maps large execution his-
+tories into representations suitable for reasoning, monitoring, or control while sacrificing some
+portion of the original structural information.
+6.5
+Compression and Computation
+The use of reductions serves an important practical role in computational systems. Execution
+histories may grow arbitrarily large as events accumulate over time, making direct reasoning
+over the full history expensive or infeasible. Reduction operators therefore provide compressed
+representations that preserve selected properties of the history while discarding detail that is
+irrelevant for a particular computational task.
+These compressed representations enable systems to perform analysis, coordination, and
+decision-making over tractable summaries of their execution. However, the reduced structures
+do not replace the underlying histories. Instead, they function as projections whose validity ulti-
+mately depends upon the histories from which they were derived.
+When ambiguities or inconsistencies arise within a reduced representation, the system may
+revert to the original history and reconstruct the desired state through replay. In this sense, the
+history remains the authoritative source of information, while reductions provide computation-
+ally convenient views that enable efficient reasoning about the system's behavior.
+6.6
+Algorithmic Compression of Histories
+The relationship between abstraction and information loss can be examined more precisely by
+considering the algorithmic compressibility of execution histories.
+Let H ∈H denote a finite history consisting of an ordered sequence of events. A universal
+interpreter U may be viewed as a mechanism that reconstructs histories from descriptions. A
+program p generates the history H if
+U(p) = H.
+The algorithmic complexity of the history may then be defined as
+K(H) =
+min
+p:U(p)=H |p|,
+where |p| denotes the length of the description p.
+This quantity measures the shortest description capable of reconstructing the history through
+execution.
+19
+
+Reductions can be interpreted as approximations to this compression process. A reduction
+operator
+ρ : H →S
+maps a history to a representation that preserves certain structural properties while discard-
+ing others. In many cases the reduced representation may be viewed as a description whose
+length is significantly smaller than the full history.
+However, unlike the minimal description defined by algorithmic complexity, reductions are
+typically designed to preserve particular observables rather than to minimize description length
+globally.
+Consequently, the reduced representation should be understood as a constrained compression
+of the history rather than an optimal one.
+From this perspective, abstraction functions as a computationally tractable approximation to
+the compression of execution histories. Systems reason about reduced descriptions of their past
+behavior, while the full history remains available for reconstruction when additional detail is
+required.
+This relationship between histories and their descriptions further clarifies the role of replay.
+Because the history itself constitutes the most complete description of the system's evolution,
+any reduced representation ultimately derives its validity from the ability to reconstruct behavior
+through the replay of the underlying events.
+6.7
+Abstraction as Information Geometry
+From a structural perspective, reductions define a mapping from a high-dimensional history space
+to a lower-dimensional representation.
+Different abstractions correspond to different projections of this space.
+Thus abstraction can be interpreted as a geometric operation that reduces dimensionality
+while preserving selected invariants.
+6.8
+Summary
+Within the minimal operational kernel, abstraction is understood as the reduction of event histo-
+ries.
+Execution extends histories.
+Composition merges histories.
+Abstraction reduces histories.
+20
+
+Together these operations provide a unified account of computation in which state, structure,
+and meaning all arise from the manipulation of irreversible execution histories.
+7
+The Algebra of Histories
+Once execution histories are treated as the primitive structure of computation, they exhibit a
+natural algebraic organization.
+This organization arises from the three kernel operations: extension, merge, and reduction.
+7.1
+Prefix Ordering
+Histories are ordered by extension.
+Definition 14 (Prefix Order). Given two histories H1 and H2, we say that
+H1 ⪯H2
+if H1 is a prefix of H2.
+This relation defines a partial order over the set of all histories.
+Proposition 1. The set of event histories equipped with the prefix relation forms a partially ordered
+set.
+Intuitively, one history precedes another when it represents an earlier stage of execution.
+7.2
+Monotonic Growth
+Execution always moves forward in this ordering.
+Principle 8 (Monotonic Execution). If an event e extends history H to H′, then
+H ⪯H′.
+This property ensures that computation cannot erase history; it can only extend it.
+7.3
+Merge Semilattice
+Compatible histories admit a merge operation.
+21
+
+Definition 15 (History Join). Given compatible histories H1 and H2, their merge is the least history
+H3 such that
+H1 ⪯H3
+H2 ⪯H3.
+This operation corresponds to the join in a semilattice.
+Proposition 2. The set of compatible histories equipped with the merge operator forms a join-semilattice.
+The merged history represents the smallest history containing both branches.
+7.4
+Concurrency
+Because histories are partially ordered rather than strictly sequential, independent events may
+occur in different orders without affecting the resulting state projection.
+Such events are concurrent.
+Definition 16 (Concurrent Events). Events ei and ej are concurrent if neither
+ei ≤ej
+nor
+ej ≤ei.
+Concurrency therefore corresponds to independence in the causal ordering.
+7.5
+Reduction Morphisms
+Reductions act as structure-preserving mappings between histories.
+Definition 17 (Reduction Morphism). A reduction ρ is a mapping between histories that preserves
+causal relations among retained events.
+These mappings compress histories while maintaining the ordering relations necessary for
+replay.
+7.6
+Derived Structure
+The preceding analysis implies that the space of histories admits a well-defined algebraic struc-
+ture. Histories are organized by a prefix partial order in which one history is considered less
+than or equal to another when it constitutes an initial segment of that history. This ordering rela-
+tion captures the causal containment of execution traces and provides the fundamental temporal
+structure of the system.
+Within this ordered space, execution corresponds to a monotonic extension operator that
+appends new events while preserving the ordering constraints of prior transitions. Histories
+22
+
+therefore evolve through the irreversible accumulation of events whose effects propagate through
+the existing causal structure. When independent histories are compatible, they may be combined
+through a join-like operation that constructs a minimal history containing both as substructures
+while preserving their causal ordering.
+In addition to these growth operations, the algebra admits reduction morphisms that map
+histories to compressed representations such as states, snapshots, or higher-level abstractions.
+These reductions discard information about intermediate transitions while preserving selected
+structural properties of the underlying execution trace.
+Taken together, these components define a computational structure whose behavior closely
+resembles that of systems already encountered in practice, including distributed append-only
+logs, version-control graphs, and event-sourced architectures. In each of these settings, system
+evolution is governed by the monotonic extension of histories, the reconciliation of compatible
+branches, and the projection of histories into derived representations.
+7.7
+Interpretation
+The algebraic structure described above demonstrates that the event-historical kernel is not merely
+a conceptual reformulation of computation. Instead, it corresponds directly to mathematical
+structures that already appear in the design of large-scale computational systems.
+Modern distributed infrastructures routinely employ append-only logs, causal histories, and
+merge-based reconciliation mechanisms in order to maintain consistency across independent
+replicas. Similarly, version-control systems encode the evolution of software artifacts as directed
+graphs of commits, while event-sourced architectures treat persistent event histories as the au-
+thoritative record from which system state is derived.
+What distinguishes the present framework is not the existence of these structures themselves,
+but the interpretive shift in which they are regarded as foundational rather than incidental. In
+conventional models, such mechanisms are typically understood as implementation techniques
+layered upon an underlying state-based semantics. Within the event-historical kernel, by con-
+trast, histories are treated as the primary objects of computation, while states and abstractions
+arise only as reductions of those histories.
+This perspective therefore repositions a class of practical engineering patterns as manifesta-
+tions of a more general algebra of execution, suggesting that the operational behavior of large-
+scale computational systems reflects deeper structural principles of history-based computation.
+23
+
+7.8
+Formalization of the History Algebra
+The structures described informally above can be expressed more precisely by introducing a min-
+imal algebra of histories. Let H denote the set of all admissible histories generated by a compu-
+tational system.
+7.8.1
+History Poset
+Histories are ordered by a prefix relation capturing causal containment. For histories H1, H2 ∈H
+we write
+H1 ≤H2
+when H1 is a prefix of H2, meaning that the sequence of events constituting H1 appears as
+an initial segment of the events of H2 while preserving causal ordering.
+The pair (H, ≤) therefore forms a partially ordered set in which earlier histories represent
+causal substructures of later ones.
+7.8.2
+Extension Operator
+Execution corresponds to the monotonic extension of histories. Let E denote the set of admissible
+events. The extension operator is a partial function
+ext : H × E →H
+such that if H′ = ext(H, e) then
+H ≤H′.
+This operator appends event e to history H while preserving the causal constraints required
+for the event to occur. Because extension always produces a larger history, execution is mono-
+tonic with respect to the prefix ordering.
+7.8.3
+Merge and Join
+When two histories are compatible—meaning that their events do not violate causal constraints—
+they may be combined through a merge operation.
+Formally, if H1 and H2 are compatible histories, their merge is defined as a least upper bound
+H1 ⊔H2
+24
+
+satisfying
+H1 ≤H1 ⊔H2,
+H2 ≤H1 ⊔H2,
+and for any history H such that H1 ≤H and H2 ≤H,
+H1 ⊔H2 ≤H.
+The merge therefore acts as a join operation over compatible histories. When defined for all
+compatible pairs, the space of histories forms a join-semilattice.
+7.8.4
+Reduction Morphisms
+Many computational systems maintain derived representations of histories in the form of states,
+snapshots, or summaries. These representations can be modeled as reduction morphisms
+σ : H →S,
+where S is a space of reduced representations.
+A reduction discards some information about the internal structure of a history while pre-
+serving selected properties. Multiple histories may therefore map to the same reduced state:
+σ(H1) = σ(H2)
+even when H1 ̸= H2.
+7.8.5
+Summary
+The resulting algebra consists of a history poset (H, ≤) equipped with a monotone extension
+operator, a join operation over compatible histories, and reduction morphisms mapping histories
+to derived representations. These structures together provide a minimal formal description of
+computation as the irreversible construction and transformation of event histories.
+7.9
+Fundamental Properties
+The algebra of histories admits several structural properties that follow directly from the defini-
+tions introduced above. These properties clarify how determinism, convergence, and reconstruc-
+tion arise within the event-historical kernel.
+25
+
+Theorem 1 (Deterministic Replay). Let H ∈H be a history and let σ : H →S be a reduction oper-
+ator that reconstructs a state representation from the history. If the event semantics are deterministic,
+then replaying the events of H produces a unique state σ(H).
+Proof. Replay reconstructs the system state by applying the events of H in causal order starting
+from an initial configuration. Because the semantics of each event are deterministic and because
+the causal ordering of H is preserved by the prefix relation, each event produces a uniquely de-
+termined transformation of the intermediate configuration. The sequential application of these
+transformations therefore produces a unique final configuration. Consequently the mapping
+σ(H) is well-defined and deterministic.
+Theorem 2 (Monotonic Extension). For any history H and admissible event e such that H′ =
+ext(H, e) is defined, the prefix ordering satisfies
+H ≤H′.
+Proof. By definition, the extension operator appends event e to the existing sequence of events in
+H while preserving their causal ordering. The resulting history therefore contains H as a prefix.
+Hence H ≤H′.
+Theorem 3 (Merge Convergence). Let H1 and H2 be compatible histories. If the join operation
+H1 ⊔H2 exists, then the merged history is the least upper bound of the pair under the prefix ordering.
+Proof. Compatibility implies that the events of H1 and H2 do not violate each other's causal
+constraints. The merge operation constructs a history containing both histories as prefixes while
+preserving causal ordering. Any history containing both H1 and H2 must contain at least the
+events present in their merge. Therefore the merge constitutes the least upper bound under the
+prefix order.
+7.10
+Interpretation
+These properties illustrate that deterministic replay, monotonic execution, and merge-based con-
+vergence are not independent engineering techniques but structural consequences of the his-
+tory algebra itself. Systems built upon event logs, distributed histories, and append-only struc-
+tures therefore inherit these properties directly from the algebraic organization of their execution
+traces.
+The operational kernel described in this work can thus be understood as a minimal formal
+structure in which computation is modeled as the irreversible construction and reconciliation of
+histories subject to causal constraints.
+26
+
+8
+Time, Causality, and Irreversibility
+If computation is defined as the irreversible extension of event histories, then temporal structure
+arises naturally from the ordering relations within those histories.
+Rather than treating time as an independent dimension, the framework interprets time as a
+property of execution.
+8.1
+Time as History Length
+The simplest notion of time corresponds to the growth of a history.
+Definition 18 (Execution Time). The execution time of a history H is the length of its event sequence.
+t(H) = |H|
+Each extension of the history advances time by one step.
+In partially ordered histories, time corresponds to the depth of the causal structure rather
+than a global clock.
+8.2
+Causality
+Causality emerges from the ordering relation defined over events.
+Definition 19 (Causal Relation). Event ei causally precedes event ej if
+ei ≤ej
+within the history poset.
+This ordering captures the dependency relations that govern execution.
+If two events are incomparable in the ordering, they may occur independently.
+8.3
+Irreversibility
+The extension operator is inherently irreversible.
+Once an event has been appended to a history, it cannot be removed without introducing
+additional events that compensate for its effects.
+Principle 9 (Historical Irreversibility). Execution histories grow monotonically and cannot be re-
+duced without loss of information.
+This property distinguishes event-historical systems from reversible state-transition models.
+27
+
+8.4
+Entropy and Information Loss
+Reductions introduce a second and distinct form of irreversibility within the event-historical
+framework. Whereas execution produces irreversibility through the monotonic accumulation
+of events, abstraction produces irreversibility through the loss of information about the history
+from which a representation was derived.
+When a history is reduced to a state, snapshot, or higher-level abstraction, the resulting repre-
+sentation preserves only a subset of the structural information contained in the original execution
+trace. The ordering of events, the intermediate configurations encountered during execution, and
+the causal structure that produced the final configuration may all be partially or completely dis-
+carded. Multiple distinct histories may therefore collapse to the same reduced representation.
+Two forms of irreversibility therefore coexist within the operational kernel. The first arises
+from execution itself, in which events accumulate irreversibly to extend a history. The second
+arises from abstraction, in which reductions compress histories by discarding information about
+the sequence of transitions that produced a configuration. These two processes operate simul-
+taneously: histories grow through execution while representations of those histories become
+progressively more coarse through reduction.
+This dual structure closely resembles the relationship between microscopic dynamics and
+macroscopic description in thermodynamic systems. At the microscopic level, transitions accu-
+mulate through local interactions that preserve detailed causal structure. At the macroscopic
+level, thermodynamic variables summarize the system by discarding the majority of that detail.
+The increase of entropy in such systems reflects the growth of possible microscopic histories
+consistent with a given macroscopic state.
+Within the event-historical kernel, reductions play an analogous role. As histories are com-
+pressed into states or abstractions, the number of distinct histories compatible with a given rep-
+resentation increases. The loss of information produced by reduction therefore functions as a
+computational analogue of entropy, reflecting the growing indeterminacy of the underlying exe-
+cution histories once their detailed structure has been discarded.
+8.5
+The Arrow of Execution
+Within the event-historical framework, the direction of time is naturally identified with the direc-
+tion in which histories extend. A computation is not a traversal through a fixed space of states
+but the progressive construction of an execution history through the accumulation of events.
+Each event appends new structure to the history while preserving the causal ordering of prior
+transitions.
+This monotonic extension induces a natural temporal orientation. If H1 ≤H2 denotes that
+28
+
+history H2 extends H1 by the addition of further events, then the ordering relation defines a par-
+tial temporal structure over histories. Valid computations therefore proceed only in the direction
+of increasing histories. The arrow of execution corresponds to this monotone growth of causal
+structure.
+Attempts to "reverse" execution do not actually undo events within the system. Instead, they
+require selecting an earlier prefix of the history and re-executing the subsequent computation
+from that point. The underlying history itself remains irreversible; what appears as reversal is
+merely the construction of a new extension that begins from a previously recorded prefix.
+8.6
+Replay and Reconstruction
+Because execution histories are preserved, past states of the system may be reconstructed through
+replay. Given a history H and a projection operator σ(H) that derives a state representation
+from that history, replay corresponds to the reconstruction of σ(H) by sequentially reapplying
+the events recorded in the history.
+Importantly, this process does not reverse the system's evolution. Replay merely reconstructs
+earlier configurations that were produced during the growth of the history. The system itself
+continues to evolve through the monotonic extension of its execution trace.
+The relationship between replay, reduction, and information loss may be expressed more
+precisely through an entropy-like quantity defined over reduced representations of histories. If
+σ(H) denotes a reduction of the history H into a state representation, the number of distinct
+histories compatible with that reduction may be written as
+Ω(σ(H)) = |{H′ | σ(H′) = σ(H)}| .
+An entropy associated with the reduction can then be defined as
+S(σ(H)) = log Ω(σ(H)).
+This quantity measures the multiplicity of execution histories that collapse to the same re-
+duced state. As reductions discard information about causal ordering and intermediate transi-
+tions, the number of histories consistent with a given representation increases. The entropy
+therefore reflects the degree of indeterminacy introduced by abstraction.
+Within this formulation, execution irreversibility and abstraction irreversibility interact in a
+manner analogous to microscopic and macroscopic dynamics in thermodynamic systems. Histo-
+ries grow through the irreversible accumulation of events, while reductions coarse-grain those
+histories into representations that discard detail. Replay allows the reconstruction of earlier con-
+figurations, but the underlying history continues to extend forward, preserving the arrow of
+29
+
+execution.
+8.7
+Interpretation
+The event-historical kernel developed in the preceding sections provides a unified interpretation
+of temporal structure within computational systems. Rather than treating time, causality, and
+irreversibility as independent primitives that must be introduced through external assumptions,
+the kernel demonstrates that these properties arise naturally from the algebraic structure of exe-
+cution histories.
+Within this framework, time is not modeled as an independent dimension in which compu-
+tation unfolds. Instead, temporal structure emerges from the monotonic extension of histories
+through the accumulation of events. The ordering relation defined over histories induces a partial
+temporal structure in which earlier events are those contained within the prefixes of later histo-
+ries. The progression of time therefore corresponds directly to the growth of execution histories
+themselves.
+Causal structure likewise arises from the ordering relations that constrain the extension of
+histories. Events are not merely arranged sequentially but are linked by relations that record the
+dependencies required for their occurrence. The resulting partial order captures the propagation
+of constraints through the system and provides the foundation for deterministic replay and re-
+producibility. In this sense, causality is not an external principle governing computation but a
+structural property of the histories through which computation is realized.
+Irreversibility follows from two distinct but related features of the kernel. The first arises
+from the monotonic growth of histories: once an event has been incorporated into a history, it
+cannot be removed without constructing a new history that explicitly records the compensating
+transition. The second arises from reductions that compress histories into states or abstractions
+by discarding information about the intermediate transitions that produced them. These reduc-
+tions introduce an additional form of irreversibility by collapsing multiple distinct histories into
+a single representation.
+Taken together, these properties demonstrate that the temporal asymmetries observed in com-
+putational and physical systems do not require independent axiomatic assumptions. They emerge
+directly from the algebra of histories defined by the event-historical kernel. Time, causality, and
+irreversibility therefore appear not as external constraints imposed upon computation, but as
+structural consequences of the irreversible construction process through which systems evolve.
+30
+
+8.8
+Event Histories and Local Constraint Systems
+The event-historical kernel described above is not merely a computational abstraction. Systems
+with similar structure appear in statistical physics, particularly in lattice models such as the Ising
+system.
+In the Ising model, a lattice is composed of sites indexed by i, each of which carries a local
+spin variable
+si ∈{−1, +1}.
+The energy of the lattice configuration is determined by a Hamiltonian of the form
+E = −J
+∑
+⟨i,j⟩
+sisj −h
+∑
+i
+si,
+where J represents the coupling between neighboring sites, h represents an external field,
+and ⟨i, j⟩denotes neighboring lattice pairs.
+The configuration of the lattice evolves through local spin updates. Each update changes the
+spin at a site and thereby modifies the interaction energies with neighboring sites.
+8.8.1
+Spin Flips as Events
+Within the event-historical framework, each spin flip can be interpreted as an event
+ek = (ik, ∆sik),
+where ik denotes the lattice site and ∆sik is the change in the local spin.
+An execution history of the lattice therefore takes the form
+H = (e1, e2, . . . , en),
+representing the sequence of spin updates that produced the current configuration.
+8.8.2
+State as Derived Configuration
+The instantaneous lattice configuration can be recovered by replaying this sequence of events
+from an initial configuration.
+Thus the spin state vector
+s = (s1, s2, . . . , sN)
+31
+
+is a derived state obtained through the projection
+σ(H) = s.
+The configuration itself therefore does not contain the complete causal information of the
+system; it is a reduction of the underlying event history.
+8.8.3
+Constraint Propagation
+Each spin flip modifies the local energy landscape of the system. When a site changes state, the
+interaction energies with its neighbors are altered.
+This change constrains which future spin flips are energetically favorable or even possible.
+Execution therefore proceeds through a sequence of events in which each event reshapes the
+constraints governing subsequent events.
+8.8.4
+Material Reordering
+From this perspective, the lattice may be interpreted as a physical substrate whose set of available
+transitions is continually reorganized by prior actions. Rather than representing a static collec-
+tion of possible states, the structure evolves as events modify the local configuration of relations
+among components. Each event therefore alters the material conditions under which subsequent
+transitions may occur, effectively reshaping the landscape of allowable operations.
+In such systems, execution is inseparable from the process by which the system reorders the
+resources available to it. Local events do not merely advance a computation; they also transform
+the constraints that govern future activity. The causal ordering of events thus reflects the propa-
+gation of interaction constraints across the structure of the system. What appears externally as a
+sequence of operations is internally a progressive reconfiguration of the relations that define the
+system's permissible dynamics.
+This interpretation aligns directly with the event-historical kernel developed earlier. Execu-
+tion proceeds through the irreversible extension of histories by locally constrained events whose
+ordering records the propagation of interaction constraints. The configurations that appear as
+observable states of the system are therefore reductions of the underlying event history, summa-
+rizing the cumulative reordering produced by prior transitions.
+Under this interpretation, computation is not the traversal of a pre-existing space of states but
+a process of material reorganization in which each event reshapes the structure of possibilities
+available to the system.
+32
+
+8.8.5
+Interpretation
+The Ising system therefore provides a concrete physical analogue of the kernel structure devel-
+oped earlier.
+Rather than evolving through abstract state transitions, the lattice evolves through the irre-
+versible accumulation of local events whose effects propagate through neighboring constraints.
+The instantaneous configuration of the lattice is thus best understood as a compressed de-
+scription of its execution history.
+This correspondence suggests that the event-historical kernel reflects a structural principle
+shared by both computational and physical systems: dynamics arise from the monotonic accu-
+mulation of locally constrained events.
+8.9
+Monotone Constraint Dynamics
+The correspondence between event histories and lattice dynamics can be made more precise by
+observing that both systems evolve through monotone constraint updates.
+Let H denote an execution history and let C(H) denote the set of constraints induced by that
+history. Each event modifies this constraint structure.
+Formally, if an event e extends the history,
+H′ = H · e,
+then the associated constraint set evolves according to
+C(H′) = F(C(H), e),
+where F updates the constraints generated by the system.
+8.9.1
+Constraint Monotonicity
+In many systems the constraint structure evolves monotonically.
+Principle 10 (Constraint Monotonicity). For histories H ⪯H′,
+C(H) ⊆C(H′).
+In other words, execution does not remove previously established constraints; it only intro-
+duces new ones or strengthens existing ones.
+33
+
+8.9.2
+Energy Interpretation
+This structure admits an energy-like interpretation analogous to that used in statistical physics.
+Let
+E(H)
+denote a scalar potential defined over histories. Execution tends to move the system toward
+configurations that reduce this potential.
+Each event therefore produces a change
+∆E = E(H′) −E(H).
+In Ising dynamics, spin flips are accepted when they reduce the system's energy or when
+thermal fluctuations permit a temporary increase.
+Similarly, execution histories evolve through events that locally reorganize constraints in
+ways that tend toward stable configurations.
+8.9.3
+Local Update Rule
+In lattice systems the update rule is local. A spin flip at site i affects only neighboring sites.
+This locality corresponds to the constraint update function F operating on a bounded region
+of the system.
+Thus the constraint evolution
+C(H′) = F(C(H), e)
+depends only on the local neighborhood of the event.
+8.9.4
+Descent Dynamics
+Under repeated execution, the system performs a form of constrained descent over the potential
+landscape.
+The history therefore traces a path through a configuration manifold governed by local inter-
+actions.
+This process is analogous to the relaxation dynamics of spin systems, where local updates
+gradually reduce the system's global energy.
+34
+
+8.9.5
+Structural Equivalence
+The comparison developed in the preceding sections reveals a structural correspondence between
+the event-historical kernel and classes of physical systems governed by local constraint dynamics.
+Although these domains are typically analyzed using different mathematical frameworks, their
+underlying organizational principles exhibit a striking degree of similarity when expressed in
+terms of histories and constraint propagation.
+In both cases, system evolution proceeds through local transitions that alter the configura-
+tion of neighboring components while preserving the causal ordering of prior interactions. Each
+transition introduces additional constraints into the system, and these constraints accumulate
+monotonically as execution progresses. The resulting dynamics are not arbitrary but are guided
+toward configurations that minimize inconsistencies among interacting elements, producing a
+gradual descent toward stable or metastable arrangements.
+Within the event-historical kernel, this process appears as the irreversible extension of his-
+tories through compatible events whose effects propagate across the structure of the system. In
+physical lattice models, an analogous process occurs through sequences of local state updates—
+such as spin flips in Ising-type systems—that progressively reorganize the configuration of the
+lattice under the influence of interaction potentials.
+From this perspective, the event history of a computational system plays a role closely analo-
+gous to the sequence of local updates that drive the dynamics of a constrained physical lattice. In
+both cases, the observable configuration at any moment can be interpreted as a reduction of the
+cumulative history of transitions that produced it. Execution therefore corresponds to a trajec-
+tory through a constrained energy landscape defined by the interactions among local components,
+with stability emerging as the system approaches configurations that satisfy the constraints im-
+posed by its structure.
+8.9.6
+Interpretation
+This correspondence suggests that the kernel describes not only a model of computation but a
+broader class of dynamical systems.
+In both computational and physical settings, structure emerges from the cumulative effects
+of locally constrained transitions.
+Histories record those transitions, and the resulting states represent compressed descriptions
+of the underlying execution path.
+35
+
+8.10
+History Lattices and Potential Functions
+The algebra introduced earlier can be refined further by observing that the space of histories
+forms a lattice-like structure equipped with a monotone potential.
+Each history represents a partially ordered sequence of events whose causal relationships
+constrain the set of possible extensions. When two compatible histories are combined through
+composition, the resulting structure preserves the ordering constraints of both inputs while pro-
+ducing a common continuation. This behavior resembles the join operation of a semilattice, in
+which compatible elements admit a least upper bound representing their combined information.
+Within this framework, histories can therefore be viewed as elements of a partially ordered
+space in which extension corresponds to monotonic growth. If H1 ≤H2 denotes that history H2
+extends H1 by the addition of further events, then the ordering relation captures the causal con-
+tainment of execution traces. The merge of compatible histories corresponds to the construction
+of a minimal history that contains both as substructures while preserving their causal ordering.
+This ordering admits the introduction of a potential function defined over histories. The po-
+tential measures the degree to which a history satisfies the constraints governing the system.
+Each event alters the potential by modifying the local configuration of constraints, and the evo-
+lution of execution can therefore be interpreted as a trajectory through the space of histories
+guided by this potential landscape.
+In many systems, the potential decreases as constraints become satisfied or inconsistencies are
+eliminated. Execution thus exhibits a form of constrained descent toward stable configurations
+in which further transitions no longer reduce the potential. These stable histories correspond to
+fixed points of the execution dynamics and appear externally as equilibrium states of the system.
+The introduction of a potential over the history lattice provides a bridge between computa-
+tional execution and physical models governed by local interaction energies. Just as spin sys-
+tems evolve through local updates that reduce an energy functional, event-driven systems evolve
+through transitions that reorganize the constraints of their histories. In both cases, the global
+structure of the system emerges from the cumulative effect of locally constrained transitions.
+8.10.1
+Join-Semilattice Structure
+Let H denote the set of all valid event histories.
+The prefix ordering relation
+H1 ⪯H2
+induces a partial order over H.
+When compatible histories admit a merge operation, this structure becomes a join-semilattice.
+36
+
+Definition 20 (History Join). For compatible histories H1 and H2, the join
+H1 ∨H2
+is the least history containing both histories as prefixes.
+Proposition 3. If merge operations are associative, commutative, and idempotent, then (H, ∨) forms
+a join-semilattice.
+These properties appear naturally in systems where histories accumulate monotonically and
+merges preserve causal structure.
+8.10.2
+Monotone Potential
+We now introduce a scalar function
+E : H →R
+which assigns a potential value to each history.
+This potential measures the degree to which the current configuration satisfies the system's
+constraints.
+Definition 21 (Monotone Potential). A potential function E is monotone if
+H1 ⪯H2 ⇒E(H2) ≤E(H1).
+Execution therefore tends to move the system toward histories with lower potential.
+8.10.3
+Local Descent
+If events modify the system only locally, then the change in potential depends only on a bounded
+region of the history.
+∆E = E(H · e) −E(H)
+is therefore determined by the local interaction structure associated with the event e.
+This condition mirrors the local update rules of lattice systems such as the Ising model.
+8.10.4
+Energy Landscape Interpretation
+The set of histories can therefore be interpreted as a configuration manifold over which the po-
+tential function E defines an energy landscape.
+37
+
+Execution corresponds to a trajectory through this landscape generated by successive events.
+Local updates modify the landscape by changing the constraints that govern future events.
+8.10.5
+Stability and Fixed Points
+Stable configurations arise when further events cannot reduce the system's potential.
+Definition 22 (Stable History). A history H is stable if no valid extension
+H′ = H · e
+exists such that
+E(H′) < E(H).
+Such histories correspond to fixed points of the execution dynamics.
+8.10.6
+Connection to Distributed Systems
+This structure closely resembles the semantics of conflict-free replicated data types (CRDTs), dis-
+tributed logs, and version-control graphs.
+In those systems, histories grow monotonically, merges form semilattice joins, and conver-
+gence arises from the algebraic properties of the merge operation.
+8.10.7
+Interpretation
+The event-historical kernel therefore admits a precise mathematical interpretation.
+Histories form a partially ordered semilattice, execution corresponds to monotone extension,
+and system dynamics can be interpreted as descent over a constraint-induced potential landscape.
+This structure appears in both computational architectures and physical systems governed by
+local interactions.
+9
+Unified Constraint-Driven Computation
+The minimal operational kernel introduced in this essay is not confined to a particular computa-
+tional paradigm. Rather, the structural principles that arise from the event-historical framework
+appear across a wide range of computational architectures and physical dynamical systems. Al-
+though these systems are typically studied within separate theoretical traditions, they exhibit a
+shared organizational pattern when interpreted through the lens of event histories and constraint
+propagation.
+38
+
+Within this perspective, execution is understood as the monotonic extension of histories
+through the occurrence of events whose effects accumulate irreversibly over time. Each event
+modifies the configuration of the system in a manner that reshapes the constraints governing
+subsequent transitions. Because these constraints arise through local interactions among compo-
+nents, the resulting dynamics propagate through the system incrementally rather than through
+centralized control. Divergent histories produced by independent activity may later be reconciled
+through merge operations that preserve the causal ordering of events while combining their ef-
+fects into a common continuation.
+As these locally constrained transitions accumulate, the system evolves toward configurations
+that satisfy the interaction constraints imposed by its structure. Stable states therefore emerge not
+as primary objects of computation but as reductions of the underlying execution history. From
+this standpoint, apparently distinct systems—ranging from distributed computing architectures
+to physical lattice models governed by local interactions—can be interpreted as instances of a
+broader class of constraint-driven processes whose behavior is determined by the irreversible
+accumulation of events and the propagation of constraints across their histories.
+9.1
+Deterministic Replay Systems
+Event-sourced computational architectures provide a clear illustration of the event-historical se-
+mantics developed in this essay. In such systems, the primary persistent structure is not a mutable
+state but an append-only log that records the sequence of events through which the system has
+evolved. Each entry in the log represents a discrete operation that extends the history of the
+system, and the cumulative sequence of these operations constitutes the authoritative record of
+its execution.
+Within this architectural model, the observable state of the system is not stored as a pri-
+mary object but instead is reconstructed by replaying the event log. The sequence of recorded
+events therefore corresponds directly to the history H described in the operational kernel. The
+reconstruction process itself is an instance of the projection mapping σ(H) that derives a state
+representation from the underlying history. Snapshots or checkpoints that are sometimes stored
+to accelerate recovery can be interpreted as reductions of this history, compressing the sequence
+of events into a summary that preserves the current configuration while discarding details of the
+intermediate transitions.
+Deterministic replay thus arises naturally within the event-historical framework. Because
+the system state is defined as a projection of the recorded history, identical histories necessarily
+produce identical derived states when replayed. The append-only structure of the event log en-
+sures that execution histories grow monotonically, while the replay mechanism guarantees that
+39
+
+the causal structure of execution remains recoverable even after failures or system restarts.
+9.2
+Distributed Convergence
+Distributed systems frequently rely on structural mechanisms that ensure convergence among
+replicas without requiring centralized coordination or a globally synchronized clock. A well-
+known example is the class of conflict-free replicated data types (CRDTs), which provide deter-
+ministic convergence across distributed nodes despite the presence of asynchronous communica-
+tion and independent local updates.
+In such systems, each replica maintains a history of operations whose structure grows mono-
+tonically over time. Local updates extend this history, while synchronization between replicas
+occurs through merge operations that reconcile divergent branches of execution. These merges
+behave algebraically as join operations over a semilattice, ensuring that the combined history
+preserves the information contained in each contributing branch. Because the merge operation
+is associative, commutative, and idempotent, repeated synchronization among replicas leads to
+eventual convergence even in the absence of global coordination.
+This behavior corresponds directly to the algebra of histories introduced earlier in the essay.
+Execution extends histories through irreversible events, replicas reconcile divergent branches
+through join-like merge operations, and the semilattice structure of the resulting histories guaran-
+tees that the system converges toward a consistent representation of the accumulated execution
+trace.
+9.3
+Version-Control Systems
+Distributed version-control systems provide a particularly transparent illustration of the event-
+historical structure described in the preceding sections. Systems such as Git organize program de-
+velopment not around mutable states but around an append-only history of commits that record
+successive modifications to a codebase.
+A repository in such a system is therefore most naturally understood as a directed acyclic
+graph of commits, where each commit represents a discrete event appended to the history of the
+project. Rather than replacing previous states, commits extend the historical trace of develop-
+ment, preserving the causal relationships among modifications. The present configuration of the
+repository is thus derived from the accumulated sequence of historical events rather than existing
+as an independent object detached from its construction.
+Branching within the repository corresponds to the divergence of execution histories. Inde-
+pendent lines of development extend a shared prefix of commits, producing distinct historical
+trajectories that evolve concurrently. Merge operations subsequently reconcile these trajectories
+40
+
+by constructing a new commit whose ancestry incorporates both branches while preserving their
+causal ordering.
+From the perspective developed in this essay, the commit graph therefore realizes the same
+algebra of histories that underlies the operational kernel. Commits correspond to events extend-
+ing the history, branches represent divergent extensions of a shared prefix, and merges act as
+join-like operations that reconcile compatible histories. The structure of the repository is thus
+not simply a data structure for storing code revisions but an explicit manifestation of the event-
+historical semantics through which the system evolves.
+9.4
+Constraint-Based Programming
+Constraint-based programming languages provide another illustration of the event-historical per-
+spective developed in this essay. Rather than specifying computation as a sequence of explicit
+state transitions, such languages describe systems in terms of relations that must hold among
+variables. The role of execution is therefore not to manipulate states directly but to progressively
+enforce and reconcile these relations until a configuration satisfying the specified constraints is
+obtained.
+Operationally, execution proceeds through a sequence of incremental updates in which local
+assignments are introduced, revised, or propagated in response to the constraints that govern
+the system. Each update modifies the set of admissible configurations and therefore reshapes the
+space of possible future transitions. The system evolves through a process in which constraints
+propagate through the network of variables until the resulting configuration stabilizes.
+Within the framework proposed here, this behavior can be interpreted as a trajectory through
+the lattice of event histories introduced earlier. Each constraint propagation step corresponds to
+an event extending the history, while the compatibility conditions imposed by the constraint
+system determine which extensions are admissible. The potential function associated with the
+constraint structure guides execution toward configurations that minimize inconsistency and
+satisfy the specified relations.
+Seen from this perspective, constraint-based computation does not simply search through
+a state space but instead constructs a history of constraint-enforcing events whose cumulative
+effects determine the eventual configuration of the system. The final solution thus emerges as
+a stable reduction of the underlying execution history rather than as a primitive state reached
+through direct transitions.
+9.5
+Physical Constraint Systems
+The same structural principles appear in physical systems governed by local interactions.
+41
+
+In lattice models such as the Ising system, each local update modifies the constraints imposed
+on neighboring components.
+Execution therefore proceeds through a sequence of local events that reshape the space of
+possible future transitions.
+Stable configurations correspond to local minima in the associated energy landscape.
+9.6
+Common Structure
+Despite their apparent differences, these systems share a common mathematical foundation. In
+each case the underlying structure may be interpreted as a partially ordered space of histories
+whose elements represent irreversible sequences of events. Execution corresponds to the mono-
+tonic extension of these histories, while composition arises through merge operations that behave
+as join constructions in a semilattice-like structure. Abstraction, in turn, acts as a reduction map-
+ping that compresses histories into derived representations such as states, summaries, or other
+forms of observational projection.
+Viewed in this way, the systems discussed above are not isolated technical solutions but man-
+ifestations of the same underlying algebraic organization. Histories grow through extension,
+divergent branches are reconciled through join-like merges, and the resulting structures are in-
+terpreted through reductions that discard information about the execution trace while preserving
+those distinctions relevant to a given purpose.
+This shared structure reveals a deep unity among systems that are typically studied within
+separate domains of computer science and physics. Distributed logs, version control graphs,
+constraint-solving processes, and lattice dynamics governed by local interactions all exhibit vari-
+ants of the same operational pattern: the monotonic accumulation of events whose histories
+determine the configuration of the system at any moment.
+9.7
+Interpretation
+The event-historical kernel therefore provides a minimal ontology of computation.
+Rather than treating programs as transformations between states, the kernel interprets com-
+putation as the irreversible construction of histories under constraint.
+State, structure, and abstraction all emerge as reductions of those histories.
+This perspective aligns computational theory with the dynamics of physical systems in which
+structure arises from the cumulative effects of locally constrained transitions.
+42
+
+10
+Conclusion
+This essay has proposed a minimal operational kernel for the interpretation of computation in
+which the fundamental structure of a system is not a static state but the irreversible history of
+events through which the system has been constructed. Traditional models of computation have
+generally described programs as transformations between well-defined states. While this per-
+spective has yielded powerful formal tools, it necessarily compresses the temporal and causal
+structure of execution into a sequence of abstract snapshots. Such compression obscures the pro-
+cesses by which systems actually evolve and removes from view the irreversible accumulation of
+events that produces observable behavior.
+The framework developed here reverses this perspective by treating event histories as the
+primary objects of computation. Within this view, execution is understood as the monotonic
+extension of histories through the occurrence of events, composition arises through the reconcil-
+iation and merging of compatible histories while preserving their causal ordering relations, and
+abstraction appears as the reduction of histories through the controlled loss of information. These
+operations together form a minimal operational kernel capable of generating the structures that
+appear across contemporary computational systems.
+When computation is interpreted in this manner, system states cease to function as funda-
+mental entities. Instead they emerge as derived projections obtained by replaying or reducing
+the underlying history of execution. Snapshots, summaries, and other forms of representation
+therefore become informational compressions of event traces rather than primary objects of anal-
+ysis. The apparent stability of a system state is thus revealed to be a consequence of the structure
+of its history.
+The algebra induced by these operations exhibits a natural mathematical organization. Event
+histories form partially ordered structures under prefix extension, admit join-like merge opera-
+tions when compatible branches of execution are reconciled, and support reduction mappings
+that compress histories into derived representations. This algebraic structure is not unique to
+a particular programming paradigm. Closely related forms appear in distributed log architec-
+tures, version-control graphs, conflict-free replicated data types, constraint-based programming
+systems, and even in physical models such as lattice dynamics governed by local interaction rules.
+In each of these domains the behavior of the system emerges from the cumulative effects of locally
+constrained events whose histories grow monotonically over time.
+The significance of the event-historical kernel therefore extends beyond a reformulation of
+programming semantics. It suggests that computation, distributed coordination, and certain
+classes of physical dynamical systems share a common structural principle: complex behavior
+arises from the irreversible accumulation of locally constrained transitions whose histories deter-
+43
+
+mine the present configuration of the system.
+Under this interpretation, programs are no longer best understood as static objects defined
+by membership within sets of possible states. Instead they appear as processes of construction
+unfolding through time, in which execution records the history of events that produce structure,
+composition reconciles divergent branches of that history, and abstraction compresses the result-
+ing traces into representations suitable for reasoning and control. State thus becomes a derived
+reduction of history, structure emerges from the ordering relations among events, and abstraction
+becomes the systematic compression of the execution traces that give rise to the system itself.
+44
+
+References
+[1] Leslie Lamport. Time, Clocks, and the Ordering of Events in a Distributed System. Communi-
+cations of the ACM, 21(7):558-565, 1978.
+[2] Marc Shapiro, Nuno Preguiça, Carlos Baquero, and Marek Zawirski. Conflict-Free Replicated
+Data Types. Stabilization, Safety, and Security of Distributed Systems (SSS), 2011.
+[3] Martin Kleppmann. Designing Data-Intensive Applications. O'Reilly Media, 2017.
+[4] Martin Fowler. Event Sourcing. martinfowler.com, 2005.
+[5] Scott Chacon and Ben Straub. Pro Git. Apress, 2014.
+[6] John Hopcroft, Rajeev Motwani, and Jeffrey Ullman. Introduction to Automata Theory, Lan-
+guages, and Computation. Pearson, 2006.
+[7] Glynn Winskel and Mogens Nielsen. Models for Concurrency. Handbook of Logic in Com-
+puter Science, Oxford University Press, 1993.
+[8] Michael Sipser. Introduction to the Theory of Computation. Cengage Learning, 2013.
+[9] Ernst Ising. Contribution to the Theory of Ferromagnetism. Zeitschrift für Physik, 31:253-258,
+1925.
+[10] Stephen Brush. History of the Lenz-Ising Model. Reviews of Modern Physics, 39(4):883-893,
+1967.
+[11] Marc Mézard, Giorgio Parisi, and Miguel Virasoro. Spin Glass Theory and Beyond. World
+Scientific, 1987.
+[12] David MacKay. Information Theory, Inference, and Learning Algorithms. Cambridge Univer-
+sity Press, 2003.
+45
+
