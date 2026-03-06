@@ -16,10 +16,11 @@ text-align:center;
 display:flex;
 flex-direction:column;
 align-items:center;
-justify-content:center;
+justify-content:flex-start;
 min-height:100vh;
 text-shadow:0 0 6px #00ff88aa;
-overflow:hidden;
+overflow-x:hidden;
+padding:18px;
 }
 
 #boot{
@@ -31,38 +32,70 @@ align-items:center;
 justify-content:center;
 font-size:18px;
 letter-spacing:2px;
+z-index:10;
 }
 
 .console{
 opacity:0;
 transition:opacity 2s;
+max-width:900px;
+width:100%;
 }
 
 h1{
 margin-bottom:10px;
 letter-spacing:3px;
+font-size:1.6rem;
 }
 
-.subtitle{
+/* ---------- folding system notes panel ---------- */
+
+.notes{
+border:1px solid #00ff88;
+margin-bottom:18px;
 max-width:760px;
-font-size:0.9em;
-opacity:0.85;
-margin-bottom:20px;
-line-height:1.5;
+width:100%;
+box-shadow:0 0 10px #00ff8844 inset;
 }
+
+.notesHeader{
+cursor:pointer;
+padding:8px 10px;
+background:#001a0f;
+display:flex;
+justify-content:space-between;
+align-items:center;
+font-size:.85em;
+letter-spacing:1px;
+}
+
+.notesBody{
+display:none;
+padding:10px 12px;
+font-size:0.85em;
+line-height:1.5;
+opacity:.9;
+text-align:left;
+}
+
+.notes.open .notesBody{
+display:block;
+}
+
+/* ---------- visualizer ---------- */
 
 canvas{
-width:360px;
-height:360px;
+width:min(360px,80vw);
+height:min(360px,80vw);
 border-radius:50%;
 background:radial-gradient(circle,#001a0f 0%,#000 70%);
 box-shadow:0 0 20px #00ff88aa,inset 0 0 40px #00ff8844;
 }
 
 .controls{
-margin-top:20px;
+margin-top:18px;
 display:flex;
-gap:10px;
+gap:8px;
 flex-wrap:wrap;
 justify-content:center;
 align-items:center;
@@ -90,8 +123,11 @@ min-width:120px;
 }
 
 .progress{
-width:420px;
+width:min(420px,90vw);
+margin-top:12px;
 }
+
+/* ---------- CRT effects ---------- */
 
 .scanlines{
 position:fixed;
@@ -120,6 +156,20 @@ animation:flicker 0.15s infinite;
 100%{opacity:.02}
 }
 
+/* ---------- mobile adjustments ---------- */
+
+@media (max-width:600px){
+
+h1{
+font-size:1.3rem;
+}
+
+.notesBody{
+font-size:.82em;
+}
+
+}
+
 </style>
 </head>
 
@@ -131,11 +181,22 @@ animation:flicker 0.15s infinite;
 
 <h1>Complex Systems Audio Console</h1>
 
-<div class="subtitle">
+<div class="notes" id="notesPanel">
+
+<div class="notesHeader">
+<span>SYSTEM NOTES</span>
+<span id="notesToggle">OPEN</span>
+</div>
+
+<div class="notesBody">
 Two essays exploring complex systems through dynamic histories rather than static states.
 One introduces the Relativistic Scalar Vector Plenum as a field framework for biological
 and technological organization. The other defines computation through irreversible event
-histories built from extension, merge, and reduction.
+histories built from extension, merge, and reduction. Together they propose a unified
+language for understanding how stability and abstraction emerge from the geometry of
+cumulative processes through time.
+</div>
+
 </div>
 
 <canvas id="viz"></canvas>
@@ -181,6 +242,18 @@ Entropic Field Theory of Complex Systems
 
 <script>
 
+/* ---------- folding notes panel ---------- */
+
+const notes=document.getElementById("notesPanel")
+const notesToggle=document.getElementById("notesToggle")
+
+notes.querySelector(".notesHeader").onclick=()=>{
+notes.classList.toggle("open")
+notesToggle.textContent=notes.classList.contains("open")?"CLOSE":"OPEN"
+}
+
+/* ---------- audio logic ---------- */
+
 const audio=document.getElementById("audio")
 const canvas=document.getElementById("viz")
 const ctx=canvas.getContext("2d")
@@ -196,7 +269,6 @@ const tracks=[
 ]
 
 let trackIndex=0
-
 audio.src=tracks[0]
 
 const AC=window.AudioContext||window.webkitAudioContext
@@ -219,7 +291,6 @@ let rotation=0
 function draw(){
 
 ctx.clearRect(0,0,360,360)
-
 ctx.save()
 ctx.translate(180,180)
 
@@ -238,6 +309,7 @@ const x=Math.cos(angle)*(radius)
 const y=Math.sin(angle)*(radius)
 
 ctx.strokeStyle="#00ff88"
+
 ctx.beginPath()
 ctx.moveTo(x,y)
 ctx.lineTo(
@@ -259,7 +331,6 @@ ctx.stroke()
 ctx.restore()
 
 rotation+=audio.paused?0.002:0.02
-
 requestAnimationFrame(draw)
 
 }
@@ -298,15 +369,11 @@ playBtn.onclick=()=>{
 audioCtx.resume()
 
 if(audio.paused){
-
 audio.play()
 playBtn.textContent="PAUSE"
-
 }else{
-
 audio.pause()
 playBtn.textContent="PLAY"
-
 }
 
 }
@@ -319,44 +386,34 @@ loopBtn.textContent=audio.loop?"LOOP ON":"LOOP OFF"
 }
 
 speedSel.onchange=()=>{
-
 audio.playbackRate=parseFloat(speedSel.value)
-
 }
 
 progress.oninput=()=>{
-
 audio.currentTime=(progress.value/100)*audio.duration
-
 }
 
 document.querySelectorAll("[data-track]").forEach((btn,i)=>{
 
 btn.onclick=()=>{
-
 trackIndex=i
 audio.src=tracks[i]
 audio.play()
-
 }
 
 })
 
 audio.onended=()=>{
-
 trackIndex=(trackIndex+1)%tracks.length
 audio.src=tracks[trackIndex]
 audio.play()
-
 }
 
 document.addEventListener("keydown",e=>{
 
 if(e.code==="Space"){
-
 e.preventDefault()
 playBtn.click()
-
 }
 
 if(e.code==="ArrowRight") audio.currentTime+=15
@@ -368,10 +425,8 @@ if(e.key==="2") document.querySelectorAll("[data-track]")[1].click()
 })
 
 setTimeout(()=>{
-
 document.getElementById("boot").style.display="none"
 document.getElementById("console").style.opacity=1
-
 },2500)
 
 </script>
