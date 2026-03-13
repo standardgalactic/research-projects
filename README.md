@@ -1,5 +1,9 @@
 # Research Projects Overview
 
+[The Categorical Structure of Alignment](https://github.com/standardgalactic/research-projects/blob/main/alignment/README.md)
+
+---
+
 [Complex Systems](https://standardgalactic.github.io/research-projects/history/overview/) — *Audio Overview*
 
 ---

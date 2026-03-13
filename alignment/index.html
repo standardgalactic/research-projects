@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Categorical Structure of Alignment</title>
+
+<style>
+
+:root{--vh:1vh;}
+
+body{
+margin:0;
+min-height:calc(var(--vh)*100);
+background:#000;
+color:#7cff7c;
+font-family:monospace;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:flex-start;
+text-align:center;
+padding:20px;
+overflow-y:auto;
+}
+
+/* CRT scanlines */
+
+body::after{
+content:"";
+position:fixed;
+inset:0;
+background:repeating-linear-gradient(
+0deg,
+rgba(0,255,0,.04) 0px,
+rgba(0,255,0,.04) 1px,
+transparent 1px,
+transparent 3px
+);
+pointer-events:none;
+mix-blend-mode:screen;
+}
+
+h2{
+margin-top:0;
+letter-spacing:1px;
+}
+
+.subtitle{
+opacity:.7;
+font-size:.9em;
+max-width:720px;
+line-height:1.45;
+margin-bottom:20px;
+}
+
+/* vector display */
+
+canvas{
+width:340px;
+height:340px;
+background:#000;
+box-shadow:
+0 0 8px #00ff0030,
+0 0 30px #00ff0010 inset;
+border-radius:50%;
+margin-bottom:18px;
+}
+
+@media (max-height:700px){
+canvas{
+width:260px;
+height:260px;
+}
+}
+
+.controls{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+justify-content:center;
+align-items:center;
+margin-bottom:20px;
+}
+
+button{
+background:#001400;
+border:1px solid #00ff00;
+color:#7cff7c;
+padding:8px 14px;
+cursor:pointer;
+font-weight:bold;
+font-size:.8em;
+text-transform:uppercase;
+}
+
+button:hover{
+background:#002200;
+}
+
+.timer{
+min-width:80px;
+font-size:1.1em;
+letter-spacing:1px;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>Categorical Structure of Alignment</h2>
+
+<div class="subtitle">
+Audio summary of the essay explaining the representation–motivation gap in artificial intelligence.  
+The framework proposes a categorical model in which alignment requires preserving normative structure across mappings from human values to machine representations and agent actions.
+</div>
+
+<canvas id="scope"></canvas>
+
+<div class="controls">
+<button id="play">Play</button>
+<button id="pause">Pause</button>
+<div class="timer" id="timer">00:00</div>
+<button id="loop">Loop Off</button>
+</div>
+
+<audio id="audio" src="Why_AI_understanding_is_divorced_from_action.mp3"></audio>
+
+<script>
+
+function setVH(){
+document.documentElement.style.setProperty('--vh',`${window.innerHeight*.01}px`);
+}
+window.addEventListener('resize',setVH);
+setVH();
+
+const canvas=document.getElementById("scope");
+const ctx=canvas.getContext("2d");
+
+const audio=document.getElementById("audio");
+const play=document.getElementById("play");
+const pause=document.getElementById("pause");
+const loop=document.getElementById("loop");
+const timer=document.getElementById("timer");
+
+const dpr=window.devicePixelRatio||1;
+canvas.width=340*dpr;
+canvas.height=340*dpr;
+ctx.scale(dpr,dpr);
+
+/* Audio analyzer */
+
+const AudioContext=window.AudioContext||window.webkitAudioContext;
+const audioCtx=new AudioContext();
+
+const analyser=audioCtx.createAnalyser();
+analyser.fftSize=1024;
+
+const src=audioCtx.createMediaElementSource(audio);
+src.connect(analyser);
+analyser.connect(audioCtx.destination);
+
+const data=new Uint8Array(analyser.frequencyBinCount);
+
+/* Lissajous animation */
+
+let phase=0;
+let drift=0;
+
+function draw(){
+
+ctx.fillStyle="rgba(0,0,0,.15)";
+ctx.fillRect(0,0,340,340);
+
+analyser.getByteFrequencyData(data);
+
+/* calculate audio energy */
+
+let bass=0;
+for(let i=0;i<40;i++) bass+=data[i];
+bass/=40;
+
+let mid=0;
+for(let i=40;i<120;i++) mid+=data[i];
+mid/=80;
+
+const amp=80+(bass/255)*90;
+const freqX=3+(mid/255)*2;
+const freqY=4+(bass/255)*2;
+
+/* vector glow */
+
+ctx.strokeStyle="#00ff66";
+ctx.lineWidth=1.5;
+ctx.beginPath();
+
+for(let i=0;i<360;i++){
+
+let a=i*0.03+phase;
+
+let x=170+Math.sin(a*freqX+drift)*amp;
+let y=170+Math.sin(a*freqY+Math.PI/2)*amp;
+
+if(i===0) ctx.moveTo(x,y);
+else ctx.lineTo(x,y);
+
+}
+
+ctx.stroke();
+
+/* slow organic motion */
+
+phase+=audio.paused?0.002:0.018;
+drift+=0.003;
+
+requestAnimationFrame(draw);
+
+}
+
+draw();
+
+/* timer */
+
+function formatTime(sec){
+const m=Math.floor(sec/60);
+const s=Math.floor(sec%60);
+return `${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+}
+
+function updateTimer(){
+if(audio.duration){
+const remaining=audio.duration-audio.currentTime;
+timer.textContent=formatTime(remaining);
+}
+requestAnimationFrame(updateTimer);
+}
+
+updateTimer();
+
+/* controls */
+
+play.onclick=()=>{
+audioCtx.resume();
+audio.play();
+};
+
+pause.onclick=()=>audio.pause();
+
+loop.onclick=()=>{
+audio.loop=!audio.loop;
+loop.textContent=audio.loop?"Loop On":"Loop Off";
+};
+
+</script>
+
+</body>
+</html>
