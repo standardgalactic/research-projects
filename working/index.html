@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dynamics of the Capital Order</title>
+
+<style>
+
+:root { --vh:1vh; }
+
+body{
+margin:0;
+min-height:calc(var(--vh)*100);
+background:#000;
+color:#7cff7c;
+font-family:monospace;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:flex-start;
+text-align:center;
+padding:20px;
+overflow-y:auto;
+perspective:800px;
+}
+
+body::after{
+content:"";
+position:fixed;
+inset:0;
+background:repeating-linear-gradient(
+0deg,
+rgba(0,255,0,.04) 0px,
+rgba(0,255,0,.04) 1px,
+transparent 1px,
+transparent 3px
+);
+pointer-events:none;
+mix-blend-mode:screen;
+}
+
+h2{margin-top:0;letter-spacing:1px;}
+
+.subtitle{
+opacity:.7;
+font-size:.9em;
+max-width:720px;
+line-height:1.45;
+margin-bottom:20px;
+}
+
+canvas{
+width:340px;
+height:340px;
+background:#000;
+box-shadow:
+0 0 8px #00ff0030,
+0 0 30px #00ff0010 inset;
+border-radius:50%;
+margin-bottom:18px;
+}
+
+.controls{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+justify-content:center;
+align-items:center;
+margin-bottom:10px;
+}
+
+button{
+background:#001400;
+border:1px solid #00ff00;
+color:#7cff7c;
+padding:8px 14px;
+cursor:pointer;
+font-weight:bold;
+font-size:.8em;
+text-transform:uppercase;
+}
+
+button:hover{background:#002200;}
+
+.timer{
+min-width:80px;
+font-size:1.1em;
+letter-spacing:1px;
+}
+
+.captions{
+max-width:720px;
+width:100%;
+box-sizing:border-box;
+min-height:2.4em;
+margin-top:10px;
+padding:10px;
+border:1px solid #00ff0030;
+background:#001000;
+font-size:.95em;
+line-height:1.4;
+box-shadow:0 0 10px #00ff0020 inset;
+}
+
+</style>
+</head>
+
+<body>
+
+<h2>Dynamics of the Capital Order</h2>
+<div class="subtitle">RSVP Field Analysis of Political Economy</div>
+
+<canvas id="scope"></canvas>
+
+<div class="controls">
+<button id="play">Play</button>
+<button id="pause">Pause</button>
+<div class="timer" id="timer">--:--</div>
+<button id="loop">Loop Off</button>
+</div>
+
+<div id="captions" class="captions"></div>
+
+<audio id="audio" src="The_Physics_of_the_Capital_Order.mp3">
+<track kind="captions" srclang="en"
+src="The_Physics_of_the_Capital_Order.vtt"
+default>
+</audio>
+
+<script>
+
+/* viewport fix */
+
+function setVH(){
+document.documentElement.style.setProperty('--vh',`${window.innerHeight*.01}px`)
+}
+
+window.addEventListener('resize',()=>{setVH();initCanvas()})
+setVH()
+
+/* canvases */
+
+const canvas=document.getElementById("scope")
+const ctx=canvas.getContext("2d")
+
+const phosphorCanvas=document.createElement("canvas")
+const phosphorCtx=phosphorCanvas.getContext("2d")
+
+const burnCanvas=document.createElement("canvas")
+const burnCtx=burnCanvas.getContext("2d")
+
+const triadCanvas=document.createElement("canvas")
+const triadCtx=triadCanvas.getContext("2d")
+
+let triadBuilt=false
+let dpr=window.devicePixelRatio||1
+
+function buildTriadPattern(){
+
+if(triadBuilt) return
+
+const spacing=3
+
+for(let y=0;y<340;y+=spacing){
+for(let x=0;x<340;x+=spacing){
+triadCtx.fillStyle="rgba(0,255,120,0.04)"
+triadCtx.fillRect(x,y,1,1)
+}
+}
+
+triadBuilt=true
+}
+
+function initCanvas(){
+
+dpr=window.devicePixelRatio||1
+
+canvas.width=340*dpr
+canvas.height=340*dpr
+ctx.setTransform(dpr,0,0,dpr,0,0)
+
+phosphorCanvas.width=340*dpr
+phosphorCanvas.height=340*dpr
+phosphorCtx.setTransform(dpr,0,0,dpr,0,0)
+
+burnCanvas.width=340*dpr
+burnCanvas.height=340*dpr
+burnCtx.setTransform(dpr,0,0,dpr,0,0)
+
+triadCanvas.width=340*dpr
+triadCanvas.height=340*dpr
+triadCtx.setTransform(dpr,0,0,dpr,0,0)
+
+buildTriadPattern()
+
+}
+
+initCanvas()
+
+/* audio */
+
+const audio=document.getElementById("audio")
+const play=document.getElementById("play")
+const pause=document.getElementById("pause")
+const loop=document.getElementById("loop")
+const timer=document.getElementById("timer")
+const captions=document.getElementById("captions")
+
+let audioCtx
+let analyser
+let buffer
+
+function initAudio(){
+
+if(audioCtx) return
+
+audioCtx=new(window.AudioContext||window.webkitAudioContext)()
+
+analyser=audioCtx.createAnalyser()
+analyser.fftSize=2048
+
+const src=audioCtx.createMediaElementSource(audio)
+
+src.connect(analyser)
+analyser.connect(audioCtx.destination)
+
+buffer=new Uint8Array(analyser.fftSize)
+
+}
+
+/* renderer state */
+
+let rot=0
+let phaseX=0
+let phaseY=0
+let flare=0
+let beamBloom=0
+let jitterOffset=0
+let deflectDrift=0
+let warmup=1
+let flybackPhase=0
+let humPhase=0
+let triadPhase=0
+
+const HUM_FREQ=60
+const HUM_STRENGTH=0.6
+const WARMUP_DURATION=8
+
+/* distortion */
+
+function barrelWarp(x,y){
+const dx=x-170
+const dy=y-170
+const r=Math.sqrt(dx*dx+dy*dy)
+const f=1+0.08*(r/170)*(r/170)
+return[170+dx*f,170+dy*f]
+}
+
+function deflectionWarp(x,y){
+const dx=x-170
+const dy=y-170
+const nx=Math.max(-1,Math.min(1,dx/170))
+const ny=Math.max(-1,Math.min(1,dy/170))
+const instability=warmup*0.05
+const wx=dx*(1+(0.018+instability+Math.sin(deflectDrift)*0.004)*ny*ny)
+const wy=dy*(1-(0.012+instability+Math.cos(deflectDrift)*0.003)*nx*nx)
+return[170+wx,170+wy]
+}
+
+/* audio amplitude */
+
+function updateAmplitude(){
+
+if(!buffer) return
+
+let peak=0
+
+for(let i=0;i<buffer.length/2;i++){
+const v=Math.abs((buffer[i]-128)/128)
+if(v>peak) peak=v
+}
+
+const electricalNoise=warmup*(Math.random()-.5)*4
+jitterOffset=((peak*1.6)+electricalNoise)*(Math.random()-.5)
+beamBloom=beamBloom*.7+peak*.3
+
+}
+
+/* CRT artifacts */
+
+function drawTriad(){
+
+triadPhase+=0.002
+
+const shimmer=0.04+Math.sin(triadPhase)*0.01
+const driftX=Math.sin(triadPhase*0.6)*1.5/dpr
+const driftY=Math.cos(triadPhase*0.7)*1.5/dpr
+
+ctx.globalAlpha=shimmer
+ctx.drawImage(triadCanvas,driftX,driftY)
+ctx.globalAlpha=1
+
+}
+
+function drawFlyback(){
+
+const y=170+Math.sin(flybackPhase)*80
+
+const g=ctx.createLinearGradient(0,y-1,340,y+1)
+
+g.addColorStop(0,"rgba(0,255,120,0)")
+g.addColorStop(.3,"rgba(0,255,120,.05)")
+g.addColorStop(.5,"rgba(255,255,255,.08)")
+g.addColorStop(.7,"rgba(0,255,120,.05)")
+g.addColorStop(1,"rgba(0,255,120,0)")
+
+ctx.globalAlpha=.35
+ctx.fillStyle=g
+ctx.fillRect(0,y-1,340,2)
+ctx.globalAlpha=1
+
+}
+
+/* main draw loop */
+
+function draw(){
+
+if(analyser){
+analyser.getByteTimeDomainData(buffer)
+warmup=Math.max(0,1-(audio.currentTime/WARMUP_DURATION))
+updateAmplitude()
+deflectDrift+=.0004
+}
+
+rot+=.002
+phaseX+=.002
+phaseY+=.00274
+flybackPhase+=.03
+
+humPhase+=HUM_FREQ*0.0008
+
+const humStrength=HUM_STRENGTH*(0.4+beamBloom*0.6)
+const humX=Math.sin(humPhase)*humStrength
+const humY=Math.cos(humPhase*1.1)*humStrength*0.7
+const humGlow=0.02*Math.sin(humPhase*0.5)
+
+phosphorCtx.fillStyle=`rgba(0,0,0,${0.05+beamBloom*.06})`
+phosphorCtx.fillRect(0,0,340,340)
+
+burnCtx.fillStyle="rgba(0,0,0,.002)"
+burnCtx.fillRect(0,0,340,340)
+
+if(buffer){
+
+phosphorCtx.beginPath()
+
+const cos=Math.cos(rot)
+const sin=Math.sin(rot)
+
+for(let i=0;i<buffer.length-1;i++){
+
+const idxX=Math.floor((i+phaseX*buffer.length)%buffer.length)
+const idxY=Math.floor((i+phaseY*buffer.length)%buffer.length)
+
+let xSample=(buffer[idxX]-128)/128
+let ySample=(buffer[idxY]-128)/128
+
+const x=xSample*150
+const y=ySample*150
+
+const xr=x*cos-y*sin
+const yr=x*sin+y*cos
+
+let px=170+xr+jitterOffset+humX
+let py=170+yr+humY
+
+;[px,py]=barrelWarp(px,py)
+;[px,py]=deflectionWarp(px,py)
+
+if(i===0) phosphorCtx.moveTo(px,py)
+else phosphorCtx.lineTo(px,py)
+
+}
+
+const brightness=.15+flare*.25+beamBloom*.15
+
+phosphorCtx.strokeStyle=`rgba(0,255,120,${brightness*0.25})`
+phosphorCtx.lineWidth=18
+phosphorCtx.stroke()
+
+phosphorCtx.strokeStyle=`rgba(0,255,120,${brightness})`
+phosphorCtx.lineWidth=6
+phosphorCtx.stroke()
+
+phosphorCtx.strokeStyle="#00ff66"
+phosphorCtx.lineWidth=1.4
+phosphorCtx.stroke()
+
+burnCtx.globalAlpha=.02
+burnCtx.drawImage(phosphorCanvas,0,0)
+burnCtx.globalAlpha=1
+
+}
+
+ctx.fillStyle="#000"
+ctx.fillRect(0,0,340,340)
+
+ctx.drawImage(burnCanvas,0,0,340*dpr,340*dpr,0,0,340,340)
+
+ctx.globalAlpha=Math.min(1,Math.max(0,.9+humGlow))
+ctx.drawImage(phosphorCanvas,0,0,340*dpr,340*dpr,0,0,340,340)
+ctx.globalAlpha=1
+
+drawTriad()
+drawFlyback()
+
+flare*=0.92
+
+requestAnimationFrame(draw)
+
+}
+
+draw()
+
+/* controls */
+
+play.onclick=()=>{
+initAudio()
+audioCtx.resume().then(()=>audio.play())
+}
+
+pause.onclick=()=>audio.pause()
+
+loop.onclick=()=>{
+audio.loop=!audio.loop
+loop.textContent=audio.loop?"Loop On":"Loop Off"
+}
+
+/* timer */
+
+function formatTime(sec){
+const m=Math.floor(sec/60)
+const s=Math.floor(sec%60)
+return`${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`
+}
+
+function updateTimer(){
+if(audio.duration&&isFinite(audio.duration)){
+timer.textContent=formatTime(audio.duration-audio.currentTime)
+}
+requestAnimationFrame(updateTimer)
+}
+
+updateTimer()
+
+/* subtitles */
+
+function attachTrack(){
+
+const track=audio.textTracks[0]
+if(!track) return
+
+track.mode="hidden"
+
+track.oncuechange=()=>{
+
+const cue=track.activeCues[0]
+
+captions.textContent=cue?cue.text:""
+
+if(cue) flare=1.2
+
+}
+
+}
+
+audio.addEventListener("loadedmetadata",attachTrack)
+
+audio.addEventListener("error",()=>{
+timer.textContent="ERR"
+captions.textContent="Audio file could not be loaded."
+})
+
+</script>
+
+</body>
+</html>
