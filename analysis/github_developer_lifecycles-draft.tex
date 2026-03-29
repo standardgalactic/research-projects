@@ -25,10 +25,9 @@ A Large-Scale Analysis of a Follow Network}
 \maketitle
 
 \begin{abstract}
-We present a large-scale empirical analysis of developer activity on GitHub using a dataset constructed from a follow network exceeding one million accounts. Unlike prior work focused on repositories, this study adopts a developer-centered perspective, tracking activity lifecycles at the level of individual users. Using metadata collected via the GitHub GraphQL API in a multi-day batched crawl, we classify accounts as active or inactive based on recent commit activity and associate each developer with a primary programming language inferred from their most recently updated repository. The present dataset covers approximately $370{,}000$ accounts---roughly $37\%$ of the full follow graph---with collection ongoing under API rate constraints. Analysis of this sample reveals a characteristic developer activity half-life of approximately ten years, strong variation in activity across programming language ecosystems, and evidence of generational turnover in software development communities. Cross-scale comparisons across pilot, intermediate, and full dataset batches confirm that the relative stratification of language ecosystems is stable, while the global activity rate converges downward as coverage extends further from the high-visibility core of the network. These findings provide a quantitative framework for understanding the temporal structure of developer participation in open source systems.
+We present a large-scale empirical analysis of developer activity on GitHub using a dataset constructed from a follow network exceeding one million accounts. Unlike prior work focused on repositories, this study adopts a developer-centered perspective, tracking activity lifecycles at the level of individual users. Using metadata collected via the GitHub GraphQL API, we classify accounts as active or inactive based on recent commit activity and associate each developer with a primary programming language inferred from their most recently updated repository. Analysis of approximately $370{,}000$ accounts reveals a characteristic developer activity half-life of approximately ten years, strong variation in activity across programming language ecosystems, and evidence of generational turnover in software ecosystems. These findings provide a quantitative framework for understanding the temporal structure of developer participation in open source systems.
 \end{abstract}
 
-\newpage
 \section{Introduction}
 
 The growth of open source software has transformed software development into a large-scale, globally distributed process. GitHub, as one of the central platforms for this activity, provides an unprecedented observational window into developer behavior, collaboration patterns, and the evolution of programming language ecosystems.
@@ -55,22 +54,6 @@ The dataset is constructed by crawling the follow graph of a GitHub user with an
 
 Data is collected using the GitHub GraphQL API in batched queries. For each account, we retrieve the account creation timestamp $t_{\text{create}}$, the number of followers, the number of public repositories, the most recently pushed repository, the timestamp of the most recent push $t_{\text{push}}$, and the primary language of that repository. Accounts that cannot be resolved as users---such as organizations or deleted accounts---are excluded from analysis.
 
-\subsection{Collection Infrastructure and Operational Constraints}
-
-The crawl is implemented in Bash using the \texttt{gh} CLI with GraphQL batching, processing twenty accounts per API request to balance throughput against per-query cost. Follow-graph pagination is handled via cursor-based enumeration, with each page retrieving one hundred followed accounts. Batch results are written to per-batch JSON cache files, enabling the process to be interrupted and resumed without data loss; already-completed batches are skipped on restart.
-
-Rate limit management is handled automatically: each response includes the remaining point budget and the reset timestamp. When the remaining budget falls below a configurable threshold (default 100 points), the script sleeps until the reset window passes plus a small padding interval. Transient API failures trigger exponential-backoff retries up to a configurable maximum, after which the script exits with a non-zero status.
-
-In practice, the full crawl of approximately $370{,}000$ accounts required sustained operation over several days, with multiple interruptions due to network instability, API quota exhaustion, and process crashes. The crash-recovery design---batch-level caching of raw JSON and append-only accumulation in the CSV and text output files---ensured that completed work was preserved across restarts. The total collection effort amounted to several thousand API requests distributed across multiple days of wall-clock time.
-
-\subsection{Incomplete Coverage and Dataset Status}
-
-An important operational caveat applies to all results in this paper. The source follow graph contains approximately one million accounts. The present analysis covers $370{,}447$ of these, representing roughly $37\%$ of the full population. The remaining accounts have not yet been queried due to API rate constraints; completing the full crawl at the current rate would require approximately ten additional days of continuous operation.
-
-The reported statistics should therefore be interpreted as results from a large but incomplete sample of the follow graph, rather than a census. The incompleteness is not random: accounts are crawled in follow-list order, and later portions of the follow list may differ in their demographic and ecosystem composition. Whether this ordering introduces systematic bias relative to a uniformly random incomplete sample is not known.
-
-Nonetheless, the sample of $370{,}000$ accounts is large enough to yield stable aggregate estimates, and cross-scale comparisons across intermediate batches suggest that the key qualitative findings are robust. Section~\ref{sec:crossscale} presents this validation in detail.
-
 \subsection{Activity Classification}
 
 We define a binary activity indicator:
@@ -90,45 +73,6 @@ Each developer is assigned a primary programming language based on the most rece
 \subsection{Dataset Size}
 
 At the time of analysis, the dataset contains $370{,}447$ total accounts, of which $215{,}442$ are classified as active and $155{,}005$ as inactive. This scale is sufficient to produce stable estimates of aggregate behavior and ecosystem-level structure.
-
-\section{Cross-Scale Validation}
-\label{sec:crossscale}
-
-Because the dataset was assembled incrementally over multiple days, intermediate snapshots are available at substantially smaller scales. Comparing results across these scales provides an informal consistency check on the stability of the findings.
-
-Three scale points are available: a pilot batch of approximately $960$ accounts collected during initial testing, an intermediate batch of approximately $30{,}000$ accounts representing the first several hours of the full crawl, and the present dataset of $370{,}447$ accounts.
-
-Table~\ref{tab:crossscale} summarizes key aggregate statistics across these three batches.
-
-\begin{table}[h]
-\centering
-\begin{tabular}{lrrr}
-\toprule
-Statistic & Pilot ($n \approx 960$) & Intermediate ($n \approx 30{,}000$) & Full ($n \approx 370{,}000$) \\
-\midrule
-Active fraction       & 0.800 & 0.597 & 0.582 \\
-Approx.\ half-life    & n/a   & 10 years & 10 years \\
-TypeScript ratio      & 0.901 & 0.846 & 0.820 \\
-Python ratio          & 0.892 & 0.728 & 0.692 \\
-Rust ratio            & 0.940 & 0.863 & 0.831 \\
-Ruby ratio            & 0.641 & 0.481 & 0.430 \\
-Java ratio            & n/a   & 0.490 & 0.502 \\
-None ratio            & 0.586 & 0.371 & 0.356 \\
-\bottomrule
-\end{tabular}
-\caption{Key statistics compared across three dataset scales. ``n/a'' indicates quantities not estimable due to insufficient sample size at that batch level.}
-\label{tab:crossscale}
-\end{table}
-
-Several patterns are immediately apparent. The global active fraction declines monotonically from the pilot to the full dataset, moving from $0.800$ to $0.597$ to $0.582$. This is consistent with the sampling bias interpretation: the earliest accounts crawled are concentrated near the most-followed, most-active users, producing an inflated activity rate. As the crawl extends further into the follow graph, the population diversifies toward less active and less connected developers, and the global activity rate converges toward a lower value.
-
-Individual language activity ratios show a similar convergence pattern. TypeScript moves from $0.901$ in the pilot to $0.820$ in the full dataset; Python from $0.892$ to $0.692$; Rust from $0.940$ to $0.831$. The ordering across languages, however, is remarkably stable. In every batch, Rust and TypeScript rank among the highest activity languages; Ruby and the \texttt{None} category rank among the lowest. The relative stratification that is the primary empirical finding of this paper appears to stabilize well before the full dataset scale.
-
-The survival curve analysis was not tractable at the pilot scale due to sparse coverage of account age bins, but the intermediate batch already produces a clear half-life estimate of ten years, confirmed exactly by the full dataset. The survival curve shape---including the gradual decline over the first decade and the late-age upturn attributable to survivorship bias---is qualitatively identical across the two larger batches. The intermediate batch shows $S(10) = 0.500$ and $S(18) = 0.500$, while the full dataset shows $S(10) = 0.535$ and $S(18) = 0.713$, reflecting the dilution of the high-persistence tail as the population expands.
-
-The activity ratio of the \texttt{None} category declines monotonically across scales, from $0.586$ to $0.371$ to $0.356$, reinforcing the interpretation that peripheral or inactive users are less likely to have maintained public repository engagement and that this population grows disproportionately as the crawl moves further from the high-visibility core of the network.
-
-These cross-scale comparisons provide informal evidence that the main findings are not artefacts of the specific accounts processed. They also characterize the direction of residual bias: the full dataset likely still overestimates true activity rates and language-specific ratios relative to what would be observed with complete coverage of the one-million-account follow graph, and more substantially relative to GitHub's full user population.
 
 \section{Methodology}
 
@@ -387,62 +331,6 @@ Median observed lifetimes by language reveal additional structure. Languages ass
 
 Several newer ecosystems exhibit exceptionally high activity ratios: Astro at $0.90$, MDX at $0.84$, Rust at $0.83$, and TypeScript at $0.82$. These values indicate that these ecosystems are still in a growth phase, characterized by a relatively small inactive population and a high ratio of new entrants to legacy participants.
 
-\subsection{Intermediate Batch Survival Curve}
-
-Figure~\ref{fig:survival-intermediate} presents the survival curve from the intermediate $30{,}000$-account batch alongside the full dataset curve, enabling direct comparison. The intermediate batch shows a sharper descent, with $S(10) = 0.500$ exactly---the half-life threshold---and a less pronounced late-age upturn. This difference reflects the higher proportion of high-persistence long-term developers in the full dataset, which has a richer tail of accounts from the early platform era. The qualitative structure, however, is identical: monotonic decline over the first decade, near-threshold crossing near ten years, and a survivorship-driven upturn among the oldest accounts.
-
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    width=0.88\textwidth,
-    height=0.50\textwidth,
-    xlabel={Account Age (years)},
-    ylabel={Active Fraction $S(\tau)$},
-    ymin=0.40, ymax=0.80,
-    xmin=-0.5, xmax=18.5,
-    grid=both,
-    grid style={line width=0.3pt, draw=gray!30},
-    every axis plot/.append style={thick},
-    legend pos=south east,
-    legend style={font=\small},
-]
-\addplot[
-    color=blue!70,
-    mark=*,
-    mark size=2pt,
-] coordinates {
-(0,0.628)(1,0.637)(2,0.612)(3,0.591)(4,0.594)(5,0.593)
-(6,0.587)(7,0.573)(8,0.555)(9,0.543)(10,0.535)
-(11,0.539)(12,0.552)(13,0.575)(14,0.603)(15,0.632)
-(16,0.659)(17,0.660)(18,0.713)
-};
-\addlegendentry{Full dataset ($n \approx 370{,}000$)}
-\addplot[
-    color=orange!80,
-    mark=square*,
-    mark size=2pt,
-    dashed,
-] coordinates {
-(0,0.662)(1,0.711)(2,0.681)(3,0.671)(4,0.634)(5,0.670)
-(6,0.634)(7,0.601)(8,0.584)(9,0.515)(10,0.500)
-(11,0.478)(12,0.492)(13,0.493)(14,0.577)(15,0.618)
-(16,0.669)(17,0.699)(18,0.500)
-};
-\addlegendentry{Intermediate batch ($n \approx 30{,}000$)}
-\addplot[
-    dashed,
-    color=red!60,
-    domain=0:18,
-    samples=100,
-] {0.5};
-\addlegendentry{Half-life threshold}
-\end{axis}
-\end{tikzpicture}
-\caption{Survival curves for the intermediate ($n \approx 30{,}000$) and full ($n \approx 370{,}000$) datasets. Both curves cross the $S(\tau) = 0.5$ threshold near $\tau = 10$ years. The intermediate batch shows a slightly sharper decline and a less pronounced late-age upturn, consistent with its smaller representation of very long-tenured developers.}
-\label{fig:survival-intermediate}
-\end{figure}
-
 \section{Discussion}
 
 \subsection{Developer Activity as a Survival Process}
@@ -515,22 +403,6 @@ where $F_i$ is follower count, $A_i$ is activity, and $f$ is an increasing funct
 
 An alternative interpretation of developer activity frames continued participation as a form of ongoing constraint satisfaction. Developers remain active as long as they can maintain alignment between personal interest, available time, economic incentives, and ecosystem relevance. In this view, inactivity arises not from a single cause but from the gradual accumulation of constraint violations. This perspective is consistent with the observed gradual decay of activity rather than abrupt transitions and connects the empirical survival curve to an underlying process of resource and motivation dynamics.
 
-\subsection{Ecosystem Collapse: The Case of Objective-C}
-
-The intermediate batch data reveals an extreme case that deserves separate treatment. Objective-C exhibits an activity ratio of approximately $0.15$ in the $30{,}000$-account batch---the lowest of any language with a sample size sufficient for reliable estimation. This figure places it far below the general range of $0.35$--$0.83$ observed for most other languages and warrants interpretation as qualitatively distinct.
-
-The Objective-C case illustrates what may be termed \emph{ecosystem collapse}: a condition in which a language's population is overwhelmingly composed of historical accounts whose owners have long since migrated to successor technologies. The transition from Objective-C to Swift, initiated by Apple's introduction of Swift in 2014, provides a concrete mechanism. Developers who built their careers on iOS and macOS development did not disappear; they transferred their ecosystem affiliation to the successor language, leaving their Objective-C repositories and accounts behind as inactive artifacts.
-
-This pattern distinguishes ecosystem collapse from ordinary maturation. In a maturing ecosystem such as Ruby, inactive accounts accumulate gradually as each cohort ages. In a collapsing ecosystem, the inactive accumulation is concentrated and structurally driven by a singular platform or tooling decision external to the developer community. The resulting activity ratio is not merely low but reflects a historical rupture.
-
-Formally, this corresponds to a sudden large increase in $\lambda_{\text{exit}}$ at a specific point in time, followed by suppression of $\lambda_{\text{entry}}$ as the successor ecosystem captures all new entrants. The steady-state activity ratio under these conditions converges to a value determined primarily by the fraction of the pre-collapse population that chose not to migrate---typically a small specialist tail.
-
-\subsection{Activity as Constraint Satisfaction}
-
-An alternative interpretation of developer activity frames continued participation as a form of ongoing constraint satisfaction. Developers remain active as long as multiple conditions remain jointly satisfied: personal motivation, available time, economic incentives, and technological relevance. Inactivity emerges not from a single discrete failure but from the gradual erosion of this alignment over time. When any one constraint is violated persistently---a language loses market relevance, a developer's professional context shifts, or time pressure from competing obligations intensifies---the probability of disengagement increases.
-
-This framing is consistent with the observed survival curve. A memoryless model would produce exponential decay, in which the hazard rate is constant and does not depend on how long a developer has been active. The Weibull model with $k > 1$ captures a process in which the longer a developer has been active, the greater the cumulative probability that at least one of the sustaining constraints has eroded. The gradual nature of the decline, rather than a sharp transition, reflects the multi-dimensional character of the constraint set: partial erosion of one constraint can be compensated by strong alignment on others, producing continued activity even under unfavorable conditions.
-
 \subsection{The Role of Non-Code Accounts}
 
 The large \texttt{None} category plays a central role in the structure of inactivity. Its low activity ratio of $0.356$ indicates that accounts without active repository engagement are substantially more likely to become inactive. This suggests that participation in code production---rather than mere presence on the platform---is a key determinant of long-term engagement. The disproportionate representation of this group among inactive accounts ($39.68\%$ of all inactive accounts) implies that any aggregate estimate of platform-wide activity rates depends critically on how this population is treated.
@@ -559,17 +431,46 @@ The results suggest that developer ecosystems can be understood as dynamical sys
 
 \section{Conclusion}
 
-This study provides a large-scale, developer-centered analysis of activity on GitHub using a dataset of over $370{,}000$ accounts, representing approximately $37\%$ of a follow graph constructed from a highly connected source user. The dataset was assembled over several days of continuous operation under GitHub API rate constraints, with crash-recovery infrastructure enabling incremental progress across multiple sessions. Developer activity follows a structured lifecycle with a characteristic half-life of approximately ten years. Programming language ecosystems exhibit systematic variation in activity ratios, reflecting their stage of evolution: newer ecosystems show high activity due to growth, while older ecosystems accumulate inactive participants over time. The extreme case of Objective-C, with an activity ratio near $0.15$ in the intermediate batch, illustrates how platform-driven ecosystem transitions can produce conditions qualitatively distinct from ordinary maturation. A substantial fraction of inactive accounts are associated with no identifiable primary language, identifying repository engagement as the strongest observable predictor of long-term participation.
+This study provides a large-scale, developer-centered analysis of activity on GitHub using a dataset of over $370{,}000$ accounts. Developer activity follows a structured lifecycle with a characteristic half-life of approximately ten years. Programming language ecosystems exhibit systematic variation in activity ratios, reflecting their stage of evolution: newer ecosystems show high activity due to growth, while older ecosystems accumulate inactive participants over time. A substantial fraction of inactive accounts are associated with no identifiable primary language, indicating limited or absent repository activity and identifying repository engagement as a key determinant of long-term participation.
 
-Cross-scale validation across pilot ($n \approx 960$), intermediate ($n \approx 30{,}000$), and full ($n \approx 370{,}000$) datasets confirms that the relative ordering of language activity ratios is stable across all scales, while absolute values converge downward as the sample diversifies away from the most-visible accounts. The results should be interpreted as representative of the socially connected stratum of the GitHub population rather than the platform as a whole.
+These findings suggest that both individual participation and ecosystem dynamics can be understood within a unified temporal framework. GitHub, viewed at scale, is not a static repository of code but a dynamic system shaped by generational turnover and evolving technological landscapes. Future work may extend this analysis by incorporating longitudinal data, modeling transitions between ecosystems, applying Kaplan--Meier estimation to account for right-censoring, and integrating additional signals such as collaboration networks and contribution types.
 
-These findings suggest that both individual participation and ecosystem dynamics can be understood within a unified temporal framework. GitHub, viewed at scale, is not a static repository of code but a dynamic system shaped by generational turnover, platform decisions, and evolving technological landscapes. Future work may extend this analysis by completing the full crawl of the one-million-account follow graph, incorporating longitudinal data, modeling transitions between ecosystems, applying Kaplan--Meier estimation to account for right-censoring, and integrating additional signals such as collaboration networks and contribution types.
-\newpage
-\section*{Appendices}
+\bibliographystyle{plainnat}
+
+\begin{thebibliography}{9}
+
+\bibitem[Kalliamvakou et al.(2014)]{kalliamvakou2014promises}
+Eirini Kalliamvakou et al.
+\newblock The promises and perils of mining GitHub.
+\newblock In \emph{MSR}, 2014.
+
+\bibitem[Gousios(2014)]{gousios2014ghtorrent}
+Georgios Gousios.
+\newblock The GHTorrent dataset and tool suite.
+\newblock In \emph{MSR}, 2014.
+
+\bibitem[Zhou and Mockus(2016)]{zhou2016information}
+Minghui Zhou and Audris Mockus.
+\newblock Who will stay in the FLOSS community?
+\newblock \emph{IEEE Transactions on Software Engineering}, 2016.
+
+\bibitem[Vasilescu et al.(2015)]{vasilescu2015gender}
+Bogdan Vasilescu et al.
+\newblock Gender and tenure diversity in GitHub teams.
+\newblock In \emph{CHI}, 2015.
+
+\bibitem[Joblin et al.(2017)]{joblin2017classifying}
+Mitchell Joblin et al.
+\newblock Classifying developers into core and peripheral roles.
+\newblock In \emph{ICSE}, 2017.
+
+\end{thebibliography}
 
 \appendix
 
-\section{Discrete Survival Estimation}
+\section{Mathematical Appendix}
+
+\subsection{Discrete Survival Estimation}
 
 Let $\tau \in \mathbb{N}$ denote account age in years. For each age bin $\tau$, define
 \[
@@ -650,37 +551,5 @@ As $\tau \to \infty$, the observed survival function approaches
 \lim_{\tau \to \infty} S(\tau) = P(\text{persistent developer}),
 \]
 which represents the long-run fraction of the population composed of highly persistent users. The upward trend in $S(\tau)$ at large $\tau$ is therefore interpretable as convergence to this limiting value under a mixture model in which the population contains a subpopulation of developers with effectively zero exit hazard.
-
-
-\bibliographystyle{plainnat}
-
-\begin{thebibliography}{9}
-
-\bibitem[Kalliamvakou et al.(2014)]{kalliamvakou2014promises}
-Eirini Kalliamvakou et al.
-\newblock The promises and perils of mining GitHub.
-\newblock In \emph{MSR}, 2014.
-
-\bibitem[Gousios(2014)]{gousios2014ghtorrent}
-Georgios Gousios.
-\newblock The GHTorrent dataset and tool suite.
-\newblock In \emph{MSR}, 2014.
-
-\bibitem[Zhou and Mockus(2016)]{zhou2016information}
-Minghui Zhou and Audris Mockus.
-\newblock Who will stay in the FLOSS community?
-\newblock \emph{IEEE Transactions on Software Engineering}, 2016.
-
-\bibitem[Vasilescu et al.(2015)]{vasilescu2015gender}
-Bogdan Vasilescu et al.
-\newblock Gender and tenure diversity in GitHub teams.
-\newblock In \emph{CHI}, 2015.
-
-\bibitem[Joblin et al.(2017)]{joblin2017classifying}
-Mitchell Joblin et al.
-\newblock Classifying developers into core and peripheral roles.
-\newblock In \emph{ICSE}, 2017.
-
-\end{thebibliography}
 
 \end{document}
