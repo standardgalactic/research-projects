@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Terraform Vector Prototype v2</title>
+<style>
+  :root {
+    --bg: #05070a;
+    --panel: rgba(10, 18, 26, 0.88);
+    --line: rgba(120, 255, 210, 0.45);
+    --glow: rgba(120, 255, 210, 0.18);
+    --text: #b8ffe8;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: radial-gradient(circle at center, #0b1420 0%, #05070a 65%, #020304 100%);
+    color: var(--text);
+    font-family: monospace;
+  }
+  #app {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+  canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .panel {
+    position: absolute;
+    pointer-events: auto;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: 0 0 24px var(--glow), inset 0 0 24px rgba(120,255,210,0.04);
+    backdrop-filter: blur(4px);
+  }
+  .topbar {
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    gap: 12px;
+  }
+  .leftpanel {
+    left: 16px;
+    bottom: 16px;
+    width: 330px;
+    padding: 12px;
+  }
+  .rightpanel {
+    right: 16px;
+    bottom: 16px;
+    width: 340px;
+    padding: 12px;
+  }
+  .title { font-size: 14px; opacity: 0.95; }
+  .subtle { opacity: 0.72; }
+  .modeBanner {
+    margin-bottom: 10px;
+    padding: 6px 8px;
+    border: 1px solid rgba(120,255,210,0.22);
+    background: rgba(255,255,255,0.03);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+  .stat {
+    padding: 6px 8px;
+    border: 1px solid rgba(120,255,210,0.18);
+    background: rgba(255,255,255,0.02);
+  }
+  .controls {
+    margin-top: 12px;
+    display: grid;
+    gap: 8px;
+  }
+  button, select {
+    width: 100%;
+    background: rgba(4, 10, 14, 0.96);
+    color: var(--text);
+    border: 1px solid var(--line);
+    font: inherit;
+    padding: 10px 12px;
+    cursor: pointer;
+  }
+  button:hover, select:hover { filter: brightness(1.12); }
+  .log {
+    margin-top: 12px;
+    min-height: 88px;
+    max-height: 180px;
+    overflow: auto;
+    border: 1px solid rgba(120,255,210,0.18);
+    padding: 8px;
+    background: rgba(255,255,255,0.02);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .legend {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .reticle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(120,255,210,0.32);
+    border-radius: 50%;
+    box-shadow: 0 0 16px rgba(120,255,210,0.22);
+    pointer-events: none;
+  }
+  .reticle::before, .reticle::after {
+    content: "";
+    position: absolute;
+    background: rgba(120,255,210,0.55);
+  }
+  .reticle::before {
+    left: 50%; top: -8px; bottom: -8px; width: 1px; transform: translateX(-50%);
+  }
+  .reticle::after {
+    top: 50%; left: -8px; right: -8px; height: 1px; transform: translateY(-50%);
+  }
+  .footer {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    font-size: 12px;
+    opacity: 0.65;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  @media (max-width: 900px) {
+    .leftpanel, .rightpanel { width: calc(50vw - 24px); }
+  }
+  @media (max-width: 720px) {
+    .topbar { flex-direction: column; align-items: flex-start; }
+    .leftpanel, .rightpanel { width: calc(100vw - 32px); }
+    .leftpanel { bottom: 220px; }
+    .rightpanel { bottom: 16px; }
+    .footer { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="bg"></canvas>
+  <canvas id="world"></canvas>
+  <div class="hud">
+    <div class="panel topbar">
+      <div>
+        <div class="title">Terraform Vector Prototype v2</div>
+        <div class="subtle">Stars! x Descent inspired planetary engineering and subsurface extraction</div>
+      </div>
+      <div id="statusText" class="subtle">Orbit stable · Sector A-14 · Drone online</div>
+    </div>
+
+    <div class="panel leftpanel">
+      <div id="modeBanner" class="modeBanner">Surface Mode</div>
+      <div class="title">Planetary State</div>
+      <div class="stats">
+        <div class="stat">Temp <span id="tempVal">0.42</span></div>
+        <div class="stat">Pressure <span id="pressureVal">0.33</span></div>
+        <div class="stat">Water <span id="waterVal">0.28</span></div>
+        <div class="stat">Biomass <span id="biomassVal">0.12</span></div>
+        <div class="stat">Energy <span id="energyVal">82</span></div>
+        <div class="stat">Year <span id="yearVal">2147</span></div>
+        <div class="stat">Ore <span id="oreVal">24</span></div>
+        <div class="stat">Volatiles <span id="volVal">18</span></div>
+      </div>
+      <div class="legend">
+        Surface mode shows a planetary slice with heat, pressure, water, and biomass. Subsurface mode exposes a tunnel lattice for mining ore and volatile pockets that feed the terraforming economy.
+      </div>
+      <div class="log" id="log"></div>
+    </div>
+
+    <div class="panel rightpanel">
+      <div class="title">Controls</div>
+      <div class="controls">
+        <button id="modeBtn">Switch To Subsurface</button>
+        <select id="toolSelect">
+          <option value="heat">Orbital Mirrors</option>
+          <option value="water">Comet Seeding</option>
+          <option value="air">Atmosphere Processors</option>
+          <option value="life">Bio Capsules</option>
+          <option value="cool">Albedo Screens</option>
+        </select>
+        <button id="applyBtn">Apply To Target</button>
+        <button id="advanceBtn">Advance 1 Year</button>
+        <button id="scanBtn">Auto Balance Pass</button>
+        <button id="resetBtn">Reset Planet</button>
+      </div>
+      <div class="legend" id="controlLegend">
+        Click anywhere on the surface grid to target a sector. In subsurface mode, click tunnel cells to direct the mining drone and open or extract beneath the crust.
+      </div>
+    </div>
+
+    <div class="reticle"></div>
+    <div class="footer">drag to pan · wheel to zoom · click to target</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const bg = document.getElementById('bg');
+  const world = document.getElementById('world');
+  const bgCtx = bg.getContext('2d');
+  const ctx = world.getContext('2d');
+
+  const toolSelect = document.getElementById('toolSelect');
+  const applyBtn = document.getElementById('applyBtn');
+  const advanceBtn = document.getElementById('advanceBtn');
+  const scanBtn = document.getElementById('scanBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const modeBtn = document.getElementById('modeBtn');
+  const logEl = document.getElementById('log');
+  const statusText = document.getElementById('statusText');
+  const modeBanner = document.getElementById('modeBanner');
+  const controlLegend = document.getElementById('controlLegend');
+
+  const tempVal = document.getElementById('tempVal');
+  const pressureVal = document.getElementById('pressureVal');
+  const waterVal = document.getElementById('waterVal');
+  const biomassVal = document.getElementById('biomassVal');
+  const energyVal = document.getElementById('energyVal');
+  const yearVal = document.getElementById('yearVal');
+  const oreVal = document.getElementById('oreVal');
+  const volVal = document.getElementById('volVal');
+
+  const GRID_W = 48;
+  const GRID_H = 32;
+  const MINE_W = 14;
+  const MINE_H = 14;
+  const stars = [];
+
+  const state = {
+    year: 2147,
+    energy: 82,
+    ore: 24,
+    volatiles: 18,
+    mode: 'surface',
+    camera: { x: 0, y: 0, zoom: 1 },
+    dragging: false,
+    pointer: { x: 0, y: 0 },
+    target: { x: 24, y: 16 },
+    mineTarget: { x: 6, y: 6 },
+    cells: [],
+    mines: []
+  };
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function makePlanet() {
+    state.cells.length = 0;
+    for (let y = 0; y < GRID_H; y++) {
+      const row = [];
+      for (let x = 0; x < GRID_W; x++) {
+        const dx = (x - GRID_W / 2) / (GRID_W / 2);
+        const dy = (y - GRID_H / 2) / (GRID_H / 2);
+        const r = Math.sqrt(dx * dx + dy * dy);
+        const landMask = clamp(1 - r * 0.95, 0, 1);
+        const noise = 0.5 + 0.5 * Math.sin(x * 0.43) * Math.cos(y * 0.37);
+        row.push({
+          elevation: clamp(0.25 + landMask * 0.6 + noise * 0.2 + rand(-0.08, 0.08), 0, 1),
+          temp: clamp(0.35 + landMask * 0.12 + rand(-0.08, 0.08), 0, 1),
+          pressure: clamp(0.30 + landMask * 0.08 + rand(-0.05, 0.05), 0, 1),
+          water: clamp(0.18 + (1 - landMask) * 0.28 + rand(-0.05, 0.05), 0, 1),
+          biomass: clamp(rand(0.01, 0.08) * landMask, 0, 1)
+        });
+      }
+      state.cells.push(row);
+    }
+  }
+
+  function makeMines() {
+    state.mines.length = 0;
+    for (let y = 0; y < MINE_H; y++) {
+      const row = [];
+      for (let x = 0; x < MINE_W; x++) {
+        const depth = y / (MINE_H - 1);
+        row.push({
+          hardness: clamp(0.25 + depth * 0.7 + rand(-0.08, 0.08), 0, 1),
+          ore: clamp(0.2 + Math.sin(x * 0.7 + y * 0.45) * 0.25 + rand(0, 0.25), 0, 1),
+          volatiles: clamp(0.18 + Math.cos(x * 0.5 - y * 0.35) * 0.22 + rand(0, 0.2), 0, 1),
+          open: y < 2 && x > 4 && x < 9 ? 1 : 0,
+          hazard: clamp(depth * 0.55 + rand(0, 0.25), 0, 1)
+        });
+      }
+      state.mines.push(row);
+    }
+  }
+
+  function initStars() {
+    stars.length = 0;
+    for (let i = 0; i < 220; i++) stars.push({ x: Math.random(), y: Math.random(), z: rand(0.2, 1) });
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    bg.width = world.width = Math.floor(w * dpr);
+    bg.height = world.height = Math.floor(h * dpr);
+    bg.style.width = world.style.width = w + 'px';
+    bg.style.height = world.style.height = h + 'px';
+    bgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function addLog(text) {
+    const line = document.createElement('div');
+    line.textContent = '[' + state.year + '] ' + text;
+    logEl.prepend(line);
+    while (logEl.children.length > 10) logEl.removeChild(logEl.lastChild);
+  }
+
+  function habitatScore(c) {
+    const t = 1 - Math.abs(c.temp - 0.56) / 0.56;
+    const p = 1 - Math.abs(c.pressure - 0.56) / 0.56;
+    const w = 1 - Math.abs(c.water - 0.48) / 0.52;
+    return clamp((t + p + w + c.biomass) / 4, 0, 1);
+  }
+
+  function averages() {
+    let temp = 0, pressure = 0, water = 0, biomass = 0, count = 0;
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        const c = state.cells[y][x];
+        temp += c.temp;
+        pressure += c.pressure;
+        water += c.water;
+        biomass += c.biomass;
+        count++;
+      }
+    }
+    return { temp: temp / count, pressure: pressure / count, water: water / count, biomass: biomass / count };
+  }
+
+  function updateStats() {
+    const a = averages();
+    tempVal.textContent = a.temp.toFixed(2);
+    pressureVal.textContent = a.pressure.toFixed(2);
+    waterVal.textContent = a.water.toFixed(2);
+    biomassVal.textContent = a.biomass.toFixed(2);
+    energyVal.textContent = String(state.energy);
+    yearVal.textContent = String(state.year);
+    oreVal.textContent = String(state.ore);
+    volVal.textContent = String(state.volatiles);
+    modeBanner.textContent = state.mode === 'surface' ? 'Surface Mode' : 'Subsurface Mode';
+    controlLegend.textContent = state.mode === 'surface'
+      ? 'Click anywhere on the surface grid to target a sector. Surface actions consume stockpiled ore and volatile resources along with energy.'
+      : 'Click tunnel cells to direct the mining drone. Closed cells can be drilled open, while open cells can be harvested for ore and volatiles.';
+
+    const habitability = (1 - Math.abs(a.temp - 0.56) * 1.8) * (1 - Math.abs(a.pressure - 0.56) * 1.8) * (1 - Math.abs(a.water - 0.48) * 1.4) * (0.5 + a.biomass);
+    const pct = Math.round(clamp(habitability, 0, 1) * 100);
+    const sector = state.mode === 'surface'
+      ? `${String.fromCharCode(65 + (state.target.y % 26))}-${state.target.x}`
+      : `TUNNEL ${state.mineTarget.x},${state.mineTarget.y}`;
+    statusText.textContent = `Orbit stable · ${sector} · Habitability ${pct}%`;
+    applyBtn.textContent = state.mode === 'surface' ? 'Apply To Target' : 'Drill Or Extract';
+    modeBtn.textContent = state.mode === 'surface' ? 'Switch To Subsurface' : 'Switch To Surface';
+  }
+
+  function drawBackground(t) {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    bgCtx.clearRect(0, 0, w, h);
+    const grad = bgCtx.createRadialGradient(w * 0.5, h * 0.45, 0, w * 0.5, h * 0.5, h * 0.7);
+    grad.addColorStop(0, 'rgba(22, 50, 74, 0.35)');
+    grad.addColorStop(0.6, 'rgba(6, 10, 18, 0.18)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    bgCtx.fillStyle = grad;
+    bgCtx.fillRect(0, 0, w, h);
+    for (const s of stars) {
+      const px = (s.x * w + (t * 0.005 * s.z)) % w;
+      const py = s.y * h;
+      const r = s.z * 1.6;
+      bgCtx.beginPath();
+      bgCtx.arc(px, py, r, 0, Math.PI * 2);
+      bgCtx.fillStyle = `rgba(180,255,240,${0.18 + s.z * 0.45})`;
+      bgCtx.fill();
+    }
+  }
+
+  function drawCockpitOverlay(w, h) {
+    ctx.strokeStyle = 'rgba(120,255,210,0.12)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.82);
+    ctx.lineTo(w * 0.18, h * 0.74);
+    ctx.lineTo(w * 0.82, h * 0.74);
+    ctx.lineTo(w, h * 0.82);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, h * 0.18);
+    ctx.lineTo(w * 0.08, h * 0.14);
+    ctx.moveTo(w, h * 0.18);
+    ctx.lineTo(w * 0.92, h * 0.14);
+    ctx.stroke();
+  }
+
+  function drawSurfaceWorld(w, h) {
+    const planetW = Math.min(w * 0.72, 860) * state.camera.zoom;
+    const planetH = planetW * (GRID_H / GRID_W);
+    const x0 = (w - planetW) / 2 + state.camera.x;
+    const y0 = (h - planetH) / 2 + state.camera.y;
+    const cw = planetW / GRID_W;
+    const ch = planetH / GRID_H;
+
+    const planetGlow = ctx.createRadialGradient(x0 + planetW / 2, y0 + planetH / 2, planetW * 0.1, x0 + planetW / 2, y0 + planetH / 2, planetW * 0.7);
+    planetGlow.addColorStop(0, 'rgba(100,255,220,0.12)');
+    planetGlow.addColorStop(1, 'rgba(100,255,220,0)');
+    ctx.fillStyle = planetGlow;
+    ctx.fillRect(x0 - 80, y0 - 80, planetW + 160, planetH + 160);
+
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        const c = state.cells[y][x];
+        const hab = habitatScore(c);
+        const stress = Math.abs(c.temp - 0.58) + Math.abs(c.pressure - 0.55);
+        let r = Math.floor(18 + stress * 130);
+        let g = Math.floor(50 + hab * 200);
+        let b = Math.floor(70 + c.water * 120 + c.biomass * 80);
+        if (stress > 0.6) {
+          r = Math.floor(80 + stress * 180);
+          g = Math.floor(60 + c.water * 70);
+          b = Math.floor(40 + c.biomass * 40);
+        }
+        ctx.fillStyle = `rgb(${clamp(r,0,255)},${clamp(g,0,255)},${clamp(b,0,255)})`;
+        ctx.fillRect(x0 + x * cw, y0 + y * ch, cw + 1, ch + 1);
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(120,255,210,0.22)';
+    for (let x = 0; x <= GRID_W; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x0 + x * cw, y0);
+      ctx.lineTo(x0 + x * cw, y0 + planetH);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= GRID_H; y++) {
+      ctx.beginPath();
+      ctx.moveTo(x0, y0 + y * ch);
+      ctx.lineTo(x0 + planetW, y0 + y * ch);
+      ctx.stroke();
+    }
+
+    const tx = x0 + state.target.x * cw + cw / 2;
+    const ty = y0 + state.target.y * ch + ch / 2;
+    ctx.strokeStyle = 'rgba(255,220,120,0.92)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x0 + state.target.x * cw, y0 + state.target.y * ch, cw, ch);
+    ctx.beginPath();
+    ctx.arc(tx, ty, Math.max(8, Math.min(cw, ch) * 0.4), 0, Math.PI * 2);
+    ctx.stroke();
+
+    world._viewRect = { mode: 'surface', x: x0, y: y0, w: planetW, h: planetH, cw, ch, cols: GRID_W, rows: GRID_H };
+  }
+
+  function drawMineWorld(w, h) {
+    const mineW = Math.min(w * 0.58, 700) * state.camera.zoom;
+    const mineH = mineW;
+    const x0 = (w - mineW) / 2 + state.camera.x;
+    const y0 = (h - mineH) / 2 + state.camera.y;
+    const cw = mineW / MINE_W;
+    const ch = mineH / MINE_H;
+
+    const caveGlow = ctx.createRadialGradient(x0 + mineW / 2, y0 + mineH * 0.25, 0, x0 + mineW / 2, y0 + mineH / 2, mineW * 0.65);
+    caveGlow.addColorStop(0, 'rgba(255,180,90,0.14)');
+    caveGlow.addColorStop(1, 'rgba(255,180,90,0)');
+    ctx.fillStyle = caveGlow;
+    ctx.fillRect(x0 - 80, y0 - 80, mineW + 160, mineH + 160);
+
+    for (let y = 0; y < MINE_H; y++) {
+      for (let x = 0; x < MINE_W; x++) {
+        const c = state.mines[y][x];
+        const ore = Math.floor(40 + c.ore * 180);
+        const vol = Math.floor(30 + c.volatiles * 120);
+        const hard = Math.floor(25 + c.hardness * 90);
+        let fill = `rgb(${hard},${hard + vol * 0.12},${hard + ore * 0.08})`;
+        if (c.open) fill = `rgb(${40 + ore * 0.4},${70 + ore * 0.35},${55 + vol * 0.25})`;
+        if (c.hazard > 0.72) fill = `rgb(${120 + c.hazard * 120},${80 + vol * 0.2},${40})`;
+        ctx.fillStyle = fill;
+        ctx.fillRect(x0 + x * cw, y0 + y * ch, cw + 1, ch + 1);
+        if (c.open) {
+          ctx.strokeStyle = 'rgba(120,255,210,0.18)';
+          ctx.strokeRect(x0 + x * cw + 2, y0 + y * ch + 2, cw - 4, ch - 4);
+        }
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(120,255,210,0.22)';
+    for (let x = 0; x <= MINE_W; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x0 + x * cw, y0);
+      ctx.lineTo(x0 + x * cw, y0 + mineH);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= MINE_H; y++) {
+      ctx.beginPath();
+      ctx.moveTo(x0, y0 + y * ch);
+      ctx.lineTo(x0 + mineW, y0 + y * ch);
+      ctx.stroke();
+    }
+
+    const tx = x0 + state.mineTarget.x * cw + cw / 2;
+    const ty = y0 + state.mineTarget.y * ch + ch / 2;
+    ctx.strokeStyle = 'rgba(255,220,120,0.95)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x0 + state.mineTarget.x * cw, y0 + state.mineTarget.y * ch, cw, ch);
+    ctx.beginPath();
+    ctx.moveTo(tx - 10, ty); ctx.lineTo(tx + 10, ty);
+    ctx.moveTo(tx, ty - 10); ctx.lineTo(tx, ty + 10);
+    ctx.stroke();
+
+    world._viewRect = { mode: 'mine', x: x0, y: y0, w: mineW, h: mineH, cw, ch, cols: MINE_W, rows: MINE_H };
+  }
+
+  function drawWorld() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    ctx.clearRect(0, 0, w, h);
+    if (state.mode === 'surface') drawSurfaceWorld(w, h);
+    else drawMineWorld(w, h);
+    drawCockpitOverlay(w, h);
+  }
+
+  function affectCell(cell, tool) {
+    switch (tool) {
+      case 'heat':
+        cell.temp = clamp(cell.temp + 0.11, 0, 1);
+        cell.pressure = clamp(cell.pressure + 0.03, 0, 1);
+        break;
+      case 'water':
+        cell.water = clamp(cell.water + 0.15, 0, 1);
+        cell.pressure = clamp(cell.pressure + 0.02, 0, 1);
+        cell.temp = clamp(cell.temp - 0.02, 0, 1);
+        break;
+      case 'air':
+        cell.pressure = clamp(cell.pressure + 0.14, 0, 1);
+        cell.temp = clamp(cell.temp + 0.01, 0, 1);
+        break;
+      case 'life':
+        cell.biomass = clamp(cell.biomass + 0.18 * habitatScore(cell) + 0.03, 0, 1);
+        cell.water = clamp(cell.water - 0.01, 0, 1);
+        break;
+      case 'cool':
+        cell.temp = clamp(cell.temp - 0.12, 0, 1);
+        break;
+    }
+  }
+
+  function toolCost(tool) {
+    if (tool === 'water') return { ore: 3, vol: 2, energy: 8 };
+    if (tool === 'air') return { ore: 2, vol: 2, energy: 8 };
+    if (tool === 'life') return { ore: 2, vol: 1, energy: 8 };
+    return { ore: 2, vol: 1, energy: 8 };
+  }
+
+  function applyToolAt(x, y) {
+    const cost = toolCost(toolSelect.value);
+    if (state.energy < cost.energy || state.ore < cost.ore || state.volatiles < cost.vol) {
+      addLog('Surface operation aborted: insufficient energy or extracted materials.');
+      return;
+    }
+    const tool = toolSelect.value;
+    for (let oy = -1; oy <= 1; oy++) {
+      for (let ox = -1; ox <= 1; ox++) {
+        const xx = x + ox;
+        const yy = y + oy;
+        if (xx < 0 || yy < 0 || xx >= GRID_W || yy >= GRID_H) continue;
+        affectCell(state.cells[yy][xx], tool);
+      }
+    }
+    state.energy -= cost.energy;
+    state.ore -= cost.ore;
+    state.volatiles -= cost.vol;
+    addLog(`${toolSelect.options[toolSelect.selectedIndex].text} deployed at ${String.fromCharCode(65 + (y % 26))}-${x}.`);
+    updateStats();
+  }
+
+  function mineAt(x, y) {
+    const cell = state.mines[y][x];
+    if (state.energy < 6) {
+      addLog('Mining pass aborted: not enough energy.');
+      return;
+    }
+    if (!cell.open) {
+      cell.open = 1;
+      state.energy -= 6;
+      addLog(`Tunnel drilled into subsurface cell ${x},${y}.`);
+    } else {
+      const oreYield = Math.max(0, Math.round(cell.ore * 8 - cell.hardness * 2));
+      const volYield = Math.max(0, Math.round(cell.volatiles * 7 - cell.hazard * 2));
+      state.ore += oreYield;
+      state.volatiles += volYield;
+      state.energy = clamp(state.energy - 4 + Math.round(volYield * 0.4), 0, 99);
+      cell.ore = clamp(cell.ore * 0.62, 0, 1);
+      cell.volatiles = clamp(cell.volatiles * 0.58, 0, 1);
+      if (cell.hazard > 0.74) {
+        state.energy = clamp(state.energy - 5, 0, 99);
+        addLog(`Hazard flare during extraction at ${x},${y}. Ore +${oreYield}, volatiles +${volYield}.`);
+      } else {
+        addLog(`Extraction pass complete at ${x},${y}. Ore +${oreYield}, volatiles +${volYield}.`);
+      }
+    }
+    updateStats();
+  }
+
+  function simulateYear() {
+    state.year += 1;
+    state.energy = clamp(state.energy + 10 + Math.round(state.volatiles * 0.08), 0, 99);
+    const next = state.cells.map(row => row.map(c => ({ ...c })));
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        const c = state.cells[y][x];
+        let tempAvg = c.temp, pressureAvg = c.pressure, waterAvg = c.water, biomassAvg = c.biomass, n = 1;
+        for (let oy = -1; oy <= 1; oy++) {
+          for (let ox = -1; ox <= 1; ox++) {
+            if (!ox && !oy) continue;
+            const xx = x + ox, yy = y + oy;
+            if (xx < 0 || yy < 0 || xx >= GRID_W || yy >= GRID_H) continue;
+            const nb = state.cells[yy][xx];
+            tempAvg += nb.temp; pressureAvg += nb.pressure; waterAvg += nb.water; biomassAvg += nb.biomass; n++;
+          }
+        }
+        tempAvg /= n; pressureAvg /= n; waterAvg /= n; biomassAvg /= n;
+        const target = next[y][x];
+        target.temp = clamp(c.temp * 0.86 + tempAvg * 0.14 + (c.pressure - 0.4) * 0.01, 0, 1);
+        target.pressure = clamp(c.pressure * 0.9 + pressureAvg * 0.1 - Math.max(0, 0.38 - c.temp) * 0.01, 0, 1);
+        target.water = clamp(c.water * 0.9 + waterAvg * 0.1 + Math.max(0, c.pressure - 0.45) * 0.01, 0, 1);
+        const hab = habitatScore(c);
+        target.biomass = clamp(c.biomass * 0.92 + biomassAvg * 0.04 + hab * 0.05 - Math.max(0, c.temp - 0.82) * 0.08, 0, 1);
+      }
+    }
+    state.cells = next;
+    addLog('Planetary drift simulated for one year.');
+    updateStats();
+  }
+
+  function autoBalance() {
+    if (state.mode !== 'surface') {
+      addLog('Auto balance is only available in surface mode.');
+      return;
+    }
+    const originalTool = toolSelect.value;
+    let hottest = { x: 0, y: 0, v: -Infinity };
+    let driest = { x: 0, y: 0, v: Infinity };
+    let thinnest = { x: 0, y: 0, v: Infinity };
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        const c = state.cells[y][x];
+        if (c.temp > hottest.v) hottest = { x, y, v: c.temp };
+        if (c.water < driest.v) driest = { x, y, v: c.water };
+        if (c.pressure < thinnest.v) thinnest = { x, y, v: c.pressure };
+      }
+    }
+    state.target = { x: driest.x, y: driest.y }; toolSelect.value = 'water'; applyToolAt(driest.x, driest.y);
+    state.target = { x: thinnest.x, y: thinnest.y }; toolSelect.value = 'air'; applyToolAt(thinnest.x, thinnest.y);
+    state.target = { x: hottest.x, y: hottest.y }; toolSelect.value = 'cool'; applyToolAt(hottest.x, hottest.y);
+    toolSelect.value = originalTool;
+    addLog('Auto balance routine completed.');
+    updateStats();
+  }
+
+  function hitTest(mx, my) {
+    const r = world._viewRect;
+    if (!r) return null;
+    if (mx < r.x || my < r.y || mx > r.x + r.w || my > r.y + r.h) return null;
+    const x = clamp(Math.floor((mx - r.x) / r.cw), 0, r.cols - 1);
+    const y = clamp(Math.floor((my - r.y) / r.ch), 0, r.rows - 1);
+    return { x, y, mode: r.mode };
+  }
+
+  function onPointerDown(e) {
+    const rect = world.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const hit = hitTest(mx, my);
+    state.pointer.x = e.clientX;
+    state.pointer.y = e.clientY;
+    state.dragging = true;
+    if (hit) {
+      if (hit.mode === 'surface') {
+        state.target = { x: hit.x, y: hit.y };
+        addLog(`Target locked on sector ${String.fromCharCode(65 + (hit.y % 26))}-${hit.x}.`);
+      } else {
+        state.mineTarget = { x: hit.x, y: hit.y };
+        addLog(`Mining reticle aligned to tunnel cell ${hit.x},${hit.y}.`);
+      }
+      updateStats();
+    }
+  }
+
+  function onPointerMove(e) {
+    if (!state.dragging) return;
+    const dx = e.clientX - state.pointer.x;
+    const dy = e.clientY - state.pointer.y;
+    state.pointer.x = e.clientX;
+    state.pointer.y = e.clientY;
+    state.camera.x += dx;
+    state.camera.y += dy;
+  }
+
+  function onPointerUp() { state.dragging = false; }
+
+  world.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
+  world.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    state.camera.zoom = clamp(state.camera.zoom * (e.deltaY > 0 ? 0.92 : 1.08), 0.7, 2.2);
+  }, { passive: false });
+
+  applyBtn.addEventListener('click', () => {
+    if (state.mode === 'surface') applyToolAt(state.target.x, state.target.y);
+    else mineAt(state.mineTarget.x, state.mineTarget.y);
+  });
+  advanceBtn.addEventListener('click', simulateYear);
+  scanBtn.addEventListener('click', autoBalance);
+  modeBtn.addEventListener('click', () => {
+    state.mode = state.mode === 'surface' ? 'mine' : 'surface';
+    state.camera.x = 0; state.camera.y = 0; state.camera.zoom = 1;
+    addLog(state.mode === 'surface' ? 'Returned to orbital surface management.' : 'Dropped into subsurface mining view.');
+    updateStats();
+  });
+  resetBtn.addEventListener('click', () => {
+    state.year = 2147; state.energy = 82; state.ore = 24; state.volatiles = 18;
+    state.mode = 'surface';
+    state.camera.x = 0; state.camera.y = 0; state.camera.zoom = 1;
+    state.target = { x: 24, y: 16 }; state.mineTarget = { x: 6, y: 6 };
+    makePlanet(); makeMines();
+    logEl.innerHTML = '';
+    addLog('Planet reset. Fresh survey loaded.');
+    updateStats();
+  });
+
+  window.addEventListener('resize', resize);
+
+  function frame(t) {
+    drawBackground(t);
+    drawWorld();
+    requestAnimationFrame(frame);
+  }
+
+  initStars();
+  makePlanet();
+  makeMines();
+  resize();
+  addLog('Drone inserted into low orbit.');
+  addLog('Subsurface survey seeded beneath crust.');
+  updateStats();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

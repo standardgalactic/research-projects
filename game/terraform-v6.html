@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Terraform Vector · v6</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+:root{
+  --teal:#6effd0;--amber:#ffc840;--red:#ff4422;
+  --dim:rgba(110,255,208,0.28);--panel:rgba(3,8,15,0.93);
+  --text:#aaffd8;--sub:rgba(170,255,216,0.50);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;
+  color:var(--text);font-family:'Share Tech Mono',monospace}
+#app{position:relative;width:100vw;height:100vh}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#bgC{z-index:0}#rc{z-index:1}#oc{z-index:2;pointer-events:none}
+
+/* HUD */
+.hud{position:absolute;inset:0;z-index:3;pointer-events:none}
+.panel{pointer-events:auto;background:var(--panel);border:1px solid var(--dim);
+  box-shadow:0 0 22px rgba(110,255,208,.09),inset 0 0 14px rgba(110,255,208,.02);
+  backdrop-filter:blur(8px)}
+
+.topbar{position:absolute;top:11px;left:11px;right:11px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 13px;gap:8px}
+.tt{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:.13em}
+.ts{font-size:9px;color:var(--sub);margin-top:2px;letter-spacing:.05em}
+#stx{font-size:9px;color:var(--sub);letter-spacing:.07em;text-align:right}
+
+#bnr{position:absolute;top:64px;left:50%;transform:translateX(-50%);
+  padding:3px 15px;font-family:'Orbitron',monospace;font-size:8px;
+  letter-spacing:.16em;border:1px solid var(--dim);background:var(--panel);
+  backdrop-filter:blur(4px);white-space:nowrap;transition:color .3s,border-color .3s}
+#bnr.fps{color:var(--amber);border-color:rgba(255,200,64,.38)}
+
+.lp{position:absolute;left:11px;bottom:11px;width:192px;padding:9px}
+.rp{position:absolute;right:11px;bottom:11px;width:204px;padding:9px}
+.pt{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:.12em;
+  color:var(--sub);margin-bottom:7px;text-transform:uppercase}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.sv{padding:3px 5px;border:1px solid rgba(110,255,208,.11);
+  background:rgba(0,0,0,.2);font-size:8px;line-height:1.4}
+.sv span{color:var(--teal)}.sv.w span{color:var(--amber)}.sv.c span{color:var(--red)}
+.lg{margin-top:7px;min-height:60px;max-height:95px;overflow-y:auto;
+  font-size:8px;line-height:1.55;color:var(--sub);
+  border:1px solid rgba(110,255,208,.08);padding:4px;background:rgba(0,0,0,.16)}
+.lg .e{margin-bottom:1px}.lg .hz{color:#ff6040}.lg .ok{color:#66ffaa}
+.ct{display:flex;flex-direction:column;gap:5px;margin-top:7px}
+button,select{width:100%;background:rgba(2,7,13,.95);color:var(--text);
+  border:1px solid var(--dim);font-family:'Share Tech Mono',monospace;
+  font-size:8px;padding:6px 8px;cursor:pointer;letter-spacing:.05em;
+  text-align:left;transition:background .11s,border-color .11s}
+button:hover{background:rgba(110,255,208,.055);border-color:var(--teal)}
+button.act{background:rgba(110,255,208,.09);border-color:var(--teal);color:var(--teal)}
+button.amb{border-color:rgba(255,200,64,.38);color:var(--amber)}
+button.amb:hover{background:rgba(255,200,64,.055)}
+select option{background:#040d18}
+.ht{margin-top:7px;font-size:8px;color:var(--sub);line-height:1.55;
+  border-top:1px solid rgba(110,255,208,.07);padding-top:6px}
+
+/* FPS overlay */
+#fo{position:absolute;inset:0;pointer-events:none;display:none}
+#fo.v{display:block}
+
+/* crosshair */
+#xh{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:20px;height:20px;pointer-events:none}
+#xh::before,#xh::after{content:'';position:absolute;background:rgba(255,255,255,.65)}
+#xh::before{left:50%;top:-7px;bottom:-7px;width:1px;transform:translateX(-50%)}
+#xh::after{top:50%;left:-7px;right:-7px;height:1px;transform:translateY(-50%)}
+
+/* O2 */
+#o2b{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);
+  width:200px;display:flex;align-items:center;gap:7px;padding:4px 11px;
+  border:1px solid rgba(110,255,208,.2);background:var(--panel)}
+#o2l{font-family:'Orbitron',monospace;font-size:7px;letter-spacing:.12em;color:var(--sub);min-width:22px}
+#o2t{flex:1;height:5px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(110,255,208,.14);overflow:hidden}
+#o2f{height:100%;transition:width .18s}
+#o2n{font-size:8px;min-width:28px;text-align:right}
+
+/* cargo */
+#cb{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);
+  padding:3px 12px;border:1px solid rgba(255,200,64,.26);background:var(--panel);
+  font-size:8px;color:var(--amber);letter-spacing:.05em;display:flex;gap:12px}
+
+/* drill prompt */
+#dp{position:absolute;bottom:104px;left:50%;transform:translateX(-50%);
+  font-size:8px;color:rgba(255,200,64,.75);letter-spacing:.07em;
+  padding:3px 9px;border:1px solid rgba(255,200,64,.28);background:var(--panel);display:none}
+#dp.v{display:block}
+
+/* zone */
+#zn{position:absolute;top:83px;left:50%;transform:translateX(-50%);
+  font-family:'Orbitron',monospace;font-size:8px;letter-spacing:.15em;
+  color:var(--sub);opacity:.7;text-align:center}
+
+/* minimap */
+#mm{position:absolute;top:83px;right:11px;border:1px solid var(--dim);
+  background:rgba(0,0,0,.55);display:none;image-rendering:pixelated}
+#mm.v{display:block}
+
+/* lock prompt */
+#lp{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:9px;background:rgba(0,0,0,.52);z-index:10;cursor:pointer}
+#lp.h{display:none}
+#lp p{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:.14em;color:var(--teal)}
+#lp small{font-size:8px;color:var(--sub);letter-spacing:.08em;text-align:center}
+
+/* hazard flash */
+#hf{position:absolute;inset:0;pointer-events:none;background:rgba(255,48,8,0);
+  transition:background .07s;z-index:4}
+
+/* vignette hint */
+#kh{position:absolute;bottom:11px;left:50%;transform:translateX(-50%);
+  display:none;align-items:center;gap:7px;padding:4px 12px;
+  border:1px solid rgba(110,255,208,.13);background:var(--panel);
+  font-size:8px;color:var(--sub);letter-spacing:.06em}
+#kh.v{display:flex}
+.k{padding:1px 5px;border:1px solid rgba(110,255,208,.2);background:rgba(0,0,0,.3);color:var(--teal);font-size:8px}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="bgC"></canvas>
+  <canvas id="rc"></canvas>
+  <canvas id="oc"></canvas>
+
+  <div id="lp" class="h">
+    <p>CLICK TO PILOT DRONE</p>
+    <small>WASD move · MOUSE look · SPACE/SHIFT up/down<br>E drill/extract · F deposit · ESC release</small>
+  </div>
+  <div id="hf"></div>
+
+  <!-- FPS overlay -->
+  <div id="fo">
+    <div id="xh"></div>
+    <div id="zn">SURFACE</div>
+    <div id="dp">[ E ] DRILL</div>
+    <div id="o2b">
+      <div id="o2l">O₂</div>
+      <div id="o2t"><div id="o2f" style="width:100%"></div></div>
+      <div id="o2n">30</div>
+    </div>
+    <div id="cb">
+      <span>ORE <span id="dO">0</span></span>
+      <span>VOL <span id="dV">0</span></span>
+      <span id="dH" style="color:var(--sub)">· hold empty ·</span>
+    </div>
+  </div>
+
+  <canvas id="mm" width="110" height="110"></canvas>
+
+  <div id="kh">
+    <span class="k">WASD</span><span>move</span>
+    <span class="k">SPACE/SHIFT</span><span>up/down</span>
+    <span class="k">MOUSE</span><span>look</span>
+    <span class="k">E</span><span>drill/extract</span>
+    <span class="k">F</span><span>deposit</span>
+  </div>
+
+  <div class="hud">
+    <div class="panel topbar">
+      <div><div class="tt">Terraform Vector · v6</div>
+        <div class="ts">Orbital command &amp; 6DOF subsurface mining · Stars! × Descent</div></div>
+      <div id="stx">—</div>
+    </div>
+    <div id="bnr">◈ SURFACE MODE ◈</div>
+
+    <div class="panel lp">
+      <div class="pt">Planetary State</div>
+      <div class="sg">
+        <div class="sv" id="sT">Temp <span id="vT">—</span></div>
+        <div class="sv" id="sP">Pres <span id="vP">—</span></div>
+        <div class="sv" id="sW">H₂O <span id="vW">—</span></div>
+        <div class="sv" id="sB">Bio <span id="vB">—</span></div>
+        <div class="sv" id="sE">Nrg <span id="vE">—</span></div>
+        <div class="sv">Yr <span id="vY">2147</span></div>
+        <div class="sv" id="sOr">Ore <span id="vOr">—</span></div>
+        <div class="sv" id="sVo">Vol <span id="vVo">—</span></div>
+      </div>
+      <div class="lg" id="log"></div>
+    </div>
+
+    <div class="panel rp">
+      <div class="pt">Operations</div>
+      <div class="ct">
+        <button id="mBtn" class="amb">▼ DESCEND</button>
+        <select id="tSel">
+          <option value="heat">Orbital Mirrors</option>
+          <option value="water">Comet Seeding</option>
+          <option value="air">Atmosphere Processors</option>
+          <option value="life">Bio Capsules</option>
+          <option value="cool">Albedo Screens</option>
+        </select>
+        <button id="aBtn">APPLY TO TARGET</button>
+        <button id="yBtn">ADVANCE 1 YEAR</button>
+        <button id="bBtn">AUTO BALANCE</button>
+        <button id="rBtn">RESET PLANET</button>
+      </div>
+      <div class="ht" id="htEl">Click surface grid to target sector. Ops consume ore and volatiles stockpiled from below.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+'use strict';
+// ── canvas / ctx ──────────────────────────────────────────────────────
+const bgC=document.getElementById('bgC'),bgX=bgC.getContext('2d');
+const rc =document.getElementById('rc'), rX =rc.getContext('2d');
+const oc =document.getElementById('oc'), oX =oc.getContext('2d');
+const mmC=document.getElementById('mm'),mmX=mmC.getContext('2d');
+
+const $=id=>document.getElementById(id);
+
+// ── world dims ────────────────────────────────────────────────────────
+const GW=48,GH=32;           // surface grid
+const MW=22,MH=14,MD=22;    // mine: X, Y(vertical layers), Z columns
+const SHAFT_X=10,SHAFT_Z=10,SHAFT_Y=0; // entry at top
+const O2_MAX=30,CARGO=40;
+
+// ── state ─────────────────────────────────────────────────────────────
+const st={
+  year:2147,energy:82,ore:24,vol:18,
+  mode:'surface',
+  cam:{x:0,y:0,zoom:1},drag:false,dragMoved:false,ptr:{x:0,y:0},
+  target:{x:24,y:16},
+  cells:[],mines:null,
+  // 6DOF player
+  pos:{x:SHAFT_X+.5,y:.6,z:SHAFT_Z+.5},  // continuous world coords (y=vertical, 0=surface)
+  vel:{x:0,y:0,z:0},
+  yaw:0,pitch:0,
+  o2:O2_MAX,dOre:0,dVol:0,
+  locked:false,
+  keys:{},
+  visited:null,
+  lastExtract:0,lastTick:0,
+};
+
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const clmp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+// ── Planet gen ─────────────────────────────────────────────────────────
+function makePlanet(){
+  st.cells=[];
+  for(let y=0;y<GH;y++){
+    const row=[];
+    for(let x=0;x<GW;x++){
+      const dx=(x-GW/2)/(GW/2),dy=(y-GH/2)/(GH/2);
+      const r=Math.sqrt(dx*dx+dy*dy),lm=clmp(1-r*.95,0,1);
+      const n=.5+.5*Math.sin(x*.43)*Math.cos(y*.37);
+      row.push({
+        temp:clmp(.35+lm*.12+rnd(-.08,.08),0,1),
+        pressure:clmp(.3+lm*.08+rnd(-.05,.05),0,1),
+        water:clmp(.18+(1-lm)*.28+rnd(-.05,.05),0,1),
+        biomass:clmp(rnd(.01,.08)*lm,0,1)
+      });
+    }
+    st.cells.push(row);
+  }
+}
+
+// ── 3-D mine gen ──────────────────────────────────────────────────────
+// mines[y][z][x]  — y = depth layer (0=surface), z/x = horizontal
+function makeMines(){
+  st.mines=[];
+  for(let y=0;y<MH;y++){
+    const layer=[];
+    for(let z=0;z<MD;z++){
+      const row=[];
+      const dep=y/(MH-1);
+      for(let x=0;x<MW;x++){
+        const oreB=clmp(.1+dep*dep*.95+Math.sin(x*.62+z*.48+y*.35)*.22+rnd(0,.18),0,1);
+        const volB=clmp(.08+dep*dep*.8+Math.cos(x*.5-z*.38+y*.28)*.2+rnd(0,.16),0,1);
+        const hazB=clmp(dep*dep*.72+rnd(0,.2),0,1);
+        const isShaft=(x===SHAFT_X&&z===SHAFT_Z&&y===SHAFT_Y);
+        const nearShaft=y===0&&Math.abs(x-SHAFT_X)<=1&&Math.abs(z-SHAFT_Z)<=1;
+        row.push({
+          hard:clmp(.2+dep*.75+rnd(-.06,.06),0,1),
+          ore:oreB,vol:volB,hazard:hazB,
+          open:nearShaft||isShaft?1:0,
+          shaft:isShaft?1:0,
+          depleted:0,
+        });
+      }
+      layer.push(row);
+    }
+    st.mines.push(layer);
+  }
+  // open a vertical shaft tunnel column
+  for(let y=0;y<Math.min(3,MH);y++){
+    const c=st.mines[y][SHAFT_Z][SHAFT_X];
+    c.open=1; if(y===0) c.shaft=1;
+  }
+
+  st.pos={x:SHAFT_X+.5,y:.6,z:SHAFT_Z+.5};
+  st.vel={x:0,y:0,z:0};
+  st.yaw=0;st.pitch=0;
+  st.o2=O2_MAX;st.dOre=0;st.dVol=0;
+  st.visited=new Set();
+  updateFog();
+}
+
+// ── visited fog ────────────────────────────────────────────────────────
+function mineAt(x,y,z){
+  if(x<0||y<0||z<0||x>=MW||y>=MH||z>=MD) return null;
+  return st.mines[y][z][x];
+}
+function isOpen(x,y,z){const c=mineAt(x,y,z);return c&&c.open;}
+function updateFog(){
+  if(!st.visited) return;
+  const px=Math.floor(st.pos.x),py=Math.floor(st.pos.y),pz=Math.floor(st.pos.z);
+  const q=[{x:px,y:py,z:pz,d:0}];
+  const seen=new Set([`${px},${py},${pz}`]);
+  const R=4;
+  while(q.length){
+    const cur=q.shift();
+    st.visited.add(`${cur.x},${cur.y},${cur.z}`);
+    if(cur.d>=R) continue;
+    for(const [dx,dy,dz] of [
+      [1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]
+    ]){
+      const nx=cur.x+dx,ny=cur.y+dy,nz=cur.z+dz;
+      if(nx<0||ny<0||nz<0||nx>=MW||ny>=MH||nz>=MD) continue;
+      const k=`${nx},${ny},${nz}`;
+      if(seen.has(k)) continue; seen.add(k);
+      if(isOpen(nx,ny,nz)) q.push({x:nx,y:ny,z:nz,d:cur.d+1});
+      else st.visited.add(k); // see wall face
+    }
+  }
+}
+
+// ── Stars ──────────────────────────────────────────────────────────────
+const stars=[];
+function initStars(){
+  stars.length=0;
+  for(let i=0;i<240;i++) stars.push({x:Math.random(),y:Math.random(),z:.2+Math.random()*.8});
+}
+
+// ── Resize ─────────────────────────────────────────────────────────────
+function resize(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=window.innerWidth,h=window.innerHeight;
+  for(const c of [bgC,rc,oc]){
+    c.width=Math.floor(w*dpr);c.height=Math.floor(h*dpr);
+    c.style.width=w+'px';c.style.height=h+'px';
+  }
+  bgX.setTransform(dpr,0,0,dpr,0,0);
+  rX.setTransform(dpr,0,0,dpr,0,0);
+  oX.setTransform(dpr,0,0,dpr,0,0);
+}
+
+// ── Log ────────────────────────────────────────────────────────────────
+function log(txt,cls=''){
+  const d=document.createElement('div');
+  d.className='e '+cls;d.textContent=`[${st.year}] ${txt}`;
+  $('log').prepend(d);
+  while($('log').children.length>14) $('log').removeChild($('log').lastChild);
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────
+function habScore(c){
+  return clmp(((1-Math.abs(c.temp-.56)/.56)+(1-Math.abs(c.pressure-.56)/.56)+
+    (1-Math.abs(c.water-.48)/.52)+c.biomass)/4,0,1);
+}
+function avgs(){
+  let t=0,p=0,w=0,b=0,n=0;
+  for(const row of st.cells) for(const c of row){t+=c.temp;p+=c.pressure;w+=c.water;b+=c.biomass;n++;}
+  return{temp:t/n,pressure:p/n,water:w/n,biomass:b/n};
+}
+function cstat(id,v,lo){
+  const el=$(id);if(!el) return;
+  el.classList.remove('w','c');
+  if(v<lo*.5) el.classList.add('c'); else if(v<lo) el.classList.add('w');
+}
+function ui(){
+  const a=avgs();
+  $('vT').textContent=a.temp.toFixed(2);$('vP').textContent=a.pressure.toFixed(2);
+  $('vW').textContent=a.water.toFixed(2);$('vB').textContent=a.biomass.toFixed(2);
+  $('vE').textContent=st.energy;$('vY').textContent=st.year;
+  $('vOr').textContent=st.ore;$('vVo').textContent=st.vol;
+  cstat('sE',st.energy,12);cstat('sOr',st.ore,8);cstat('sVo',st.vol,5);
+
+  const mine=st.mode==='mine';
+  $('bnr').textContent=mine?'◈ SUBSURFACE — 6DOF ◈':'◈ SURFACE MODE ◈';
+  $('bnr').className=mine?'fps':'';
+  $('mBtn').textContent=mine?'▲ ASCEND':'▼ DESCEND';
+  $('mBtn').className=mine?'act':'amb';
+  $('fo').className=mine?'v':'';
+  $('mm').className=mine?'v':'';
+  $('kh').className=mine?'v':'';
+  $('aBtn').textContent=mine?'RELEASE MOUSE (ESC)':'APPLY TO TARGET';
+  $('htEl').textContent=mine
+    ?'WASD+SPACE/SHIFT move, mouse look. E drill/extract cell ahead. F deposit at shaft. O₂ drains with depth.'
+    :'Click grid to target. Surface ops consume ore and volatiles stockpiled below.';
+
+  // o2
+  const op=clmp(st.o2/O2_MAX,0,1);
+  $('o2f').style.width=(op*100)+'%';
+  $('o2f').style.background=op>.5?'var(--teal)':op>.25?'var(--amber)':'var(--red)';
+  $('o2n').textContent=Math.ceil(st.o2).toString();
+
+  // cargo
+  $('dO').textContent=st.dOre;$('dV').textContent=st.dVol;
+  $('dH').textContent=(st.dOre||st.dVol)?'· return to shaft ·':'· hold empty ·';
+
+  // zone
+  const dep=mine?st.pos.y/(MH-1):0;
+  const zone=dep<.05?'SURFACE':dep<.3?'SHALLOW':dep<.6?'MID-LEVEL':dep<.82?'DEEP':'EXTREME';
+  $('zn').textContent=zone;
+  $('zn').style.color=dep>.6?'var(--red)':dep>.3?'var(--amber)':'var(--sub)';
+
+  // lock prompt
+  $('lp').className=(mine&&!st.locked)?'':'h';
+
+  // drill prompt
+  const fw=getDrillVoxel();
+  if(fw&&mine){
+    const fc=mineAt(fw.x,fw.y,fw.z);
+    const vis=st.visited&&st.visited.has(`${fw.x},${fw.y},${fw.z}`);
+    if(vis&&fc){
+      $('dp').className='v';
+      $('dp').textContent=fc.open?(fc.depleted?'[ E ] DEPLETED':`[ E ] EXTRACT  ore≈${(fc.ore*10).toFixed(0)} vol≈${(fc.vol*9).toFixed(0)}`):
+        `[ E ] DRILL  hard:${fc.hard.toFixed(2)}`;
+    } else $('dp').className='';
+  } else $('dp').className='';
+
+  const hab=avgs();
+  const hpct=Math.round(clmp((1-Math.abs(hab.temp-.56)*1.8)*(1-Math.abs(hab.pressure-.56)*1.8)*
+    (1-Math.abs(hab.water-.48)*1.4)*(.5+hab.biomass),0,1)*100);
+  const sector=mine?`${Math.floor(st.pos.x)},${Math.floor(st.pos.y)},${Math.floor(st.pos.z)}`
+    :`${String.fromCharCode(65+st.target.y%26)}-${st.target.x}`;
+  $('stx').textContent=`Orbit stable · ${sector} · Hab ${hpct}%`;
+}
+
+// ── Get voxel ahead of player ──────────────────────────────────────────
+function getDrillVoxel(){
+  // forward direction
+  const fx=Math.cos(st.pitch)*Math.sin(st.yaw);
+  const fy=-Math.sin(st.pitch);
+  const fz=Math.cos(st.pitch)*Math.cos(st.yaw);
+  for(let d=0.35;d<2.0;d+=0.06){
+    const wx=st.pos.x+fx*d, wy=st.pos.y+fy*d, wz=st.pos.z+fz*d;
+    const cx=Math.floor(wx),cy=Math.floor(wy),cz=Math.floor(wz);
+    if(cx===Math.floor(st.pos.x)&&cy===Math.floor(st.pos.y)&&cz===Math.floor(st.pos.z)) continue;
+    if(cx<0||cy<0||cz<0||cx>=MW||cy>=MH||cz>=MD) return null;
+    return{x:cx,y:cy,z:cz};
+  }
+  return null;
+}
+
+// ── Drill / extract ────────────────────────────────────────────────────
+function doAction(){
+  const fw=getDrillVoxel(); if(!fw) return;
+  const {x,y,z}=fw;
+  const cell=mineAt(x,y,z); if(!cell) return;
+  if(st.o2<2){log('O₂ critical — ascend!','hz');return;}
+
+  if(!cell.open){
+    const cost=clmp(3+cell.hard*9,3,12);
+    st.o2=clmp(st.o2-cost*.55,0,O2_MAX);
+    cell.open=1;
+    st.visited.add(`${x},${y},${z}`);
+    updateFog();
+    if(cell.hazard>.65){
+      st.o2=clmp(st.o2-cell.hazard*4.5,0,O2_MAX);
+      flash();log(`Drill ${x},${y},${z} — hazard burst!`,'hz');
+    } else {
+      log(`Drilled (${x},${y},${z}) depth ${y}m`);
+    }
+  } else {
+    if(cell.depleted){log(`${x},${y},${z} depleted.`);return;}
+    const room=CARGO-st.dOre-st.dVol;
+    if(room<=0){log('Cargo full — deposit at shaft.','hz');return;}
+    const now=Date.now();
+    if(now-st.lastExtract<400) return;
+    st.lastExtract=now;
+    const gotOre=Math.min(Math.max(0,Math.round(cell.ore*12-cell.hard*2)),room);
+    const gotVol=Math.min(Math.max(0,Math.round(cell.vol*10-cell.hazard*2)),Math.max(0,room-gotOre));
+    const o2c=clmp(1.5+cell.hazard*3.5,1.5,5);
+    st.o2=clmp(st.o2-o2c,0,O2_MAX);
+    st.dOre+=gotOre;st.dVol+=gotVol;
+    cell.ore=clmp(cell.ore*.52,0,1);cell.vol=clmp(cell.vol*.48,0,1);
+    if(cell.ore<.07&&cell.vol<.07) cell.depleted=1;
+    if(cell.hazard>.72){flash();log(`Extract (${x},${y},${z}) ⚠ ore+${gotOre} vol+${gotVol}`,'hz');}
+    else log(`Extract (${x},${y},${z}) ore+${gotOre} vol+${gotVol}`,'ok');
+  }
+  ui();
+}
+
+function deposit(){
+  if(!st.dOre&&!st.dVol){log('Hold empty.');return;}
+  st.ore+=st.dOre;st.vol+=st.dVol;
+  st.energy=clmp(st.energy+Math.round(st.dVol*.55),0,99);
+  st.o2=O2_MAX;
+  log(`Deposited ore+${st.dOre} vol+${st.dVol}. O₂ recharged.`,'ok');
+  st.dOre=0;st.dVol=0;
+  flash('rgba(110,255,208,.22)');
+  ui();
+}
+
+function flash(col='rgba(255,48,8,.32)'){
+  const el=$('hf');
+  el.style.background=col;
+  setTimeout(()=>el.style.background='rgba(255,48,8,0)',100);
+}
+
+// ── 6DOF player update ────────────────────────────────────────────────
+function updatePlayer(dt){
+  const spd=4.5, friction=.8;
+  const k=st.keys;
+  // build forward/right/up from yaw+pitch
+  const cy=Math.cos(st.yaw),sy=Math.sin(st.yaw);
+  const cp=Math.cos(st.pitch),sp=Math.sin(st.pitch);
+  // forward (into screen)
+  const fx=cp*sy, fy=-sp, fz=cp*cy;
+  // right
+  const rx=cy, ry=0, rz=-sy;
+
+  let ax=0,ay=0,az=0;
+  if(k['w']||k['W']||k['ArrowUp'])   {ax+=fx*spd;ay+=fy*spd;az+=fz*spd;}
+  if(k['s']||k['S']||k['ArrowDown']) {ax-=fx*spd;ay-=fy*spd;az-=fz*spd;}
+  if(k['a']||k['A']||k['ArrowLeft']) {ax-=rx*spd;az-=rz*spd;}
+  if(k['d']||k['D']||k['ArrowRight']){ax+=rx*spd;az+=rz*spd;}
+  if(k[' ']||k['Space'])             {ay-=spd;}   // up
+  if(k['Shift']||k['ShiftLeft']||k['ShiftRight']){ay+=spd;}  // down
+
+  st.vel.x=(st.vel.x+ax*dt)*friction;
+  st.vel.y=(st.vel.y+ay*dt)*friction;
+  st.vel.z=(st.vel.z+az*dt)*friction;
+
+  // collide-and-slide per axis
+  const R=0.25,VR=0.3;
+  function tryMove(axis,delta){
+    const np={...st.pos};np[axis]+=delta;
+    // check corners
+    const offsets=axis==='y'
+      ?[[0,0],[0,0]]  // y: just check the position
+      :[[R,0,R],[-R,0,R],[R,0,-R],[-R,0,-R]];
+    if(axis==='y'){
+      const cx=Math.floor(np.x),cy=Math.floor(np.y+(delta>0?VR:-VR)),cz=Math.floor(np.z);
+      if(cx<0||cy<0||cz<0||cx>=MW||cy>=MH||cz>=MD) return false;
+      if(!isOpen(cx,cy,cz)) return false;
+    } else {
+      for(const [ox,,oz] of offsets){
+        const cx=Math.floor(np.x+(axis==='x'?0:ox));
+        const cy=Math.floor(np.y);
+        const cz=Math.floor(np.z+(axis==='z'?0:oz));
+        if(cx<0||cy<0||cz<0||cx>=MW||cy>=MH||cz>=MD) return false;
+        if(!isOpen(cx,cy,cz)) return false;
+      }
+    }
+    st.pos[axis]=np[axis]; return true;
+  }
+  if(!tryMove('x',st.vel.x)) st.vel.x=0;
+  if(!tryMove('y',st.vel.y)) st.vel.y=0;
+  if(!tryMove('z',st.vel.z)) st.vel.z=0;
+
+  // clamp to mine bounds
+  st.pos.x=clmp(st.pos.x,.5,MW-.5);
+  st.pos.y=clmp(st.pos.y,0,MH-1);
+  st.pos.z=clmp(st.pos.z,.5,MD-.5);
+
+  updateFog();
+
+  // auto-deposit at shaft
+  const cx=Math.floor(st.pos.x),cy=Math.floor(st.pos.y),cz=Math.floor(st.pos.z);
+  if(cy<=1&&mineAt(cx,0,cz)?.shaft&&(st.dOre||st.dVol)) deposit();
+
+  // O2 drain: continuous, depth-scaled
+  const dep=st.pos.y/(MH-1);
+  const drain=0.5+dep*2.8;
+  st.o2=clmp(st.o2-drain*dt,0,O2_MAX);
+
+  // hazard passive
+  const hc=mineAt(cx,cy,cz);
+  if(hc?.hazard>.68) st.o2=clmp(st.o2-hc.hazard*.9*dt,0,O2_MAX);
+
+  if(st.o2<=0){
+    log('O₂ DEPLETED — emergency ascent!','hz');flash();
+    st.pos={x:SHAFT_X+.5,y:.5,z:SHAFT_Z+.5};
+    st.vel={x:0,y:0,z:0};
+    st.o2=O2_MAX*.1;
+    updateFog();
+  }
+}
+
+// ── Voxel DDA ray march ────────────────────────────────────────────────
+// Returns {dist, vx, vy, vz, face, cell, vis}
+function marchRay(ox,oy,oz,dx,dy,dz,maxDist){
+  let mx=Math.floor(ox),my=Math.floor(oy),mz=Math.floor(oz);
+  const sx=dx>0?1:-1, sy=dy>0?1:-1, sz=dz>0?1:-1;
+  const tdx=dx!==0?Math.abs(1/dx):1e30;
+  const tdy=dy!==0?Math.abs(1/dy):1e30;
+  const tdz=dz!==0?Math.abs(1/dz):1e30;
+  let tx=(dx>0?(mx+1-ox):(ox-mx))*tdx;
+  let ty=(dy>0?(my+1-oy):(oy-my))*tdy;
+  let tz=(dz>0?(mz+1-oz):(oz-mz))*tdz;
+  let face=0;
+  for(let i=0;i<80;i++){
+    if(mx<0||my<0||mz<0||mx>=MW||my>=MH||mz>=MD) return{dist:maxDist,vx:mx,vy:my,vz:mz,face,cell:null,vis:false};
+    const cell=st.mines[my][mz][mx];
+    if(!cell.open){
+      const dist=Math.min(tx,Math.min(ty,tz))-Math.min(tdx,Math.min(tdy,tdz))*.5;
+      const vis=st.visited&&st.visited.has(`${mx},${my},${mz}`);
+      return{dist:clmp(dist,0,maxDist),vx:mx,vy:my,vz:mz,face,cell,vis};
+    }
+    if(tx<ty&&tx<tz){tx+=tdx;mx+=sx;face=0;}
+    else if(ty<tz){ty+=tdy;my+=sy;face=1;}
+    else{tz+=tdz;mz+=sz;face=2;}
+    const d=Math.min(tx,Math.min(ty,tz));
+    if(d>maxDist) return{dist:maxDist,vx:mx,vy:my,vz:mz,face,cell:null,vis:false};
+  }
+  return{dist:maxDist,vx:mx,vy:my,vz:mz,face,cell:null,vis:false};
+}
+
+// ── 3-D renderer ──────────────────────────────────────────────────────
+const RES=2;  // render every Nth pixel (quality vs perf)
+let imgData=null;
+
+function drawMine3D(w,h){
+  // allocate imagedata if needed
+  const pw=Math.ceil(w/RES), ph=Math.ceil(h/RES);
+  if(!imgData||imgData.width!==pw||imgData.height!==ph){
+    imgData=rX.createImageData(pw,ph);
+  }
+  const buf=imgData.data;
+  const px=st.pos.x,py=st.pos.y,pz=st.pos.z;
+  const yaw=st.yaw,pitch=st.pitch;
+  const fovH=Math.PI/2.4, fovV=fovH*(ph/pw);
+  const t=Date.now();
+
+  // forward vector
+  const fwdX=Math.cos(pitch)*Math.sin(yaw);
+  const fwdY=-Math.sin(pitch);
+  const fwdZ=Math.cos(pitch)*Math.cos(yaw);
+  // right vector
+  const rtX=Math.cos(yaw), rtY=0, rtZ=-Math.sin(yaw);
+  // up vector = fwd × right... but we need up for fov
+  // up = right × forward
+  const upX=rtY*fwdZ-rtZ*fwdY;
+  const upY=rtZ*fwdX-rtX*fwdZ;
+  const upZ=rtX*fwdY-rtY*fwdX;
+
+  const halfTanH=Math.tan(fovH/2);
+  const halfTanV=Math.tan(fovV/2);
+  const maxDist=16;
+
+  for(let py2=0;py2<ph;py2++){
+    const sv=((py2/ph)-.5)*2*halfTanV;
+    for(let px2=0;px2<pw;px2++){
+      const su=((px2/pw)-.5)*2*halfTanH;
+      // ray direction
+      const rdx=fwdX+rtX*su+upX*sv;
+      const rdy=fwdY+rtY*su+upY*sv;
+      const rdz=fwdZ+rtZ*su+upZ*sv;
+      const rl=Math.sqrt(rdx*rdx+rdy*rdy+rdz*rdz);
+
+      const hit=marchRay(px,py,pz,rdx/rl,rdy/rl,rdz/rl,maxDist);
+      const idx=(py2*pw+px2)*4;
+      const dep=hit.vy/(MH-1);
+      const fog=clmp(1-hit.dist/maxDist,0,1);
+
+      if(!hit.vis||!hit.cell){
+        // unseen or sky/void
+        buf[idx]=3;buf[idx+1]=2;buf[idx+2]=8;buf[idx+3]=255;
+        continue;
+      }
+
+      const c=hit.cell;
+      // base rock by depth
+      let rr=Math.floor(lerp(30,75,dep)*fog);
+      let gg=Math.floor(lerp(20,14,dep)*fog);
+      let bb=Math.floor(lerp(45,26,dep)*fog);
+
+      // face shading
+      if(hit.face===1){rr=Math.floor(rr*.65);gg=Math.floor(gg*.65);bb=Math.floor(bb*.65);}
+      else if(hit.face===2){rr=Math.floor(rr*.82);gg=Math.floor(gg*.82);bb=Math.floor(bb*.82);}
+
+      // ore vein (warm gold)
+      if(c.ore>.45&&!c.depleted){
+        const t2=c.ore*.55;
+        rr=Math.floor(lerp(rr,clmp(Math.floor(lerp(90,210,c.ore)*fog),0,255),t2));
+        gg=Math.floor(lerp(gg,clmp(Math.floor(lerp(55,145,c.ore)*fog),0,255),t2*.7));
+      }
+      // volatile (teal-blue)
+      if(c.vol>.45&&!c.depleted){
+        const t2=c.vol*.5;
+        bb=Math.floor(lerp(bb,clmp(Math.floor(lerp(70,180,c.vol)*fog),0,255),t2));
+        gg=Math.floor(lerp(gg,clmp(Math.floor(lerp(60,150,c.vol)*fog),0,255),t2*.65));
+      }
+      // hazard (red pulse)
+      if(c.hazard>.62){
+        const pulse=.5+.5*Math.sin(t*.007+hit.vx*.4+hit.vz*.3);
+        const ht=c.hazard*.6*pulse;
+        rr=clmp(Math.floor(lerp(rr,220,ht)),0,255);
+        gg=clmp(Math.floor(lerp(gg,18,ht*.8)),0,255);
+        bb=clmp(Math.floor(lerp(bb,10,ht*.8)),0,255);
+      }
+      // shaft column glow
+      if(hit.vx===SHAFT_X&&hit.vz===SHAFT_Z){
+        gg=clmp(Math.floor(lerp(gg,180,fog*.4)),0,255);
+        bb=clmp(Math.floor(lerp(bb,140,fog*.35)),0,255);
+      }
+
+      buf[idx]=clmp(rr,0,255);
+      buf[idx+1]=clmp(gg,0,255);
+      buf[idx+2]=clmp(bb,0,255);
+      buf[idx+3]=255;
+    }
+  }
+
+  // blit scaled
+  rX.clearRect(0,0,w,h);
+  // draw to small canvas then scale
+  if(!drawMine3D._tmpC){
+    drawMine3D._tmpC=document.createElement('canvas');
+    drawMine3D._tmpX=drawMine3D._tmpC.getContext('2d');
+  }
+  const tmp=drawMine3D._tmpC, tmpX=drawMine3D._tmpX;
+  tmp.width=pw; tmp.height=ph;
+  tmpX.putImageData(imgData,0,0);
+  rX.imageSmoothingEnabled=false;
+  rX.drawImage(tmp,0,0,w,h);
+
+  // depth-tinted vignette
+  const depV=clmp(st.pos.y/(MH-1),0,1);
+  const vigA=clmp(.18+depV*.38,0,.52);
+  const vig=rX.createRadialGradient(w/2,h/2,h*.18,w/2,h/2,h*.78);
+  vig.addColorStop(0,'rgba(0,0,0,0)');
+  vig.addColorStop(1,depV>.6?`rgba(40,5,3,${vigA})`:`rgba(0,0,0,${vigA})`);
+  rX.fillStyle=vig;rX.fillRect(0,0,w,h);
+}
+
+// ── Minimap (horizontal slice at player depth) ─────────────────────────
+function drawMinimap(){
+  const cs=5,py=Math.floor(st.pos.y);
+  mmC.width=MW*cs+2; mmC.height=MD*cs+2;
+  mmX.fillStyle='rgba(0,0,0,.88)';mmX.fillRect(0,0,mmC.width,mmC.height);
+  for(let z=0;z<MD;z++) for(let x=0;x<MW;x++){
+    const vis=st.visited&&st.visited.has(`${x},${py},${z}`);
+    if(!vis) continue;
+    const c=mineAt(x,py,z);
+    mmX.fillStyle=c?.open
+      ?(c.shaft?'rgba(110,255,208,.75)':c.hazard>.68?'rgba(255,80,30,.9)':'rgba(35,50,65,1)')
+      :'rgba(20,16,28,1)';
+    mmX.fillRect(1+x*cs,1+z*cs,cs-1,cs-1);
+  }
+  // player
+  const ppx=1+st.pos.x*cs, ppz=1+st.pos.z*cs;
+  mmX.fillStyle='#ffc840';mmX.beginPath();mmX.arc(ppx,ppz,2.5,0,Math.PI*2);mmX.fill();
+  // direction (horizontal component of view)
+  mmX.strokeStyle='rgba(255,200,64,.7)';mmX.lineWidth=1.5;
+  mmX.beginPath();mmX.moveTo(ppx,ppz);
+  mmX.lineTo(ppx+Math.sin(st.yaw)*6,ppz+Math.cos(st.yaw)*6);mmX.stroke();
+}
+
+// ── Stars / background ─────────────────────────────────────────────────
+function drawBg(t){
+  const w=window.innerWidth,h=window.innerHeight;
+  bgX.clearRect(0,0,w,h);
+  if(st.mode==='mine') return;
+  const g=bgX.createRadialGradient(w*.5,h*.45,0,w*.5,h*.5,h*.7);
+  g.addColorStop(0,'rgba(18,46,70,.26)');g.addColorStop(.6,'rgba(4,8,15,.1)');g.addColorStop(1,'rgba(0,0,0,0)');
+  bgX.fillStyle=g;bgX.fillRect(0,0,w,h);
+  for(const s of stars){
+    const sx=(s.x*w+t*.004*s.z)%w;
+    bgX.beginPath();bgX.arc(sx,s.y*h,s.z*1.5,0,Math.PI*2);
+    bgX.fillStyle=`rgba(170,255,230,${.12+s.z*.36})`;bgX.fill();
+  }
+}
+
+// ── Surface planet ─────────────────────────────────────────────────────
+let surfView=null;
+function drawSurface(w,h){
+  rX.clearRect(0,0,w,h);
+  const pw=Math.min(w*.72,860)*st.cam.zoom, ph=pw*(GH/GW);
+  const x0=(w-pw)/2+st.cam.x, y0=(h-ph)/2+st.cam.y;
+  const cw=pw/GW, ch=ph/GH;
+  const pg=rX.createRadialGradient(x0+pw/2,y0+ph/2,pw*.1,x0+pw/2,y0+ph/2,pw*.7);
+  pg.addColorStop(0,'rgba(90,255,200,.07)');pg.addColorStop(1,'rgba(90,255,200,0)');
+  rX.fillStyle=pg;rX.fillRect(x0-80,y0-80,pw+160,ph+160);
+  for(let y=0;y<GH;y++) for(let x=0;x<GW;x++){
+    const c=st.cells[y][x],hab=habScore(c),str=Math.abs(c.temp-.58)+Math.abs(c.pressure-.55);
+    let r,g,b;
+    if(str>.6){r=Math.floor(80+str*180);g=Math.floor(60+c.water*70);b=Math.floor(40+c.biomass*40);}
+    else{r=Math.floor(18+str*130);g=Math.floor(50+hab*200);b=Math.floor(70+c.water*120+c.biomass*80);}
+    rX.fillStyle=`rgb(${clmp(r,0,255)},${clmp(g,0,255)},${clmp(b,0,255)})`;
+    rX.fillRect(x0+x*cw,y0+y*ch,cw+1,ch+1);
+  }
+  rX.strokeStyle='rgba(110,255,208,.13)';rX.lineWidth=.5;
+  for(let x=0;x<=GW;x++){rX.beginPath();rX.moveTo(x0+x*cw,y0);rX.lineTo(x0+x*cw,y0+ph);rX.stroke();}
+  for(let y=0;y<=GH;y++){rX.beginPath();rX.moveTo(x0,y0+y*ch);rX.lineTo(x0+pw,y0+y*ch);rX.stroke();}
+  const tx=x0+st.target.x*cw+cw/2,ty=y0+st.target.y*ch+ch/2;
+  rX.strokeStyle='rgba(255,210,90,.82)';rX.lineWidth=1.5;
+  rX.strokeRect(x0+st.target.x*cw,y0+st.target.y*ch,cw,ch);
+  rX.beginPath();rX.arc(tx,ty,Math.max(5,Math.min(cw,ch)*.33),0,Math.PI*2);rX.stroke();
+  // cockpit chrome
+  rX.strokeStyle='rgba(110,255,208,.06)';rX.lineWidth=2;
+  rX.beginPath();
+  rX.moveTo(0,h*.83);rX.lineTo(w*.17,h*.75);rX.lineTo(w*.83,h*.75);rX.lineTo(w,h*.83);
+  rX.moveTo(0,h*.19);rX.lineTo(w*.07,h*.15);rX.moveTo(w,h*.19);rX.lineTo(w*.93,h*.15);
+  rX.stroke();
+  surfView={x:x0,y:y0,w:pw,h:ph,cw,ch};
+}
+
+// ── Main loop ──────────────────────────────────────────────────────────
+let lastF=0;
+function frame(ts){
+  const w=window.innerWidth,h=window.innerHeight;
+  const dt=Math.min((ts-lastF)/1000,.05);lastF=ts;
+  drawBg(ts);
+  if(st.mode==='mine'){
+    if(st.locked) updatePlayer(dt);
+    drawMine3D(w,h);
+    drawMinimap();
+    oX.clearRect(0,0,w,h);
+  } else {
+    drawSurface(w,h);
+    oX.clearRect(0,0,w,h);
+  }
+  if(ts-st.lastTick>100){st.lastTick=ts;ui();}
+  requestAnimationFrame(frame);
+}
+
+// ── Surface tools ──────────────────────────────────────────────────────
+function affectCell(c,tool){
+  if(tool==='heat') {c.temp=clmp(c.temp+.11,0,1);c.pressure=clmp(c.pressure+.03,0,1);}
+  if(tool==='water'){c.water=clmp(c.water+.15,0,1);c.pressure=clmp(c.pressure+.02,0,1);c.temp=clmp(c.temp-.02,0,1);}
+  if(tool==='air')  {c.pressure=clmp(c.pressure+.14,0,1);c.temp=clmp(c.temp+.01,0,1);}
+  if(tool==='life') {c.biomass=clmp(c.biomass+.18*habScore(c)+.03,0,1);c.water=clmp(c.water-.01,0,1);}
+  if(tool==='cool') {c.temp=clmp(c.temp-.12,0,1);}
+}
+function toolCost(tool){
+  if(tool==='water') return{ore:3,vol:2,energy:8};
+  if(tool==='air')   return{ore:2,vol:2,energy:8};
+  return{ore:2,vol:1,energy:8};
+}
+function applyAt(x,y){
+  const cost=toolCost($('tSel').value);
+  if(st.energy<cost.energy||st.ore<cost.ore||st.vol<cost.vol){log('Insufficient resources.','hz');return;}
+  for(let oy=-1;oy<=1;oy++) for(let ox=-1;ox<=1;ox++){
+    const xx=x+ox,yy=y+oy;
+    if(xx<0||yy<0||xx>=GW||yy>=GH) continue;
+    affectCell(st.cells[yy][xx],$('tSel').value);
+  }
+  st.energy-=cost.energy;st.ore-=cost.ore;st.vol-=cost.vol;
+  log(`${$('tSel').options[$('tSel').selectedIndex].text} → ${String.fromCharCode(65+y%26)}-${x}`,'ok');
+  ui();
+}
+function simYear(){
+  st.year++;st.energy=clmp(st.energy+10+Math.round(st.vol*.08),0,99);
+  const nxt=st.cells.map(r=>r.map(c=>({...c})));
+  for(let y=0;y<GH;y++) for(let x=0;x<GW;x++){
+    const c=st.cells[y][x];
+    let ta=c.temp,pa=c.pressure,wa=c.water,ba=c.biomass,n=1;
+    for(let oy=-1;oy<=1;oy++) for(let ox=-1;ox<=1;ox++){
+      if(!ox&&!oy) continue;
+      const xx=x+ox,yy=y+oy;
+      if(xx<0||yy<0||xx>=GW||yy>=GH) continue;
+      const nb=st.cells[yy][xx];ta+=nb.temp;pa+=nb.pressure;wa+=nb.water;ba+=nb.biomass;n++;
+    }
+    ta/=n;pa/=n;wa/=n;ba/=n;
+    const t=nxt[y][x];
+    t.temp=clmp(c.temp*.86+ta*.14+(c.pressure-.4)*.01,0,1);
+    t.pressure=clmp(c.pressure*.9+pa*.1-Math.max(0,.38-c.temp)*.01,0,1);
+    t.water=clmp(c.water*.9+wa*.1+Math.max(0,c.pressure-.45)*.01,0,1);
+    t.biomass=clmp(c.biomass*.92+ba*.04+habScore(c)*.05-Math.max(0,c.temp-.82)*.08,0,1);
+  }
+  st.cells=nxt;log('Planetary drift — one year simulated.');ui();
+}
+function autoBalance(){
+  if(st.mode!=='surface'){log('Surface mode only.');return;}
+  const orig=$('tSel').value;
+  let hot={v:-Infinity},dry={v:Infinity},thin={v:Infinity};
+  for(let y=0;y<GH;y++) for(let x=0;x<GW;x++){
+    const c=st.cells[y][x];
+    if(c.temp>hot.v)      hot={x,y,v:c.temp};
+    if(c.water<dry.v)     dry={x,y,v:c.water};
+    if(c.pressure<thin.v) thin={x,y,v:c.pressure};
+  }
+  st.target={x:dry.x,y:dry.y}; $('tSel').value='water'; applyAt(dry.x,dry.y);
+  st.target={x:thin.x,y:thin.y};$('tSel').value='air';   applyAt(thin.x,thin.y);
+  st.target={x:hot.x,y:hot.y}; $('tSel').value='cool';  applyAt(hot.x,hot.y);
+  $('tSel').value=orig;log('Auto balance complete.');ui();
+}
+
+// ── Input ──────────────────────────────────────────────────────────────
+rc.addEventListener('click',e=>{
+  if(st.mode==='mine'&&!st.locked){rc.requestPointerLock();return;}
+  if(st.mode==='surface'&&surfView){
+    const rect=rc.getBoundingClientRect();
+    const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    const v=surfView;
+    if(mx<v.x||my<v.y||mx>v.x+v.w||my>v.y+v.h) return;
+    st.target={x:clmp(Math.floor((mx-v.x)/v.cw),0,GW-1),y:clmp(Math.floor((my-v.y)/v.ch),0,GH-1)};
+    log(`Target locked: ${String.fromCharCode(65+st.target.y%26)}-${st.target.x}`);ui();
+  }
+});
+$('lp').addEventListener('click',()=>{if(st.mode==='mine')rc.requestPointerLock();});
+
+document.addEventListener('pointerlockchange',()=>{
+  st.locked=document.pointerLockElement===rc;ui();
+});
+document.addEventListener('mousemove',e=>{
+  if(!st.locked||st.mode!=='mine') return;
+  st.yaw  +=e.movementX*.0016;
+  st.pitch =clmp(st.pitch+e.movementY*.0016,-Math.PI*.45,Math.PI*.45);
+});
+
+// surface pan/zoom
+rc.addEventListener('pointerdown',e=>{
+  if(st.mode!=='surface') return;
+  st.ptr.x=e.clientX;st.ptr.y=e.clientY;st.drag=true;st.dragMoved=false;
+});
+window.addEventListener('pointermove',e=>{
+  if(!st.drag||st.mode!=='surface') return;
+  const dx=e.clientX-st.ptr.x,dy=e.clientY-st.ptr.y;
+  st.ptr.x=e.clientX;st.ptr.y=e.clientY;
+  if(Math.abs(dx)+Math.abs(dy)>2) st.dragMoved=true;
+  st.cam.x+=dx;st.cam.y+=dy;
+});
+window.addEventListener('pointerup',()=>st.drag=false);
+window.addEventListener('pointercancel',()=>st.drag=false);
+rc.addEventListener('wheel',e=>{
+  if(st.mode!=='surface') return;
+  e.preventDefault();
+  st.cam.zoom=clmp(st.cam.zoom*(e.deltaY>0?.9:1.11),.45,3.2);
+},{passive:false});
+
+window.addEventListener('keydown',e=>{
+  st.keys[e.key]=true;
+  if(st.mode==='mine'){
+    if(e.key==='e'||e.key==='E'){e.preventDefault();doAction();}
+    if(e.key==='f'||e.key==='F'){
+      const cy=Math.floor(st.pos.y);
+      if(cy<=1) deposit(); else log('Must be near shaft row 0 to deposit.');
+    }
+    if(e.key===' ') e.preventDefault();
+  }
+});
+window.addEventListener('keyup',e=>{delete st.keys[e.key];});
+
+// ── Buttons ────────────────────────────────────────────────────────────
+$('mBtn').addEventListener('click',()=>{
+  if(document.pointerLockElement) document.exitPointerLock();
+  st.mode=st.mode==='surface'?'mine':'surface';
+  st.cam.x=0;st.cam.y=0;st.cam.zoom=1;
+  if(st.mode==='mine'){updateFog();log('Drone deployed. Click viewport to take control.','ok');}
+  else log('Ascended to orbital surface management.');
+  ui();
+});
+$('aBtn').addEventListener('click',()=>{
+  if(st.mode==='surface') applyAt(st.target.x,st.target.y);
+  else if(document.pointerLockElement) document.exitPointerLock();
+});
+$('yBtn').addEventListener('click',simYear);
+$('bBtn').addEventListener('click',autoBalance);
+$('rBtn').addEventListener('click',()=>{
+  if(document.pointerLockElement) document.exitPointerLock();
+  st.year=2147;st.energy=82;st.ore=24;st.vol=18;
+  st.mode='surface';st.cam.x=0;st.cam.y=0;st.cam.zoom=1;st.target={x:24,y:16};
+  makePlanet();makeMines();$('log').innerHTML='';
+  log('Planet reset. Survey seeded.');ui();
+});
+
+// ── Init ───────────────────────────────────────────────────────────────
+window.addEventListener('resize',resize);
+initStars();makePlanet();makeMines();resize();
+log('Orbital station online.');
+log('3D mine seeded. Shaft at (10, *, 10). DESCEND to enter.');
+ui();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

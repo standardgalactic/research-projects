@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Terraform Vector Prototype v1 </title>
+<style>
+body{margin:0;background:#000;color:#8ff;font-family:monospace;overflow:hidden}
+canvas{display:block}
+#ui{position:absolute;top:10px;left:10px}
+button{margin-top:6px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+<div>Mode: <span id="mode">surface</span></div>
+<div>Energy: <span id="energy">80</span></div>
+<div>Ore: <span id="ore">20</span></div>
+<div>Vol: <span id="vol">15</span></div>
+<button id="toggle">Toggle Mode</button>
+<button id="action">Act</button>
+</div>
+<script>
+const c=document.getElementById('c');
+const ctx=c.getContext('2d');
+function resize(){c.width=innerWidth;c.height=innerHeight}
+resize();window.onresize=resize;
+
+const W=30,H=20;
+let mode='surface';
+let energy=80, ore=20, vol=15;
+
+const grid=[];
+for(let y=0;y<H;y++){
+ let row=[];
+ for(let x=0;x<W;x++){
+  row.push({
+   temp:Math.random(),
+   water:Math.random(),
+   open: y<2
+  });
+ }
+ grid.push(row);
+}
+
+let target={x:10,y:10};
+
+c.onclick=e=>{
+ const x=Math.floor(e.clientX/(c.width/W));
+ const y=Math.floor(e.clientY/(c.height/H));
+ target={x,y};
+};
+
+function draw(){
+ ctx.clearRect(0,0,c.width,c.height);
+ const cw=c.width/W,ch=c.height/H;
+
+ for(let y=0;y<H;y++){
+  for(let x=0;x<W;x++){
+   const cell=grid[y][x];
+   if(mode==='surface'){
+     ctx.fillStyle=`rgb(${cell.temp*255},${cell.water*255},120)`;
+   }else{
+     ctx.fillStyle=cell.open?"#2f6":"#111";
+   }
+   ctx.fillRect(x*cw,y*ch,cw-1,ch-1);
+  }
+ }
+
+ ctx.strokeStyle='yellow';
+ ctx.strokeRect(target.x*cw,target.y*ch,cw,ch);
+}
+
+function act(){
+ const cell=grid[target.y][target.x];
+ if(mode==='surface'){
+  if(energy<5)return;
+  cell.temp=Math.min(1,cell.temp+0.1);
+  energy-=5;
+ }else{
+  if(!cell.open){
+    cell.open=true;
+    energy-=5;
+  }else{
+    ore+=2;vol+=1;energy-=3;
+  }
+ }
+ updateUI();
+}
+
+function updateUI(){
+ document.getElementById('mode').textContent=mode;
+ document.getElementById('energy').textContent=energy;
+ document.getElementById('ore').textContent=ore;
+ document.getElementById('vol').textContent=vol;
+}
+
+document.getElementById('toggle').onclick=()=>{
+ mode=mode==='surface'?'mine':'surface';
+ updateUI();
+};
+
+document.getElementById('action').onclick=act;
+
+function loop(){draw();requestAnimationFrame(loop);}loop();
+updateUI();
+</script>
+</body>
+</html>
