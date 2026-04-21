@@ -1,0 +1,341 @@
+\documentclass[12pt, oneside]{article}
+
+% ── Fonts & Encoding ──────────────────────────────────────────────────────────
+\usepackage{fontspec}
+\setmainfont[Path=/usr/share/texmf/fonts/opentype/public/tex-gyre/,BoldFont=texgyrepagella-bold.otf,ItalicFont=texgyrepagella-italic.otf,BoldItalicFont=texgyrepagella-bolditalic.otf,Ligatures=TeX]{texgyrepagella-regular.otf}
+\setmonofont[Path=/usr/share/texmf/fonts/opentype/public/tex-gyre/,BoldFont=texgyrecursor-bold.otf,ItalicFont=texgyrecursor-italic.otf,Scale=0.84]{texgyrecursor-regular.otf}
+
+% ── Mathematics ───────────────────────────────────────────────────────────────
+\usepackage{amsmath, amsthm, amssymb}
+\usepackage{mathtools}
+
+% ── Page Geometry ─────────────────────────────────────────────────────────────
+\usepackage[
+  paper        = letterpaper,
+  top          = 1.25in,
+  bottom       = 1.25in,
+  left         = 1.4in,
+  right        = 1.4in,
+  marginpar    = 0.6in,
+]{geometry}
+
+% ── Spacing & Typography ──────────────────────────────────────────────────────
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.18}
+\usepackage{parskip}
+\setlength{\parskip}{0.55em}
+\setlength{\parindent}{0pt}
+
+% ── Headers & Footers ─────────────────────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\itshape Ledger Without Value}
+\fancyhead[R]{\small\itshape Flyxion}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+% ── Section Formatting ────────────────────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\large\itshape}
+  {}
+  {0em}
+  {}[\vspace{-0.3em}\rule{\linewidth}{0.3pt}]
+\titlespacing{\section}{0pt}{1.6em}{0.7em}
+
+\titleformat{\subsection}
+  {\normalfont\normalsize\itshape}
+  {}
+  {0em}
+  {}
+\titlespacing{\subsection}{0pt}{1.2em}{0.3em}
+
+% ── Theorem Environments ──────────────────────────────────────────────────────
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{remark}{Remark}[section]
+
+% ── Hyperlinks ────────────────────────────────────────────────────────────────
+\usepackage[
+  colorlinks = true,
+  linkcolor  = black,
+  urlcolor   = black,
+  citecolor  = black,
+]{hyperref}
+
+% ── Epigraph ──────────────────────────────────────────────────────────────────
+\usepackage{epigraph}
+\setlength{\epigraphwidth}{0.62\textwidth}
+\renewcommand{\epigraphflush}{center}
+\renewcommand{\sourceflush}{center}
+
+% ── Miscellaneous ─────────────────────────────────────────────────────────────
+\usepackage{xcolor}
+\usepackage{booktabs}
+
+% ── Custom Commands ───────────────────────────────────────────────────────────
+\newcommand{\field}{\varphi}
+\newcommand{\Pwork}{\mathcal{P}}
+\newcommand{\Asoft}{\mathcal{A}_{\mathrm{soft}}}
+\newcommand{\Wfunc}{\mathcal{W}}
+\newcommand{\Log}{\mathcal{L}}
+\newcommand{\Admit}{\mathrm{Adm}}
+\newcommand{\R}{\mathbb{R}}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ── Title Block ───────────────────────────────────────────────────────────────
+\begin{center}
+  {\LARGE\itshape Ledger Without Value}\\[0.5em]
+  {\large On the Extractive Structure of Cryptocurrency Systems}\\[1.4em]
+  {\normalsize Flyxion}\\[0.2em]
+  {\small\itshape Independent Researcher}\\[0.2em]
+  {\small April 2026}
+\end{center}
+
+\vspace{0.8em}
+
+\epigraph{\itshape The ledger is admissible. The value may still be absent.}{}
+
+\vspace{1.2em}
+
+% ── Abstract ──────────────────────────────────────────────────────────────────
+\begin{center}
+\begin{minipage}{0.88\textwidth}
+\small\setstretch{1.1}
+\textbf{Abstract.} This essay develops a structural critique of cryptocurrency systems by distinguishing two properties that economic systems may or may not satisfy: \emph{log-admissibility}, which requires consistency with a recorded history of transactions, and \emph{positive productivity}, which requires that the system's dynamics reduce a work functional over time. We argue that dominant cryptocurrency implementations satisfy the first while systematically failing the second. This failure is not incidental but intrinsic: systems organized around redistribution under asymmetric information cannot in general produce net reductions in required work. They function instead as extraction mechanisms, concentrating gains through timing and informational advantage while dispersing losses and material costs across populations that often do not participate in the system at all. The critique connects to a broader framework in which the absence of obstruction is insufficient for coherence: a system may preserve a consistent record while remaining degenerate at the level of the value it purports to represent.
+\end{minipage}
+\end{center}
+
+\vspace{1.6em}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{The Primitive and Its Application}
+
+Blockchain technology introduced a genuine innovation: an append-only, distributed ledger capable of maintaining a shared history without centralized authority. Each entry in the ledger is cryptographically linked to its predecessors, making the record tamper-resistant and verifiable by any participant in the network. This is a meaningful primitive. It solves a real problem---the coordination of trust among parties who have no prior relationship and no shared institutional backing.
+
+The question this essay addresses is not whether the primitive is useful, but what follows when it is applied almost exclusively to a specific purpose: the creation and exchange of speculative digital assets. The dominant use of blockchain technology has not been to coordinate production, reduce friction in supply chains, or establish identity for the unbanked. It has been to sustain markets for tokens whose value is determined not by what they enable but by what the next participant is willing to pay. When a powerful technical mechanism is consistently applied to a particular economic structure, the properties of that structure become the properties of the system. It is that structure, and those properties, that this essay examines.
+
+The central claim is as follows. A ledger can faithfully record who owns what without imposing any requirement that what is owned corresponds to something of productive value. The immutability of the record does not validate the coherence of the underlying activity. This is not a defect in the ledger itself but a consequence of the gap between two distinct properties: consistency and productivity. Blockchain systems enforce the first with remarkable rigor. They provide no mechanism for the second.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Value as Reduction of Work}
+
+Before examining what cryptocurrency systems do, it is necessary to say something precise about what value creation consists in.
+
+In the most general terms, a process is economically valuable insofar as it reduces the amount of work required to sustain or extend some capacity. This principle operates across domains and scales. A hand tool reduces the physical effort required for a task. A well-designed algorithm reduces the computational effort required for a calculation. An effective logistics network reduces the organizational effort required to move materials from production to use. In each case, the system acts on the world in such a way that future effort is lower than it would otherwise have been. The value is not merely in the output but in the transformation: the world after the process is one in which achieving certain outcomes is less costly.
+
+This conception of value is not novel. It underlies classical accounts of productive labor, the engineering criterion of efficiency, and the thermodynamic framing of work as the directed application of energy. What it excludes is equally important. A process that moves resources from one party to another without reducing the effort required to sustain any capacity does not create value in this sense. It redistributes existing claims. The world after such a process contains the same productive capacity as before, or less, because the process itself required effort to execute.
+
+With this distinction in hand, we can state the problem formally.
+
+\begin{definition}[Work functional]
+Let $\Omega$ denote a domain of states and let $\field : \Omega \times [0, T] \to \R$ be a field evolving over time. The \emph{work functional} $\Wfunc[\field]$ is a non-negative functional measuring the total effort required to reconstruct or sustain the field configuration over the interval $[0, T]$. A process is \emph{productive} if there exists $t^* \in (0, T]$ such that $\Wfunc[\field(\cdot, t^*)] < \Wfunc[\field(\cdot, 0)]$.
+\end{definition}
+
+The work functional need not be defined with precision in every application; its role is to make explicit the requirement that value creation involves a directional change in the cost of some activity. A process that leaves $\Wfunc$ unchanged or increases it is redistributive rather than productive, regardless of how much nominal wealth it generates for some participants.
+
+\begin{definition}[Log-admissibility]
+A system is \emph{log-admissible} with respect to an event log $\Log$ if its current state is consistent with every recorded entry in $\Log$. That is, for each transaction or event $e \in \Log$, the system state does not contradict the terms of $e$.
+\end{definition}
+
+Log-admissibility is what blockchain technology enforces. The chain guarantees that no entry is added inconsistently, that no prior entry is altered, and that the sequence of ownership transitions is coherent at the level of the record. This is a strong and genuinely useful property. It is also, by itself, entirely orthogonal to productivity.
+
+\begin{definition}[Positive productivity]
+A system is \emph{positively productive} if, in addition to being log-admissible, its aggregate dynamics satisfy $\Wfunc[\field(t)] \leq \Wfunc[\field(0)]$ for all $t > 0$, with strict decrease on some non-degenerate interval. In other words, the system's operation reduces the cost of achieving outcomes over time.
+\end{definition}
+
+\begin{proposition}[Redistribution does not reduce work]
+Let a system consist solely of transfers of ownership over a fixed set of assets, with no transformation of the underlying capacity those assets represent. Then for any admissible evolution of the system, the work functional satisfies
+\[
+  \Wfunc[\field(t)] \geq \Wfunc[\field(0)]
+\]
+for all $t$, with strict inequality if the transfer process incurs nonzero execution cost.
+\end{proposition}
+
+\begin{proof}[Sketch]
+Ownership transfers do not alter the physical or informational structure of the underlying system; they only reassign claims. Any execution of the transfer requires coordination, computation, or energy expenditure, which contributes positively to $\Wfunc$. Hence no decrease is possible.
+\end{proof}
+
+The distinction between these two properties is the formal core of the argument. A system can be perfectly log-admissible while being entirely non-productive. The ledger records every transaction correctly. The transactions themselves generate no reduction in required work. This is the condition we argue is structurally characteristic of speculative cryptocurrency markets.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Degeneracy, Not Obstruction}
+
+It is worth pausing to clarify how this failure relates to a different kind of failure described in prior work. In the analysis of error as obstruction, the pathology of a system is its inability to construct a globally coherent state from locally valid constraints. The system cannot glue its parts together. There is tension, irresolvable contradiction, and persistent action at the boundaries where incompatible constraints meet.
+
+The failure of speculative cryptocurrency systems is of a different character. The system is not obstructed. It coheres perfectly well at the level of the ledger. The problem is not that no global section exists but that the space of admissible states is too large: many configurations are consistent with the log, and the system provides no mechanism for selecting among them on the basis of productive value. The ledger is satisfied by any ownership distribution, regardless of whether that distribution reflects any transformation of the world. This is not obstruction but \emph{degeneracy}: the system admits too many solutions, and has no criterion for distinguishing the productive ones from the extractive ones.
+
+Formally, suppose the set of states consistent with a given log $\Log$ is $\Admit(\Log)$. In an obstructed system, $\Admit(\Log) = \emptyset$: no state satisfies all constraints simultaneously. In a degenerate system, $\Admit(\Log)$ is large, but the subset of positively productive states within it is empty or measure-zero. The system can always find a consistent configuration, but consistency is insufficient to guarantee that the configuration does anything useful.
+
+\begin{proposition}
+Let $\Admit(\Log)$ be the set of states admissible with respect to a log $\Log$, and let $\Admit^+(\Log) \subseteq \Admit(\Log)$ denote the subset of positively productive admissible states. A system is \emph{degenerate} if $\Admit(\Log) \neq \emptyset$ but the dynamics of the system do not select for $\Admit^+(\Log)$---that is, the evolution of the system under its native update rule does not preferentially visit or converge to productive configurations.
+\end{proposition}
+
+\begin{proposition}[Dynamical degeneracy]
+A system is \emph{degenerate} if there exists a probability measure $\rho_t$ over $\Admit(\Log)$ induced by its dynamics such that
+\[
+  \lim_{t \to \infty} \rho_t\bigl(\Admit^+(\Log)\bigr) = 0.
+\]
+That is, the system's evolution assigns vanishing probability to positively productive configurations.
+\end{proposition}
+
+Speculative cryptocurrency markets are degenerate in this sense. The system's native objective---price appreciation under order flow---is orthogonal to the reduction of the work functional, and therefore provides no selection pressure toward productive configurations. The dynamics of such markets---price discovery through order flow, momentum, and narrative---do not select for configurations in which the work functional is reduced. They select for configurations in which token prices increase, which is a property of the distribution of claims rather than of any transformation of productive capacity.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{The Lottery Structure}
+
+The structure described above has a well-known economic instantiation: the lottery.
+
+A lottery is a mechanism for aggregating small contributions from many participants and concentrating them into large payoffs for a few. Its defining property is that the expected value for any individual participant is negative: the total payout is less than the total contribution, with the difference captured by the operator. Participation is sustained not by rational expectation of gain but by the perception of possibility---a perception that is systematically miscalibrated, particularly among those with limited exposure to probability and statistics.
+
+Speculative cryptocurrency markets replicate this structure, though with greater complexity and less transparency. Early participants, project insiders, and coordinated actors occupy positions analogous to the lottery operator: they hold assets acquired at lower cost, and they realize gains as later participants supply the inflow necessary to sustain or increase prices. The mechanism known as the ``rug pull''---in which project founders liquidate their holdings after attracting sufficient investment---is simply the most legible version of this structure. The log records every transaction faithfully. The coherence of the ledger is undisturbed. What the ledger records is the organized extraction of value from later participants by earlier ones.
+
+The statistical properties of such systems are not difficult to characterize. In a purely redistributive market, gains to one participant must be offset by losses to others, because no new value is created. The distribution of those gains and losses is determined by timing, information, and social position. Early participants have lower cost basis and earlier exit opportunities. Later participants absorb the residual. This is not a contingent feature of poorly designed systems; it is the necessary consequence of organizing a market around redistribution rather than production. The question of who wins is answered by the question of who arrived first with better information, not by the question of who contributed more to the reduction of work.
+
+The moral dimension follows directly from this structure. When a system's outcomes are determined by informational asymmetry and timing rather than by productive contribution, it tends to extract disproportionately from those least positioned to evaluate the asymmetry. Lotteries function as a regressive mechanism precisely because they depend on a population that either cannot or does not compute expected value correctly. Cryptocurrency markets, in their speculative form, replicate this dependence. The language of technological empowerment and financial sovereignty does not alter the underlying distribution. It obscures it.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Externalization and the Material Ledger}
+
+The degeneracy identified above operates not only within the market but at its boundaries. A complete account of a system's value must include not only what it produces for participants but what it costs those outside it.
+
+Cryptocurrency infrastructure is not immaterial. The hardware required for mining and transaction validation is produced through global supply chains with specific material characteristics. Semiconductor fabrication is concentrated in regions where labor costs are lower and regulatory environments are less stringent. Electronic waste from obsolete mining hardware is processed in settings where environmental protections are weaker and where workers bear disproportionate exposure to toxic materials. Energy consumption, particularly under proof-of-work protocols, is often located where electricity is cheap, which in practice means where the ecological costs of generation are borne by populations with limited political recourse.
+
+These are not peripheral costs. They are the material substrate of the system. The apparent immateriality of digital assets---the impression that value moves without physical consequence---is an artifact of the ledger's abstraction, not a property of the system itself. What the ledger records as a frictionless transfer of tokens corresponds, in physical reality, to a network of concrete asymmetries: asymmetries of labor, regulation, environmental burden, and health risk.
+
+This is the pattern of externalization in its most familiar form. A system organizes itself to capture gains while displacing costs onto parties who are not participants and who have no mechanism for recovering the difference. The cryptocurrency ecosystem does not invent this pattern, but it intensifies it. The combination of internal redistribution and external cost displacement means that the system extracts not only from later participants within the market but from workers and environments that are not in the market at all.
+
+In terms of the framework developed above, externalization is a failure of the work functional's domain. When $\Wfunc$ is computed only over the domain of market participants, the system may appear to have reduced costs for some. When the domain is extended to include all parties affected by the system's operation, the total work functional does not decrease. It increases. Formally, let $\Omega_{\mathrm{global}}$ denote the domain including all materially affected agents. A system that appears productive on a restricted domain $\Omega_{\mathrm{local}}$ may fail to be productive when evaluated on $\Omega_{\mathrm{global}}$:
+\[
+  \Wfunc_{\Omega_{\mathrm{global}}}[\field(t)] > \Wfunc_{\Omega_{\mathrm{global}}}[\field(0)]
+  \quad \text{even if} \quad
+  \Wfunc_{\Omega_{\mathrm{local}}}[\field(t)] < \Wfunc_{\Omega_{\mathrm{local}}}[\field(0)].
+\]
+The apparent gains are not reductions in required work but transfers of required work onto parties who did not consent to the exchange and who are not compensated for it.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{The Action Functional and Selection Pressure}
+
+A productive system does more than reduce the work functional at a single moment. It organizes its dynamics such that over time, the system is drawn toward configurations that are stable, generative, and low in action. In the language of field theory, productive evolution selects for flat regions of the action landscape---configurations where small perturbations do not produce large changes in outcome, and where the system can sustain its function without continuous external input.
+
+Speculative cryptocurrency markets exhibit the opposite selection pressure. The dynamics of such markets reward volatility, narrative, and rapid reallocation. Price movement attracts attention; attention attracts capital; capital produces further movement. The system is drawn not toward stable, low-action configurations but toward sharp, high-curvature structures: configurations that are temporarily profitable but intrinsically fragile. The rug pull is the terminal expression of this fragility. Once the high-curvature configuration has been exploited by those best positioned to do so, it collapses. The log records the collapse faithfully. The system moves on to the next configuration.
+
+We can describe this formally in terms of the soft action functional $\Asoft(t)$, which measures the aggregate curvature of the system's value landscape at time $t$. A productive system exhibits $\Asoft(t) \to 0$ as the system relaxes toward stable configurations. A redistributive system exhibits $\Asoft(t)$ that fails to decay---or decays only to reset when a new speculative cycle begins. The persistent elevation of $\Asoft$ is the dynamical signature of a system that does not select for productive configurations.
+
+\begin{remark}
+The distinction between log-admissibility and positive productivity maps onto a broader distinction between consistency and realizability. A system can maintain a consistent record of events without ensuring that the events it records correspond to configurations that are realizable in the sense of being stable, generative, or productive. Consistency is a property of the log. Realizability is a property of the world the log purports to describe. Blockchain technology enforces the former with exceptional rigor while remaining silent on the latter.
+\end{remark}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Bullshit Jobs and the Simulation of Productivity}
+
+The structure identified in speculative cryptocurrency markets is not unique to that domain. It appears, in a different form, in large segments of modern economies where activity is organized around the appearance of productivity rather than its realization.
+
+A job, in the productive sense developed above, is an activity whose execution contributes to a reduction in the work functional over some domain. It reorganizes processes, information, or materials such that future effort is lower than it would otherwise have been. By contrast, what has been termed a ``bullshit job'' is one whose continuation does not reduce required work and whose absence would not increase it. The activity is sustained not because it transforms the system, but because it satisfies organizational, reputational, or financial constraints internal to the system itself. It is log-admissible---the work is recorded, reported, and evaluated---but not positively productive.
+
+\begin{definition}[Non-productive labor]
+An activity $a$ is \emph{non-productive} over a domain $\Omega$ if, for all admissible evolutions of the system,
+\[
+  \Wfunc[\field(t) \mid a] \geq \Wfunc[\field(t) \mid \varnothing],
+\]
+with strict inequality when the activity incurs execution cost. That is, the work required to sustain the system does not decrease---and may increase---as a result of the activity.
+\end{definition}
+
+Such activities can persist indefinitely within a system that rewards internal consistency, visibility, or growth metrics rather than reductions in $\Wfunc$. The persistence of non-productive labor is therefore not a paradox but a consequence of misalignment between selection pressures and the criterion of productivity. The organization maintains a coherent log of its activities; those activities simply do not reduce the work required to sustain the world they operate within.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Advertising as Constraint Distortion}
+
+Advertising occupies a special position within this framework because it does not act primarily on the physical or informational structure of a system, but on the constraint landscape through which decisions are made.
+
+In a productive system, demand emerges from constraints imposed by actual needs: the requirement to reduce effort, increase capability, or resolve some genuine limitation. A product succeeds insofar as it satisfies these constraints by altering the structure of the world. Advertising, in its dominant form, inverts this relation. Rather than responding to existing constraints, it attempts to introduce new ones or distort existing ones. It creates perceived deficits where none exist, amplifies minor inconveniences into apparent necessities, and presents incomplete, underdeveloped, or marginal products as solutions to problems that have been rhetorically constructed rather than structurally identified.
+
+Formally, let $\mathcal{C}$ denote the set of constraints defining a decision landscape. A productive intervention reduces $\Wfunc$ by satisfying elements of $\mathcal{C}$. Advertising, by contrast, operates by modifying $\mathcal{C}$ itself:
+\[
+  \mathcal{C} \;\mapsto\; \mathcal{C}' = \mathcal{C} \cup \Delta\mathcal{C},
+\]
+where $\Delta\mathcal{C}$ consists of induced or exaggerated constraints that do not correspond to reductions in required work. The result is a system in which resources are allocated not to processes that reduce effort, but to processes that successfully reshape the constraint set. The evaluation criterion shifts from ``does this reduce work?'' to ``can this be made to appear necessary?''
+
+\subsection{Degenerate Selection in Attention Markets}
+
+The dynamics of advertising-driven systems select not for productive configurations but for those that maximize attention, persuasion, and conversion. These quantities are weakly correlated, and often negatively correlated, with reductions in the work functional.
+
+In terms of the admissible set $\Admit(\Log)$, such systems explore configurations consistent with their operational logs---campaigns launched, impressions recorded, conversions tracked---but do not converge toward $\Admit^+(\Log)$. Instead, they reinforce configurations in which artificially induced constraints drive consumption independently of any underlying transformation. The system is therefore doubly degenerate. Internally, it sustains activity that does not reduce work. Externally, it directs resources toward the acquisition of goods whose production and distribution may further increase the global work functional through externalized costs.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Games, Development, and the Degradation of Play}
+
+Games occupy a distinct position among human activities. Unlike most economic processes, their primary function is not the direct production of material goods but the cultivation of cognitive and behavioral capacities. Play is a form of developmental infrastructure: a controlled environment in which agents encounter difficulty, experiment with strategies, and develop responses to structured challenges without incurring the full cost of failure in the real world.
+
+This is not a peripheral function. The child who learns spatial reasoning through block stacking, the adolescent who internalizes strategic anticipation through competitive games, the adult whose perceptual reflexes were shaped by years of navigating simulated environments---each has undergone a process of real cognitive reorganization. Play is simulated danger, and learning is inoculation against surprise. It is an investment in future capacity: the same child, trained by well-designed play to solve structured problems, will be less likely to drive their car into other cars, better equipped to navigate complex systems, and more capable of recovering from novel constraint configurations. Games reduce the work functional not immediately, but over the long term, by reorganizing the cognitive field of the participant.
+
+\begin{definition}[Developmental productivity]
+A system is \emph{developmentally productive} if its interaction with an agent reduces the expected work required by that agent to solve classes of problems in the future. That is, it induces a transformation of the agent's internal state that lowers $\Wfunc$ over a domain of tasks not limited to the system itself.
+\end{definition}
+
+Under this definition, games are productive when they function as training environments. They simplify reality while preserving its structural features, allowing the player to internalize patterns that generalize. Difficulty is the mechanism: the game places the player in configurations that exceed current capacity, and learning occurs as the gap is closed. The game should be simpler than the world---a controlled reduction of complexity that allows the relevant structure to be legible.
+
+\subsection{In-Game Purchases and Constraint Injection}
+
+The introduction of in-game purchases, particularly in forms that gate progress, manipulate reward schedules, or create artificial scarcity, alters the role of the game from a training environment to an extraction mechanism. It inverts the function of difficulty.
+
+Instead of presenting a coherent constraint landscape designed to develop skill, the monetized system introduces additional constraints that are not intrinsic to the game's structure but are engineered to induce payment. Time gates, difficulty spikes, randomized reward systems, and artificial shortages do not correspond to meaningful challenges that train transferable abilities. They are obstacles whose primary function is to convert attention and frustration into revenue. Where a productive game makes the world simpler by providing a structured version of its complexity, the monetized game makes the player's experience harder than it needs to be---and then sells relief from the added difficulty.
+
+Formally, if $\mathcal{C}_{\mathrm{game}}$ denotes the set of constraints defining the game's intrinsic structure, the monetized system replaces it with
+\[
+  \mathcal{C}' = \mathcal{C}_{\mathrm{game}} \cup \Delta\mathcal{C}_{\mathrm{monetization}},
+\]
+where $\Delta\mathcal{C}_{\mathrm{monetization}}$ consists of constraints that do not contribute to developmental productivity. Progress is no longer a function of skill acquisition but of tolerance for engineered friction or willingness to pay. The game ceases to be a simplified model of reality and becomes a distorted one.
+
+\subsection{Degeneracy in Developmental Systems}
+
+Such systems are degenerate in the precise sense developed above. They remain log-admissible: player actions, purchases, and progress are recorded consistently. They may exhibit high engagement and optimized retention. But their dynamics do not select for developmentally productive states. Instead, they select for configurations that maximize monetization and behavioral compliance. The subset of admissible states corresponding to genuine skill development is not preferentially visited; in some cases it is actively suppressed, as the most efficient path through the system bypasses challenge rather than internalizing it.
+
+\subsection{Asymmetry and the Exploitation of Developmental Gaps}
+
+The ethical concern arises from a particular form of asymmetry. Games are often consumed by children---agents whose capacity to model probabilistic mechanisms, identify manipulation, or evaluate long-term costs against short-term frustration is still developing. The cognitive machinery that allows an adult to recognize a variable reward schedule as a slot-machine mechanic, or a difficulty spike as artificially induced, is precisely the machinery that play is supposed to be developing. Monetized games exploit the gap between the capacity being trained and the capacity required to identify the exploitation.
+
+This is not incidental. It is the structural logic of the mechanism. The system raises the cost of participation---adds complexity, friction, and delay---and then sells its reduction. A system designed to cultivate capacity has been transformed into one that exploits its absence. The child is not being sold a game. They are being sold back the simplicity that should have been the game's default condition.
+
+A system can be busy, measurable, and internally consistent, and still fail to reduce the work required to sustain the world it inhabits. In such cases, activity is not evidence of value, but of its absence.
+
+
+
+The critique developed here does not imply that distributed ledgers cannot be used productively. A log that faithfully records events can in principle be embedded in a system that satisfies positive productivity, provided that the selection dynamics are designed accordingly.
+
+The conditions for such a system can be stated directly. First, the events recorded in the log must correspond to transformations that reduce the work functional over the relevant domain---not merely the domain of market participants, but the broader domain of all parties affected by the system's operation. Second, the dynamics of the system must select for stable, low-action configurations rather than for volatility and rapid reallocation. Third, the costs of maintaining the infrastructure must be internalized rather than displaced: the material substrate of the system must be reflected in its accounting, not hidden by the abstraction of the ledger.
+
+These are demanding conditions, and it is not obvious that any existing cryptocurrency application satisfies them. Certain applications of distributed ledger technology---supply chain verification, credential management, cross-border payment settlement where alternatives are genuinely unavailable---come closer to satisfying them, because the events they record correspond to real coordination problems whose resolution reduces friction for participants. But even these applications must be evaluated against the full domain of costs, including the material costs of the infrastructure that sustains them.
+
+The broader point is that the evaluation of any economic system should begin with the question of whether it reduces required work across its full domain of effect. If the answer is no---if gains for some participants are systematically offset by losses for others, and if the costs of operation are displaced onto non-participants---then the system is extractive regardless of the sophistication of its technical substrate. The ledger can be correct. The system can be consistent. The value can still be absent.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+
+The dominant application of blockchain technology in cryptocurrency systems presents a case study in the gap between consistency and productivity. The ledger is an impressive instrument: it records events immutably, distributes trust without centralized authority, and maintains coherence across a network of participants who share no prior relationship. These are genuine achievements.
+
+They are also insufficient for value creation. A system that records ownership transitions faithfully but whose dynamics select for redistribution over production, volatility over stability, and externalized cost over internalized accounting, is a system organized around the extraction of value rather than its generation. The immutability of the record does not transform this structure. It preserves it.
+
+But the analysis of this paper reaches beyond cryptocurrency. The formal structure identified here---log-admissibility without positive productivity, internal coherence without reduction of work---appears wherever systems are organized around the appearance of value rather than its realization. Non-productive labor sustains itself by satisfying internal metrics rather than external needs. Advertising operates by injecting artificial constraints into decision landscapes rather than by satisfying genuine ones. Monetized games add engineered complexity to environments whose purpose is to reduce complexity, and sell relief from the difficulty they introduced. In each case, the log is coherent, the activity is real, and the selection dynamics are misaligned with productivity.
+
+The failure in all these cases is not obstruction, in the sense of a system that cannot achieve coherence. These systems cohere. Their logs are admissible. The failure is degeneracy: the space of configurations consistent with the log is too large, and the system's dynamics do not select for the productive subset. The result is a landscape in which many configurations are possible, most are equivalent from the ledger's perspective, and the ones the system tends to visit are those that benefit the best-positioned participants at the expense of the rest---or, in the case of developmental systems, that exploit the incapacity of those least equipped to identify the exploitation.
+
+This is not a new economic pathology. It is a very old one, reproduced across new technical vocabularies. The language of decentralization, empowerment, engagement, and play obscures in each domain what the formal analysis makes plain: gains are concentrated, costs are dispersed, and the work required to sustain the world is neither reduced nor honestly accounted for.
+
+A genuinely constructive system would reduce work, stabilize configurations, and internalize costs. It would not only fail to exploit developmental gaps---it would close them. Until economic systems are evaluated on those terms, rather than on market capitalization, engagement metrics, or the sophistication of their technical apparatus, the dominant forms of the technologies examined here will remain what they structurally are: not engines of progress, but mechanisms for recording its absence.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\vspace{2em}
+\begin{center}
+\rule{0.4\linewidth}{0.3pt}
+\end{center}
+\vspace{0.5em}
+
+\noindent\textit{This essay is a companion to ``Error as Obstruction'' (2026). Where that work examined systems that fail because they cannot achieve coherence, the present work examines systems that fail because coherence, once achieved, is insufficient. The distinction between obstruction and degeneracy is the shared axis of both arguments.}
+
+\end{document}
