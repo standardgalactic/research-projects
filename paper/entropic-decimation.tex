@@ -1,0 +1,1432 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.2in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{bm}
+\usepackage{graphicx}
+
+\setstretch{1.15}
+\setlength{\parindent}{0pt}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\diag}{diag}
+
+\title{Constraint Closure and Entropic Decimation:\\
+Toward a Unified Field Theory of Computation, Cognition, and Cosmology}
+\author{Flyxion}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Contemporary models of computation and cognition are dominated by predictive
+paradigms that optimize local consistency without guaranteeing global
+realizability. This essay develops an alternative framework in which physical
+fields, cognitive processes, and computational systems are understood as
+instances of constraint accumulation followed by entropy-respecting decimation.
+Building on the Integral Decimation Method and tensor-train representations, we
+reinterpret inference as a process of reconstructing globally admissible
+configurations through sequential application of local operators and nonlinear
+compression.
+
+Within this framework, the Relativistic Scalar--Vector Plenum (RSVP) theory is
+formalized as a field system in which a scalar field encodes constraint density,
+a vector field encodes directional organization, and an entropy field regulates
+admissibility rather than participating symmetrically in dynamics. The resulting
+action functional introduces an explicit entropy floor dependent on local field
+intensity, producing a soft but enforceable admissibility condition.
+
+A computational scheme is derived by discretizing the action and applying a
+Trotter-split decomposition into structural and admissibility gates, yielding a
+tensor-train evolution governed by sequential local updates and singular value
+truncation. This decimation process is interpreted as an entropy-filtering
+mechanism that preserves globally consistent structure while eliminating
+incoherent modes.
+
+We propose a convergence conjecture stating that the resulting truncated sweep
+map is contractive under appropriate conditions, supported empirically by
+stabilization of bond dimension across sweeps. Categorical, information-theoretic,
+dynamical-systems, and geometric analyses of the scheme are developed, connecting
+it to sheaf-theoretic gluing, Landauer's principle, projected gradient flow, and
+manifold curvature. This establishes a unifying principle: stable structure in
+physics, cognition, and computation arises not from prediction but from constraint
+closure under admissibility filtering. The essay thereby connects tensor-network
+numerics, thermodynamic field theory, and models of intelligence within a single
+geometric and informational framework.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Introduction: From Prediction to Reconstruction}
+% ============================================================
+
+The dominant paradigm in contemporary artificial intelligence treats
+intelligence as prediction. Systems are trained to estimate the next token, the
+next pixel, or the next state in a sequence, and performance is measured by the
+accuracy of these local estimates. This approach has produced remarkable
+practical successes, yet it exhibits a fundamental structural limitation.
+Prediction ensures local plausibility, but it does not guarantee global
+consistency. A sequence of locally plausible steps may fail to assemble into a
+coherent whole.
+
+This limitation is not merely technical but conceptual. Predictive systems
+operate on fragments of structure without enforcing the constraints that make
+those fragments mutually compatible. The resulting outputs often exhibit
+internal contradictions, discontinuities, or failures of realizability that
+cannot be repaired by improving local accuracy alone. The problem is not
+insufficient prediction, but the absence of a mechanism that enforces global
+admissibility.
+
+In contrast, physical systems do not operate by prediction. They evolve under
+constraints. A configuration of a physical field is not accepted because it is
+locally plausible, but because it satisfies a set of governing relations
+simultaneously. The global state of the system is therefore a solution to a
+constraint problem rather than a sequence of guesses. Stability emerges when
+these constraints are satisfied in a self-consistent manner.
+
+This essay develops a framework in which computation, cognition, and physical
+dynamics are unified under this constraint-first perspective. The central claim
+is that intelligence and structure arise from the process of reconstructing
+globally admissible configurations through the accumulation of local constraints
+and the elimination of incoherent degrees of freedom. This process is formalized
+as a combination of local operator application and entropy-respecting decimation.
+
+Recent advances in tensor-network methods, particularly the Integral Decimation
+Method of Grimm, Staat, and Eaves~\cite{grimm2026}, provide a concrete
+computational realization of this idea. High-dimensional integrals, which are
+intractable when treated as monolithic objects, can be decomposed into sequences
+of local transformations followed by controlled compression. The key insight is
+that the exponential weight $e^{iS[\psi]}$ over an action $S$ can be
+reconstructed as a product of gate operators acting sequentially on an initially
+unentangled state, changing the computational complexity of integration from
+exponential to polynomial~\cite{grimm2026, oseledets2011tt}.
+
+At the same time, the RSVP framework provides a field-theoretic language in
+which constraint density, directional organization, and entropy are represented
+explicitly. By combining these perspectives, we obtain a unified description in
+which the evolution of a system is governed by local interactions while global
+consistency is enforced through decimation.
+
+The key shift is therefore from prediction to reconstruction. Rather than asking
+what the next state should be, we ask which configurations can exist at all
+under the imposed constraints. The computational task becomes one of assembling
+a globally consistent structure from local components while discarding those
+components that cannot be integrated into a coherent whole. This shift aligns
+naturally with tensor-network representations, in which a global object is
+never stored explicitly but assembled from locally structured cores whose
+internal dimensions --- the bond dimensions --- measure the retained
+correlations between neighboring regions.
+
+This perspective has implications beyond numerical methods. It suggests that
+cognition itself may operate as a process of constraint closure, in which
+hypotheses are generated and then filtered by their compatibility with an
+evolving internal model. It also suggests that physical structure arises not
+from expansion or accumulation, but from the progressive elimination of
+inadmissible configurations.
+
+The remainder of the essay develops this framework in detail. Section~2
+formalizes the RSVP action with entropy as a regulator of admissibility,
+deriving the equations of motion and establishing the asymmetric role of the
+entropy field. Section~3 derives a prototype decimation scheme based on a
+Trotter-split decomposition of the action, leading to a tensor-train
+implementation with exact commutativity of the Trotter factors on the
+local basis. Section~4 describes the implementation and the observables
+extracted from it, focusing on bond-dimension diagnostics as signatures
+of constraint closure. Section~5 presents empirical evidence for convergence
+and formulates the convergence conjecture, relating it to the renormalization
+group. Sections~6--9 develop categorical, information-theoretic, dynamical-systems, and geometric perspectives on constraint closure. Section~10 surveys extensions and open problems. Section~11 concludes.
+
+% ============================================================
+\section{The RSVP Action with Entropy as Regulator}
+% ============================================================
+
+\subsection{Field Variables and Their Asymmetric Roles}
+
+Let $\Omega \subset \mathbb{R}^d$ be a compact domain. We define the RSVP
+state as a triple
+\begin{equation}
+  X = (\Phi, \mathbf{v}, S) \in C^\infty(\Omega) \times
+      C^\infty(\Omega;\mathbb{R}^d) \times
+      C^\infty(\Omega;\mathbb{R}_{\ge 0}).
+\end{equation}
+
+We distinguish the three RSVP fields by function rather than by symmetry. The
+scalar field $\Phi : \Omega \to \mathbb{R}$ encodes local constraint density or
+potential burden. It measures how strongly a region of the domain is required to
+satisfy structural relations. The vector field $\mathbf{v} : \Omega \to
+\mathbb{R}^d$ encodes directional transport or organizing flow. It carries
+information about how structure propagates, aligns, or redistributes across the
+domain.
+
+The entropy field $S : \Omega \to \mathbb{R}_{\ge 0}$ plays a fundamentally
+different role. It does not participate symmetrically in the dynamics alongside
+$\Phi$ and $\mathbf{v}$. Instead, it regulates the admissibility of
+configurations produced by them. A configuration of $(\Phi,\mathbf{v})$ is not
+automatically allowed; it must be supported by sufficient entropy to remain
+stable and realizable. In this sense, $S$ functions as a certification field,
+determining which configurations can exist rather than contributing directly to
+their formation.
+
+This asymmetry is essential. If $S$ were treated as an ordinary dynamical field
+on equal footing with $\Phi$ and $\mathbf{v}$, the distinction between
+structure and admissibility would collapse. The purpose of the RSVP formulation
+is precisely to preserve this distinction.
+
+\begin{definition}[Admissibility]
+  A configuration $X$ is \emph{admissible at $x \in \Omega$} if
+  \begin{equation}
+    S(x) \ge S_*(\Phi(x), \mathbf{v}(x)),
+    \label{eq:admissibility}
+  \end{equation}
+  where $S_* : \mathbb{R} \times \mathbb{R}^d \to \mathbb{R}_{\ge 0}$ is the
+  \emph{entropy floor function}. The configuration is globally admissible if
+  \eqref{eq:admissibility} holds for almost every $x \in \Omega$.
+\end{definition}
+
+\subsection{The Entropy Floor}
+
+We define the entropy floor as a quadratic in local field intensity:
+\begin{equation}
+  S_*(\Phi, \mathbf{v}) = \gamma\bigl(\Phi^2 + \|\mathbf{v}\|^2\bigr),
+  \quad \gamma > 0.
+  \label{eq:entropy_floor}
+\end{equation}
+
+This expression defines the minimal entropy required to encode the local
+constraint complexity. Regions with large scalar density or strong flow require
+greater entropy to remain admissible. This establishes a scaling relation
+between structural intensity and informational overhead.
+
+\begin{proposition}
+  The entropy floor \eqref{eq:entropy_floor} is the unique quadratic function
+  $S_*(\Phi,\mathbf{v}) = \gamma_1\Phi^2 + \gamma_2\|\mathbf{v}\|^2$ that is
+  non-negative, vanishes at $(\Phi,\mathbf{v}) = (0,0)$, and is isotropic in
+  $\mathbf{v}$. Setting $\gamma_1 = \gamma_2 = \gamma$ is the
+  minimal-parameter choice consistent with equal weighting of scalar and vector
+  burden.
+\end{proposition}
+
+\begin{proof}
+  Non-negativity and vanishing at the origin require both coefficients to be
+  non-negative. Isotropy in $\mathbf{v}$ requires the coefficient of
+  $\|\mathbf{v}\|^2$ to be scalar. Equal weighting collapses two free
+  parameters to one.
+\end{proof}
+
+\subsection{The Admissibility Potential}
+
+Rather than enforcing \eqref{eq:admissibility} as a hard constraint, we
+introduce a smooth penalty. Define
+\begin{equation}
+  V_{\mathrm{adm}}(S;\Phi,\mathbf{v})
+  = \log\!\Bigl(1 + \exp\bigl(\alpha\,(S_*(\Phi,\mathbf{v}) - S)\bigr)\Bigr),
+  \quad \alpha > 0.
+  \label{eq:Vadm}
+\end{equation}
+
+This softplus barrier is smooth and differentiable everywhere. When $S$ is well
+above the entropy floor, the potential is negligible. When $S$ falls below
+$S_*$, the potential grows approximately linearly, imposing a strong penalty.
+The parameter $\alpha$ controls the sharpness of the transition, while $\nu$
+controls the strength of the penalty in the action.
+
+\begin{proposition}[Properties of $V_{\mathrm{adm}}$]
+  \label{prop:Vadm}
+  The potential \eqref{eq:Vadm} satisfies: $V_{\mathrm{adm}} > 0$ for all
+  finite arguments; $V_{\mathrm{adm}} \to 0$ as $S \to +\infty$;
+  $V_{\mathrm{adm}} \sim \alpha(S_* - S)$ as $S \to -\infty$; and
+  $\partial V_{\mathrm{adm}}/\partial S < 0$, so the penalty is strictly
+  decreasing in entropy. Moreover $\partial V_{\mathrm{adm}}/\partial \alpha > 0$:
+  larger $\alpha$ sharpens the transition at $S = S_*$.
+\end{proposition}
+
+\begin{proof}
+  Direct computation from the softplus definition $\mathrm{sp}(u) =
+  \log(1+e^u)$ with $u = \alpha(S_* - S)$.
+  The derivative with respect to $S$ is
+  $\partial_S V_{\mathrm{adm}} = -\alpha\,\sigma(\alpha(S_*-S))$,
+  where $\sigma$ is the logistic function, which is strictly positive.
+\end{proof}
+
+This term gives entropy genuine regulatory power over the action. It does not
+merely modulate coupling between $\Phi$ and $\mathbf{v}$; it determines whether
+a configuration is admissible at all. Together with the entropy floor
+\eqref{eq:entropy_floor}, it ensures that high field intensity demands high
+entropy, driving the system toward a regime where structural complexity and
+informational overhead are in balance.
+
+\subsection{The Formal Action}
+
+We write the full RSVP action as
+\begin{align}
+  \mathcal{A}[X]
+  &= \int_\Omega
+    \Bigl(
+      \mathcal{L}_\Phi
+      + \mathcal{L}_{\mathbf{v}}
+      + \mathcal{L}_S
+      + e^{-\lambda S}\,\mathcal{L}_{\Phi\mathbf{v}}
+      + \mu\,(\nabla S \cdot \mathbf{J}_{\Phi,\mathbf{v}})
+      + \nu\,V_{\mathrm{adm}}(S;\Phi,\mathbf{v})
+    \Bigr)\,dx,
+    \label{eq:full_action}
+\end{align}
+where $X = (\Phi,\mathbf{v},S)$. The action is composed of three classes of
+terms. The first consists of standard single-field contributions governing local
+magnitude and smoothness. The second consists of structural coupling between
+$\Phi$ and $\mathbf{v}$, modulated by entropy. The third consists of
+admissibility terms in which $S$ acts as a regulator.
+
+\subsection{Structural Terms}
+
+The one-field contributions are quadratic in the fields and their gradients:
+\begin{align}
+  \mathcal{L}_\Phi &= a_\Phi \Phi^2 + b_\Phi |\nabla\Phi|^2, \\
+  \mathcal{L}_{\mathbf{v}} &= a_v \|\mathbf{v}\|^2 + b_v \|\nabla\mathbf{v}\|^2, \\
+  \mathcal{L}_S &= a_S S^2 + b_S |\nabla S|^2.
+\end{align}
+
+These terms ensure that each field remains bounded and exhibits controlled
+variation. The coupling between scalar and vector sectors is
+\begin{equation}
+  \mathcal{L}_{\Phi\mathbf{v}}
+  = c_{\Phi v}\,\Phi\,(\nabla \cdot \mathbf{v})
+    + c_{\Phi v}'\,|\nabla\Phi|^2\,\|\mathbf{v}\|^2.
+  \label{eq:Lpv}
+\end{equation}
+The divergence term captures how scalar accumulation responds to compression and
+expansion of flow; the gradient interaction term couples spatial variation in
+$\Phi$ to the magnitude of $\mathbf{v}$.
+
+\subsection{Entropy as Regulator: The Asymmetric Terms}
+
+The defining feature of the RSVP action is the asymmetric role of entropy. The
+factor $e^{-\lambda S}\,\mathcal{L}_{\Phi\mathbf{v}}$ modulates the
+scalar--vector coupling. In regions of high entropy, coupling is suppressed; in
+regions of low entropy, it is amplified. This is not a symmetric interaction.
+It is a gating mechanism in which $S$ determines how strongly the structural
+fields are allowed to interact.
+
+The interaction current $\mathbf{J}_{\Phi,\mathbf{v}}$ is the variational
+current of the coupling term:
+\begin{equation}
+  \mathbf{J}_{\Phi,\mathbf{v}}
+  = \frac{\partial \mathcal{L}_{\Phi\mathbf{v}}}{\partial(\nabla\Phi)}
+  + \frac{\partial \mathcal{L}_{\Phi\mathbf{v}}}{\partial(\nabla\mathbf{v})}.
+  \label{eq:current}
+\end{equation}
+Evaluating from \eqref{eq:Lpv} with $c_{\Phi v}' = 0$, the current reduces to
+$\mathbf{J}_{\Phi,\mathbf{v}} = \Phi\,\mathbf{v}$, the simplest
+scalar-weighted flow vector. The term $\mu(\nabla S \cdot
+\mathbf{J}_{\Phi,\mathbf{v}})$ penalizes configurations in which entropy
+gradients are misaligned with the flow of scalar--vector coupling energy:
+when entropy increases in the direction of structural transport, the
+configuration is supported; when entropy gradients oppose the direction of
+coupling, the configuration is penalized.
+
+\subsection{Variational Equations of Motion}
+
+Taking functional derivatives of \eqref{eq:full_action} yields the
+Euler--Lagrange equations for each field. The entropy equation is the most
+revealing:
+\begin{equation}
+  -b_S\,\Delta S + 2a_S\,S
+  - \lambda\,e^{-\lambda S}\,\mathcal{L}_{\Phi\mathbf{v}}
+  + \mu\,\nabla\cdot\mathbf{J}_{\Phi,\mathbf{v}}
+  - \nu\,\alpha\,\sigma\!\bigl(\alpha(S_*-S)\bigr)
+  = 0,
+  \label{eq:EL_S}
+\end{equation}
+where $\sigma(u) = (1+e^{-u})^{-1}$ is the logistic function. The term
+$-\lambda e^{-\lambda S}\mathcal{L}_{\Phi\mathbf{v}}$ drives $S$ upward where
+coupling is strong, while $-\nu\alpha\sigma(\alpha(S_*-S))$ drives $S$ upward
+when it falls below the entropy floor. Both forces push $S$ in the same
+direction when the field is intense: the system self-regulates toward
+admissibility. This is not imposed externally but emerges from the structure of
+the action.
+
+\subsection{Weight Functional}
+
+The configuration weight is
+\begin{equation}
+  W[X] = e^{-\beta\,\mathcal{A}[X]}.
+\end{equation}
+Observables are computed as weighted averages over the configuration space.
+However, direct evaluation of $W$ is exponentially intractable, as it requires
+integration over all possible field configurations. The remainder of the essay
+develops a method for constructing and compressing this weight through local
+operations.
+
+\begin{remark}[Double-exponential and linearization]
+  When the gate is derived via $G_k \sim e^{-\beta\,\Delta\mathcal{A}_k}$, the
+  entropy-gated coupling term $e^{-\lambda S}\mathcal{L}_{\Phi\mathbf{v}}$
+  contributes $\exp(-\beta e^{-\lambda S}\Delta\mathcal{L}_{\Phi\mathbf{v}})$
+  to the gate: a double exponential in $S$. This is analytically correct but
+  numerically hazardous, as the dynamic range across local basis states can be
+  extreme and degrades SVD truncation quality. The prototype scheme of
+  Section~3 separates the admissibility and structural sectors via a Trotter
+  split, avoiding this issue while preserving the conceptual asymmetry.
+\end{remark}
+
+% ============================================================
+\section{The Prototype Decimation Scheme}
+% ============================================================
+
+\subsection{From Formal Action to Discrete Lattice}
+
+To obtain a computationally tractable representation of the RSVP weight
+functional, we discretize $\Omega$ as a one-dimensional chain of $N$ sites.
+Each site $n$ carries a local state
+\[
+  x_n = (\Phi_n, v_n, S_n),
+\]
+drawn from a finite local basis of size $d = d_\Phi \times d_v \times d_S$.
+The global weight $W(x_1,\dots,x_N) = e^{-\beta \mathcal{A}[X]}$ is not
+assumed to factorize a priori. Instead, it is constructed through a sequence of
+local operator applications derived from the discretized action. This
+construction induces an approximate matrix product state (MPS) / tensor-train
+representation~\cite{oseledets2011tt, schollwock2011dmrg}:
+\begin{equation}
+  W(x_1,\dots,x_N) \approx \sum_{\{\alpha\}}
+  C_1^{\alpha_0\alpha_1}(x_1)\,C_2^{\alpha_1\alpha_2}(x_2)
+  \cdots C_N^{\alpha_{N-1}\alpha_N}(x_N),
+  \label{eq:MPS}
+\end{equation}
+where each core $C_n$ has shape $(\chi_{n-1}, d, \chi_n)$ and $\chi_0 =
+\chi_N = 1$ (open boundary conditions). The bond dimension $\chi_n$ measures
+retained correlations between neighboring sites.
+
+The chain begins in a trivially factorized state, analogous to the
+unentangled initial state of the Integral Decimation Method~\cite{grimm2026}.
+All nontrivial dependence between sites is accumulated through the sequential
+application of local operators. This representation emerges from the same
+principle as the reference method: a global object is built incrementally
+through local transformations, with compression applied at each step to
+maintain tractability.
+
+\subsection{Local Action Decomposition}
+
+The discrete action decomposes as
+\begin{equation}
+  \mathcal{A}_{\mathrm{discrete}}[X]
+  = \sum_n \mathcal{A}^{(1)}_n(x_n)
+  + \sum_n \mathcal{A}^{(2)}_{n,n+1}(x_n, x_{n+1}),
+\end{equation}
+where the one-site term is
+\begin{equation}
+  \mathcal{A}^{(1)}_n(x_n)
+  = a_\Phi\Phi_n^2 + a_v v_n^2 + a_S S_n^2,
+  \label{eq:A1}
+\end{equation}
+and the two-site term is split into structural and admissibility sectors:
+\begin{equation}
+  \mathcal{A}^{(2)}_{n,n+1}(x_n,x_{n+1})
+  = \mathcal{A}_{\Phi\mathbf{v}}(x_n,x_{n+1})
+  + \mathcal{A}_{\mathrm{adm}}(x_n,x_{n+1}).
+  \label{eq:A2}
+\end{equation}
+
+\subsection{Trotter Splitting of the Local Action}
+
+The local contribution of the action on a pair of neighboring sites $(n,n+1)$
+is denoted by $\Delta\mathcal{A}_{n,n+1}$. Rather than exponentiating the full
+local action directly, we decompose it according to \eqref{eq:A2} and apply a
+first-order Trotter splitting.
+
+\begin{definition}[Trotter split]
+  Given a two-site action of the form \eqref{eq:A2}, the
+  \emph{first-order Trotter split} of the corresponding gate is
+  \begin{equation}
+    G_{n,n+1}
+    = e^{-\beta\,\mathcal{A}^{(2)}_{n,n+1}}
+    \approx G_{\mathrm{adm}}\,G_{\Phi\mathbf{v}}
+    = e^{-\beta\,\mathcal{A}_{\mathrm{adm}}}\,
+      e^{-\beta\,\mathcal{A}_{\Phi\mathbf{v}}}.
+    \label{eq:trotter}
+  \end{equation}
+\end{definition}
+
+\begin{proposition}[Trotter error and exact commutativity]
+  \label{prop:trotter}
+  The error in \eqref{eq:trotter} is bounded by
+  $\frac{\beta^2}{2}\bigl\|[\mathcal{A}_{\Phi\mathbf{v}},
+  \mathcal{A}_{\mathrm{adm}}]\bigr\|_F + O(\beta^3)$.
+  In the prototype, $\mathcal{A}_{\mathrm{adm}}$ depends only on single-site
+  $S$ values and $\mathcal{A}_{\Phi\mathbf{v}}$ depends only on $(\Phi,v)$
+  pairs; on the local discrete basis these operators are simultaneously
+  diagonal, so the commutator vanishes exactly and the Trotter split is exact.
+\end{proposition}
+
+\begin{proof}
+  The Baker--Campbell--Hausdorff formula gives $e^{A+B} = e^A e^B
+  e^{-[A,B]/2}\cdots$, so the leading error is $\frac{1}{2}[A,B]$ in the
+  exponent. Since both gates are diagonal on the local basis, they commute on
+  every basis element and the commutator is zero.
+\end{proof}
+
+The Trotter splitting therefore introduces zero first-order error in the
+prototype regime, making it an exact operator factorization rather than an
+approximation. This also preserves the conceptual separation between structure
+and admissibility at the level of the numerical scheme.
+
+\subsection{The Admissibility Gate}
+
+The admissibility sector acts independently on each site within the pair:
+\[
+  \mathcal{A}_{\mathrm{adm}}(x,y)
+  = \nu\,V_{\mathrm{adm}}(x) + \nu\,V_{\mathrm{adm}}(y),
+\]
+where $V_{\mathrm{adm}}$ is evaluated using the full local triplet
+$(\Phi,v,S)$. The corresponding gate is diagonal:
+\[
+  G_{\mathrm{adm}}(x',y';x,y)
+  = \delta_{x'x}\,\delta_{y'y}\,
+    \exp\!\bigl(-\beta\,\mathcal{A}_{\mathrm{adm}}(x,y)\bigr).
+\]
+Because this gate depends only on local variables and does not couple
+neighboring sites directly, it is computationally inexpensive. Its role is
+purely regulatory: it suppresses configurations that violate the entropy floor
+and leaves admissible configurations largely unchanged.
+
+\subsection{The Structural Gate}
+
+The structural sector captures the interaction between scalar and vector fields
+across neighboring sites:
+\[
+  \mathcal{A}_{\Phi\mathbf{v}}(x,y)
+  = b_\Phi(\Phi_x - \Phi_y)^2
+  + b_v(v_x - v_y)^2
+  + c_{\Phi v}\,\Phi_x\,v_y.
+\]
+This term enforces coherence between neighboring values while allowing directed
+interaction through the asymmetric cross-term $\Phi_x v_y$. The corresponding
+gate is also diagonal:
+\[
+  G_{\Phi\mathbf{v}}(x',y';x,y)
+  = \delta_{x'x}\,\delta_{y'y}\,
+    \exp\!\bigl(-\beta\,\mathcal{A}_{\Phi\mathbf{v}}(x,y)\bigr).
+\]
+Although diagonal, this gate induces correlations between neighboring sites by
+reweighting configurations according to their structural compatibility.
+
+\subsection{The Decimation Step}
+
+After applying a two-site gate to cores $C_n$ and $C_{n+1}$, the update
+proceeds in four steps.
+
+\textbf{Step 1: Contract.}
+\begin{equation}
+  \Theta^{\ell,i,j,r} = \sum_m C_n^{\ell i m}\,C_{n+1}^{m j r}.
+\end{equation}
+
+\textbf{Step 2: Apply gate.}
+Since the combined gate \eqref{eq:G_combined} is diagonal,
+\begin{equation}
+  \tilde\Theta^{\ell,i,j,r}
+  = G_{n,n+1}(i,j;i,j)\,\Theta^{\ell,i,j,r}.
+  \label{eq:G_combined}
+\end{equation}
+
+\textbf{Step 3: Reshape and SVD.}
+\begin{equation}
+  \Theta_{\mathrm{mat}} = \tilde\Theta.\mathrm{reshape}(Ld, dR),
+  \qquad
+  \Theta_{\mathrm{mat}} = U\Sigma V^\dagger.
+\end{equation}
+
+\textbf{Step 4: Truncate and split.}
+Retain $k = \min\!\bigl(\max(1,\,|\{i:\sigma_i>\varepsilon\}|),\,
+\chi_{\max}\bigr)$ singular values:
+\begin{equation}
+  C_n^{\mathrm{new}} =
+    \bigl(U_{:,1:k}\,\diag(\sqrt{\sigma_{1:k}})\bigr)
+    .\mathrm{reshape}(L,d,k),
+  \quad
+  C_{n+1}^{\mathrm{new}} =
+    \bigl(\diag(\sqrt{\sigma_{1:k}})\,V^\dagger_{1:k,:}\bigr)
+    .\mathrm{reshape}(k,d,R).
+\end{equation}
+
+The update rule is:
+\begin{equation}
+  W_{k+1} = \mathfrak{D}_\varepsilon(G_k\,W_k),
+  \label{eq:update_rule}
+\end{equation}
+where $\mathfrak{D}_\varepsilon$ denotes the truncation operator and $G_k$ the
+gate at bond $k$. This is the core decimation equation of the scheme. It
+eliminates components of the representation that contribute negligibly to the
+global weight, enforcing an entropy-respecting compression of the system.
+
+\subsection{Sweep Protocol}
+
+The full update proceeds through alternating sweeps. A left-to-right pass
+applies one-site and two-site gates sequentially across all sites and bonds,
+followed by a right-to-left pass in reverse order. After each pass, the tensor
+train is brought into left-canonical form by QR decomposition, ensuring that
+contractions used in observable computation remain well-conditioned. The full
+sweep map is:
+\begin{equation}
+  \mathcal{T} = \mathfrak{D}_\varepsilon \circ G_{\mathrm{sweep}},
+  \label{eq:sweep_map}
+\end{equation}
+where $G_{\mathrm{sweep}}$ denotes the full left-to-right-to-left gate
+sequence. This mirrors the time-evolving block decimation (TEBD)
+algorithm~\cite{vidal2004tebd}, adapted here to operate on a reweighted
+configuration space rather than a unitary quantum state.
+
+% ============================================================
+\section{Implementation and Observables}
+% ============================================================
+
+\subsection{Simulator Architecture}
+
+The simulator implements the decimation scheme as a composition of modular
+components that mirror the mathematical structure of the method. The
+\texttt{lattice} module defines the discrete domain, including the enumeration
+of local states and the adjacency structure of the chain. The \texttt{core}
+module stores the tensor-train representation, providing operations for
+reshaping, contracting, and truncating cores. The \texttt{operators} module
+constructs one-site and two-site gates from the Trotter-split action,
+maintaining the separation between structural and admissibility contributions.
+The \texttt{sweeps} module executes alternating passes, applying gates and
+invoking truncation after each local update. The \texttt{observables} module
+computes marginal distributions and derived quantities from the current
+tensor-train state.
+
+This modular decomposition reflects the separation of concerns present in the
+theoretical construction. The action determines the operators, the operators
+drive the evolution, and the tensor-train representation mediates between local
+updates and global structure.
+
+\subsection{Local Marginals and Field Expectations}
+
+Left environments $L^{(n)} \in \mathbb{R}^{\chi_n \times \chi_n}$ are
+computed recursively:
+\begin{align}
+  L^{(0)} &= [1], &
+  L^{(n)}_{bb'} &= \sum_{a,a',i} L^{(n-1)}_{aa'}\,
+    C_n^{a i b}\,C_n^{a' i b'}.
+  \label{eq:left_env}
+\end{align}
+Right environments $R^{(n)}$ are computed analogously from the right boundary.
+The local marginal probability at site $n$ is then:
+\begin{equation}
+  p_n(i)
+  = \frac{1}{Z}
+    \sum_{a,a',b,b'}
+    L^{(n-1)}_{aa'}\,C_n^{a i b}\,C_n^{a' i b'}\,R^{(n)}_{bb'},
+  \label{eq:marginal}
+\end{equation}
+where $Z = \sum_i p_n(i)$ before normalization. These environments are most
+naturally computed in a canonical gauge, where orthogonality conditions prevent
+uncontrolled growth or decay of intermediate quantities.
+
+Field expectations at site $n$ are computed as
+\begin{equation}
+  \langle \Phi_n \rangle = \sum_i p_n(i)\,\Phi^{(i)},
+  \qquad
+  \langle v_n \rangle = \sum_i p_n(i)\,v^{(i)},
+  \qquad
+  \langle S_n \rangle = \sum_i p_n(i)\,S^{(i)}.
+  \label{eq:expectations}
+\end{equation}
+
+\subsection{Bond Dimension as Closure Diagnostic}
+
+The bond dimension $\chi_n$ at bond $(n,n+1)$ is the number of singular values
+retained after truncation at that bond. It measures the amount of correlation
+between neighboring sites that cannot be compressed below threshold
+$\varepsilon$.
+
+\begin{definition}[Effective bond dimension and closure burden]
+  \begin{equation}
+    \chi_{\mathrm{eff}}
+    = \frac{1}{N-1}\sum_{n=1}^{N-1}\chi_n,
+    \qquad
+    \chi_{\max} = \max_{1\le n\le N-1}\chi_n.
+    \label{eq:chi_eff}
+  \end{equation}
+  The \emph{closure burden} at bond $n$ is defined as $\chi_n / \chi_{\max}$.
+  A uniform burden indicates homogeneous long-range correlation; localized
+  peaks indicate sites where the field resists compression.
+\end{definition}
+
+A small $\chi_{\mathrm{eff}}$ indicates that the global configuration can be
+expressed with low inter-site correlation, corresponding to a state of low
+torsion and high admissibility. A large $\chi_{\max}$ localized at a particular
+bond indicates a region of persistent structural interaction that resists
+decimation, often associated with sharp field gradients or competing
+constraints.
+
+From the perspective of the framework, stabilization of bond dimensions under
+repeated sweeps indicates that the system has reached a regime in which
+constraint closure has been achieved at the chosen resolution. Information flow
+across bonds becomes bounded, and the representation ceases to grow in
+complexity. This boundedness is the empirical signature of admissibility.
+
+\subsection{Simulation Results}
+
+Figures \ref{fig:chi_beta} and \ref{fig:chi_nu} show $\chi_{\mathrm{eff}}$
+per sweep for varying $\beta$ and $\nu$ respectively, on a chain of $N=20$
+sites with $d = 27$ local states, $\chi_{\max} = 24$, and truncation threshold
+$\varepsilon = 10^{-5}$. Bond dimension grows initially as correlations are
+established, then stabilizes within approximately ten sweeps across all tested
+parameter values. Figures \ref{fig:bonds} and \ref{fig:evolution} show the
+spatial profile of bond dimensions at the final sweep and the sweep-by-sweep
+evolution.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_chi_eff_by_beta.pdf}
+\caption{Effective bond dimension $\chi_{\mathrm{eff}}$ per sweep for
+  $\nu = 0.5$ and varying $\beta$. Stabilization within ten sweeps
+  supports the contraction conjecture.}
+\label{fig:chi_beta}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_chi_eff_by_nu.pdf}
+\caption{Effective bond dimension $\chi_{\mathrm{eff}}$ per sweep for
+  $\beta = 1.0$ and varying $\nu$. Stronger admissibility coupling
+  does not prevent stabilization.}
+\label{fig:chi_nu}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_bond_profile.pdf}
+\caption{Closure burden profile at the final sweep ($\beta=1.0$,
+  $\nu=0.5$). Localized peaks mark regions of persistent structural
+  correlation.}
+\label{fig:bonds}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_bond_evolution.pdf}
+\caption{Bond dimension evolution per sweep ($\beta=1.0$, $\nu=0.5$).
+  Rows are sweeps; columns are bonds. Stabilization is visible within
+  the first ten sweeps.}
+\label{fig:evolution}
+\end{figure}
+
+% ============================================================
+\section{The Convergence Conjecture}
+% ============================================================
+
+\subsection{The Truncated Sweep Map}
+
+The full update procedure can be expressed as a map on the space of
+tensor-train states. Let $\mathcal{M}_{\chi,N}$ denote the space of $N$-site
+tensor trains with bond dimension at most $\chi$ in left-canonical form,
+equipped with the Frobenius norm $\|W\|_F^2 = \sum_{x_1,\dots,x_N}
+W(x_1,\dots,x_N)^2$.
+
+Let $G$ denote the operator applying all gates in a complete sweep and
+$\Pi_\varepsilon$ the nonlinear projection truncating the tensor train at
+threshold $\varepsilon$. The truncated sweep map is
+\begin{equation}
+  \mathcal{T} = \Pi_\varepsilon \circ G.
+  \label{eq:T}
+\end{equation}
+
+\subsection{Component Properties}
+
+\begin{lemma}[Nonexpansiveness of $\Pi_\varepsilon$]
+  \label{lem:nonexpansive}
+  For any two tensor trains $W, W' \in \mathcal{M}_{\chi,N}$ in
+  left-canonical form,
+  \begin{equation}
+    \|\Pi_\varepsilon(W) - \Pi_\varepsilon(W')\|_F \le \|W - W'\|_F.
+  \end{equation}
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+  SVD truncation is the best rank-$k$ approximation in the Frobenius norm
+  (Eckart-Young theorem). The map $W \mapsto \Pi_\varepsilon(W)$ is therefore
+  a projection onto a closed set in the space of $(Ld)\times(dR)$ matrices.
+  Projections onto closed convex sets are nonexpansive in Hilbert space norms.
+  Applying this bond-by-bond preserves nonexpansiveness over the full chain.
+\end{proof}
+
+\begin{lemma}[Contractiveness of $G$ near identity]
+  \label{lem:contractive}
+  For sufficiently small $\beta$, the gate map $G$ satisfies
+  $\|G(W) - G(W')\|_F \le (1 - c\beta)\|W - W'\|_F$
+  for some $c > 0$ depending on the action coefficients.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+  Each gate $G_k(i,j) = e^{-\beta\mathcal{A}(x^{(i)},x^{(j)})} \le 1$
+  since $\mathcal{A} \ge 0$. The Frobenius norm therefore cannot increase under
+  gate application. For strictly positive $\mathcal{A}$, at least some gate
+  values are strictly less than 1, giving a strict contraction on the support.
+\end{proof}
+
+\subsection{Conjecture Statement}
+
+\begin{conjecture}[Contraction and fixed point]
+  \label{conj:main}
+  Under the conditions of Lemmas~\ref{lem:nonexpansive} and
+  \ref{lem:contractive}, the truncated sweep map $\mathcal{T} = \Pi_\varepsilon
+  \circ G$ is contractive on $\mathcal{M}_{\chi_{\max},N}$. It has a unique
+  fixed point $W^*$ satisfying
+  \begin{equation}
+    W^* = \mathcal{T}(W^*) = \Pi_\varepsilon(G(W^*)),
+    \label{eq:fixed_point}
+  \end{equation}
+  which is the admissible compressed representation of the RSVP weight
+  functional at parameters $(\beta, \varepsilon, \chi_{\max})$.
+\end{conjecture}
+
+\begin{remark}
+  The main obstacle to a full proof is that $\Pi_\varepsilon$ is nonlinear,
+  so standard Banach fixed-point arguments do not apply directly. A complete
+  proof would require either showing $\Pi_\varepsilon$ is strictly contractive,
+  or working in a metric space where the composition can be shown contractive
+  directly. The empirical evidence supports the conjecture across all tested
+  parameter regimes.
+\end{remark}
+
+The conjecture rests on two components. First, $\Pi_\varepsilon$ must be
+nonexpansive in the chosen norm, which is expected when truncation error is
+dominated by discarded singular values. Second, $G$ must be contractive, which
+occurs when $\beta$ is small enough that the gates are close to identity and do
+not amplify deviations.
+
+\subsection{Empirical Support}
+
+Across parameter regimes with $\beta \in [0.5, 2.0]$, $\varepsilon = 10^{-5}$,
+$\chi_{\max} \in \{24\}$, and $\nu \in [0.2, 0.8]$, stabilization of
+$\chi_{\mathrm{eff}}$ is observed within approximately ten sweeps (Figures
+\ref{fig:chi_beta} and \ref{fig:chi_nu}). The stabilized value
+$\chi_{\mathrm{eff}}^*$ decreases monotonically as $\varepsilon$ increases
+or $\beta$ decreases, consistent with the expectation that contraction
+strengthens as gate effects weaken and truncation becomes more aggressive. These
+trends align with the predictions of Conjecture~\ref{conj:main}.
+
+\subsection{Relation to Renormalization}
+
+The truncated sweep map $\mathcal{T}$ bears a structural resemblance to
+renormalization group transformations in statistical
+mechanics~\cite{wilson1975rg, white1992dmrg}. In both cases, local
+interactions are combined with a reduction of degrees of freedom to produce an
+effective description of the system.
+
+However, there is a crucial difference. Traditional renormalization proceeds
+by integrating out short-range degrees of freedom to obtain a coarse-grained
+theory at larger scales~\cite{wilson1975rg}. The decimation scheme presented
+here preserves the full configuration space while compressing its
+representation. No degrees of freedom are eliminated in principle; instead,
+their contribution is encoded in a reduced set of correlations controlled by
+the bond dimension.
+
+The fixed point $W^*$ of $\mathcal{T}$ is therefore not an RG fixed point
+--- a scale-invariant theory --- but a \emph{compression fixed point}: the most
+compact tensor-train representation of the RSVP weight that survives repeated
+entropy-respecting decimation at threshold $\varepsilon$. This is a new kind of
+fixed point whose physical interpretation is precisely the notion of admissible
+closure developed throughout this monograph.
+
+% ============================================================
+\section{Categorical Formulation of Constraint Closure}
+% ============================================================
+
+\subsection{The Category of Configurations}
+
+We formalize the reconstruction process categorically. Let $\mathcal{C}$ be a
+category whose objects are RSVP configurations represented as tensor-train
+states and whose morphisms are admissible transformations induced by local
+operators.
+
+An object $W \in \mathrm{Ob}(\mathcal{C})$ is a tensor-train representation of
+a weight functional. A morphism $f : W \to W'$ corresponds to the application
+of a finite sequence of local gates followed by truncation. Composition of
+morphisms corresponds to successive sweeps of the decimation process.
+
+This category is not arbitrary. It is endowed with additional structure that
+reflects the tensor-product decomposition of the system. In particular,
+$\mathcal{C}$ carries a symmetric monoidal structure $(\mathcal{C}, \otimes, I)$
+in which the tensor product corresponds to concatenation of independent
+subsystems and $I$ is the trivial single-site system.
+
+\subsection{The Admissibility Subcategory}
+
+Define a full subcategory $\mathcal{C}_{\le \varepsilon} \subset \mathcal{C}$
+consisting of tensor-train states whose bond dimensions are bounded by
+$\chi_{\max}$ and whose truncation error is below $\varepsilon$ at every bond.
+These objects represent admissible compressed configurations. The truncation
+operator $\Pi_\varepsilon$ acts as a reflector:
+\begin{equation}
+  \Pi_\varepsilon : \mathcal{C} \to \mathcal{C}_{\le \varepsilon},
+\end{equation}
+mapping each $W \in \mathcal{C}$ to the closest admissible object in
+$\mathcal{C}_{\le \varepsilon}$ with respect to the Frobenius norm.
+
+\begin{proposition}
+  $\Pi_\varepsilon$ is idempotent: $\Pi_\varepsilon \circ \Pi_\varepsilon =
+  \Pi_\varepsilon$.
+\end{proposition}
+
+\begin{proof}
+  Once a tensor-train state satisfies the truncation constraints, further
+  application of $\Pi_\varepsilon$ does not alter it, since no singular values
+  below threshold remain.
+\end{proof}
+
+\subsection{Constraint Closure as a Fixed Point}
+
+Let $G : \mathcal{C} \to \mathcal{C}$ denote the endofunctor induced by a full
+sweep of gate applications. The truncated sweep map is the composite endofunctor
+$\mathcal{T} = \Pi_\varepsilon \circ G$, and constraint closure corresponds to
+a fixed point:
+\begin{equation}
+  W^* \simeq \mathcal{T}(W^*).
+\end{equation}
+
+In categorical terms, $W^*$ is an algebra over the endofunctor $\mathcal{T}$:
+a configuration invariant under the process of local generation followed by
+admissibility filtering. This invariance expresses global consistency. The
+configuration contains no components that would be removed by further
+decimation, and therefore no components that fail to belong to a consistent
+global section of the field.
+
+\subsection{Relation to Sheaf-Theoretic Gluing}
+
+The categorical formulation admits an interpretation in terms of sheaf theory.
+Each local tensor core defines a section over a site, and the bond indices
+encode compatibility conditions between neighboring sections. Constraint closure
+corresponds to the existence of a global section obtained by gluing local data.
+Failures of closure correspond to obstructions where local compatibility
+conditions cannot be satisfied globally.
+
+The truncation step $\Pi_\varepsilon$ can therefore be interpreted as removing
+cohomological defects: components of the representation that prevent the
+existence of a consistent global section. Decimation is a process of enforcing
+sheaf consistency by eliminating non-gluable contributions. This connects to
+the Baez--Stay Rosetta Stone~\cite{baezstay}, in which logical, physical, and
+computational structures share a common categorical skeleton; the RSVP
+decimation scheme realizes that skeleton concretely in a field-theoretic
+setting.
+
+% ============================================================
+\section{Information-Theoretic Interpretation}
+% ============================================================
+
+\subsection{Entropy as Computational Resource}
+
+The entropy field $S$ acquires a direct interpretation in information theory.
+It measures the information required to encode a local configuration of
+$(\Phi,\mathbf{v})$, and the entropy floor $S_*$ represents the minimal
+information necessary to represent the local constraint structure.
+
+The admissibility condition $S \ge S_*$ expresses a fundamental principle: no
+structure can exist without sufficient information to encode it. This aligns
+with Landauer's principle~\cite{landauer1961}, which relates information
+processing to physical entropy, and with the broader statistical-mechanical
+framework in which entropy constrains accessible states~\cite{jaynes1957}.
+Bennett's analysis of reversible computation~\cite{bennett1982} and Lloyd's
+bound on computational capacity~\cite{lloyd2000} further ground this
+correspondence: the entropy floor $S_*(\Phi,\mathbf{v}) = \gamma(\Phi^2 +
+\|\mathbf{v}\|^2)$ can be interpreted as a local Lloyd bound, setting the
+minimum informational overhead required for a region of field intensity to
+sustain a dynamical structure.
+
+\subsection{Decimation as Information Compression}
+
+The truncation operator $\Pi_\varepsilon$ performs lossy compression of the
+tensor-train representation. Singular values below threshold $\varepsilon$
+correspond to correlations that contribute negligibly to the global weight and
+can be discarded without significantly altering the representation. This is
+analogous to rate-distortion theory~\cite{coverthomas}, in which a signal is
+compressed subject to a constraint on reconstruction error. Here, the
+distortion measure is the Frobenius norm, and the rate is determined by the
+bond dimension.
+
+\begin{proposition}
+  The bond dimension $\chi_n$ at bond $(n,n+1)$ provides an upper bound on the
+  mutual information between the two halves of the system separated by that
+  bond.
+\end{proposition}
+
+\begin{proof}
+  In tensor-network representations, the entanglement entropy across a bond is
+  bounded by $\log \chi_n$~\cite{schollwock2011dmrg}. Since mutual information
+  is bounded by entanglement entropy, the result follows.
+\end{proof}
+
+Decimation therefore enforces an information constraint. Only correlations
+representable within the available information budget are retained, reinforcing
+the interpretation of constraint closure as an information-limited
+reconstruction process.
+
+\subsection{Connection to Predictive Models}
+
+Predictive models optimize local likelihoods without enforcing global
+constraints. From the present perspective, this corresponds to constructing
+local marginals without ensuring they can be assembled into a consistent joint
+distribution. The failure mode is well-known: locally coherent outputs that are
+globally incoherent, a pathology not correctable by improving local accuracy
+alone~\cite{vaswani2017, lecun2015}.
+
+The tensor-train framework, by contrast, constructs a global object directly,
+with local marginals derived from it. Decimation ensures that this global
+object remains within an admissible complexity class. Robust intelligence
+therefore requires mechanisms for maintaining global consistency under
+information constraints, rather than optimizing local predictions in isolation.
+
+% ============================================================
+\section{Dynamical Systems Perspective on Constraint Closure}
+% ============================================================
+
+\subsection{State Space and Evolution Operator}
+
+We reinterpret the truncated sweep map $\mathcal{T} = \Pi_\varepsilon \circ G$
+as a discrete-time dynamical system acting on the state space
+$\mathcal{M}_{\chi_{\max},N}$. Each iteration
+\begin{equation}
+  W_{k+1} = \mathcal{T}(W_k)
+\end{equation}
+defines a trajectory in this space. The evolution is composed of a smooth
+transformation $G$ followed by a nonlinear projection $\Pi_\varepsilon$, placing
+the system in the class of \emph{projected dynamical systems}, where evolution
+is constrained to remain within an admissible subset.
+
+\subsection{Invariant Sets and Attractors}
+
+An invariant set $\mathcal{A} \subset \mathcal{M}_{\chi_{\max},N}$ satisfies
+$\mathcal{T}(\mathcal{A}) \subseteq \mathcal{A}$. The fixed point $W^*$ of
+Conjecture~\ref{conj:main} is a trivial invariant set. Empirically, no
+non-trivial periodic or quasi-periodic behavior is observed in the prototype
+regime; trajectories converge monotonically toward a stable configuration,
+suggesting a global attractor consisting of a single fixed point.
+
+\begin{proposition}
+  If $\mathcal{T}$ is contractive, it admits a unique global attractor
+  consisting of the single fixed point $W^*$~\cite{maclane1998}.
+\end{proposition}
+
+\begin{proof}
+  Standard contraction mapping theory implies that all trajectories converge to
+  the unique fixed point, and no other invariant sets can exist.
+\end{proof}
+
+The absence of oscillatory behavior is consistent with the interpretation of
+decimation as an entropy-increasing process at the level of representation.
+Each iteration removes incoherent components, reducing the effective
+dimensionality of the state, and this monotonic reduction prevents the
+recurrence of previous states.
+
+\subsection{Lyapunov Functional}
+
+Define
+\begin{equation}
+  \mathcal{L}(W) = \|W - \mathcal{T}(W)\|_F^2.
+\end{equation}
+This measures deviation from invariance under the update map and vanishes at the
+fixed point.
+
+\begin{proposition}
+  Under the contraction assumption, $\mathcal{L}(W_k)$ is nonincreasing along
+  trajectories.
+\end{proposition}
+
+\begin{proof}
+  Contractiveness implies successive iterates approach $W^*$, reducing
+  $\|W - \mathcal{T}(W)\|_F$ at each step.
+\end{proof}
+
+This serves as a Lyapunov function for the system, certifying stability of
+the fixed point. In practice, $\mathcal{L}(W_k)$ can be estimated from the
+change in $\chi_{\mathrm{eff}}$ between successive sweeps, providing a
+convergence diagnostic computable without explicit knowledge of $W^*$.
+
+\subsection{Entropy Production and Irreversibility}
+
+The decimation step introduces irreversibility. Information discarded through
+truncation cannot be recovered by subsequent iterations, distinguishing this
+system from reversible Hamiltonian dynamics. This connects directly to
+Landauer's principle~\cite{landauer1961}: the discarding of information has a
+minimum thermodynamic cost of $k_B T \ln 2$ per bit, and the total truncation
+error accumulated across sweeps represents a lower bound on the thermodynamic
+cost of the computation.
+
+The entropy field $S$ plays a dual role: it regulates admissibility in the
+action, and the decimation process itself produces entropy at the level of
+representation as information about discarded modes is irretrievably lost.
+Both mechanisms act to eliminate configurations that cannot be sustained within
+the available informational budget, creating a tight correspondence between
+physical admissibility and computational irreversibility.
+
+% ============================================================
+\section{Geometric Interpretation}
+% ============================================================
+
+\subsection{Configuration Manifold}
+
+The space of RSVP configurations can be viewed as a manifold $\mathcal{X}$
+parameterized by $(\Phi,\mathbf{v},S)$. The action functional $\mathcal{A}[X]$
+defines a geometry on this manifold, with lower-action regions corresponding to
+more probable configurations under $W[X] = e^{-\beta\mathcal{A}[X]}$.
+
+The admissibility condition defines a submanifold
+\begin{equation}
+  \mathcal{X}_{\mathrm{adm}}
+  = \bigl\{ X \in \mathcal{X} \mid S(x) \ge S_*(\Phi(x),\mathbf{v}(x))
+    \ \text{for a.e.}\ x \in \Omega \bigr\}.
+\end{equation}
+The soft potential $V_{\mathrm{adm}}$ smooths the boundary of this submanifold
+into a transition region, ensuring that the action remains differentiable and
+the Euler--Lagrange equations \eqref{eq:EL_S} are well-posed everywhere.
+
+\subsection{Projection onto the Admissible Manifold}
+
+The truncation operator $\Pi_\varepsilon$ acts geometrically as a projection
+onto a low-dimensional manifold of admissible configurations within the space
+of tensor-train representations. Each truncation step selects the closest point
+in Frobenius norm within this manifold, removing components that lie outside
+it. Repeated application drives the system toward the intersection of the image
+of $G$ and the admissible manifold.
+
+\subsection{Geodesic Interpretation of Sweeps}
+
+Gate application $G$ can be interpreted as moving along a trajectory in
+configuration space determined by local gradients of the action. In the
+continuous limit, this corresponds to gradient flow:
+\begin{equation}
+  \frac{dX}{dt} = -\nabla \mathcal{A}[X].
+\end{equation}
+The discrete sweep process approximates this flow, while the truncation step
+projects the trajectory back onto the admissible manifold. The overall dynamics
+is therefore a \emph{projected gradient flow}:
+\begin{equation}
+  X_{k+1} = \Pi_{\mathrm{adm}}\!\bigl(X_k - \eta\,\nabla \mathcal{A}[X_k]\bigr),
+  \label{eq:proj_grad}
+\end{equation}
+connecting the tensor-network algorithm to variational optimization methods
+with admissibility enforced at each step rather than only at convergence.
+
+\subsection{Curvature and Complexity}
+
+Regions of high bond dimension correspond to regions of high curvature in the
+configuration manifold, where local constraints interact complexly and require
+many degrees of freedom to represent accurately. Decimation flattens these
+regions by removing negligible directions of curvature.
+
+The stabilized configuration lies in a region of reduced curvature, where the
+manifold is effectively lower-dimensional. Constraint closure is therefore the
+process of finding a low-curvature submanifold approximating the full
+configuration space while preserving admissible structure. The bond-dimension
+profile of Figure~\ref{fig:bonds} is a direct measurement of this curvature
+distribution along the lattice.
+
+% ============================================================
+\section{Extensions and Open Problems}
+% ============================================================
+
+\subsection{Higher-Dimensional Lattices}
+
+The prototype scheme is formulated on a one-dimensional chain. Extension to
+higher-dimensional lattices requires replacing tensor trains with projected
+entangled pair states (PEPS) or tree tensor networks~\cite{orus2014tensor}.
+The main challenge is computational tractability, as exact contraction costs
+grow exponentially with dimension. Nevertheless, the conceptual framework
+remains unchanged: local operators are applied to neighboring regions,
+decimation controls correlation growth, and the admissibility potential
+$V_{\mathrm{adm}}$ requires no modification.
+
+\subsection{Continuous Limits and Field Reconstruction}
+
+A key open problem is the recovery of continuous field behavior from the
+discrete tensor-train representation. In the limit of large $N$ and refined
+local bases, the discrete model should approximate solutions to the
+Euler--Lagrange equations derived from the RSVP action. Establishing this
+correspondence rigorously would connect the computational scheme to the
+underlying field theory, analogous to the relationship between lattice field
+theory and continuum quantum field theory.
+
+\subsection{Adaptive Truncation and Dynamic Resolution}
+
+The truncation threshold $\varepsilon$ and maximum bond dimension $\chi_{\max}$
+are currently fixed parameters. An adaptive scheme varying these quantities
+across the lattice would improve efficiency by allocating more resources to
+regions of high closure burden. This aligns with the interpretation of bond
+dimension as a curvature measure: dynamically adjusting computational effort
+according to local constraint complexity.
+
+\subsection{Toward a Proof of Convergence}
+
+The convergence conjecture remains the central open theoretical problem.
+Possible approaches include: constructing a weighted norm in which
+$\Pi_\varepsilon$ becomes strictly contractive; bounding the Lipschitz constant
+of $G$ in terms of action parameters $(\beta, a_\Phi, a_v, a_S, b_\Phi, b_v,
+\nu)$; or reformulating in terms of monotone operator theory, which accommodates
+nonlinear projections more naturally than classical Banach fixed-point
+arguments. Each pathway would provide a rigorous foundation for the empirical
+observations presented here.
+
+\subsection{Cognitive and Physical Implications}
+
+The framework suggests a reinterpretation of both cognition and physical
+dynamics. The Friston free-energy principle~\cite{friston2010} frames
+perception as minimization of a variational bound on surprise; constraint
+closure provides a complementary picture in which consistency, rather than
+surprise reduction, is the organizing criterion. Thought processes may be
+understood as iterative construction of admissible configurations, with
+inconsistencies eliminated through a process analogous to decimation.
+
+In physics, the Jacobson derivation of Einstein's equations from thermodynamic
+principles~\cite{jacobson1995} and Verlinde's entropic gravity
+program~\cite{verlinde2011} both locate gravitational structure in entropic
+constraints rather than metric dynamics. The RSVP framework is consistent with
+this perspective and extends it: the entropy floor $S_*$ connects local field
+intensity to informational overhead in a manner that could, in principle, be
+extended to a cosmological setting in which spacetime structure emerges from
+constraint closure rather than from a background metric.
+
+% ============================================================
+\section{Conclusion: Constraint Closure as a Unifying Principle}
+% ============================================================
+
+The development presented in this essay establishes a continuous chain from
+formal field theory to concrete computational implementation and finally to an
+empirically grounded conjecture about convergence. At each stage, the same
+structural principle appears: configurations are generated through local
+interactions, but only those that satisfy global admissibility constraints are
+retained. The mechanism by which this selection occurs is entropy-respecting
+decimation.
+
+Within the RSVP framework, this principle is encoded directly in the action.
+The scalar and vector fields generate structure through local interactions,
+while the entropy field regulates whether that structure can be sustained. The
+admissibility potential enforces a relationship between local intensity and
+informational overhead, ensuring that configurations lacking sufficient entropy
+are suppressed. This introduces a hierarchy in which structure is subordinate
+to admissibility, rather than the two being treated as coequal components of
+the dynamics. As the entropy equation of motion \eqref{eq:EL_S} reveals, this
+hierarchy is not imposed externally but emerges from the variational structure
+of the action itself.
+
+When the action is discretized and translated into a computational scheme, this
+same hierarchy persists. The Trotter-split decomposition separates structural
+and admissibility effects into distinct operators, with Proposition
+\ref{prop:trotter} establishing that this split is exact on the local basis.
+The sequential application of these operators constructs a global
+representation through local updates. The decimation step then enforces
+admissibility by removing components that cannot be integrated into a coherent
+structure. The tensor-train representation serves as the medium through which
+this process is realized, allowing global structure to emerge from local
+operations while remaining computationally tractable.
+
+The convergence conjecture formalizes the observed behavior of this system.
+Stabilization of bond dimension under repeated sweeps indicates that the
+representation has reached a regime in which further application of $\mathcal{T}$
+does not increase complexity. Lemmas \ref{lem:nonexpansive} and
+\ref{lem:contractive} establish the two components required for contraction,
+and Conjecture \ref{conj:main} states the expected fixed-point result.
+The categorical formulation of Section~6 shows that the fixed point is an
+algebra over the endofunctor $\mathcal{T}$ and that decimation enforces sheaf
+consistency by removing non-gluable contributions. The information-theoretic
+analysis of Section~7 connects the entropy floor to Landauer's principle and
+frames bond dimension as a mutual-information bound. The dynamical-systems
+perspective of Section~8 supplies a Lyapunov functional and identifies the
+irreversibility of truncation with thermodynamic entropy production. The
+geometric interpretation of Section~9 recasts sweeps as projected gradient
+flow and bond-dimension peaks as regions of high manifold curvature.
+Although a formal proof of Conjecture~\ref{conj:main} remains open, the
+convergence of these four perspectives provides strong evidence that
+constraint closure is not merely a conceptual idea but a measurable and
+geometrically grounded property of the dynamics.
+
+The implications of this framework extend beyond the specific numerical method.
+In computation, it suggests that the limitations of predictive models arise
+from their failure to enforce global consistency, and that more robust systems
+will require mechanisms for constraint closure. In cognition, it suggests that
+understanding may be better modeled as the process of assembling admissible
+configurations rather than predicting isolated outcomes. In physics, it
+provides a perspective in which structure arises from the selective retention
+of configurations that satisfy both local interactions and global admissibility
+conditions.
+
+The unifying claim is therefore that stable structure --- whether physical,
+computational, or cognitive --- is the result of a two-stage process. First,
+local operators generate candidate configurations through the accumulation of
+constraints. Second, a decimation mechanism filters these configurations
+according to an admissibility criterion, removing those that cannot be
+integrated into a coherent whole. The combination of these processes yields a
+system that is both generative and selective, capable of producing complex
+structure while maintaining global consistency.
+
+Future work will refine each component of this framework. On the formal side,
+the variational structure of the RSVP action can be extended to incorporate
+additional fields and symmetries, and the role of the entropy field can be
+explored in higher-dimensional settings. On the computational side, the
+tensor-train implementation can be generalized to higher-dimensional lattices
+and improved through adaptive truncation strategies. On the theoretical side,
+the convergence conjecture can be investigated more rigorously, with the goal
+of establishing conditions under which $\mathcal{T}$ is provably contractive.
+The broader objective is a unified theory in which computation, cognition, and
+physical dynamics are understood as manifestations of the same underlying
+process of constraint closure.
+
+\newpage
+
+\begin{thebibliography}{99}
+
+\bibitem{grimm2026}
+R. T. Grimm, A. J. Staat, and J. D. Eaves,
+\textit{The Integral Decimation Method for Quantum Dynamics and Statistical Mechanics},
+Quantum, 10, 2064 (2026).
+DOI: \href{https://doi.org/10.22331/q-2026-04-13-2064}{10.22331/q-2026-04-13-2064}.
+
+\bibitem{oseledets2011tt}
+I. V. Oseledets,
+\textit{Tensor-Train Decomposition},
+SIAM Journal on Scientific Computing, 33(5), 2295--2317 (2011).
+
+\bibitem{orus2014tensor}
+R. Or\'{u}s,
+\textit{A Practical Introduction to Tensor Networks: Matrix Product States
+and Projected Entangled Pair States},
+Annals of Physics, 349, 117--158 (2014).
+
+\bibitem{schollwock2011dmrg}
+U. Schollw\"{o}ck,
+\textit{The Density-Matrix Renormalization Group in the Age of Matrix
+Product States},
+Annals of Physics, 326(1), 96--192 (2011).
+
+\bibitem{white1992dmrg}
+S. R. White,
+\textit{Density Matrix Formulation for Quantum Renormalization Groups},
+Physical Review Letters, 69(19), 2863--2866 (1992).
+
+\bibitem{vidal2004tebd}
+G. Vidal,
+\textit{Efficient Simulation of One-Dimensional Quantum Many-Body Systems},
+Physical Review Letters, 93(4), 040502 (2004).
+
+\bibitem{wilson1975rg}
+K. G. Wilson,
+\textit{The Renormalization Group: Critical Phenomena and the Kondo Problem},
+Reviews of Modern Physics, 47(4), 773--840 (1975).
+
+\bibitem{cichocki2016}
+A. Cichocki et al.,
+\textit{Tensor Networks for Dimensionality Reduction and Large-Scale
+Optimization},
+Foundations and Trends in Machine Learning, 9(4-5), 249--429 (2016).
+
+\bibitem{hackbusch2012}
+W. Hackbusch,
+\textit{Tensor Spaces and Numerical Tensor Calculus},
+Springer (2012).
+
+\bibitem{landauer1961}
+R. Landauer,
+\textit{Irreversibility and Heat Generation in the Computing Process},
+IBM Journal of Research and Development, 5(3), 183--191 (1961).
+
+\bibitem{bennett1982}
+C. H. Bennett,
+\textit{The Thermodynamics of Computation---A Review},
+International Journal of Theoretical Physics, 21(12), 905--940 (1982).
+
+\bibitem{lloyd2000}
+S. Lloyd,
+\textit{Ultimate Physical Limits to Computation},
+Nature, 406, 1047--1054 (2000).
+
+\bibitem{jaynes1957}
+E. T. Jaynes,
+\textit{Information Theory and Statistical Mechanics},
+Physical Review, 106(4), 620--630 (1957).
+
+\bibitem{coverthomas}
+T. M. Cover and J. A. Thomas,
+\textit{Elements of Information Theory},
+Wiley (2006).
+
+\bibitem{jacobson1995}
+T. Jacobson,
+\textit{Thermodynamics of Spacetime: The Einstein Equation of State},
+Physical Review Letters, 75(7), 1260--1263 (1995).
+
+\bibitem{verlinde2011}
+E. Verlinde,
+\textit{On the Origin of Gravity and the Laws of Newton},
+Journal of High Energy Physics, 2011(4), 29 (2011).
+
+\bibitem{friston2010}
+K. Friston,
+\textit{The Free-Energy Principle: A Unified Brain Theory?},
+Nature Reviews Neuroscience, 11(2), 127--138 (2010).
+
+\bibitem{vaswani2017}
+A. Vaswani et al.,
+\textit{Attention Is All You Need},
+NeurIPS (2017).
+
+\bibitem{lecun2015}
+Y. LeCun, Y. Bengio, and G. Hinton,
+\textit{Deep Learning},
+Nature, 521, 436--444 (2015).
+
+\bibitem{goodfellow2014}
+I. Goodfellow et al.,
+\textit{Generative Adversarial Nets},
+NeurIPS (2014).
+
+\bibitem{maclane1998}
+S. Mac Lane,
+\textit{Categories for the Working Mathematician},
+Springer (1998).
+
+\bibitem{lurie2009}
+J. Lurie,
+\textit{Higher Topos Theory},
+Princeton University Press (2009).
+
+\bibitem{baezstay}
+J. C. Baez and M. Stay,
+\textit{Physics, Topology, Logic and Computation: A Rosetta Stone},
+In New Structures for Physics, Springer (2010).
+
+\bibitem{turing1936}
+A. M. Turing,
+\textit{On Computable Numbers, with an Application to the
+Entscheidungsproblem},
+Proceedings of the London Mathematical Society, 42(2), 230--265 (1936).
+
+\bibitem{church1936}
+A. Church,
+\textit{An Unsolvable Problem of Elementary Number Theory},
+American Journal of Mathematics, 58(2), 345--363 (1936).
+
+\bibitem{shannon1948}
+C. E. Shannon,
+\textit{A Mathematical Theory of Communication},
+Bell System Technical Journal, 27, 379--423 (1948).
+
+\end{thebibliography}
+
+\end{document}

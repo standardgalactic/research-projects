@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flash-Reluctance Engine Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #080c10;
+    --surface: #0d1520;
+    --panel: #111c2a;
+    --border: #1a3050;
+    --thermal: #ff6b35;
+    --thermal-dim: #7a3018;
+    --em: #00d4ff;
+    --em-dim: #00536a;
+    --net: #a8ff3e;
+    --net-dim: #3a5c0f;
+    --friction: #ff3e6c;
+    --text: #c8d8e8;
+    --text-dim: #5a7a9a;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Rajdhani', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,180,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,180,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  header .sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--net);
+    box-shadow: 0 0 8px var(--net);
+    animation: pulse 1.5s ease-in-out infinite;
+    margin-left: auto;
+  }
+  .status-dot.stopped { background: var(--friction); box-shadow: 0 0 8px var(--friction); animation: none; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: auto auto;
+    gap: 12px;
+    padding: 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Controls Panel ── */
+  .controls {
+    grid-row: 1 / 3;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .ctrl-section-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+  }
+
+  .slider-group { display: flex; flex-direction: column; gap: 12px; }
+
+  .slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .slider-label .val {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--em);
+  }
+
+  .slider-label .unit {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-left: 2px;
+  }
+
+  input[type=range] {
+    width: 100%;
+    height: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--em);
+    box-shadow: 0 0 6px var(--em);
+    cursor: pointer;
+  }
+
+  .thermal-slider::-webkit-slider-thumb { background: var(--thermal); box-shadow: 0 0 6px var(--thermal); }
+  .net-slider::-webkit-slider-thumb { background: var(--net); box-shadow: 0 0 6px var(--net); }
+
+  .btn-row { display: flex; gap: 8px; }
+
+  button {
+    flex: 1;
+    padding: 10px 0;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  button.primary {
+    border-color: var(--net);
+    color: var(--net);
+    box-shadow: 0 0 12px rgba(168,255,62,0.1);
+  }
+  button.primary:hover { background: rgba(168,255,62,0.1); box-shadow: 0 0 20px rgba(168,255,62,0.2); }
+  button.danger { border-color: var(--friction); color: var(--friction); }
+  button.danger:hover { background: rgba(255,62,108,0.1); }
+
+  /* ── Rotor Visualizer ── */
+  .rotor-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .rotor-panel canvas { display: block; }
+
+  /* ── Torque Chart ── */
+  .chart-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  /* ── Telemetry Strip ── */
+  .telemetry {
+    grid-column: 1 / 3;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    padding: 0 0 4px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .telem-cell {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .telem-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .telem-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  .telem-val.thermal { color: var(--thermal); }
+  .telem-val.em { color: var(--em); }
+  .telem-val.net { color: var(--net); }
+  .telem-val.friction { color: var(--friction); }
+  .telem-val.white { color: #fff; }
+  .telem-val.omega { color: #f0e060; }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 10px; height: 2px; border-radius: 1px; }
+
+  /* toggle */
+  .toggle-row { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+  .toggle {
+    position: relative;
+    width: 36px; height: 18px;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 9px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    left: 3px; top: 3px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--em-dim); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(18px); background: var(--em); box-shadow: 0 0 6px var(--em); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Flash-Reluctance Engine</h1>
+  <span class="sub">// THERMAL × EM HYBRID TORQUE SIMULATOR v0.3</span>
+  <div class="status-dot" id="statusDot"></div>
+</header>
+
+<!-- Telemetry strip -->
+<div class="telemetry">
+  <div class="telem-cell">
+    <div class="telem-label">ω (rad/s)</div>
+    <div class="telem-val omega" id="tel-omega">0.00</div>
+  </div>
+  <div class="telem-cell">
+    <div class="telem-label">RPM</div>
+    <div class="telem-val white" id="tel-rpm">0</div>
+  </div>
+  <div class="telem-cell">
+    <div class="telem-label">τ_thermal (N·m)</div>
+    <div class="telem-val thermal" id="tel-therm">0.00</div>
+  </div>
+  <div class="telem-cell">
+    <div class="telem-label">τ_em (N·m)</div>
+    <div class="telem-val em" id="tel-em">0.00</div>
+  </div>
+  <div class="telem-cell">
+    <div class="telem-label">τ_friction (N·m)</div>
+    <div class="telem-val friction" id="tel-fric">0.00</div>
+  </div>
+  <div class="telem-cell">
+    <div class="telem-label">τ_net (N·m)</div>
+    <div class="telem-val net" id="tel-net">0.00</div>
+  </div>
+</div>
+
+<div class="main-grid">
+
+  <!-- Controls -->
+  <div class="controls">
+    <div>
+      <div class="ctrl-section-title">// Thermal Subsystem</div>
+      <div class="slider-group">
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>T_wall</span>
+            <span><span class="val" id="v-twall">400</span><span class="unit">°C</span></span>
+          </div>
+          <input type="range" class="thermal-slider" id="s-twall" min="100" max="700" value="400" step="10">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>m_inj</span>
+            <span><span class="val" id="v-minj">2.0</span><span class="unit">g/pulse</span></span>
+          </div>
+          <input type="range" class="thermal-slider" id="s-minj" min="0.1" max="8.0" value="2.0" step="0.1">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>N_chambers</span>
+            <span><span class="val" id="v-ncham">6</span></span>
+          </div>
+          <input type="range" class="net-slider" id="s-ncham" min="2" max="12" value="6" step="1">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Pulse width</span>
+            <span><span class="val" id="v-pwidth">40</span><span class="unit">°</span></span>
+          </div>
+          <input type="range" class="thermal-slider" id="s-pwidth" min="10" max="90" value="40" step="1">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="ctrl-section-title">// EM Subsystem</div>
+      <div class="slider-group">
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="em-enable" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span>EM Assist Active</span>
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>τ_em_peak</span>
+            <span><span class="val" id="v-empeak">12</span><span class="unit">N·m</span></span>
+          </div>
+          <input type="range" id="s-empeak" min="0" max="40" value="12" step="0.5">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>EM phase offset</span>
+            <span><span class="val" id="v-emphase">15</span><span class="unit">°</span></span>
+          </div>
+          <input type="range" id="s-emphase" min="-30" max="60" value="15" step="1">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="ctrl-section-title">// Mechanical</div>
+      <div class="slider-group">
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>Rotor inertia I</span>
+            <span><span class="val" id="v-inertia">0.8</span><span class="unit">kg·m²</span></span>
+          </div>
+          <input type="range" id="s-inertia" min="0.1" max="3.0" value="0.8" step="0.05">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>k_drag</span>
+            <span><span class="val" id="v-kdrag">0.04</span></span>
+          </div>
+          <input type="range" id="s-kdrag" min="0.005" max="0.2" value="0.04" step="0.005">
+        </div>
+        <div class="slider-row">
+          <div class="slider-label">
+            <span>R_rotor</span>
+            <span><span class="val" id="v-rrotor">0.15</span><span class="unit">m</span></span>
+          </div>
+          <input type="range" id="s-rrotor" min="0.05" max="0.4" value="0.15" step="0.01">
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="primary" id="btnRun">▶ RUN</button>
+      <button class="danger" id="btnReset">■ RESET</button>
+    </div>
+
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);line-height:1.6;margin-top:auto;">
+      EULER INTEGRATION<br>
+      dt = 1ms · α = τ_net / I<br>
+      ω += α·dt · θ += ω·dt<br>
+      <span style="color:var(--thermal)">■</span> Thermal  <span style="color:var(--em)">■</span> EM  <span style="color:var(--net)">■</span> Net
+    </div>
+  </div>
+
+  <!-- Rotor visualizer -->
+  <div class="rotor-panel">
+    <div class="panel-title">// ROTOR STATE · θ = <span id="theta-display">0.0°</span></div>
+    <canvas id="rotorCanvas" width="300" height="300"></canvas>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);text-align:center;">
+      <span style="color:var(--thermal)">●</span> INJECTION  <span style="color:var(--em)">●</span> EM ACTIVE  <span style="color:var(--text-dim)">○</span> IDLE
+    </div>
+  </div>
+
+  <!-- Torque chart -->
+  <div class="chart-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="panel-title">// TORQUE WAVEFORM · ONE REVOLUTION</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--thermal)"></div><span style="color:var(--thermal)">Thermal</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--em)"></div><span style="color:var(--em)">EM</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--friction)"></div><span style="color:var(--friction)">Friction</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--net)"></div><span style="color:var(--net)">Net</span></div>
+      </div>
+    </div>
+    <canvas id="chartCanvas" width="600" height="200"></canvas>
+    <canvas id="omegaCanvas" width="600" height="100"></canvas>
+    <div class="panel-title" style="margin-top:4px;">// ω OVER TIME (last 5s)</div>
+  </div>
+
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// ENGINE PHYSICS
+// ──────────────────────────────────────────────
+
+const TWO_PI = 2 * Math.PI;
+const DEG = Math.PI / 180;
+
+// Parameters (live-updated from sliders)
+let params = {
+  T_wall: 400,        // °C
+  m_inj: 0.002,       // kg
+  N_chambers: 6,
+  pulse_width_deg: 40,
+  em_enabled: true,
+  tau_em_peak: 12,
+  em_phase_offset_deg: 15,
+  I: 0.8,             // kg·m²
+  k_drag: 0.04,
+  k_bearing: 0.02,
+  R_rotor: 0.15,      // m
+  A_vane: 0.02,       // m² (fixed for now)
+};
+
+// Machine constants
+const h_vap = 2257e3;       // J/kg latent heat of vaporization (water)
+const c_water = 4186;       // J/(kg·K)
+const T_water_in = 20;      // °C injection temperature
+const vol_chamber = 5e-4;   // m³
+
+// Pressure from flash-steam expansion (simplified)
+// Q = m * c * ΔT + m * h_vap  → energy deposited
+// P_peak = Q / (vol_chamber) scaled by thermal efficiency factor
+function flashPressure(m_inj_kg, T_wall_C) {
+  const dT = Math.max(0, T_wall_C - 100);
+  const Q = m_inj_kg * (c_water * (T_wall_C - T_water_in) + h_vap);
+  const efficiency = 0.25; // real-world losses
+  const P = (Q * efficiency) / vol_chamber;
+  return Math.min(P, 8e6); // cap at 80 bar
+}
+
+// Thermal torque at a given angle, for the current parameters
+// Returns torque contribution from all N chambers
+function getThermalTorque(theta, omega) {
+  const spacing = TWO_PI / params.N_chambers;
+  const pw = params.pulse_width_deg * DEG;
+  const P_peak = flashPressure(params.m_inj, params.T_wall);
+  let tau = 0;
+
+  for (let c = 0; c < params.N_chambers; c++) {
+    const inj_angle = c * spacing;
+    let delta = ((theta - inj_angle) % TWO_PI + TWO_PI) % TWO_PI;
+    if (delta < pw) {
+      // Gamma-like pulse shape: rises fast, decays over pulse width
+      const t = delta / pw;
+      const shape = 4 * t * (1 - t) * Math.exp(-2 * t); // smooth hump
+      const pressure = P_peak * shape;
+      tau += pressure * params.A_vane * params.R_rotor;
+    }
+  }
+  return tau;
+}
+
+// EM switched-reluctance torque
+function getEMTorque(theta, omega) {
+  if (!params.em_enabled) return 0;
+  const spacing = TWO_PI / params.N_chambers;
+  const pw = params.pulse_width_deg * DEG * 0.6; // EM pulse slightly narrower
+  const offset = params.em_phase_offset_deg * DEG;
+  let tau = 0;
+
+  for (let c = 0; c < params.N_chambers; c++) {
+    const trigger = c * spacing + offset;
+    let delta = ((theta - trigger) % TWO_PI + TWO_PI) % TWO_PI;
+    if (delta < pw) {
+      const t = delta / pw;
+      const shape = Math.sin(Math.PI * t);
+      tau += params.tau_em_peak * shape;
+    }
+  }
+  return tau;
+}
+
+// Friction (viscous + bearing)
+function getFrictionTorque(omega) {
+  return params.k_drag * omega * omega * Math.sign(omega)
+       + params.k_bearing * omega;
+}
+
+// ──────────────────────────────────────────────
+// SIMULATION STATE
+// ──────────────────────────────────────────────
+
+let running = false;
+let animId = null;
+let theta = 0;
+let omega = 0.1; // tiny seed velocity
+let simTime = 0;
+let dt = 0.001; // 1ms steps per animation frame chunk
+const stepsPerFrame = 10;
+
+// History for omega chart (5s window)
+let omegaHistory = [];
+const MAX_HISTORY = 5000; // 5000 steps = 5s
+
+let lastThermal = 0, lastEM = 0, lastFric = 0, lastNet = 0;
+
+function stepSim() {
+  // Integrate multiple steps per frame for speed
+  for (let i = 0; i < stepsPerFrame; i++) {
+    const tau_th = getThermalTorque(theta, omega);
+    const tau_em = getEMTorque(theta, omega);
+    const tau_fr = getFrictionTorque(omega);
+    const tau_net = tau_th + tau_em - tau_fr;
+
+    const alpha = tau_net / params.I;
+    omega += alpha * dt;
+    omega = Math.max(omega, 0); // no reversal in this model
+    theta = (theta + omega * dt) % TWO_PI;
+    simTime += dt;
+
+    lastThermal = tau_th;
+    lastEM = tau_em;
+    lastFric = tau_fr;
+    lastNet = tau_net;
+
+    omegaHistory.push({ t: simTime, w: omega });
+    if (omegaHistory.length > MAX_HISTORY) omegaHistory.shift();
+  }
+}
+
+// ──────────────────────────────────────────────
+// RENDERING
+// ──────────────────────────────────────────────
+
+const rotorCanvas = document.getElementById('rotorCanvas');
+const rctx = rotorCanvas.getContext('2d');
+
+const chartCanvas = document.getElementById('chartCanvas');
+const cctx = chartCanvas.getContext('2d');
+
+const omegaCanvas = document.getElementById('omegaCanvas');
+const octx = omegaCanvas.getContext('2d');
+
+function drawRotor() {
+  const W = rotorCanvas.width, H = rotorCanvas.height;
+  const cx = W/2, cy = H/2;
+  const Rout = 120, Rin = 40, Rfin = 100;
+
+  rctx.clearRect(0, 0, W, H);
+
+  // Glow background
+  const grad = rctx.createRadialGradient(cx, cy, 10, cx, cy, 130);
+  grad.addColorStop(0, 'rgba(255,107,53,0.08)');
+  grad.addColorStop(0.5, 'rgba(0,212,255,0.04)');
+  grad.addColorStop(1, 'transparent');
+  rctx.fillStyle = grad;
+  rctx.fillRect(0, 0, W, H);
+
+  // Outer housing ring
+  rctx.beginPath();
+  rctx.arc(cx, cy, Rout + 8, 0, TWO_PI);
+  rctx.strokeStyle = '#1a3050';
+  rctx.lineWidth = 2;
+  rctx.stroke();
+
+  // Stator coils (fixed positions)
+  const N = params.N_chambers;
+  const pw = params.pulse_width_deg * DEG;
+  const emOff = params.em_phase_offset_deg * DEG;
+
+  for (let c = 0; c < N; c++) {
+    const angle = c * (TWO_PI / N);
+
+    // Check if this stator position is currently active
+    const thermalDelta = ((theta - angle) % TWO_PI + TWO_PI) % TWO_PI;
+    const emTrigger = angle + emOff;
+    const emDelta = ((theta - emTrigger) % TWO_PI + TWO_PI) % TWO_PI;
+    const isThermal = thermalDelta < pw;
+    const isEM = emDelta < (pw * 0.6) && params.em_enabled;
+
+    const sx = cx + Math.cos(angle) * (Rout + 4);
+    const sy = cy + Math.sin(angle) * (Rout + 4);
+
+    rctx.beginPath();
+    rctx.arc(sx, sy, 7, 0, TWO_PI);
+    if (isThermal && isEM) {
+      rctx.fillStyle = '#ffffff';
+      rctx.shadowBlur = 12; rctx.shadowColor = '#fff';
+    } else if (isThermal) {
+      rctx.fillStyle = '#ff6b35';
+      rctx.shadowBlur = 10; rctx.shadowColor = '#ff6b35';
+    } else if (isEM) {
+      rctx.fillStyle = '#00d4ff';
+      rctx.shadowBlur = 10; rctx.shadowColor = '#00d4ff';
+    } else {
+      rctx.fillStyle = '#1a3050';
+      rctx.shadowBlur = 0;
+    }
+    rctx.fill();
+    rctx.shadowBlur = 0;
+  }
+
+  // Rotor disc
+  rctx.save();
+  rctx.translate(cx, cy);
+  rctx.rotate(theta);
+
+  // Main disc
+  rctx.beginPath();
+  rctx.arc(0, 0, Rin + 20, 0, TWO_PI);
+  rctx.fillStyle = '#0d1520';
+  rctx.strokeStyle = '#1a3050';
+  rctx.lineWidth = 1;
+  rctx.fill();
+  rctx.stroke();
+
+  // Vanes / fins
+  for (let c = 0; c < N; c++) {
+    const angle = c * (TWO_PI / N);
+    const thermalDelta = ((theta - c * (TWO_PI / N)) % TWO_PI + TWO_PI) % TWO_PI;
+    const active = thermalDelta < pw;
+
+    rctx.save();
+    rctx.rotate(angle);
+
+    // Vane shape
+    rctx.beginPath();
+    rctx.moveTo(Rin, -5);
+    rctx.lineTo(Rfin, -4);
+    rctx.lineTo(Rfin, 4);
+    rctx.lineTo(Rin, 5);
+    rctx.closePath();
+
+    if (active) {
+      rctx.fillStyle = '#ff6b35';
+      rctx.shadowBlur = 8; rctx.shadowColor = '#ff6b35';
+    } else {
+      rctx.fillStyle = '#1e3a5a';
+      rctx.shadowBlur = 0;
+    }
+    rctx.fill();
+    rctx.strokeStyle = '#2a5070';
+    rctx.lineWidth = 0.5;
+    rctx.stroke();
+    rctx.shadowBlur = 0;
+    rctx.restore();
+  }
+
+  // Central hub
+  rctx.beginPath();
+  rctx.arc(0, 0, Rin, 0, TWO_PI);
+  rctx.fillStyle = '#0a0f18';
+  rctx.fill();
+  rctx.strokeStyle = '#2a4060';
+  rctx.lineWidth = 2;
+  rctx.stroke();
+
+  // Center dot + indicator line
+  rctx.beginPath();
+  rctx.moveTo(0, 0);
+  rctx.lineTo(Rin - 8, 0);
+  rctx.strokeStyle = '#a8ff3e';
+  rctx.lineWidth = 2;
+  rctx.stroke();
+
+  rctx.beginPath();
+  rctx.arc(0, 0, 5, 0, TWO_PI);
+  rctx.fillStyle = '#a8ff3e';
+  rctx.fill();
+
+  rctx.restore();
+
+  // Theta readout
+  document.getElementById('theta-display').textContent = (theta * 180 / Math.PI % 360).toFixed(1) + '°';
+}
+
+function drawTorqueChart() {
+  const W = chartCanvas.width, H = chartCanvas.height;
+  const STEPS = 360;
+  const pw = params.pulse_width_deg * DEG;
+  const emOff = params.em_phase_offset_deg * DEG;
+  const emPW = pw * 0.6;
+  const P_peak = flashPressure(params.m_inj, params.T_wall);
+  const spacing = TWO_PI / params.N_chambers;
+
+  const thermalArr = [], emArr = [], fricArr = [], netArr = [];
+  let maxTau = 1;
+
+  for (let s = 0; s < STEPS; s++) {
+    const th = (s / STEPS) * TWO_PI;
+    let tau_th = 0, tau_em = 0;
+
+    for (let c = 0; c < params.N_chambers; c++) {
+      const inj = c * spacing;
+      let d = ((th - inj) % TWO_PI + TWO_PI) % TWO_PI;
+      if (d < pw) {
+        const t = d / pw;
+        tau_th += P_peak * (4*t*(1-t)*Math.exp(-2*t)) * params.A_vane * params.R_rotor;
+      }
+
+      if (params.em_enabled) {
+        const emTrig = c * spacing + emOff;
+        let ed = ((th - emTrig) % TWO_PI + TWO_PI) % TWO_PI;
+        if (ed < emPW) {
+          tau_em += params.tau_em_peak * Math.sin(Math.PI * ed / emPW);
+        }
+      }
+    }
+
+    const tau_fr = getFrictionTorque(omega);
+    const tau_net = tau_th + tau_em - tau_fr;
+    thermalArr.push(tau_th);
+    emArr.push(tau_em);
+    fricArr.push(tau_fr);
+    netArr.push(tau_net);
+    const m = Math.max(Math.abs(tau_th), Math.abs(tau_em), Math.abs(tau_net));
+    if (m > maxTau) maxTau = m;
+  }
+
+  cctx.clearRect(0, 0, W, H);
+
+  // Grid
+  cctx.strokeStyle = '#1a3050';
+  cctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = (i / 4) * H;
+    cctx.beginPath(); cctx.moveTo(0, y); cctx.lineTo(W, y); cctx.stroke();
+  }
+  // Zero line
+  cctx.strokeStyle = '#2a4a6a';
+  cctx.lineWidth = 1;
+  cctx.setLineDash([4,4]);
+  const zy = H / 2;
+  cctx.beginPath(); cctx.moveTo(0, zy); cctx.lineTo(W, zy); cctx.stroke();
+  cctx.setLineDash([]);
+
+  function drawLine(arr, color, lw = 1.5) {
+    cctx.beginPath();
+    cctx.strokeStyle = color;
+    cctx.lineWidth = lw;
+    for (let s = 0; s < STEPS; s++) {
+      const x = (s / STEPS) * W;
+      const y = H/2 - (arr[s] / maxTau) * (H/2 - 8);
+      s === 0 ? cctx.moveTo(x, y) : cctx.lineTo(x, y);
+    }
+    cctx.stroke();
+  }
+
+  drawLine(fricArr, '#ff3e6c', 1);
+  drawLine(thermalArr, '#ff6b35', 2);
+  drawLine(emArr, '#00d4ff', 1.5);
+  drawLine(netArr, '#a8ff3e', 2.5);
+
+  // Current angle indicator
+  const xIndicator = (theta / TWO_PI) * W;
+  cctx.strokeStyle = 'rgba(168,255,62,0.5)';
+  cctx.lineWidth = 1;
+  cctx.setLineDash([2,2]);
+  cctx.beginPath(); cctx.moveTo(xIndicator, 0); cctx.lineTo(xIndicator, H); cctx.stroke();
+  cctx.setLineDash([]);
+
+  // Max label
+  cctx.fillStyle = '#5a7a9a';
+  cctx.font = '10px Share Tech Mono';
+  cctx.fillText(maxTau.toFixed(0) + ' N·m', 4, 14);
+  cctx.fillText('0°', 4, H - 4);
+  cctx.fillText('360°', W - 30, H - 4);
+}
+
+function drawOmegaChart() {
+  const W = omegaCanvas.width, H = omegaCanvas.height;
+  octx.clearRect(0, 0, W, H);
+
+  if (omegaHistory.length < 2) return;
+
+  const maxOmega = Math.max(...omegaHistory.map(p => p.w), 1);
+  const t0 = omegaHistory[0].t;
+  const t1 = omegaHistory[omegaHistory.length - 1].t;
+  const tRange = Math.max(t1 - t0, 0.01);
+
+  // Grid
+  octx.strokeStyle = '#1a3050';
+  octx.lineWidth = 1;
+  octx.beginPath(); octx.moveTo(0, H/2); octx.lineTo(W, H/2); octx.stroke();
+
+  octx.strokeStyle = '#a8ff3e';
+  octx.lineWidth = 2;
+  octx.beginPath();
+  for (let i = 0; i < omegaHistory.length; i++) {
+    const x = ((omegaHistory[i].t - t0) / tRange) * W;
+    const y = H - 4 - (omegaHistory[i].w / maxOmega) * (H - 8);
+    i === 0 ? octx.moveTo(x, y) : octx.lineTo(x, y);
+  }
+  octx.stroke();
+
+  // RPM label at end
+  const lastRPM = (omega * 60 / (2 * Math.PI)).toFixed(0);
+  octx.fillStyle = '#a8ff3e';
+  octx.font = '10px Share Tech Mono';
+  octx.fillText(lastRPM + ' RPM', W - 60, 14);
+}
+
+function updateTelemetry() {
+  document.getElementById('tel-omega').textContent = omega.toFixed(2);
+  document.getElementById('tel-rpm').textContent = (omega * 60 / TWO_PI).toFixed(0);
+  document.getElementById('tel-therm').textContent = lastThermal.toFixed(1);
+  document.getElementById('tel-em').textContent = lastEM.toFixed(1);
+  document.getElementById('tel-fric').textContent = lastFric.toFixed(2);
+  document.getElementById('tel-net').textContent = lastNet.toFixed(1);
+}
+
+function frame() {
+  if (running) stepSim();
+  drawRotor();
+  drawTorqueChart();
+  drawOmegaChart();
+  updateTelemetry();
+  animId = requestAnimationFrame(frame);
+}
+
+// ──────────────────────────────────────────────
+// CONTROLS
+// ──────────────────────────────────────────────
+
+function bindSlider(id, key, transform, displayId, displayFn) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    params[key] = transform(el.value);
+    document.getElementById(displayId).textContent = displayFn(el.value);
+  });
+}
+
+bindSlider('s-twall', 'T_wall', v => +v, 'v-twall', v => v);
+bindSlider('s-minj', 'm_inj', v => +v / 1000, 'v-minj', v => (+v).toFixed(1));
+bindSlider('s-ncham', 'N_chambers', v => +v, 'v-ncham', v => v);
+bindSlider('s-pwidth', 'pulse_width_deg', v => +v, 'v-pwidth', v => v);
+bindSlider('s-empeak', 'tau_em_peak', v => +v, 'v-empeak', v => (+v).toFixed(1));
+bindSlider('s-emphase', 'em_phase_offset_deg', v => +v, 'v-emphase', v => v);
+bindSlider('s-inertia', 'I', v => +v, 'v-inertia', v => (+v).toFixed(2));
+bindSlider('s-kdrag', 'k_drag', v => +v, 'v-kdrag', v => (+v).toFixed(3));
+bindSlider('s-rrotor', 'R_rotor', v => +v, 'v-rrotor', v => (+v).toFixed(2));
+
+document.getElementById('em-enable').addEventListener('change', e => {
+  params.em_enabled = e.target.checked;
+});
+
+document.getElementById('btnRun').addEventListener('click', () => {
+  running = !running;
+  document.getElementById('btnRun').textContent = running ? '⏸ PAUSE' : '▶ RUN';
+  const dot = document.getElementById('statusDot');
+  dot.className = running ? 'status-dot' : 'status-dot stopped';
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  running = false;
+  omega = 0.1;
+  theta = 0;
+  simTime = 0;
+  omegaHistory = [];
+  lastThermal = lastEM = lastFric = lastNet = 0;
+  document.getElementById('btnRun').textContent = '▶ RUN';
+  document.getElementById('statusDot').className = 'status-dot stopped';
+});
+
+// Boot
+frame();
+</script>
+</body>
+</html>

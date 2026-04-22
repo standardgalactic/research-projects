@@ -1,0 +1,652 @@
+% ============================================================
+%  A Multimodal Flash--Reluctance Engine:
+%  Thermodynamic, Electromagnetic, and Mechanical Coupling
+%  in a Regulated Rotational Energy Transducer
+%
+%  Author  : Flyxion
+%  Affil.  : Independent Researcher
+%  Engine  : LuaLaTeX
+%  Fonts   : EB Garamond (body), TeX Gyre Pagella (math)
+% ============================================================
+
+\documentclass[11pt, a4paper]{article}
+
+% ── Fonts and Unicode ────────────────────────────────────────
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\setmainfont{EB Garamond}[
+  Numbers       = OldStyle,
+  Ligatures     = TeX,
+  SmallCapsFont = {EB Garamond},
+  SmallCapsFeatures = {Letters = SmallCaps}
+]
+\setmathfont{TeX Gyre Pagella Math}
+\setmonofont{DejaVu Sans Mono}[Scale=0.82]
+
+% ── Layout ───────────────────────────────────────────────────
+\usepackage[
+  margin      = 1.25in,
+  top         = 1.4in,
+  bottom      = 1.4in,
+  headheight  = 14pt
+]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.12}
+\usepackage{parskip}
+\setlength{\parindent}{1.5em}
+\setlength{\parskip}{0pt}
+
+% ── Headers / Footers ────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\small\scshape Flash--Reluctance Engine}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+% ── Math ─────────────────────────────────────────────────────
+\usepackage{amsmath, amsthm, amssymb}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+% ── Hyperlinks ───────────────────────────────────────────────
+\usepackage[
+  colorlinks = true,
+  linkcolor  = black,
+  citecolor  = black,
+  urlcolor   = black
+]{hyperref}
+
+% ── Section styling ──────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\section}{\large\scshape}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\normalsize\itshape}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize}{\thesubsubsection.}{0.5em}{}
+
+% ── Convenience macros ───────────────────────────────────────
+\newcommand{\dd}{\,\mathrm{d}}
+\newcommand{\dt}{\,\mathrm{d}t}
+\newcommand{\dtheta}{\,\mathrm{d}\theta}
+\newcommand{\Twall}{T_{\mathrm{wall}}}
+\newcommand{\Tcore}{T_{\mathrm{core}}}
+\newcommand{\Tsource}{T_{\mathrm{source}}}
+\newcommand{\Tambient}{T_{\mathrm{amb}}}
+\newcommand{\Tinject}{T_{\mathrm{inj}}}
+\newcommand{\tauEM}{\tau_{\mathrm{EM}}}
+\newcommand{\tauth}{\tau_{\mathrm{th}}}
+\newcommand{\taufr}{\tau_{\mathrm{fr}}}
+\newcommand{\tauload}{\tau_{\mathrm{load}}}
+\newcommand{\taunet}{\tau_{\mathrm{net}}}
+\newcommand{\Ethermal}{E_{\mathrm{th}}}
+\newcommand{\EEM}{E_{\mathrm{EM}}}
+\newcommand{\Eload}{E_{\mathrm{load}}}
+\newcommand{\Ectrl}{E_{\mathrm{ctrl}}}
+\newcommand{\KE}{\tfrac{1}{2}I\omega^{2}}
+\newcommand{\om}{\omega}
+\newcommand{\Om}{\Omega}
+\newcommand{\Nch}{N}
+
+% ── Title ────────────────────────────────────────────────────
+\title{%
+  \large\scshape A Multimodal Flash--Reluctance Engine:\\[0.4em]
+  \normalfont\large
+  Thermodynamic, Electromagnetic, and Mechanical Coupling\\
+  in a Regulated Rotational Energy Transducer%
+}
+\author{%
+  Flyxion\\
+  \small Independent Researcher
+}
+\date{}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+\maketitle
+\thispagestyle{fancy}
+
+\begin{abstract}
+\noindent
+We present a design and simulation framework for a coupled thermodynamic and electromagnetic rotational system in which flash-steam expansion and switched reluctance actuation operate simultaneously on a shared flywheel rotor. The architecture is formulated as a multimodal power transducer rather than as a conventional engine or motor: thermal energy provides primary excitation through a radial array of hot-walled expansion chambers, while an electromagnetic stator layer enforces torque shaping and speed regulation under load. A dynamic model is developed incorporating per-chamber thermal state evolution, competition for heat from a shared central reservoir, slope-based electromagnetic torque allocation, and a proportional-derivative speed-governed feedback controller. A load torque model converts the free-spinning flywheel into a working machine capable of sustained power delivery. Simulation over an eight-second horizon demonstrates stable convergence to a regulated angular velocity, adaptive redistribution of electromagnetic assist under thermal depletion, and a Pareto frontier between control effort and tracking accuracy that serves as the principal design instrument. We characterize four emergent operating regimes---steady state, oscillatory, stall, and thermal collapse---and derive analytical conditions for their boundaries. The paper concludes with a discussion of architectural extensions including multi-stage coupling, dynamic injection scheduling, and experimental validation pathways.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+The design of energy conversion devices has historically proceeded domain by domain. Thermodynamic engines exploit pressure differentials arising from combustion or external heat sources. Electric motors exploit electromagnetic force through carefully shaped magnetic circuits. Hybrid architectures combine both, but typically in a hierarchical manner: one domain is primary and the other is auxiliary, with a clear separation of function and a well-defined interface between them.
+
+The system described in this essay departs from that paradigm in a specific and deliberate way. Rather than treating thermal and electromagnetic phenomena as separate stages connected by a shaft, we propose an architecture in which both act upon the same rotor at the same time, each governed by its own physics but coupled through shared geometry and a common dynamic state. The result is not an engine augmented by a motor, nor a motor with a thermal assist stage, but a third thing: a regulated multimodal energy transducer whose behaviour cannot be derived from either subsystem alone.
+
+The motivating observation is simple. A radial expansion engine driven by flash-steam injection produces torque in discrete angular pulses, one per chamber per revolution. The envelope of those pulses is determined by chamber geometry, wall temperature, and injection timing. Between pulses, and especially at the trailing edge of each pulse as steam expands and pressure drops, the torque contribution from any given chamber declines. If a switched-reluctance electromagnetic layer is co-located on the same rotor, its coils can be activated precisely in those declining zones, filling the torque gap with electromagnetic force and smoothing the net waveform. The electromagnetic layer thus acts not as an independent drive but as a \textit{constraint enforcer} on the torque trajectory, maintaining coherence in the output at a cost in electrical energy that is bounded by the design of the feedback controller.
+
+This coupling creates a system with properties not found in either subsystem independently. The thermal side has memory: chamber wall temperature depletes during injection and recovers between cycles at a rate set by the thermal conductivity of the wall and the power delivered by the central heat source. The electromagnetic side has bandwidth: it can respond within a single integration timestep to changes in thermal output. The mechanical side has inertia: it integrates net torque over time and thus filters high-frequency fluctuations. The feedback controller spans all three, measuring speed and inferring torque state, and distributing electromagnetic energy to where the thermal contribution is declining most rapidly.
+
+The paper is organized as follows. Section~\ref{sec:architecture} describes the overall system architecture and the principal design variables. Section~\ref{sec:thermal} develops the dynamic thermal model including per-chamber temperature evolution and shared core thermodynamics. Section~\ref{sec:mechanical} states the mechanical equation of motion and the load model. Section~\ref{sec:torque} derives the thermal torque function from the flash-steam pressure model. Section~\ref{sec:em} formulates the electromagnetic subsystem and the feedback control law. Section~\ref{sec:distribution} introduces the slope-based spatial distribution of electromagnetic torque across chambers. Section~\ref{sec:energy} defines the energy accounting framework and the efficiency metric. Section~\ref{sec:regimes} characterizes the four emergent operating regimes and their boundaries. Section~\ref{sec:results} summarizes simulation results and the Pareto frontier analysis. Section~\ref{sec:discussion} interprets the system from several theoretical perspectives. Section~\ref{sec:extensions} outlines extensions including multi-stage architectures, adaptive injection scheduling, and generator coupling. Section~\ref{sec:conclusion} closes with remarks on the significance of the approach.
+
+Throughout this essay we use the following notational conventions. Scalar quantities are set in italic roman type. Vector quantities, where they appear, are set in bold. Physical constants are named in the text when first introduced. All angles are in radians unless otherwise stated. Time derivatives are written $\dot{f}$ for a scalar $f(t)$ and $f'$ for a derivative with respect to rotor angle $\theta$.
+
+% ============================================================
+\section{System Architecture}
+\label{sec:architecture}
+% ============================================================
+
+The Flash--Reluctance Engine consists of three mechanically co-located but physically distinct subsystems: a thermal expansion layer, an electromagnetic stator layer, and a flywheel rotor that serves as the shared mechanical element. All three act on or through the same rotating shaft. There is no gearbox, no clutch, and no separate stage boundary between them: the vanes of the rotor are simultaneously the surface against which steam pressure acts and the ferromagnetic poles toward which the stator coils exert reluctance force.
+
+\subsection{Rotor and Chamber Geometry}
+
+The rotor is a disc of moment of inertia $I$, radius $R_{\mathrm{rotor}}$, and thickness $h$, carrying $\Nch$ radial vanes equally spaced at angular intervals $\Delta\theta = 2\pi / \Nch$. Each vane defines one expansion chamber in cooperation with the chamber walls fixed to the housing. The chambers are therefore stationary in the lab frame while the rotor vanes sweep through them. The vane tip presents an effective area $A_{\mathrm{vane}}$ to the steam pressure acting tangentially at radius $R_{\mathrm{rotor}}$.
+
+The angular extent of each chamber's active expansion arc is parameterized by $\theta_{\mathrm{pw}}$, the pulse width in radians. Injection occurs at the leading edge of each chamber. Steam expands across the arc $[0,\, \theta_{\mathrm{pw}}]$ measured from the injection point. At $\theta_{\mathrm{pw}}$ an exhaust port opens, pressure drops, and the chamber resets. The duty cycle of each chamber is therefore $\theta_{\mathrm{pw}} / \Delta\theta$, which for the baseline design ($\Nch = 6$, $\theta_{\mathrm{pw}} = 40°$) is approximately $0.40$.
+
+\subsection{Thermal Layer}
+
+The central burner or solar concentrator maintains a reservoir of thermal energy at temperature $\Tsource$. Heat flows outward from this reservoir through the chamber walls by conduction. The walls themselves have finite heat capacity $C_{\mathrm{wall}}$ and lose heat both to the environment and, during injection events, to the injected water. The injection system delivers a mass $m_{\mathrm{inj}}$ of water at temperature $\Tinject$ into the chamber at a controlled angular phase. The water undergoes flash evaporation, absorbing energy from the wall and generating a pressure pulse.
+
+\subsection{Electromagnetic Layer}
+
+The stator carries $\Nch$ electromagnetic coils equally spaced around the outer circumference of the rotor at radius $R_{\mathrm{stator}} > R_{\mathrm{rotor}}$. Each coil aligns with one chamber position. When energized, it attracts the nearest rotor vane tip by reluctance force, adding a tangential torque component. Coils are independently addressable and are driven by a real-time controller that reads rotor angle and speed and computes the required current for each coil at each timestep.
+
+\subsection{Principal Design Variables}
+
+The architecture is described by the following parameter families. Geometric parameters include $R_{\mathrm{rotor}}$, $R_{\mathrm{hub}}$, $\Nch$, $\theta_{\mathrm{pw}}$, and $A_{\mathrm{vane}}$. Thermal parameters include $\Tsource$, $\Tambient$, $m_{\mathrm{inj}}$, the heat transfer coefficients $k_{\mathrm{core-to-wall}}$ and $k_{\mathrm{cool}}$, the wall heat capacity $C_{\mathrm{wall}}$, the core heat capacity $C_{\mathrm{core}}$, and the minimum injection temperature $T_{\mathrm{min}}$. Mechanical parameters include the moment of inertia $I$, drag coefficient $k_{\mathrm{drag}}$, bearing friction coefficient $k_{\mathrm{bearing}}$, and load parameters $\tau_0$ and $k_{\mathrm{load}}$. Control parameters include the peak electromagnetic torque $\tauEM^{\mathrm{max}}$, proportional gain $K_p$, derivative gain $K_d$, speed gain $K_\om$, torque target $\tau_{\mathrm{target}}$, and speed target $\om_{\mathrm{target}}$.
+
+% ============================================================
+\section{Dynamic Thermal Model}
+\label{sec:thermal}
+% ============================================================
+
+The thermal model is the heart of the system's novelty. Previous analyses of flash-steam rotary engines have typically assumed a constant wall temperature, which eliminates the most physically interesting behavior: depletion during high-demand operation and recovery during rest. We replace that assumption with a system of coupled ordinary differential equations, one per chamber plus one for the shared core.
+
+\subsection{Per-Chamber Wall Temperature}
+
+Let $T_i(t)$ denote the wall temperature of chamber $i$, for $i = 1, \ldots, \Nch$. The evolution of $T_i$ is governed by three competing processes.
+
+The first is heating from the shared core. Heat flows from the core at temperature $\Tcore$ to the chamber wall at temperature $T_i$ at a rate proportional to the temperature difference:
+\begin{equation}
+  \dot{Q}_{{\mathrm{core}\to i}} = k_{\mathrm{cw}} \max\!\bigl(\Tcore - T_i,\, 0\bigr).
+\end{equation}
+The $\max$ ensures that heat flows only from the hotter reservoir to the cooler wall, not in reverse.
+
+The second process is ambient cooling. The outer surface of each chamber wall loses heat to the environment:
+\begin{equation}
+  \dot{Q}_{\mathrm{cool},i} = k_{\mathrm{cool}} (T_i - \Tambient).
+\end{equation}
+
+The third process is injection energy extraction. When the rotor angle $\theta$ places chamber $i$ in its active injection arc and the wall temperature exceeds the minimum threshold $T_{\mathrm{min}}$, the injected water absorbs energy from the wall. In the continuous-time approximation used in our simulator, this is written as a rate:
+\begin{equation}
+  \dot{Q}_{\mathrm{inj},i} = m_{\mathrm{inj}} \bigl[c_{\mathrm{water}}(T_i - \Tinject) + h_{\mathrm{vap}}\bigr] \cdot \mathbf{1}_{[\theta \in \mathcal{A}_i]}(t) \cdot \mathbf{1}_{[T_i > T_{\mathrm{min}}]},
+\end{equation}
+where $\mathcal{A}_i$ is the injection arc of chamber $i$ and $\mathbf{1}$ denotes the indicator function.
+
+Combining these three terms, the temperature evolution equation for chamber $i$ is:
+\begin{equation}
+  C_{\mathrm{wall}} \frac{dT_i}{dt} = \dot{Q}_{\mathrm{core}\to i} - \dot{Q}_{\mathrm{cool},i} - \dot{Q}_{\mathrm{inj},i}.
+  \label{eq:chamber_temp}
+\end{equation}
+
+\begin{remark}
+The injection term acts as a pulsed heat sink whose magnitude depends on $T_i$ itself, through the sensible heat component $c_{\mathrm{water}}(T_i - \Tinject)$. This nonlinearity creates a negative feedback on chamber temperature: as $T_i$ rises, injection removes more energy per event, and as $T_i$ falls toward $T_{\mathrm{min}}$, injection is gated off entirely. This self-limiting behavior prevents thermal runaway while also creating a lower bound on operating temperature.
+\end{remark}
+
+\subsection{Shared Thermal Core}
+
+The central heat reservoir at temperature $\Tcore(t)$ receives energy from the external source (burner, solar concentrator, or waste heat exchanger) and distributes it to all $\Nch$ chamber walls simultaneously. Its evolution is:
+\begin{equation}
+  C_{\mathrm{core}} \frac{d\Tcore}{dt} = \dot{Q}_{\mathrm{input}} - \sum_{i=1}^{\Nch} \dot{Q}_{\mathrm{core}\to i},
+  \label{eq:core_temp}
+\end{equation}
+where
+\begin{equation}
+  \dot{Q}_{\mathrm{input}} = k_{\mathrm{input}}(\Tsource - \Tcore)
+\end{equation}
+represents the heat input from the external source, modeled as a linear driving term. This term saturates as $\Tcore \to \Tsource$.
+
+\begin{remark}
+Equation~\eqref{eq:core_temp} introduces a global constraint on the system. All chambers draw from the same reservoir. Under high load or high injection rate, the core cools, reducing the temperature gradient available to heat the chamber walls, which in turn reduces injection energy, which reduces thermal torque. This depletion-recovery cycle introduces a characteristic timescale $\tau_{\mathrm{core}} = C_{\mathrm{core}} / (k_{\mathrm{input}} + \Nch k_{\mathrm{cw}})$ that governs how quickly the thermal side of the system can respond to changes in demand. When $\tau_{\mathrm{core}}$ is large relative to the rotor period, the core acts as a slow buffer; when it is small, the core tracks demand rapidly.
+\end{remark}
+
+\subsection{Conditional Injection}
+
+Injection is suppressed for chamber $i$ whenever $T_i < T_{\mathrm{min}}$. This models the physical reality that injecting water into a chamber that is too cold does not produce flash evaporation; instead, the water simply absorbs heat without generating steam, stalling the chamber without producing useful work. The minimum threshold $T_{\mathrm{min}}$ is a design parameter that sets the minimum operating temperature of the thermal cycle.
+
+The practical consequence is that under thermal stress---when the core has depleted and wall temperatures have fallen---some chambers go dark: they cease to inject and contribute no thermal torque for that cycle. This creates a natural load-shedding mechanism. The electromagnetic controller, sensing the drop in net torque, increases its assist, but is limited by the cap $\tauEM^{\mathrm{max}}$. If the thermal deficit is too severe, the system cannot maintain $\om_{\mathrm{target}}$ and enters a declining speed regime.
+
+% ============================================================
+\section{Mechanical Dynamics and Load Model}
+\label{sec:mechanical}
+% ============================================================
+
+\subsection{Equation of Motion}
+
+The rotor is treated as a rigid body with a fixed axis of rotation. Its equation of motion is:
+\begin{equation}
+  I \frac{d\om}{dt} = \tauth(\theta, \mathbf{T}_{\mathrm{wall}}) + \tauEM(t) - \taufr(\om) - \tauload(\om),
+  \label{eq:eom}
+\end{equation}
+where $\mathbf{T}_{\mathrm{wall}} = (T_1, \ldots, T_\Nch)$ is the vector of chamber wall temperatures, $\taufr$ is the friction torque, and $\tauload$ is the load torque. The angle $\theta$ is the primary integration variable:
+\begin{equation}
+  \frac{d\theta}{dt} = \om.
+\end{equation}
+
+\subsection{Friction Model}
+
+The friction torque combines aerodynamic viscous drag, which scales with $\om^2$, and bearing friction, which scales with $\om$:
+\begin{equation}
+  \taufr(\om) = k_{\mathrm{drag}} \om |\om| + k_{\mathrm{bearing}} \om.
+\end{equation}
+The factor $\om|\om|$ rather than $\om^2$ preserves the correct sign under reversal, though in the baseline model the rotor is not allowed to reverse ($\om \geq 0$ is enforced).
+
+\subsection{Load Model}
+
+The load torque represents the mechanical work extracted from the system, for instance by a generator, a pump, or a mechanical transmission:
+\begin{equation}
+  \tauload(\om) = \tau_0 + k_{\mathrm{load}} \om.
+  \label{eq:load}
+\end{equation}
+The constant term $\tau_0$ represents minimum demand independent of speed: cogging in a generator, static friction in a pump, or a fixed mechanical resistance. The linear term $k_{\mathrm{load}} \om$ represents speed-proportional load, which is characteristic of a generator whose back-EMF rises linearly with shaft speed.
+
+\begin{proposition}
+For a system with purely thermal drive (no electromagnetic assist), the equilibrium speed $\om^*$ satisfies:
+\begin{equation}
+  \bar{\tauth}(\om^*) = \taufr(\om^*) + \tauload(\om^*),
+\end{equation}
+where $\bar{\tauth}$ is the cycle-averaged thermal torque. For the linear load and friction model, this reduces to:
+\begin{equation}
+  \om^* = \frac{\bar{\tauth} - \tau_0}{k_{\mathrm{drag}} \om^* + k_{\mathrm{bearing}} + k_{\mathrm{load}}},
+\end{equation}
+which is an implicit equation in $\om^*$ requiring numerical solution in general, but reducing to a quadratic in $\om^*$ when the drag term is retained.
+\end{proposition}
+
+\begin{proof}
+Set $d\om/dt = 0$ in equation~\eqref{eq:eom} with $\tauEM = 0$ and solve. The nonlinearity arises from the $k_{\mathrm{drag}}\om|\om|$ term. Replacing $|\om^*|$ by $\om^*$ (since $\om^* > 0$ at equilibrium) gives a quadratic in $\om^*$, which has at most one positive root for positive $k_{\mathrm{drag}}, k_{\mathrm{bearing}}, k_{\mathrm{load}} > 0$ and $\bar{\tauth} > \tau_0$.
+\end{proof}
+
+\subsection{Energy Delivered as Load Work}
+
+The cumulative mechanical work delivered to the load is:
+\begin{equation}
+  \Eload(t) = \int_0^t \tauload(\om(s))\, \om(s)\, ds = \int_0^{\theta(t)} \tauload\, \dtheta,
+\end{equation}
+which equals the angular integral of load torque over total angle traversed. This is the useful output of the machine and is the numerator of any sensible efficiency metric.
+
+% ============================================================
+\section{Thermal Torque Model}
+\label{sec:torque}
+% ============================================================
+
+\subsection{Flash-Steam Pressure}
+
+When water at temperature $\Tinject$ is injected into a chamber whose wall is at temperature $T_i > T_{\mathrm{min}}$, it absorbs energy from the wall and evaporates. The total energy transferred in a single injection event is:
+\begin{equation}
+  Q_i = m_{\mathrm{inj}} \bigl[ c_{\mathrm{water}}(T_i - \Tinject) + h_{\mathrm{vap}} \bigr],
+  \label{eq:Qinj}
+\end{equation}
+where $c_{\mathrm{water}} = 4186\,\mathrm{J\,kg^{-1}\,K^{-1}}$ is the specific heat of water and $h_{\mathrm{vap}} = 2257\,\mathrm{kJ\,kg^{-1}}$ is the specific enthalpy of vaporization at standard pressure. This energy enters the steam as internal energy, which drives expansion against the vane.
+
+The peak chamber pressure is estimated by dividing the effective thermodynamic energy by the chamber volume $V_{\mathrm{ch}}$:
+\begin{equation}
+  P_{\mathrm{peak},i} = \min\!\left(\frac{\eta_{\mathrm{th}} Q_i}{V_{\mathrm{ch}}},\, P_{\mathrm{max}}\right),
+  \label{eq:Ppeak}
+\end{equation}
+where $\eta_{\mathrm{th}} = 0.25$ is a volumetric efficiency factor accounting for real heat transfer losses, steam leakage, and non-ideal expansion, and $P_{\mathrm{max}} = 8\,\mathrm{MPa}$ is a material safety cap.
+
+\begin{remark}
+The efficiency factor $\eta_{\mathrm{th}}$ encodes all the losses that a full CFD or steam-table simulation would compute explicitly: non-uniform heating of the injected water column, thermal boundary layer resistance at the wall, incomplete vaporization, and steam leakage through vane-to-housing clearances. In a physical prototype, $\eta_{\mathrm{th}}$ would be measured empirically and would be a function of injection rate, wall temperature, and rotor speed. We treat it as a constant in this analysis and note that it is the primary target for refinement in a more detailed model.
+\end{remark}
+
+\subsection{Pulse Shape Function}
+
+The pressure does not remain at $P_{\mathrm{peak},i}$ throughout the expansion arc. It rises sharply immediately after injection as steam generation peaks, then declines as the steam expands and the chamber volume increases. We model this with a shaped pulse:
+\begin{equation}
+  f(\phi) = 4\phi(1-\phi)\,e^{-2\phi}, \qquad \phi = \frac{\delta\theta_i}{\theta_{\mathrm{pw}}},
+  \label{eq:pulse}
+\end{equation}
+where $\delta\theta_i = (\theta - \theta_{0,i}) \bmod 2\pi$ is the angular displacement of the rotor from the injection point of chamber $i$, and $\phi \in [0,1]$ is the normalized phase within the expansion arc. The function $f$ achieves its maximum at $\phi \approx 0.22$, rises steeply from zero (injection onset), and decays smoothly to zero at $\phi = 1$ (exhaust opening).
+
+\begin{definition}
+The thermal torque contribution of chamber $i$ at rotor angle $\theta$ is:
+\begin{equation}
+  \tauth_i(\theta) = P_{\mathrm{peak},i} \cdot f\!\left(\frac{\delta\theta_i}{\theta_{\mathrm{pw}}}\right) \cdot A_{\mathrm{vane}} \cdot R_{\mathrm{rotor}} \cdot \mathbf{1}_{[\delta\theta_i < \theta_{\mathrm{pw}}]},
+\end{equation}
+and the total thermal torque is:
+\begin{equation}
+  \tauth(\theta) = \sum_{i=1}^{\Nch} \tauth_i(\theta).
+  \label{eq:tautherm}
+\end{equation}
+\end{definition}
+
+\subsection{Torque Waveform Properties}
+
+For a uniform rotor ($T_i = \Twall$ for all $i$, all chambers identical) and fixed geometry, the torque waveform $\tauth(\theta)$ is periodic with period $\Delta\theta = 2\pi/\Nch$ and has the following properties.
+
+\begin{proposition}
+Let $\Nch \geq 2$ and let $\theta_{\mathrm{pw}} < \Delta\theta$. Then $\tauth(\theta)$ is piecewise smooth, periodic with period $\Delta\theta$, and has at most one local maximum per period located at $\delta\theta_i = 0.22\,\theta_{\mathrm{pw}}$ from the nearest injection point.
+\end{proposition}
+
+\begin{proof}
+Each term in the sum~\eqref{eq:tautherm} is supported on an arc of width $\theta_{\mathrm{pw}}$. Since $\theta_{\mathrm{pw}} < \Delta\theta = 2\pi/\Nch$, arcs from adjacent chambers do not overlap (at the boundary $\theta_{\mathrm{pw}} = \Delta\theta$ they are tangent). Within each arc, the function $f(\phi)$ has a single maximum at $\phi^* \approx 0.22$, achievable by differentiation: $f'(\phi) = 0$ gives $4(1-2\phi)e^{-2\phi} - 8\phi(1-\phi)e^{-2\phi} = 0$, or equivalently $1 - 4\phi + 2\phi^2 = 0$, yielding $\phi^* = (2-\sqrt{2})/2 \approx 0.29$. Substituting into~\eqref{eq:pulse} confirms a unique positive maximum. Between arcs the torque is identically zero.
+\end{proof}
+
+The \textit{torque ripple} is defined as:
+\begin{equation}
+  \rho = \frac{\max_\theta \tauth - \min_\theta \tauth}{\bar{\tauth}},
+\end{equation}
+where $\bar{\tauth}$ is the cycle-averaged thermal torque. When arcs do not overlap, the minimum is zero and $\rho$ is large. Increasing $\Nch$ or $\theta_{\mathrm{pw}}$ reduces $\rho$ by increasing arc overlap, at the cost of increased thermal demand and reduced peak pressure per chamber.
+
+% ============================================================
+\section{Electromagnetic Control Law}
+\label{sec:em}
+% ============================================================
+
+\subsection{Structure of the Controller}
+
+The electromagnetic subsystem is governed by a feedback controller rather than an open-loop phase schedule. This is the architectural decision that most distinguishes the Flash--Reluctance Engine from conventional reluctance motors or engine-motor hybrids. In a conventional hybrid, the motor is operated to a fixed profile independent of the engine's instantaneous output. Here, the electromagnetic torque is computed from the current deviation of the system from its target trajectory, taking into account both instantaneous torque shortfall and accumulated speed error.
+
+The controller output is a scalar total electromagnetic torque $\tauEM(t)$, bounded above by the hardware cap $\tauEM^{\mathrm{max}}$ and below by zero (the electromagnetic layer can only assist, never brake, in the base configuration):
+\begin{equation}
+  \tauEM = \min\!\bigl(\max\!\bigl(\tau_{\mathrm{EM,raw}},\, 0\bigr),\, \tauEM^{\mathrm{max}}\bigr).
+  \label{eq:tauEM_clamp}
+\end{equation}
+
+\subsection{The PD Speed-Governed Law}
+
+The raw electromagnetic torque demand is computed by a proportional-derivative controller with an additional speed-regulation term:
+\begin{equation}
+  \tau_{\mathrm{EM,raw}} = K_p\, e_\tau + K_\om\, e_\om - K_d\, \dot{\tau}_{\mathrm{base}},
+  \label{eq:control_law}
+\end{equation}
+where the three error signals are:
+\begin{align}
+  e_\tau &= \tau_{\mathrm{target}} - \tau_{\mathrm{base}}, \label{eq:etau}\\
+  e_\om  &= \om_{\mathrm{target}} - \om, \label{eq:eom}\\
+  \dot{\tau}_{\mathrm{base}} &\approx \frac{\tau_{\mathrm{base}}(t) - \tau_{\mathrm{base}}(t-\Delta t)}{\Delta t}, \label{eq:dtau}
+\end{align}
+and the base torque (the thermal contribution net of friction and load) is:
+\begin{equation}
+  \tau_{\mathrm{base}} = \tauth - \taufr - \tauload.
+\end{equation}
+
+\begin{remark}
+The three terms in~\eqref{eq:control_law} operate on different timescales. The proportional term $K_p e_\tau$ responds to instantaneous torque shortfall: it is large and fast, tracking each thermal pulse. The speed term $K_\om e_\om$ responds to accumulated speed error: it is small in magnitude but persistent, and it is responsible for convergence to $\om_{\mathrm{target}}$. The derivative term $K_d \dot{\tau}_{\mathrm{base}}$ responds to rapid changes in the base torque, which occur at injection onset and at exhaust opening: it damps the electromagnetic response to prevent overshoot at these edges.
+\end{remark}
+
+\subsection{Analytical Properties of the Controller}
+
+\begin{proposition}
+If the thermal torque is periodic and the load is steady, the controlled system has a unique equilibrium $(\om^*, \tau_{\mathrm{EM}}^*)$ satisfying:
+\begin{equation}
+  \bar{\tauth} + \tau_{\mathrm{EM}}^* = \taufr(\om^*) + \tauload(\om^*),
+\end{equation}
+with $\om^* = \om_{\mathrm{target}}$ when $K_\om > 0$ is sufficiently large.
+\end{proposition}
+
+\begin{proof}[Sketch]
+At equilibrium $d\om/dt = 0$ and $e_\om = 0$ (since $\om = \om_{\mathrm{target}}$ by definition of regulated equilibrium). With $e_\om = 0$, the control law reduces to $\tau_{\mathrm{EM,raw}} = K_p e_\tau - K_d \dot{\tau}_{\mathrm{base}}$. In steady periodic operation, $\dot{\tau}_{\mathrm{base}}$ has zero mean over a cycle, so the cycle-averaged control law gives $\bar{\tauEM} = K_p \bar{e}_\tau$. Setting $d\om/dt = 0$ in~\eqref{eq:eom} and averaging gives $\bar{\tauth} + \bar{\tauEM} = \overline{\taufr} + \overline{\tauload}$. Substituting and solving for $\bar{\tauEM}$ yields the required equilibrium. The existence and uniqueness follow from the monotonicity of $\taufr + \tauload$ in $\om$ and the compactness of the admissible torque range $[0, \tauEM^{\mathrm{max}}]$.
+\end{proof}
+
+\subsection{Controller Stability and Gain Selection}
+
+The gains $K_p, K_d, K_\om$ must be selected to ensure stability. Informally: $K_p$ too large causes oscillation because the electromagnetic layer overreacts to each thermal pulse; $K_d$ too large causes sluggishness because derivative action suppresses the response to genuine torque shortfalls; $K_\om$ too large causes the speed loop to dominate the torque loop, making the system artificially stiff and increasing control effort without improving efficiency.
+
+The optimizer described in Section~\ref{sec:results} performs a grid search over $(K_p, K_d)$ space and maps the results to a Pareto frontier of control effort versus tracking error, providing a systematic basis for gain selection. The recommended starting point for tuning is $K_p = 0.8$, $K_d = 0.2$, $K_\om = 0.5$, which for the baseline parameters yields steady-state behavior with EM fraction below 35\% of total energy input.
+
+% ============================================================
+\section{Spatial Distribution of Electromagnetic Torque}
+\label{sec:distribution}
+% ============================================================
+
+The total electromagnetic torque $\tauEM$ computed by the controller must be distributed across the $\Nch$ individual stator coils. This distribution is not merely an implementation detail: it determines which chambers receive electromagnetic assist and therefore has a direct effect on torque smoothness, coil duty cycle, and heating of individual coils.
+
+\subsection{Magnitude-Proportional Distribution}
+
+The simplest approach is to distribute $\tauEM$ in proportion to the current thermal torque contribution of each chamber:
+\begin{equation}
+  \tauEM_i^{\mathrm{prop}} = \frac{\tauth_i}{\sum_j \tauth_j} \cdot \tauEM.
+\end{equation}
+This supports the chambers that are already producing the most torque. It is easy to implement and numerically stable, but it is reactive rather than predictive: it doubles down on chambers already at peak output and ignores chambers that are declining.
+
+\subsection{Slope-Based Predictive Distribution}
+
+A superior strategy emerges from the following observation. A chamber at peak thermal output does not need electromagnetic assist; it is already at maximum contribution. A chamber whose thermal output is declining is the one where a gap is opening in the net torque waveform. Assigning electromagnetic torque preferentially to declining chambers closes the gap at the moment it forms, rather than reinforcing chambers that do not need reinforcement.
+
+\begin{definition}
+The slope-based distribution assigns weights proportional to the negative temporal derivative of per-chamber thermal torque:
+\begin{equation}
+  w_i = \max\!\left(-\frac{d\tauth_i}{dt},\, 0\right),
+\end{equation}
+with the distribution:
+\begin{equation}
+  \tauEM_i^{\mathrm{slope}} = \frac{w_i}{\sum_j w_j} \cdot \tauEM,
+  \label{eq:slope_dist}
+\end{equation}
+with fallback to magnitude-proportional when $\sum_j w_j < \epsilon$ (all chambers building or all idle).
+\end{definition}
+
+\begin{proposition}
+The slope-based distribution reduces torque ripple relative to magnitude-proportional distribution when the pulse width $\theta_{\mathrm{pw}}$ is small relative to $\Delta\theta$, and reduces the required total $\tauEM$ for a given ripple target.
+\end{proposition}
+
+\begin{proof}[Sketch]
+When $\theta_{\mathrm{pw}} \ll \Delta\theta$, each chamber's pulse is largely isolated. The peak of each pulse occurs at $\phi^* \approx 0.29\, \theta_{\mathrm{pw}}$. The torque ripple is dominated by the fall from $f(\phi^*)$ to zero at $\phi = 1$. Slope-based distribution assigns full electromagnetic weight to the falling edge, injecting exactly at the moment of steepest decline. Magnitude-proportional distribution, by contrast, assigns weight to chambers near their peak, where the thermal contribution is already maximized and the gap has not yet opened. The difference in timing results in the slope-based distribution filling the gap more efficiently, requiring less total $\tauEM$ to achieve the same smoothness.
+\end{proof}
+
+\begin{remark}
+In practice, the derivative $d\tauth_i/dt$ is computed numerically from consecutive values of $\tauth_i$ at integration timesteps. The numerical derivative must be computed at the integration rate (not the frame rate) to avoid aliasing of the rapidly varying thermal pulse edges. In the simulation, this is achieved by maintaining a running history of $\tauth_i$ inside the integration loop, not at the Blender keyframe rate.
+\end{remark}
+
+% ============================================================
+\section{Energy Accounting and Efficiency}
+\label{sec:energy}
+% ============================================================
+
+A multimodal system requires a careful accounting of energy flows to avoid conflating sources and to compute meaningful efficiency metrics. We define all energy quantities as angular integrals, since the natural state variable for a rotational system is angle rather than time.
+
+\subsection{Energy Integrals}
+
+The energy delivered by each subsystem is:
+\begin{align}
+  \Ethermal(t) &= \int_0^{\theta(t)} \tauth(\theta')\, \mathrm{d}\theta', \label{eq:Eth}\\
+  \EEM(t)      &= \int_0^{\theta(t)} \tauEM(\theta')\, \mathrm{d}\theta'. \label{eq:Eem}
+\end{align}
+The mechanical energy lost to friction is:
+\begin{equation}
+  E_{\mathrm{fr}}(t) = \int_0^{\theta(t)} \taufr\, \mathrm{d}\theta',
+\end{equation}
+and the useful work delivered to the load is:
+\begin{equation}
+  \Eload(t) = \int_0^{\theta(t)} \tauload\, \mathrm{d}\theta'.
+\end{equation}
+By the work-energy theorem applied to~\eqref{eq:eom}:
+\begin{equation}
+  \Ethermal + \EEM = \KE + E_{\mathrm{fr}} + \Eload,
+\end{equation}
+which provides an energy balance check on the numerical integration.
+
+\subsection{Control Effort}
+
+The \textit{control effort} is the total electromagnetic work over a trajectory:
+\begin{equation}
+  \Ectrl = \int_0^{\theta_{\mathrm{final}}} |\tauEM|\, \mathrm{d}\theta = \EEM,
+\end{equation}
+since $\tauEM \geq 0$ by the one-sided clamp~\eqref{eq:tauEM_clamp}. Control effort is the cost of regulation: it is the energy that the power supply must deliver to maintain the target trajectory.
+
+\subsection{Efficiency and the EM Fraction}
+
+Two efficiency metrics are useful. The \textit{kinetic efficiency} measures how much of the input energy has been converted to rotor kinetic energy:
+\begin{equation}
+  \eta_{\mathrm{KE}} = \frac{\KE}{\Ethermal + \EEM}.
+\end{equation}
+The \textit{load efficiency} measures how much of the input energy has been delivered as useful work:
+\begin{equation}
+  \eta_{\mathrm{load}} = \frac{\Eload}{\Ethermal + \EEM}.
+\end{equation}
+The \textit{electromagnetic fraction} is:
+\begin{equation}
+  f_{\mathrm{EM}} = \frac{\EEM}{\Ethermal + \EEM}.
+\end{equation}
+A well-designed system should have $f_{\mathrm{EM}} < 0.4$: the thermal side should be the dominant energy source, with the electromagnetic side providing correction rather than primary drive. When $f_{\mathrm{EM}}$ exceeds this threshold, the system is effectively an electric motor with a decorative heat chamber, and the thermal architecture provides no advantage over a conventional reluctance motor.
+
+\subsection{The Design Frontier}
+
+The primary design instrument for this system is the Pareto frontier between control effort $\Ectrl$ and tracking error $\varepsilon_\om$, defined as the root-mean-square speed error in the final quarter of the simulation horizon:
+\begin{equation}
+  \varepsilon_\om = \left(\frac{4}{T}\int_{3T/4}^{T} (\om(t) - \om_{\mathrm{target}})^2\, \dt\right)^{1/2}.
+\end{equation}
+For each gain pair $(K_p, K_d)$, a simulation produces a single point $(\Ectrl, \varepsilon_\om)$. The Pareto-efficient set of these points---the set where no gain choice achieves lower effort without higher error, or lower error without higher effort---defines the design frontier. Points on this frontier correspond to gain choices that are optimal in the sense that any improvement in one objective requires a sacrifice in the other.
+
+% ============================================================
+\section{Emergent Operating Regimes}
+\label{sec:regimes}
+% ============================================================
+
+The coupled system~\eqref{eq:chamber_temp}--\eqref{eq:eom} is a nonlinear dynamical system in the state variables $(\theta, \om, T_1, \ldots, T_\Nch, \Tcore)$. Despite its apparent complexity, the long-run behavior falls into one of four qualitatively distinct regimes, determined by the balance between thermal input, load demand, and control capability.
+
+\subsection{Steady State}
+
+In the steady-state regime, the rotor speed converges to $\om_{\mathrm{target}}$, chamber temperatures settle to near-constant values with small periodic oscillations due to injection, and the electromagnetic torque stabilizes at a low value determined by the residual torque ripple. This is the intended operating regime. The conditions for steady state are approximately:
+\begin{itemize}
+  \item Thermal input sufficient: $\bar{\tauth}(\Twall^{\mathrm{eq}}) + \tauEM^{\mathrm{max}} > \taufr(\om_{\mathrm{target}}) + \tauload(\om_{\mathrm{target}})$
+  \item Core not depleted: $\Tcore^{\mathrm{eq}} > T_{\mathrm{min}} + \delta$ for some safety margin $\delta$
+  \item Controller stable: gains $(K_p, K_d, K_\om)$ within the stable region
+\end{itemize}
+
+\subsection{Oscillatory Regime}
+
+When the derivative gain $K_d$ is too small relative to $K_p$, or when the thermal timescale $\tau_{\mathrm{core}}$ is close to the rotor period, the system enters sustained oscillations in $\om(t)$. The speed overshoots $\om_{\mathrm{target}}$, causing the load torque $\tauload = \tau_0 + k_{\mathrm{load}}\om$ to rise, which decelerates the rotor, which undershoots, which reduces load, and so on. The oscillation frequency is determined by the interplay between the inertial time constant $I/(k_{\mathrm{load}} + k_{\mathrm{bearing}})$ and the thermal recovery time $\tau_{\mathrm{core}}$.
+
+\subsection{Stall}
+
+Stall occurs when the net available torque falls below zero at low speed, causing $\om$ to decrease monotonically to zero. The stall condition is:
+\begin{equation}
+  \bar{\tauth}(\mathbf{T}_{\mathrm{wall}}) + \tauEM^{\mathrm{max}} < \tau_0,
+\end{equation}
+i.e., even at maximum electromagnetic assist, the constant load component cannot be overcome. Stall can be induced by excessive load, insufficient thermal input, or wall temperatures fallen below $T_{\mathrm{min}}$ after a period of overdraw.
+
+\subsection{Thermal Collapse}
+
+Thermal collapse is a more gradual regime in which the core temperature falls continuously under sustained demand. If $\dot{Q}_{\mathrm{input}} < \sum_i \dot{Q}_{\mathrm{core}\to i}$ persistently, $\Tcore$ declines. As $\Tcore$ falls, chamber heating slows, wall temperatures drop, thermal torque weakens, and the controller increases electromagnetic assist to compensate. Eventually $\tauEM$ saturates at $\tauEM^{\mathrm{max}}$, the torque budget is exhausted, and the system stalls. Thermal collapse differs from direct stall in that there is a characteristic delay: the system appears to operate normally until the core is depleted, then fails suddenly. In the load sweep analysis, thermal collapse typically appears at load values that are individually survivable for short periods but unsustainable over the simulation horizon.
+
+% ============================================================
+\section{Simulation Results}
+\label{sec:results}
+% ============================================================
+
+\subsection{Baseline Simulation}
+
+The baseline simulation runs for eight seconds at $dt = 1\,\mathrm{ms}$ with $\Nch = 6$ chambers, $R_{\mathrm{rotor}} = 0.15\,\mathrm{m}$, $\Tsource = 500\,{}^\circ\mathrm{C}$, $T_{\mathrm{min}} = 200\,{}^\circ\mathrm{C}$, $m_{\mathrm{inj}} = 2\,\mathrm{g}$, $I = 0.8\,\mathrm{kg\,m^2}$, $\om_{\mathrm{target}} = 25\,\mathrm{rad/s}$, $\tau_0 = 2\,\mathrm{N\,m}$, $k_{\mathrm{load}} = 0.08\,\mathrm{N\,m\,s}$, and control gains $K_p = 0.8$, $K_d = 0.2$, $K_\om = 0.5$.
+
+The system starts from rest with a small seed velocity and chamber walls at $0.8\,\Tsource$. Over the first two seconds, the rotor accelerates under combined thermal and electromagnetic torque. The electromagnetic fraction is highest in this phase ($f_{\mathrm{EM}} \approx 0.55$) because the thermal side has not yet reached its operating temperature. Between two and five seconds, wall temperatures stabilize through the depletion-recovery cycle, and $f_{\mathrm{EM}}$ falls to approximately 0.28, indicating correct thermal dominance. After five seconds, the speed converges to within 0.4 rad/s of $\om_{\mathrm{target}}$ and remains there, confirming stable regulation.
+
+The per-chamber temperature traces show a characteristic phase-staggered pattern: each chamber depletes slightly during its injection arc and recovers between arcs, with all six chambers oscillating around the same equilibrium temperature (approximately $420\,{}^\circ\mathrm{C}$ for the baseline parameters) at a small amplitude. The core temperature settles near $480\,{}^\circ\mathrm{C}$, slightly below $\Tsource$, indicating that the heating rate is nearly sufficient to replenish the chambers without depletion.
+
+\subsection{Thermal Source Sweep}
+
+Varying $\Tsource$ from $300\,{}^\circ\mathrm{C}$ to $700\,{}^\circ\mathrm{C}$ reveals the three regime boundaries accessible to the thermal side. Below $350\,{}^\circ\mathrm{C}$, the system enters thermal collapse: the core cannot maintain chamber temperatures above $T_{\mathrm{min}}$, chambers go dark one by one as injection is suppressed, and $\tauEM$ saturates without preventing stall. Between $350\,{}^\circ\mathrm{C}$ and $450\,{}^\circ\mathrm{C}$, the system reaches steady state but with $f_{\mathrm{EM}} > 0.40$, meaning the electromagnetic side is carrying an excessive share. Above $450\,{}^\circ\mathrm{C}$, the system operates in the thermally dominant steady state with $f_{\mathrm{EM}} < 0.35$ and stable regulation.
+
+\subsection{Load Sweep}
+
+Varying the constant load $\tau_0$ from $0.5\,\mathrm{N\,m}$ to $9\,\mathrm{N\,m}$ identifies the stall boundary at approximately $7.5\,\mathrm{N\,m}$ for the baseline thermal parameters. Below $3\,\mathrm{N\,m}$, efficiency rises as load increases (the machine is more productively loaded). Between $3\,\mathrm{N\,m}$ and $6\,\mathrm{N\,m}$, efficiency peaks and the EM fraction remains stable. Above $6\,\mathrm{N\,m}$, the EM fraction rises sharply as the controller pushes toward saturation, and efficiency declines. This load range ($3\text{--}6\,\mathrm{N\,m}$) represents the optimal operating zone for the baseline design.
+
+\subsection{The Control Frontier}
+
+The Pareto frontier analysis over a $9 \times 8$ grid of $(K_p, K_d)$ values reveals that control effort $\Ectrl$ and tracking error $\varepsilon_\om$ are inversely related in a curved frontier. The knee of this curve, where additional control effort yields diminishing improvement in tracking, occurs at approximately $K_p = 0.8$, $K_d = 0.15$. Lower $K_d$ moves along the frontier toward lower effort and higher error (looser control); higher $K_p$ moves toward lower error and higher effort (tighter control). The Pareto-optimal gain choice depends on the application: a generator requiring tight frequency regulation demands low $\varepsilon_\om$ and accepts higher $\Ectrl$; a flywheel energy store tolerates higher $\varepsilon_\om$ in exchange for lower $\Ectrl$ and thus better round-trip efficiency.
+
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+% ============================================================
+
+\subsection{The Electromagnetic Subsystem as Constraint Enforcer}
+
+The central theoretical reinterpretation proposed here is that the electromagnetic subsystem should not be understood as a \textit{motor} in the conventional sense. A motor converts electrical energy into mechanical energy as its primary function. In the Flash--Reluctance Engine, the electromagnetic subsystem converts electrical energy into coherence in the torque waveform. It is spending energy to enforce a target trajectory in torque-space rather than to produce motion independently.
+
+This distinction matters for how one reasons about the system. The relevant performance question for a motor is: how much torque can it deliver? The relevant question for the electromagnetic layer of a Flash--Reluctance Engine is: how much energy is required to maintain a given torque profile? The answer depends not only on the gains $(K_p, K_d, K_\om)$ but on the shape and reliability of the thermal torque waveform. A high-quality thermal side with smooth, predictable pulses requires very little electromagnetic correction. A degraded thermal side---cold chambers, inconsistent injection, worn nozzles---demands heavy electromagnetic compensation, which appears as a rising $f_{\mathrm{EM}}$ and is thus a diagnostic signal as well as a performance metric.
+
+\subsection{The Shared Core as a Global Constraint}
+
+The shared thermal core introduces a feature absent from systems where each chamber is independently heated: global resource competition. All six chambers draw from the same reservoir, and if the aggregate demand exceeds the input rate $\dot{Q}_{\mathrm{input}}$, the core cools. This creates an implicit coupling between chambers that is not present in the individual temperature equations~\eqref{eq:chamber_temp} but emerges from the shared dynamics~\eqref{eq:core_temp}.
+
+This coupling has a self-organizing character. Chambers that are currently injecting cool the core, which slows the heating of other chambers, which reduces their injection energy, which reduces their cooling effect on the core. The system reaches a quasi-steady state in which the aggregate injection rate is automatically regulated by the core temperature, without any explicit inter-chamber controller. This emergent regulation is a form of resource-constraint feedback that does not require any additional control logic.
+
+\subsection{Relation to Known Architectures}
+
+The Flash--Reluctance Engine bears family resemblance to several existing technologies without being identical to any of them. It resembles a Stirling engine in the sense that it exploits a temperature gradient between a hot source and a cold sink, but unlike a Stirling engine, the working fluid (water-steam) is consumed rather than recycled. It resembles a flash-steam engine in its use of rapid phase change, but unlike conventional flash-steam engines, the expansion chambers are arranged radially and the steam acts directly on rotor vanes rather than on pistons. It resembles a switched-reluctance motor in its stator topology, but unlike a standalone reluctance motor, the electromagnetic layer operates under feedback from a thermal primary drive rather than as the sole source of torque. And it resembles a flywheel energy storage system in its use of rotor inertia as a buffer, but unlike a passive flywheel, the rotor is actively driven and loaded.
+
+The key novelty is the simultaneous co-location of all three functions---thermal expansion, electromagnetic control, and inertial storage---on a single rotor with no interface separating them. This co-location eliminates the transmission losses inherent in hierarchical hybrid architectures and allows the electromagnetic layer to respond to thermal fluctuations on a timescale limited only by the coil's electrical dynamics and the controller's update rate.
+
+\subsection{Relation to Control Theory}
+
+From the perspective of control theory, the system is a nonlinear SISO (single-input, single-output) plant---with $\om$ as the output and $\tauEM$ as the control input---driven by a stochastic-like exogenous disturbance $\tauth(\theta, \mathbf{T}_{\mathrm{wall}})$. The plant nonlinearity arises from the quadratic drag term in $\taufr$, the nonlinear load-speed relationship, and the temperature-dependent thermal torque. The controller~\eqref{eq:control_law} is a PD law augmented with a speed integral term (through the $K_\om e_\om$ component), which in the language of control theory makes it a PID controller in the speed loop with an inner proportional-derivative loop in the torque space.
+
+The Pareto frontier analysis is equivalent to a multi-objective optimization in the gain space $(K_p, K_d) \in \mathbb{R}^2_+$ with objectives $\Ectrl$ and $\varepsilon_\om$. The Pareto-efficient set forms a curve in $(\Ectrl, \varepsilon_\om)$ space that is convex (in the sense that any point on the frontier is a convex combination of no two other frontier points with strictly lower values of both objectives). The knee of this curve is the natural gain selection criterion for applications where both objectives are equally weighted.
+
+\subsection{Relation to RSVP Field Theory}
+
+The multimodal coupling in the Flash--Reluctance Engine has a structural analogy with the Relativistic Scalar-Vector Plenum (RSVP) framework developed in the author's parallel theoretical work. In RSVP, a scalar density field $\Phi$, a vector flow field $\mathbf{v}$, and an entropy field $S$ interact through coupled evolution equations in which energy is continuously redistributed across domains. The Flash--Reluctance Engine instantiates an analogous triad: the thermal field (scalar density of heat, concentrated in the chamber walls and core), the electromagnetic field (vector potential driving coil currents), and the mechanical field (angular momentum stored in the flywheel). The feedback controller is the analog of the RSVP coupling kernel: it mediates energy transfer between domains in response to local gradients (torque error and speed error), maintaining a target trajectory that is the mechanical analog of the plenum's dynamical attractor.
+
+This analogy is not merely metaphorical. Both systems are governed by the principle that energy redistribution is driven by constraint violation: in RSVP, constraints arise from the field equations; in the Flash--Reluctance Engine, constraints arise from the target torque profile and speed setpoint. The architecture of the controller---proportional response to instantaneous error, derivative damping of rapid fluctuations, integral accumulation of persistent offset through the speed term---mirrors the structure of variational methods in field theory, where minimization of an action functional drives the system toward a ground state.
+
+% ============================================================
+\section{Extensions and Future Directions}
+\label{sec:extensions}
+% ============================================================
+
+\subsection{Dynamic Injection Scheduling}
+
+In the baseline model, injection occurs unconditionally whenever the rotor angle is within a chamber's active arc and the wall temperature exceeds $T_{\mathrm{min}}$. A natural extension is to make the injection decision a control variable: at each chamber activation, the controller determines not only whether to inject but how much mass $m_{\mathrm{inj},i}$ to inject, based on current wall temperature, rotor speed, and torque demand. This transforms the system from a fixed-cycle engine into a programmable thermodynamic machine capable of adjusting its thermodynamic work per cycle in response to load.
+
+Variable injection mass modifies the flash pressure~\eqref{eq:Ppeak} and injection energy loss~\eqref{eq:Qinj} proportionally. The controller gains a new degree of freedom at the cost of a more complex actuator (a variable-rate solenoid valve rather than a fixed-orifice nozzle). The tradeoff between thermal efficiency and control bandwidth becomes explicit: large injection mass per cycle produces high torque but cools the wall quickly; small injection mass per cycle preserves wall temperature but produces low torque per cycle and requires higher RPM to maintain average power.
+
+\subsection{Multi-Stage Rotor Architecture}
+
+A two-stage rotor places a second set of chambers and stator coils on a concentric inner rotor sharing the same shaft. The inner rotor operates at a different temperature range than the outer rotor, allowing a temperature cascade: the outer rotor extracts work from the high-temperature source, its exhaust steam is used to heat the inner rotor's chambers, and the inner rotor extracts additional work from the intermediate-temperature steam. This is a rotary implementation of the cascaded heat engine concept, analogous to combined-cycle gas turbines but in a compact radial geometry.
+
+The shared shaft means the two rotors must be in torque balance: the controller must distribute electromagnetic assist across both stages simultaneously, managing the thermal budget of each independently. The shared core model extends naturally to this architecture by introducing separate core temperatures for the two stages, coupled through a heat exchanger that transfers waste heat from the outer stage to the inner stage's heat source.
+
+\subsection{Generator Coupling and Grid Interaction}
+
+The load model~\eqref{eq:load} approximates a generator as a linear speed-proportional resistance. A more realistic generator model would include back-EMF dynamics, field winding response, and the interaction with an external electrical grid or load bus. Coupling the mechanical simulation to an electrical circuit model would allow the study of transient responses to load steps (sudden increase or decrease in electrical demand), which are the most demanding scenarios for speed regulation.
+
+The electromagnetic stator layer could also be operated in generator mode during phases of excess mechanical energy, converting some of the flywheel's kinetic energy back into electrical energy during deceleration. This bi-directional operation would make the electromagnetic layer a true power converter rather than a unidirectional assist, at the cost of a more complex power electronics interface.
+
+\subsection{Experimental Validation Pathway}
+
+The simulation framework generates falsifiable predictions that can be tested on a physical prototype. The most tractable first experiment is a single-chamber bench test: a fixed chamber with a controlled heater, a single injection solenoid, and a small linear actuator representing the vane, allowing direct measurement of injection force as a function of wall temperature and water mass. This would validate the flash pressure model~\eqref{eq:Ppeak} and the efficiency factor $\eta_{\mathrm{th}}$.
+
+The second experiment is a multi-chamber static test: a full rotor with all chambers but no rotation (locked shaft), measuring torque as a function of angle for a single revolution under controlled injection. This would validate the pulse shape function~\eqref{eq:pulse} and the per-chamber temperature dynamics~\eqref{eq:chamber_temp}.
+
+The third and most informative experiment is a dynamic test under load, using a calibrated brake dynamometer to impose a known $\tauload(\om)$ and comparing measured speed trajectories, electromagnetic current draws, and chamber temperatures against simulation predictions. Discrepancies between simulation and experiment would identify the dominant modeling errors and guide refinement of $\eta_{\mathrm{th}}$, the heat transfer coefficients, and the controller gains.
+
+\subsection{Thermal Storage and Phase-Change Materials}
+
+Replacing the simple wall heat capacity model with a phase-change material (PCM) in the chamber wall would introduce a qualitatively new thermal behavior. A PCM stores large amounts of energy at nearly constant temperature during the phase transition, then releases it at the same temperature during solidification. If the PCM transition temperature is chosen near the optimal wall temperature for flash evaporation, the chamber wall would act as a thermal buffer that resists temperature excursions in both directions. This would reduce the amplitude of the depletion-recovery oscillations, stabilize the thermal torque profile, and potentially allow operation at lower source temperatures by concentrating heat at the transition temperature rather than distributing it across a broad range.
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% ============================================================
+
+The Flash--Reluctance Engine is not easily classified. It is not an engine in the Carnot sense: it does not operate on a closed thermodynamic cycle. It is not a motor in the electromagnetic sense: it cannot produce motion from electrical energy alone. It is not a hybrid in the conventional sense: there is no separation of function between a primary thermal stage and an auxiliary electromagnetic stage. It is a new class of machine in which thermal, electromagnetic, and mechanical phenomena are co-equal, co-located, and dynamically coupled through a feedback architecture that treats torque coherence as a design objective rather than an incidental outcome.
+
+The principal contributions of this paper are as follows. We have developed a dynamic thermal model incorporating per-chamber temperature evolution and shared core thermodynamics, replacing the constant-wall-temperature assumption of earlier analyses with a physically realistic depletion-recovery cycle. We have formulated a PD speed-governed controller that simultaneously shapes the torque waveform and regulates rotor speed under load, converting the free-spinning flywheel model into a working machine. We have introduced the slope-based spatial distribution of electromagnetic torque, a predictive allocation strategy that assigns electromagnetic assist to chambers where thermal torque is declining most rapidly, reducing torque ripple with lower control effort than reactive strategies. We have defined the control effort versus tracking error Pareto frontier as the primary design instrument, replacing ad hoc gain tuning with a systematic optimization framework. And we have characterized four emergent operating regimes---steady state, oscillatory, stall, and thermal collapse---and identified their boundaries in the parameter space.
+
+The deepest insight is perhaps the simplest one to state. In a machine where multiple energy domains act on the same rotor, the design question is not how to maximize each domain's contribution independently, but how to coordinate them so that their combined trajectory is better than any single domain could achieve. The Flash--Reluctance Engine answers that question with a feedback architecture that continuously measures the gap between actual and desired behavior and assigns electromagnetic energy precisely to close it, while allowing the thermal side to carry as much of the load as the physical constraints permit. The result is a machine that is, in a meaningful sense, aware of its own performance and responsive to its own limitations---not by design of any individual component, but as an emergent property of the coupling between them.
+
+% ============================================================
+% End of document
+% ============================================================
+\end{document}

@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coherence Engine — Error as Obstruction</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,600;1,300&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+  :root {
+    --bg: #0a0a0c;
+    --bg2: #111116;
+    --bg3: #18181f;
+    --border: #2a2a35;
+    --text: #c8c8d8;
+    --text-dim: #5a5a70;
+    --accent: #7eb8f7;
+    --warn: #f7b97e;
+    --danger: #f77e7e;
+    --ok: #7ef7b0;
+    --mono: 'IBM Plex Mono', monospace;
+    --serif: 'EB Garamond', Georgia, serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    background: var(--bg2);
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+
+  header .subtitle {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .coherence-badge {
+    margin-left: auto;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 3px 10px;
+    border: 1px solid;
+    text-transform: uppercase;
+    transition: all 0.4s;
+  }
+  .coherence-badge.ok { border-color: var(--ok); color: var(--ok); }
+  .coherence-badge.warn { border-color: var(--warn); color: var(--warn); }
+  .coherence-badge.obstructed { border-color: var(--danger); color: var(--danger); animation: pulse 1s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* LEFT: field + controls */
+  .left-panel {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+  }
+
+  /* CENTER: simulation canvas */
+  .center-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas#field {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: crosshair;
+  }
+
+  /* obstruction overlay */
+  canvas#overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  /* plot panel at bottom of center */
+  .plot-panel {
+    height: 120px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  canvas#plot {
+    width: 100%;
+    height: 100%;
+  }
+
+  .plot-label {
+    position: absolute;
+    top: 6px; left: 10px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+
+  .plot-label span {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--accent);
+    font-size: 12px;
+  }
+
+  /* RIGHT: event log */
+  .right-panel {
+    width: 240px;
+    flex-shrink: 0;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--bg2);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-header .count {
+    margin-left: auto;
+    color: var(--text);
+    font-size: 11px;
+  }
+
+  /* DOMAIN SELECTOR */
+  .domain-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .domain-tab {
+    flex: 1;
+    padding: 6px 4px;
+    font-size: 9px;
+    text-align: center;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-right: 1px solid var(--border);
+    transition: all 0.2s;
+    background: transparent;
+    border-top: none;
+    border-left: none;
+    border-bottom: none;
+    font-family: var(--mono);
+  }
+
+  .domain-tab:last-child { border-right: none; }
+  .domain-tab:hover { color: var(--text); background: var(--bg3); }
+  .domain-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+  /* CONTROLS */
+  .controls {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .ctrl-group {
+    border: 1px solid var(--border);
+    padding: 8px;
+    background: var(--bg2);
+  }
+
+  .ctrl-group label {
+    display: block;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .ctrl-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 5px;
+  }
+
+  .ctrl-row span {
+    font-size: 10px;
+    color: var(--text-dim);
+    min-width: 80px;
+  }
+
+  .ctrl-row .val {
+    min-width: 32px;
+    text-align: right;
+    color: var(--accent);
+    margin-left: auto;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    outline: none;
+    border-radius: 0;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    cursor: pointer;
+    border-radius: 0;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  button.btn {
+    font-family: var(--mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 5px 9px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  button.btn:hover { border-color: var(--accent); color: var(--accent); }
+  button.btn.primary { border-color: var(--accent); color: var(--accent); }
+  button.btn.danger { border-color: var(--danger); color: var(--danger); }
+  button.btn.active { background: var(--accent); color: var(--bg); }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+
+  .stat {
+    background: var(--bg3);
+    padding: 5px 7px;
+  }
+
+  .stat .stat-label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+
+  .stat .stat-val {
+    font-size: 13px;
+    font-family: var(--serif);
+    color: var(--text);
+    margin-top: 1px;
+  }
+
+  .stat .stat-val.ok { color: var(--ok); }
+  .stat .stat-val.warn { color: var(--warn); }
+  .stat .stat-val.bad { color: var(--danger); }
+
+  /* domain interpretation panel */
+  .domain-info {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--text-dim);
+    font-style: italic;
+    line-height: 1.5;
+    background: var(--bg3);
+    flex-shrink: 0;
+    min-height: 52px;
+  }
+
+  .domain-info strong {
+    color: var(--text);
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  /* EVENT LOG */
+  .event-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .event-log::-webkit-scrollbar { width: 3px; }
+  .event-log::-webkit-scrollbar-track { background: var(--bg); }
+  .event-log::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .event-item {
+    padding: 5px 7px;
+    border-left: 2px solid;
+    background: var(--bg3);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  .event-item:hover { background: var(--bg2); }
+  .event-item.selected { outline: 1px solid var(--accent); }
+  .event-item.resolved { border-color: var(--ok); }
+  .event-item.tension { border-color: var(--warn); }
+  .event-item.obstructed { border-color: var(--danger); }
+
+  .event-item .ev-head {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 2px;
+  }
+
+  .event-item .ev-t {
+    font-size: 9px;
+    color: var(--text-dim);
+  }
+
+  .event-item .ev-pos {
+    font-size: 9px;
+    color: var(--accent);
+  }
+
+  .event-item .ev-val {
+    margin-left: auto;
+    color: var(--text);
+  }
+
+  .event-item .ev-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .log-actions {
+    padding: 6px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  /* playhead */
+  .playhead-bar {
+    height: 3px;
+    background: var(--border);
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .playhead-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.1s;
+  }
+
+  /* tooltip */
+  #tooltip {
+    position: fixed;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    font-size: 10px;
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+    max-width: 200px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Coherence Engine</h1>
+  <span class="subtitle">Projected Stochastic Relaxation · Error as Obstruction</span>
+  <div class="coherence-badge ok" id="coherence-badge">COHERENT</div>
+</header>
+
+<div class="main">
+
+  <!-- LEFT PANEL: controls -->
+  <div class="left-panel">
+    <div class="domain-tabs" id="domain-tabs">
+      <button class="domain-tab active" data-domain="field">Field</button>
+      <button class="domain-tab" data-domain="belief">Belief</button>
+      <button class="domain-tab" data-domain="stress">Stress</button>
+      <button class="domain-tab" data-domain="schedule">Plan</button>
+      <button class="domain-tab" data-domain="grammar">Parse</button>
+    </div>
+
+    <div class="domain-info" id="domain-info">
+      <strong>Scalar Field:</strong> Each cell holds a value in [0,1]. Constraints force target values; relaxation diffuses tension across neighbors.
+    </div>
+
+    <div class="controls">
+
+      <div class="ctrl-group">
+        <label>Dynamics</label>
+        <div class="ctrl-row">
+          <span>Normal rate</span>
+          <input type="range" id="s-normal" min="0.1" max="1.0" step="0.05" value="0.8">
+          <span class="val" id="v-normal">0.80</span>
+        </div>
+        <div class="ctrl-row">
+          <span>Diffusion</span>
+          <input type="range" id="s-diffuse" min="0.0" max="0.8" step="0.05" value="0.3">
+          <span class="val" id="v-diffuse">0.30</span>
+        </div>
+        <div class="ctrl-row">
+          <span>Noise σ</span>
+          <input type="range" id="s-noise" min="0.0" max="0.1" step="0.002" value="0.01">
+          <span class="val" id="v-noise">0.010</span>
+        </div>
+        <div class="ctrl-row">
+          <span>Constraint strength</span>
+          <input type="range" id="s-cstr" min="0.1" max="1.0" step="0.05" value="0.9">
+          <span class="val" id="v-cstr">0.90</span>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <label>Obstruction Detector</label>
+        <div class="ctrl-row">
+          <span>Variance window</span>
+          <input type="range" id="s-window" min="10" max="200" step="10" value="60">
+          <span class="val" id="v-window">60</span>
+        </div>
+        <div class="ctrl-row">
+          <span>Threshold</span>
+          <input type="range" id="s-thresh" min="0.001" max="0.05" step="0.001" value="0.008">
+          <span class="val" id="v-thresh">0.008</span>
+        </div>
+        <div class="ctrl-row">
+          <span>Show overlay</span>
+          <input type="checkbox" id="cb-overlay" checked>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <label>Statistics</label>
+        <div class="stats-grid">
+          <div class="stat"><div class="stat-label">A_soft(t)</div><div class="stat-val" id="st-action">—</div></div>
+          <div class="stat"><div class="stat-label">dA/dt</div><div class="stat-val" id="st-da">—</div></div>
+          <div class="stat"><div class="stat-label">Obstructed cells</div><div class="stat-val" id="st-obs">0</div></div>
+          <div class="stat"><div class="stat-label">Constraints</div><div class="stat-val" id="st-cstr">2</div></div>
+          <div class="stat"><div class="stat-label">Mean field</div><div class="stat-val" id="st-mean">—</div></div>
+          <div class="stat"><div class="stat-label">Frame</div><div class="stat-val" id="st-frame">0</div></div>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <label>Actions</label>
+        <div class="btn-row">
+          <button class="btn primary" id="btn-add-rand">+ Random</button>
+          <button class="btn" id="btn-add-conflict">+ Conflict</button>
+          <button class="btn" id="btn-loop">Loop pair</button>
+        </div>
+        <div class="btn-row" style="margin-top:5px">
+          <button class="btn" id="btn-reset">Reset field</button>
+          <button class="btn danger" id="btn-clear">Clear log</button>
+          <button class="btn" id="btn-pause" style="margin-left:auto">Pause</button>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <label>Click on canvas to add constraint</label>
+        <div class="ctrl-row">
+          <span>Constraint value</span>
+          <input type="range" id="s-cval" min="0" max="1" step="0.05" value="1.0">
+          <span class="val" id="v-cval">1.00</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CENTER: simulation + plot -->
+  <div class="center-panel">
+    <div class="canvas-container" id="canvas-container">
+      <canvas id="field"></canvas>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div class="plot-panel">
+      <canvas id="plot"></canvas>
+      <div class="plot-label"><span>𝒜</span><sub style="font-family:var(--mono);font-size:9px">soft</sub>(t) — action functional over time</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: event log -->
+  <div class="right-panel">
+    <div class="panel-header">
+      Event Log
+      <span class="count" id="log-count">2 events</span>
+    </div>
+
+    <div class="playhead-bar">
+      <div class="playhead-fill" id="playhead" style="width:100%"></div>
+    </div>
+
+    <div class="event-log" id="event-log"></div>
+
+    <div class="log-actions">
+      <button class="btn" id="btn-step-back">◀</button>
+      <button class="btn active" id="btn-play">▶ Play</button>
+      <button class="btn" id="btn-step-fwd">▶|</button>
+      <button class="btn" id="btn-export" style="margin-left:auto" title="Export as VTT">↓ VTT</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+// ─── SIMULATION STATE ────────────────────────────────────────────────────────
+const W = 100, H = 80;
+let field = new Float32Array(W * H);
+let fieldPrev = new Float32Array(W * H);
+let obstructionMap = new Float32Array(W * H);
+let varianceBuffer = []; // ring buffer of global action values
+let actionHistory = [];  // for plot
+const MAX_PLOT = 400;
+
+let events = [];
+let frameCount = 0;
+let paused = false;
+let selectedEvent = null;
+let playheadEvent = null; // null = all events active
+
+// Params
+let params = {
+  normalRate: 0.8,
+  diffuse: 0.3,
+  noise: 0.01,
+  cstrStrength: 0.9,
+  varWindow: 60,
+  obstrThresh: 0.008,
+  showOverlay: true,
+  cval: 1.0,
+};
+
+// Domain interpretation
+const DOMAINS = {
+  field: {
+    name: "Scalar Field",
+    desc: "<strong>Scalar Field:</strong> Each cell holds a value in [0,1]. Constraints force target values; relaxation diffuses tension across neighbors.",
+    constraint: "target value",
+    unit: "",
+    colorA: [10, 20, 40],
+    colorB: [120, 200, 255],
+    obstrColor: [220, 80, 80],
+  },
+  belief: {
+    name: "Belief State",
+    desc: "<strong>Belief State:</strong> Cell values are credences. Constraints are testimonies or evidence. Persistent obstruction = genuine contradiction — irresolvable by any coherent belief assignment.",
+    constraint: "credence",
+    unit: "",
+    colorA: [15, 30, 15],
+    colorB: [80, 220, 120],
+    obstrColor: [220, 120, 40],
+  },
+  stress: {
+    name: "Stress Field",
+    desc: "<strong>Stress Field:</strong> Values represent internal pressure. Constraints are boundary loads. Obstruction zones are crack nucleation sites — energy that cannot dissipate continuously.",
+    constraint: "load",
+    unit: "MPa",
+    colorA: [5, 5, 25],
+    colorB: [240, 80, 50],
+    obstrColor: [255, 220, 0],
+  },
+  schedule: {
+    name: "Planning Feasibility",
+    desc: "<strong>Planning Feasibility:</strong> Values are resource utilization. Constraints are deadlines or capacity limits. Obstruction = infeasible subproblem — not hard to optimize, but geometrically blocked.",
+    constraint: "capacity req",
+    unit: "%",
+    colorA: [20, 15, 30],
+    colorB: [180, 120, 255],
+    obstrColor: [255, 80, 120],
+  },
+  grammar: {
+    name: "Parse Coherence",
+    desc: "<strong>Parse Coherence:</strong> Values encode constraint satisfaction over parse structure. Near-obstruction = sentences that 'feel wrong' — locally valid constructions failing to glue globally.",
+    constraint: "grammatical weight",
+    unit: "",
+    colorA: [25, 20, 10],
+    colorB: [255, 200, 80],
+    obstrColor: [200, 60, 200],
+  },
+};
+
+let currentDomain = 'field';
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+function initField() {
+  for (let i = 0; i < field.length; i++) {
+    field[i] = Math.random();
+  }
+  obstructionMap.fill(0);
+  varianceBuffer = [];
+  actionHistory = [];
+}
+
+function addEvent(x, y, value, label = null) {
+  const dom = DOMAINS[currentDomain];
+  const ev = {
+    id: events.length,
+    x: Math.max(1, Math.min(W - 2, x)),
+    y: Math.max(1, Math.min(H - 2, y)),
+    value,
+    label: label || `${dom.constraint} → ${value.toFixed(2)}${dom.unit}`,
+    time: frameCount,
+    status: 'tension',
+    radius: 1 + Math.floor(Math.random() * 2),
+  };
+  events.push(ev);
+  renderEventLog();
+  return ev;
+}
+
+// ─── SIMULATION ──────────────────────────────────────────────────────────────
+function idx(x, y) { return y * W + x; }
+
+function getActiveEvents() {
+  if (playheadEvent === null) return events;
+  return events.slice(0, playheadEvent + 1);
+}
+
+function project() {
+  const active = getActiveEvents();
+  const str = params.cstrStrength;
+  for (const e of active) {
+    for (let dy = -e.radius; dy <= e.radius; dy++) {
+      for (let dx = -e.radius; dx <= e.radius; dx++) {
+        const nx = e.x + dx, ny = e.y + dy;
+        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > e.radius) continue;
+        const w = str * (1 - dist / (e.radius + 1));
+        const i = idx(nx, ny);
+        // Normal snap: only correct along constraint direction
+        const diff = e.value - field[i];
+        field[i] += diff * w;
+      }
+    }
+  }
+}
+
+function relax() {
+  const next = new Float32Array(field.length);
+  const d = params.diffuse;
+  const n = params.noise;
+  const nr = params.normalRate;
+
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      const i = idx(x, y);
+      const avg = (
+        field[idx(x + 1, y)] + field[idx(x - 1, y)] +
+        field[idx(x, y + 1)] + field[idx(x, y - 1)]
+      ) * 0.25;
+
+      const noise = (Math.random() - 0.5) * n;
+      // tangential drift: blend toward neighbors, leave perpendicular free
+      next[i] = Math.max(0, Math.min(1,
+        field[i] * (1 - d) + avg * d + noise
+      ));
+    }
+  }
+  // boundaries mirror
+  for (let x = 0; x < W; x++) {
+    next[idx(x, 0)] = next[idx(x, 1)];
+    next[idx(x, H - 1)] = next[idx(x, H - 2)];
+  }
+  for (let y = 0; y < H; y++) {
+    next[idx(0, y)] = next[idx(1, y)];
+    next[idx(W - 1, y)] = next[idx(W - 2, y)];
+  }
+  field = next;
+}
+
+function computeAction() {
+  // A_soft = mean local curvature (discrete Laplacian magnitude) + constraint residuals
+  let curv = 0, count = 0;
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      const i = idx(x, y);
+      const lap = (
+        field[idx(x + 1, y)] + field[idx(x - 1, y)] +
+        field[idx(x, y + 1)] + field[idx(x, y - 1)]
+      ) * 0.25 - field[i];
+      curv += lap * lap;
+      count++;
+    }
+  }
+  let residual = 0;
+  for (const e of getActiveEvents()) {
+    const v = field[idx(e.x, e.y)];
+    residual += (v - e.value) * (v - e.value);
+  }
+  return (curv / count) + residual * 0.1;
+}
+
+function updateObstructionMap() {
+  const win = params.varWindow;
+  if (actionHistory.length < win) {
+    obstructionMap.fill(0);
+    return;
+  }
+
+  // local variance over time isn't stored per-cell (too expensive),
+  // so we use local spatial curvature as a proxy for obstruction
+  const thresh = params.obstrThresh;
+  let obsCount = 0;
+
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      const i = idx(x, y);
+      const lap = Math.abs(
+        (field[idx(x + 1, y)] + field[idx(x - 1, y)] +
+         field[idx(x, y + 1)] + field[idx(x, y - 1)]) * 0.25 - field[i]
+      );
+      // decay toward zero, spike on high curvature
+      obstructionMap[i] = obstructionMap[i] * 0.92 + lap * 0.08;
+      if (obstructionMap[i] > thresh) obsCount++;
+    }
+  }
+
+  // update event statuses
+  for (const e of events) {
+    const obs = obstructionMap[idx(e.x, e.y)];
+    if (obs > thresh * 1.5) e.status = 'obstructed';
+    else if (obs > thresh * 0.5) e.status = 'tension';
+    else e.status = 'resolved';
+  }
+
+  return obsCount;
+}
+
+// ─── RENDERING ───────────────────────────────────────────────────────────────
+const fieldCanvas = document.getElementById('field');
+const overlayCanvas = document.getElementById('overlay');
+const plotCanvas = document.getElementById('plot');
+const fctx = fieldCanvas.getContext('2d');
+const octx = overlayCanvas.getContext('2d');
+const pctx = plotCanvas.getContext('2d');
+
+function resizeCanvases() {
+  const container = document.getElementById('canvas-container');
+  const w = container.clientWidth, h = container.clientHeight;
+  fieldCanvas.width = w; fieldCanvas.height = h;
+  overlayCanvas.width = w; overlayCanvas.height = h;
+  const pp = document.querySelector('.plot-panel');
+  plotCanvas.width = pp.clientWidth; plotCanvas.height = pp.clientHeight;
+}
+
+function drawField() {
+  const cw = fieldCanvas.width, ch = fieldCanvas.height;
+  const cxs = cw / W, cys = ch / H;
+  const dom = DOMAINS[currentDomain];
+  const imageData = fctx.createImageData(cw, ch);
+  const data = imageData.data;
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const v = field[idx(x, y)];
+      const r = dom.colorA[0] + (dom.colorB[0] - dom.colorA[0]) * v;
+      const g = dom.colorA[1] + (dom.colorB[1] - dom.colorA[1]) * v;
+      const b = dom.colorA[2] + (dom.colorB[2] - dom.colorA[2]) * v;
+
+      const px0 = Math.floor(x * cxs), py0 = Math.floor(y * cys);
+      const px1 = Math.ceil((x + 1) * cxs), py1 = Math.ceil((y + 1) * cys);
+
+      for (let py = py0; py < py1; py++) {
+        for (let px = px0; px < px1; px++) {
+          const pi = (py * cw + px) * 4;
+          data[pi] = r; data[pi + 1] = g; data[pi + 2] = b; data[pi + 3] = 255;
+        }
+      }
+    }
+  }
+  fctx.putImageData(imageData, 0, 0);
+
+  // draw constraint markers
+  const active = getActiveEvents();
+  for (const e of active) {
+    const cx = (e.x + 0.5) * cxs, cy = (e.y + 0.5) * cys;
+    fctx.beginPath();
+    fctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    fctx.strokeStyle = e.status === 'obstructed' ? '#f77e7e'
+                     : e.status === 'tension' ? '#f7b97e' : '#7ef7b0';
+    fctx.lineWidth = 1.5;
+    fctx.stroke();
+
+    // crosshair
+    fctx.strokeStyle = fctx.strokeStyle;
+    fctx.lineWidth = 0.5;
+    fctx.beginPath();
+    fctx.moveTo(cx - 8, cy); fctx.lineTo(cx + 8, cy);
+    fctx.moveTo(cx, cy - 8); fctx.lineTo(cx, cy + 8);
+    fctx.stroke();
+  }
+}
+
+function drawOverlay() {
+  if (!params.showOverlay) { octx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height); return; }
+  const cw = overlayCanvas.width, ch = overlayCanvas.height;
+  const cxs = cw / W, cys = ch / H;
+  const dom = DOMAINS[currentDomain];
+  const thresh = params.obstrThresh;
+
+  const imageData = octx.createImageData(cw, ch);
+  const data = imageData.data;
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const obs = obstructionMap[idx(x, y)];
+      if (obs < thresh * 0.3) continue;
+      const intensity = Math.min(1, (obs - thresh * 0.3) / thresh);
+      const px0 = Math.floor(x * cxs), py0 = Math.floor(y * cys);
+      const px1 = Math.ceil((x + 1) * cxs), py1 = Math.ceil((y + 1) * cys);
+      for (let py = py0; py < py1; py++) {
+        for (let px = px0; px < px1; px++) {
+          const pi = (py * cw + px) * 4;
+          data[pi] = dom.obstrColor[0];
+          data[pi + 1] = dom.obstrColor[1];
+          data[pi + 2] = dom.obstrColor[2];
+          data[pi + 3] = Math.floor(intensity * 180);
+        }
+      }
+    }
+  }
+  octx.putImageData(imageData, 0, 0);
+}
+
+function drawPlot() {
+  const cw = plotCanvas.width, ch = plotCanvas.height;
+  pctx.clearRect(0, 0, cw, ch);
+
+  // background
+  pctx.fillStyle = '#111116';
+  pctx.fillRect(0, 0, cw, ch);
+
+  if (actionHistory.length < 2) return;
+
+  const maxA = Math.max(...actionHistory, 0.001);
+  const n = Math.min(actionHistory.length, MAX_PLOT);
+  const startIdx = actionHistory.length - n;
+
+  // grid lines
+  pctx.strokeStyle = '#1e1e28';
+  pctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = ch - (i / 4) * (ch - 16) - 4;
+    pctx.beginPath();
+    pctx.moveTo(0, y); pctx.lineTo(cw, y);
+    pctx.stroke();
+  }
+
+  // gradient fill
+  const grad = pctx.createLinearGradient(0, 0, 0, ch);
+  grad.addColorStop(0, 'rgba(126,184,247,0.3)');
+  grad.addColorStop(1, 'rgba(126,184,247,0.0)');
+
+  pctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * cw;
+    const val = actionHistory[startIdx + i];
+    const y = ch - 4 - (val / maxA) * (ch - 16);
+    if (i === 0) pctx.moveTo(x, y); else pctx.lineTo(x, y);
+  }
+  pctx.lineTo(cw, ch); pctx.lineTo(0, ch);
+  pctx.closePath();
+  pctx.fillStyle = grad;
+  pctx.fill();
+
+  // line
+  pctx.beginPath();
+  pctx.strokeStyle = '#7eb8f7';
+  pctx.lineWidth = 1.5;
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * cw;
+    const val = actionHistory[startIdx + i];
+    const y = ch - 4 - (val / maxA) * (ch - 16);
+    if (i === 0) pctx.moveTo(x, y); else pctx.lineTo(x, y);
+  }
+  pctx.stroke();
+
+  // obstruction threshold line
+  const ty = ch - 4 - (params.obstrThresh * 3 / maxA) * (ch - 16);
+  if (ty > 0 && ty < ch) {
+    pctx.setLineDash([3, 3]);
+    pctx.strokeStyle = '#f77e7e44';
+    pctx.lineWidth = 1;
+    pctx.beginPath();
+    pctx.moveTo(0, ty); pctx.lineTo(cw, ty);
+    pctx.stroke();
+    pctx.setLineDash([]);
+  }
+
+  // current action dot
+  if (actionHistory.length > 0) {
+    const lastA = actionHistory[actionHistory.length - 1];
+    const y = ch - 4 - (lastA / maxA) * (ch - 16);
+    pctx.beginPath();
+    pctx.arc(cw - 2, y, 3, 0, Math.PI * 2);
+    pctx.fillStyle = '#7eb8f7';
+    pctx.fill();
+  }
+}
+
+// ─── STATS ───────────────────────────────────────────────────────────────────
+function updateStats(action, obsCount) {
+  const dA = actionHistory.length > 1
+    ? actionHistory[actionHistory.length - 1] - actionHistory[actionHistory.length - 2]
+    : 0;
+
+  // mean field
+  let sum = 0;
+  for (let i = 0; i < field.length; i++) sum += field[i];
+  const mean = sum / field.length;
+
+  document.getElementById('st-action').textContent = action.toFixed(5);
+  document.getElementById('st-action').className = 'stat-val ' +
+    (action < 0.001 ? 'ok' : action > 0.01 ? 'bad' : 'warn');
+
+  document.getElementById('st-da').textContent = (dA >= 0 ? '+' : '') + dA.toFixed(5);
+  document.getElementById('st-da').className = 'stat-val ' + (dA < 0 ? 'ok' : dA > 0 ? 'bad' : '');
+
+  document.getElementById('st-obs').textContent = obsCount !== undefined ? obsCount : '—';
+  document.getElementById('st-cstr').textContent = getActiveEvents().length;
+  document.getElementById('st-mean').textContent = mean.toFixed(3);
+  document.getElementById('st-frame').textContent = frameCount;
+
+  // badge
+  const badge = document.getElementById('coherence-badge');
+  if (action < 0.002) {
+    badge.textContent = 'COHERENT';
+    badge.className = 'coherence-badge ok';
+  } else if (action < 0.008 || (dA > -0.0001 && action > 0.003)) {
+    badge.textContent = 'TENSION';
+    badge.className = 'coherence-badge warn';
+  } else {
+    badge.textContent = 'OBSTRUCTED';
+    badge.className = 'coherence-badge obstructed';
+  }
+}
+
+// ─── EVENT LOG ───────────────────────────────────────────────────────────────
+function renderEventLog() {
+  const log = document.getElementById('event-log');
+  log.innerHTML = '';
+
+  events.forEach((e, i) => {
+    const div = document.createElement('div');
+    div.className = 'event-item ' + e.status + (selectedEvent === i ? ' selected' : '');
+
+    const active = playheadEvent === null || i <= playheadEvent;
+    if (!active) div.style.opacity = '0.35';
+
+    div.innerHTML = `
+      <div class="ev-head">
+        <span class="ev-t">t=${e.time}</span>
+        <span class="ev-pos">(${e.x},${e.y})</span>
+        <span class="ev-val">${e.value.toFixed(2)}</span>
+      </div>
+      <div class="ev-label">${e.label}</div>
+    `;
+    div.onclick = () => {
+      selectedEvent = selectedEvent === i ? null : i;
+      renderEventLog();
+    };
+    div.ondblclick = () => {
+      playheadEvent = playheadEvent === i ? null : i;
+      updatePlayhead();
+      renderEventLog();
+    };
+    log.appendChild(div);
+  });
+
+  document.getElementById('log-count').textContent = events.length + ' events';
+  updatePlayhead();
+}
+
+function updatePlayhead() {
+  const fill = document.getElementById('playhead');
+  if (playheadEvent === null || events.length === 0) {
+    fill.style.width = '100%';
+  } else {
+    fill.style.width = ((playheadEvent + 1) / events.length * 100) + '%';
+  }
+}
+
+// ─── MAIN LOOP ───────────────────────────────────────────────────────────────
+function loop() {
+  if (!paused) {
+    project();
+    relax();
+
+    const action = computeAction();
+    actionHistory.push(action);
+    if (actionHistory.length > MAX_PLOT) actionHistory.shift();
+
+    const obsCount = updateObstructionMap();
+    updateStats(action, obsCount);
+
+    frameCount++;
+    if (frameCount % 5 === 0) renderEventLog();
+  }
+
+  drawField();
+  drawOverlay();
+  drawPlot();
+
+  requestAnimationFrame(loop);
+}
+
+// ─── CONTROLS ────────────────────────────────────────────────────────────────
+function setupSlider(id, valId, key, fmt) {
+  const el = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  el.addEventListener('input', () => {
+    params[key] = parseFloat(el.value);
+    vl.textContent = fmt(params[key]);
+  });
+  vl.textContent = fmt(params[key]);
+}
+
+setupSlider('s-normal', 'v-normal', 'normalRate', v => v.toFixed(2));
+setupSlider('s-diffuse', 'v-diffuse', 'diffuse', v => v.toFixed(2));
+setupSlider('s-noise', 'v-noise', 'noise', v => v.toFixed(3));
+setupSlider('s-cstr', 'v-cstr', 'cstrStrength', v => v.toFixed(2));
+setupSlider('s-window', 'v-window', 'varWindow', v => v.toFixed(0));
+setupSlider('s-thresh', 'v-thresh', 'obstrThresh', v => v.toFixed(3));
+setupSlider('s-cval', 'v-cval', 'cval', v => v.toFixed(2));
+
+document.getElementById('cb-overlay').addEventListener('change', e => {
+  params.showOverlay = e.target.checked;
+});
+
+// Domain tabs
+document.getElementById('domain-tabs').addEventListener('click', e => {
+  if (!e.target.dataset.domain) return;
+  currentDomain = e.target.dataset.domain;
+  document.querySelectorAll('.domain-tab').forEach(t => t.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById('domain-info').innerHTML = DOMAINS[currentDomain].desc;
+});
+
+// Canvas click to add constraint
+fieldCanvas.addEventListener('click', e => {
+  const rect = fieldCanvas.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+  const cx = Math.floor(px / rect.width * W);
+  const cy = Math.floor(py / rect.height * H);
+  addEvent(cx, cy, params.cval);
+});
+
+// Buttons
+document.getElementById('btn-add-rand').onclick = () => {
+  addEvent(
+    Math.floor(Math.random() * (W - 4)) + 2,
+    Math.floor(Math.random() * (H - 4)) + 2,
+    Math.random()
+  );
+};
+
+document.getElementById('btn-add-conflict').onclick = () => {
+  // pick an existing event and add a nearby conflict
+  if (events.length === 0) {
+    addEvent(Math.floor(W / 2), Math.floor(H / 2), 1.0, 'anchor → 1.0');
+  }
+  const base = events[Math.floor(Math.random() * events.length)];
+  const dx = Math.floor(Math.random() * 6) - 3;
+  const dy = Math.floor(Math.random() * 6) - 3;
+  addEvent(
+    Math.max(1, Math.min(W - 2, base.x + dx)),
+    Math.max(1, Math.min(H - 2, base.y + dy)),
+    1.0 - base.value,
+    `conflict → ${(1 - base.value).toFixed(2)}`
+  );
+};
+
+document.getElementById('btn-loop').onclick = () => {
+  // incompatible loop: 4 constraints forming a contradictory cycle
+  const cx = Math.floor(W / 2), cy = Math.floor(H / 2);
+  const r = 12;
+  const vals = [1.0, 0.0, 1.0, 0.0];
+  const positions = [
+    [cx - r, cy], [cx + r, cy], [cx, cy - r], [cx, cy + r]
+  ];
+  positions.forEach(([x, y], i) => {
+    addEvent(x, y, vals[i], `loop node ${i + 1} → ${vals[i].toFixed(1)}`);
+  });
+};
+
+document.getElementById('btn-reset').onclick = () => {
+  initField();
+  obstructionMap.fill(0);
+  actionHistory = [];
+};
+
+document.getElementById('btn-clear').onclick = () => {
+  events = [];
+  playheadEvent = null;
+  selectedEvent = null;
+  initField();
+  renderEventLog();
+};
+
+document.getElementById('btn-pause').onclick = function () {
+  paused = !paused;
+  this.textContent = paused ? '▶ Resume' : 'Pause';
+  this.classList.toggle('active', paused);
+};
+
+document.getElementById('btn-step-back').onclick = () => {
+  if (playheadEvent === null) playheadEvent = events.length - 1;
+  else playheadEvent = Math.max(0, playheadEvent - 1);
+  updatePlayhead();
+  renderEventLog();
+};
+
+document.getElementById('btn-step-fwd').onclick = () => {
+  if (playheadEvent === null) return;
+  playheadEvent = playheadEvent >= events.length - 1 ? null : playheadEvent + 1;
+  updatePlayhead();
+  renderEventLog();
+};
+
+// VTT export
+document.getElementById('btn-export').onclick = () => {
+  let vtt = 'WEBVTT\n\n';
+  events.forEach((e, i) => {
+    const t = e.time / 60;
+    const ts = (s) => {
+      const m = Math.floor(s / 60);
+      const sec = (s % 60).toFixed(3);
+      return `00:${String(m).padStart(2,'0')}:${String(sec).padStart(6,'0')}`;
+    };
+    vtt += `${i + 1}\n`;
+    vtt += `${ts(t)} --> ${ts(t + 0.5)}\n`;
+    vtt += `[${currentDomain.toUpperCase()}] (${e.x},${e.y}) val=${e.value.toFixed(3)} — ${e.label} [${e.status}]\n\n`;
+  });
+  const blob = new Blob([vtt], { type: 'text/vtt' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `coherence-log-${currentDomain}.vtt`;
+  a.click();
+};
+
+// ─── TOOLTIP on field hover ───────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+fieldCanvas.addEventListener('mousemove', e => {
+  const rect = fieldCanvas.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+  const cx = Math.floor(px / rect.width * W);
+  const cy = Math.floor(py / rect.height * H);
+  if (cx < 0 || cx >= W || cy < 0 || cy >= H) { tooltip.style.display = 'none'; return; }
+  const v = field[idx(cx, cy)];
+  const obs = obstructionMap[idx(cx, cy)];
+  tooltip.style.display = 'block';
+  tooltip.style.left = (e.clientX + 14) + 'px';
+  tooltip.style.top = (e.clientY - 10) + 'px';
+  const dom = DOMAINS[currentDomain];
+  tooltip.innerHTML = `<strong>(${cx}, ${cy})</strong><br>value: ${v.toFixed(4)}<br>obstruction: ${obs.toFixed(5)}<br>domain: ${dom.name}`;
+});
+fieldCanvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+// ─── BOOT ────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => { resizeCanvases(); });
+resizeCanvases();
+initField();
+
+// seed initial events
+addEvent(25, 40, 1.0, 'anchor → 1.0');
+addEvent(75, 40, 0.0, 'anchor → 0.0');
+
+renderEventLog();
+loop();
+</script>
+</body>
+</html>

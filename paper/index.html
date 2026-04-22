@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple Audio Player</title>
+
+<style>
+body{
+  margin:0;
+  background:#000;
+  color:#0f0;
+  font-family:monospace;
+  text-align:center;
+}
+
+#ui{
+  margin-top:20px;
+}
+
+select,button{
+  background:#000;
+  color:#0f0;
+  border:1px solid #0f0;
+  padding:10px;
+  margin:5px;
+}
+
+#sub{
+  margin-top:20px;
+  font-size:18px;
+  text-shadow:0 0 8px #0f0;
+}
+
+canvas{
+  display:block;
+  margin:20px auto;
+  background:#111;
+  border-radius:50%;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="c" width="400" height="400"></canvas>
+
+<div id="ui">
+  <select id="track"></select>
+  <button id="play">PLAY</button>
+</div>
+
+<div id="sub">...</div>
+
+<audio id="audio"></audio>
+
+<script>
+const TRACKS = [
+  "Perfect_Ledgers_Producing_Zero_Value.mp3",
+  "Why_Error_Is_a_Structural_Obstruction.mp3",
+  "The_Universe_Edits_Out_the_Impossible.mp3",
+  "Why_the_smartest_brains_hit_pause.mp3",
+  "Fusing_Steam_and_Magnets_on_One_Rotor.mp3"
+]
+
+// elements
+const audio = document.getElementById("audio")
+const select = document.getElementById("track")
+const playBtn = document.getElementById("play")
+const sub = document.getElementById("sub")
+const canvas = document.getElementById("c")
+const ctx = canvas.getContext("2d")
+
+// audio
+let audioCtx, analyser, buffer
+
+function initAudio(){
+  if(audioCtx) return
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)()
+  analyser = audioCtx.createAnalyser()
+  analyser.fftSize = 1024
+  buffer = new Uint8Array(analyser.fftSize)
+
+  const src = audioCtx.createMediaElementSource(audio)
+  src.connect(analyser)
+  analyser.connect(audioCtx.destination)
+}
+
+// populate select
+TRACKS.forEach((t,i)=>{
+  const o = document.createElement("option")
+  o.value=i
+  o.textContent=t.replace(".mp3","").replace(/_/g," ")
+  select.appendChild(o)
+})
+
+// load track
+function loadTrack(i){
+  const file = TRACKS[i]
+
+  audio.src = file
+  audio.load()
+
+  // subtitles
+  while(audio.firstChild) audio.removeChild(audio.firstChild)
+  const track = document.createElement("track")
+  track.kind="subtitles"
+  track.src=file.replace(".mp3",".vtt")
+  track.default=true
+  audio.appendChild(track)
+
+  track.addEventListener("load",()=>{
+    const tt = audio.textTracks[0]
+    if(tt) tt.mode="hidden"
+  })
+}
+
+select.onchange = ()=> loadTrack(select.value)
+
+// play
+playBtn.onclick = async ()=>{
+  initAudio()
+  if(audioCtx.state==="suspended") await audioCtx.resume()
+
+  if(audio.paused){
+    audio.play()
+    playBtn.textContent="PAUSE"
+  }else{
+    audio.pause()
+    playBtn.textContent="PLAY"
+  }
+}
+
+// subtitles update
+audio.ontimeupdate = ()=>{
+  const tt = audio.textTracks[0]
+  if(!tt) return
+
+  const cue = tt.activeCues && tt.activeCues[0]
+  sub.textContent = cue ? cue.text : ""
+}
+
+// simple waveform
+function draw(){
+  ctx.fillStyle="rgba(0,0,0,0.2)"
+  ctx.fillRect(0,0,canvas.width,canvas.height)
+
+  if(analyser){
+    analyser.getByteTimeDomainData(buffer)
+
+    ctx.beginPath()
+    for(let i=0;i<buffer.length;i++){
+      const x = i / buffer.length * canvas.width
+      const y = canvas.height/2 + (buffer[i]-128)
+      i ? ctx.lineTo(x,y) : ctx.moveTo(x,y)
+    }
+
+    ctx.strokeStyle="#0f0"
+    ctx.stroke()
+  }
+
+  requestAnimationFrame(draw)
+}
+
+draw()
+
+// init first track
+loadTrack(0)
+</script>
+
+</body>
+</html>
