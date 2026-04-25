@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reverse Pipe Dream v2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg:      #080b08;
+  --panel:   #0c100c;
+  --border:  #1c2a1c;
+  --border2: #243024;
+  --flow:    #39ff8a;
+  --flow2:   #1aff6e;
+  --wet:     #3a7fff;
+  --leak:    #ff4422;
+  --warn:    #ffcc00;
+  --insul:   #44aaff;
+  --wall:    #445544;
+  --access:  #88ff44;
+  --text:    #7a9e7a;
+  --textb:   #b8ddb8;
+  --textd:   #384838;
+  --good:    #39ff8a;
+  --bad:     #ff4422;
+  --mid:     #ffcc00;
+  --lambda-safe: #39ff8a;
+  --lambda-warn: #ffcc00;
+  --lambda-bad:  #ff4422;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+header {
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  background: var(--panel);
+}
+header h1 {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: var(--flow);
+  text-transform: uppercase;
+}
+header .tagline {
+  font-size: 0.65rem;
+  color: var(--textd);
+  letter-spacing: 0.15em;
+}
+.phase-label {
+  margin-left: auto;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  padding: 4px 12px;
+  border: 1px solid var(--border2);
+  color: var(--textb);
+}
+.phase-label.build    { border-color: var(--good); color: var(--good); }
+.phase-label.diagnose { border-color: var(--warn); color: var(--warn); }
+.phase-label.complete { border-color: var(--flow); color: var(--flow); }
+
+/* ── MAIN LAYOUT ── */
+main {
+  display: grid;
+  grid-template-columns: 172px 1fr 220px;
+  gap: 0;
+  height: calc(100vh - 52px - 42px);
+  overflow: hidden;
+}
+
+/* ── COLUMNS ── */
+.col {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.col:last-child { border-right: none; }
+
+.col-title {
+  font-size: 0.58rem;
+  letter-spacing: 0.25em;
+  color: var(--textd);
+  padding: 10px 14px 6px;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+}
+
+/* ── TOOLS ── */
+.tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--text);
+  background: none;
+  text-align: left;
+  letter-spacing: 0.05em;
+  transition: all 0.1s;
+  width: 100%;
+}
+.tool:hover { border-color: var(--border2); color: var(--textb); }
+.tool.active { background: #0f180f; border-color: var(--flow); color: var(--flow); }
+.tool-key {
+  font-size: 0.55rem;
+  color: var(--textd);
+  margin-left: auto;
+  border: 1px solid var(--border);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.tool-icon { width: 18px; text-align: center; font-size: 0.9rem; }
+
+.tool-section {
+  font-size: 0.55rem;
+  color: var(--textd);
+  letter-spacing: 0.2em;
+  padding: 8px 9px 2px;
+  text-transform: uppercase;
+}
+
+/* ── GRID AREA ── */
+.grid-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: #090c09;
+}
+
+#grid {
+  display: grid;
+  gap: 3px;
+  background: #070a07;
+  padding: 10px;
+  border: 1px solid var(--border);
+}
+
+.cell {
+  width: 68px;
+  height: 68px;
+  position: relative;
+  cursor: pointer;
+  border: 1px solid #111811;
+  background: #0a0d0a;
+  transition: border-color 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.cell:hover { border-color: var(--border2); }
+.cell.src { border-color: rgba(57,255,138,0.5); }
+.cell.snk { border-color: rgba(58,127,255,0.5); }
+
+/* pipe drawing: segments inside cell */
+.pipe-h { position: absolute; top: 50%; left: 0; right: 0; height: 10px; margin-top: -5px; }
+.pipe-v { position: absolute; left: 50%; top: 0; bottom: 0; width: 10px; margin-left: -5px; }
+.pipe-center { position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; margin: -8px; border-radius: 50%; }
+
+.wet-overlay {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  transition: background 0.4s;
+}
+.integrity-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px;
+  transition: width 0.5s, background 0.5s;
+}
+.cell-label {
+  position: absolute; top: 2px; left: 3px;
+  font-size: 0.45rem;
+  color: var(--warn);
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.cell-type-tag {
+  position: absolute; bottom: 4px; right: 3px;
+  font-size: 0.45rem;
+  color: var(--textd);
+  pointer-events: none;
+}
+.leak-indicator {
+  position: absolute; top: 2px; right: 3px;
+  font-size: 0.7rem;
+  pointer-events: none;
+  animation: drip 0.8s infinite;
+}
+@keyframes drip {
+  0%,100% { opacity: 1; transform: translateY(0); }
+  50%      { opacity: 0.6; transform: translateY(2px); }
+}
+.fog {
+  position: absolute; inset: 0;
+  background: #090c09;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--textd);
+  font-size: 1.2rem;
+  pointer-events: none;
+}
+.inspect-highlight { border-color: var(--warn) !important; box-shadow: 0 0 0 1px var(--warn); }
+.flow-lit { border-color: rgba(57,255,138,0.25); }
+.flow-lit .pipe-h, .flow-lit .pipe-v { background: rgba(57,255,138,0.18); }
+
+/* ── METRICS BAR under grid ── */
+.metrics-row {
+  display: flex;
+  gap: 2px;
+  width: 100%;
+}
+.metric {
+  flex: 1;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+}
+.metric-name { color: var(--textd); font-size: 0.52rem; letter-spacing: 0.12em; margin-bottom: 2px; }
+.metric-val  { color: var(--textb); font-size: 0.78rem; font-weight: 500; }
+.metric-val.good { color: var(--good); }
+.metric-val.warn { color: var(--warn); }
+.metric-val.bad  { color: var(--bad); }
+
+.lambda-bar-wrap {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+}
+.lambda-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  margin-bottom: 4px;
+}
+.lambda-bar-track {
+  height: 6px;
+  background: #0f160f;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.lambda-bar-fill {
+  height: 100%;
+  transition: width 0.6s, background 0.6s;
+}
+.lambda-threshold {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(255,255,255,0.3);
+  left: 50%;
+}
+
+/* ── RIGHT PANEL ── */
+.right-col {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  font-size: 0.62rem;
+  line-height: 1.65;
+}
+.log-entry { padding: 2px 4px; border-bottom: 1px solid #0d110d; }
+.log-entry.info  { color: var(--text); }
+.log-entry.good  { color: var(--good); }
+.log-entry.warn  { color: var(--warn); }
+.log-entry.bad   { color: var(--bad); }
+.log-entry.sys   { color: var(--textd); font-style: italic; }
+.log-t { color: var(--textd); margin-right: 5px; font-size: 0.55rem; }
+
+.inspect-result {
+  padding: 10px 12px;
+  background: #0a120a;
+  border-top: 1px solid var(--border);
+  font-size: 0.62rem;
+  line-height: 1.7;
+  min-height: 120px;
+}
+.inspect-result .field { display: flex; justify-content: space-between; padding: 1px 0; }
+.inspect-result .field span:last-child { color: var(--textb); }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  padding: 8px 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.action-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  padding: 5px 14px;
+  border: 1px solid var(--border2);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.1s;
+}
+.action-btn:hover { border-color: var(--flow); color: var(--flow); }
+.action-btn.primary { border-color: var(--flow); color: var(--flow); }
+.action-btn.primary:hover { background: #0f1f0f; }
+.action-btn.danger { border-color: #3a1a0a; }
+.action-btn.danger:hover { border-color: var(--bad); color: var(--bad); }
+.action-btn:disabled { opacity: 0.3; cursor: default; }
+.footer-info {
+  margin-left: auto;
+  font-size: 0.6rem;
+  color: var(--textd);
+  letter-spacing: 0.1em;
+}
+
+/* scrollbars */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/* modal */
+#modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 200;
+  align-items: center; justify-content: center;
+}
+#modal.open { display: flex; }
+#modal-box {
+  background: #0c120c;
+  border: 1px solid var(--flow);
+  padding: 32px 40px;
+  max-width: 480px;
+  width: 92%;
+  box-shadow: 0 0 60px rgba(57,255,138,0.1);
+  font-size: 0.78rem;
+  line-height: 1.85;
+}
+#modal-box h2 {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.9rem;
+  letter-spacing: 0.2em;
+  color: var(--flow);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+#modal-box .score-line {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+}
+#modal-close {
+  margin-top: 20px;
+  display: block;
+  width: 100%;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  padding: 10px;
+  background: #0a1a0a;
+  border: 1px solid var(--flow);
+  color: var(--flow);
+  cursor: pointer;
+  text-transform: uppercase;
+}
+#modal-close:hover { background: #0f2a0f; }
+
+/* key hint tooltip */
+.key-hint {
+  font-size: 0.55rem;
+  color: var(--textd);
+  text-align: center;
+  padding: 4px 0;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Reverse Pipe Dream</h1>
+  <span class="tagline">build · decay · diagnose · repair</span>
+  <span class="phase-label build" id="phase-label">BUILD PHASE</span>
+</header>
+
+<main>
+  <!-- LEFT: TOOLS -->
+  <div class="col">
+    <div class="col-title">Cards</div>
+    <div class="tool-list">
+      <div class="tool-section">Conduit</div>
+      <button class="tool active" id="tool-pipe"       onclick="setTool('pipe')">
+        <span class="tool-icon">━</span>Pipe<span class="tool-key">1</span>
+      </button>
+      <button class="tool" id="tool-joint-good" onclick="setTool('joint-good')">
+        <span class="tool-icon">◎</span>Good joint<span class="tool-key">2</span>
+      </button>
+      <button class="tool" id="tool-joint-weak" onclick="setTool('joint-weak')">
+        <span class="tool-icon">○</span>Weak joint<span class="tool-key">3</span>
+      </button>
+
+      <div class="tool-section" style="margin-top:4px">Protection</div>
+      <button class="tool" id="tool-insulation" onclick="setTool('insulation')">
+        <span class="tool-icon">◈</span>Insulation<span class="tool-key">4</span>
+      </button>
+
+      <div class="tool-section" style="margin-top:4px">Structure</div>
+      <button class="tool" id="tool-wall"   onclick="setTool('wall')">
+        <span class="tool-icon">▪</span>Wall<span class="tool-key">5</span>
+      </button>
+      <button class="tool" id="tool-access" onclick="setTool('access')">
+        <span class="tool-icon">⊞</span>Access panel<span class="tool-key">6</span>
+      </button>
+
+      <div class="tool-section" style="margin-top:4px">Meta</div>
+      <button class="tool" id="tool-label"  onclick="setTool('label')">
+        <span class="tool-icon">🏷</span>Label<span class="tool-key">L</span>
+      </button>
+      <button class="tool" id="tool-erase"  onclick="setTool('erase')">
+        <span class="tool-icon">✕</span>Erase<span class="tool-key">E</span>
+      </button>
+
+      <div style="flex:1"></div>
+
+      <!-- mini legend -->
+      <div style="padding:8px;border-top:1px solid var(--border);font-size:0.58rem;line-height:2;color:var(--textd)">
+        <div>━ pipe → conducts flow</div>
+        <div>◎ joint → stress point</div>
+        <div>◈ insulation → -75% stress</div>
+        <div>▪ wall → hides, blocks</div>
+        <div>⊞ access → free inspect</div>
+        <div>🌊 wet signal → not a leak</div>
+        <div>💧 leak → actual failure</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: GRID -->
+  <div class="col grid-col" style="border-right:1px solid var(--border)">
+    <div id="grid"></div>
+
+    <div class="metrics-row" id="metrics-row">
+      <div class="metric">
+        <div class="metric-name">δ̄ OBSTRUCTION</div>
+        <div class="metric-val" id="m-obs">0.00</div>
+      </div>
+      <div class="metric">
+        <div class="metric-name">S ENTROPY</div>
+        <div class="metric-val" id="m-ent">0.00</div>
+      </div>
+      <div class="metric">
+        <div class="metric-name">D DOCS</div>
+        <div class="metric-val" id="m-doc">0%</div>
+      </div>
+      <div class="metric">
+        <div class="metric-name">Φ FLOW</div>
+        <div class="metric-val" id="m-flow">✗</div>
+      </div>
+      <div class="metric">
+        <div class="metric-name">INSPECTS</div>
+        <div class="metric-val" id="m-insp">—</div>
+      </div>
+    </div>
+
+    <div class="lambda-bar-wrap">
+      <div class="lambda-bar-label">
+        <span style="color:var(--textd);font-size:0.58rem;letter-spacing:0.12em">λ XYLOMORPHIC CRITERION</span>
+        <span id="lambda-val" style="font-weight:700">—</span>
+      </div>
+      <div class="lambda-bar-track">
+        <div class="lambda-bar-fill" id="lambda-fill" style="width:0%;background:var(--good)"></div>
+        <div class="lambda-threshold"></div>
+      </div>
+      <div class="key-hint">λ &lt; 1 → system regenerates · λ &gt; 1 → system degrading</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: LOG + INSPECT -->
+  <div class="col right-col">
+    <div class="col-title">Field log</div>
+    <div id="log"></div>
+    <div class="col-title" style="border-top:1px solid var(--border)">Inspection</div>
+    <div class="inspect-result" id="inspect-panel">
+      <div style="color:var(--textd);font-size:0.62rem">No tile selected.</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <button class="action-btn primary" id="btn-skip" onclick="doTimeSkip()">⏩ Skip Time [Space]</button>
+  <button class="action-btn" id="btn-inspect" onclick="toggleInspect()" style="display:none">🔍 Inspect [I]</button>
+  <button class="action-btn" id="btn-repair" onclick="doRepair()" style="display:none">🔧 Repair [R]</button>
+  <button class="action-btn danger" onclick="confirmReset()">↺ Reset</button>
+  <span class="footer-info" id="footer-info">Place cards · Connect SOURCE → SINK · Skip time</span>
+</footer>
+
+<div id="modal">
+  <div id="modal-box">
+    <h2 id="modal-title"></h2>
+    <div id="modal-body"></div>
+    <div class="score-line" id="score-line" style="display:none">
+      <span>Final score</span>
+      <span id="final-score" style="color:var(--flow);font-weight:700"></span>
+    </div>
+    <button id="modal-close" onclick="closeModal()">Continue</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════
+const COLS = 6, ROWS = 6;
+const SRC_R = 2, SRC_C = 0;   // source tile
+const SNK_R = 3, SNK_C = 5;   // sink tile
+const MAX_INSPECTIONS = 6;
+const TIME_STEPS = 22;
+
+// Card definitions
+const CARDS = {
+  pipe:       { label:'Pipe',        conducts:true,  insulates:false, hides:false, access:false, baseInteg:1.00, stressMult:1.0 },
+  'joint-good':{ label:'Good Joint', conducts:true,  insulates:false, hides:false, access:false, baseInteg:1.00, stressMult:1.1 },
+  'joint-weak':{ label:'Weak Joint', conducts:true,  insulates:false, hides:false, access:false, baseInteg:0.50, stressMult:2.4 },
+  insulation: { label:'Insulation',  conducts:false, insulates:true,  hides:false, access:false, baseInteg:1.00, stressMult:0 },
+  wall:       { label:'Wall',        conducts:false, insulates:false, hides:true,  access:false, baseInteg:1.00, stressMult:0 },
+  access:     { label:'Access Panel',conducts:false, insulates:false, hides:false, access:true,  baseInteg:1.00, stressMult:0 },
+};
+
+// ═══════════════════════════════════════════════════
+// STATE — mirrors RSVP vector X(t)
+// ═══════════════════════════════════════════════════
+class GameState {
+  constructor() {
+    this.phi          = 0;   // Φ: productive capacity (flow success)
+    this.flow         = 0;   // connectivity measure
+    this.entropy      = 0;   // S(t): accumulated disorder
+    this.obstruction  = 0;   // δ̄: structural mismatch
+    this.knowledge    = 0;   // K_e: player knowledge proxy
+    this.documentation= 0;   // D: documentation fraction
+    this.time         = 0;
+    this.inspectionsLeft = MAX_INSPECTIONS;
+    this.phase        = 'build';   // build | diagnose | complete
+    this.inspectMode  = false;
+    this.selectedCell = null;
+    this.inspectionsUsed = 0;
+    this.unnecessaryDamage = 0;
+    this.repairsComplete = 0;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// TILE — local section of the sheaf
+// ═══════════════════════════════════════════════════
+function makeTile(r, c) {
+  return {
+    r, c,
+    card: null,
+    integrity: 1.0,
+    stress: 0,
+    leak: false,
+    wet: 0,
+    label: '',
+    revealed: false,   // player has inspected
+    isSource: (r === SRC_R && c === SRC_C),
+    isSink:   (r === SNK_R && c === SNK_C),
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// GRID — sheaf cover
+// ═══════════════════════════════════════════════════
+let grid = [];
+let state = new GameState();
+let tool = 'pipe';
+
+function initGrid() {
+  grid = [];
+  for (let r = 0; r < ROWS; r++) {
+    grid[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      grid[r][c] = makeTile(r, c);
+    }
+  }
+  // pre-place source/sink
+  grid[SRC_R][SRC_C].card = 'pipe'; grid[SRC_R][SRC_C].integrity = 1;
+  grid[SNK_R][SNK_C].card = 'pipe'; grid[SNK_R][SNK_C].integrity = 1;
+}
+
+function neighbors(r, c) {
+  return [[-1,0],[1,0],[0,-1],[0,1]]
+    .map(([dr,dc]) => [r+dr, c+dc])
+    .filter(([nr,nc]) => nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS);
+}
+
+// ═══════════════════════════════════════════════════
+// DYNAMICS — F: X(t) → X(t+1)
+// ═══════════════════════════════════════════════════
+
+// Stress function — the heart of the simulator
+// Encodes bad local decisions as deterministic consequences
+function computeStress(r, c) {
+  const t = grid[r][c];
+  if (!t.card || !CARDS[t.card].conducts) return 0;
+
+  let stress = 0.008;
+
+  // joint type matters
+  stress *= CARDS[t.card].stressMult;
+
+  // insulation neighbor reduces stress by 75%
+  let insulated = false;
+  for (const [nr, nc] of neighbors(r, c)) {
+    if (grid[nr][nc].card === 'insulation') { insulated = true; break; }
+  }
+  if (!insulated) stress += 0.018;
+
+  // wet neighbors increase stress (moisture → material stress)
+  for (const [nr, nc] of neighbors(r, c)) {
+    if (grid[nr][nc].wet > 0.4) stress += 0.008;
+  }
+
+  return stress;
+}
+
+// Obstruction δ̄ — Čech-style mismatch between adjacent sections
+function computeObstruction() {
+  let total = 0, count = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const t = grid[r][c];
+      for (const [nr, nc] of neighbors(r, c)) {
+        const n = grid[nr][nc];
+        count++;
+        // conducting-nonconducting abrupt joins increase obstruction
+        if (t.card && n.card) {
+          const tc = CARDS[t.card].conducts, nc2 = CARDS[n.card].conducts;
+          if (tc !== nc2) total += 0.5;
+        }
+        // covered with no access = high obstruction
+        if (t.card === 'wall' && !t.revealed) {
+          const hasAccess = neighbors(r,c).some(([ar,ac]) => grid[ar][ac].card === 'access');
+          if (!hasAccess) total += 0.35;
+        }
+        // unlabeled conducting tile = moderate obstruction
+        if (t.card && CARDS[t.card].conducts && !t.label) total += 0.12;
+      }
+    }
+  }
+  return count ? Math.min(1, total / count) : 0;
+}
+
+// Documentation score D ∈ [0,1]
+function computeDocumentation() {
+  let docs = 0, relevant = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const t = grid[r][c];
+      if (t.card && CARDS[t.card].conducts) {
+        relevant++;
+        if (t.label.trim()) docs++;
+      }
+    }
+  }
+  return relevant ? docs / relevant : 0;
+}
+
+// λ = extracted / produced — xylomorphic criterion
+function computeLambda() {
+  const produced = state.flow + state.knowledge + state.documentation + 0.01;
+  const extracted = state.entropy + state.obstruction;
+  return extracted / produced;
+}
+
+// Connectivity — BFS along conducting cards
+function computeConnectivity() {
+  const visited = Array.from({length:ROWS}, () => Array(COLS).fill(false));
+  const q = [[SRC_R, SRC_C]];
+  if (!grid[SRC_R][SRC_C].card || !CARDS[grid[SRC_R][SRC_C].card].conducts) return { connected: false, visited };
+  visited[SRC_R][SRC_C] = true;
+  let connected = false;
+  while (q.length) {
+    const [r, c] = q.shift();
+    if (r === SNK_R && c === SNK_C) { connected = true; }
+    for (const [nr, nc] of neighbors(r, c)) {
+      if (visited[nr][nc]) continue;
+      const nt = grid[nr][nc];
+      if (!nt.card || !CARDS[nt.card].conducts) continue;
+      // leaks reduce conductivity (but don't break it entirely — pressure drops)
+      visited[nr][nc] = true;
+      q.push([nr, nc]);
+    }
+  }
+  return { connected, visited };
+}
+
+// Single simulation step
+function simStep() {
+  // 1. Compute and apply stress → degradation
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const t = grid[r][c];
+      if (!t.card || !CARDS[t.card].conducts) continue;
+      t.stress = computeStress(r, c);
+      t.integrity = Math.max(0, t.integrity - t.stress);
+      // leak formation: threshold differs by joint type
+      const threshold = t.card === 'joint-weak' ? 0.38 : t.card === 'joint-good' ? 0.14 : 0.20;
+      if (!t.leak && t.integrity < threshold && Math.random() < 0.10) {
+        t.leak = true;
+        log(`Integrity failure: [${r},${c}] ${CARDS[t.card].label}`, 'bad');
+      }
+    }
+  }
+
+  // 2. Moisture propagation (spreads away from source, creating false leads)
+  const nextWet = grid.map(row => row.map(t => t.wet * 0.90));
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const t = grid[r][c];
+      if (t.leak) nextWet[r][c] = 1.0;
+      if (t.wet > 0.38) {
+        for (const [nr, nc] of neighbors(r, c)) {
+          nextWet[nr][nc] = Math.max(nextWet[nr][nc], t.wet * 0.68);
+        }
+      }
+    }
+  }
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      grid[r][c].wet = nextWet[r][c];
+
+  // 3. Update global state vector
+  const { connected } = computeConnectivity();
+  state.flow = connected ? 1.0 : 0.0;
+  state.documentation = computeDocumentation();
+  state.obstruction = computeObstruction();
+  state.entropy += state.obstruction * 0.08;
+  state.time++;
+}
+
+// ═══════════════════════════════════════════════════
+// OBSERVATION — what the player sees (reverse pass)
+// ═══════════════════════════════════════════════════
+function isVisible(r, c) {
+  if (state.phase === 'build') return true;
+  const t = grid[r][c];
+  if (t.isSource || t.isSink) return true;
+  if (t.card === 'access') return true;   // access panels always visible
+  if (t.revealed) return true;
+  return false;
+}
+
+function isWetSignalVisible(r, c) {
+  return grid[r][c].wet > 0.28; // player sees wet signal regardless
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+function render() {
+  const { connected, visited } = computeConnectivity();
+  state.flow = connected ? 1.0 : 0.0;
+  state.documentation = computeDocumentation();
+  state.obstruction = computeObstruction();
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      renderCell(r, c, visited[r][c]);
+    }
+  }
+
+  // metrics
+  const obs = state.obstruction;
+  const ent = state.entropy;
+  const doc = state.documentation;
+  const lam = computeLambda();
+
+  const obsEl = document.getElementById('m-obs');
+  obsEl.textContent = obs.toFixed(2);
+  obsEl.className = 'metric-val ' + (obs < 0.2 ? 'good' : obs < 0.5 ? 'warn' : 'bad');
+
+  const entEl = document.getElementById('m-ent');
+  entEl.textContent = ent.toFixed(2);
+  entEl.className = 'metric-val ' + (ent < 0.5 ? 'good' : ent < 1.5 ? 'warn' : 'bad');
+
+  const docEl = document.getElementById('m-doc');
+  docEl.textContent = Math.round(doc * 100) + '%';
+  docEl.className = 'metric-val ' + (doc > 0.6 ? 'good' : doc > 0.3 ? 'warn' : 'bad');
+
+  const flowEl = document.getElementById('m-flow');
+  flowEl.textContent = connected ? '✓' : '✗';
+  flowEl.className = 'metric-val ' + (connected ? 'good' : 'bad');
+
+  const inspEl = document.getElementById('m-insp');
+  if (state.phase === 'build') { inspEl.textContent = '—'; inspEl.className = 'metric-val'; }
+  else {
+    inspEl.textContent = state.inspectionsLeft;
+    inspEl.className = 'metric-val ' + (state.inspectionsLeft > 3 ? 'good' : state.inspectionsLeft > 1 ? 'warn' : 'bad');
+  }
+
+  // lambda bar
+  const lamFrac = Math.min(1, lam / 2);
+  const lamBar = document.getElementById('lambda-fill');
+  lamBar.style.width = (lamFrac * 100) + '%';
+  lamBar.style.background = lam < 0.6 ? 'var(--lambda-safe)' : lam < 1.0 ? 'var(--lambda-warn)' : 'var(--lambda-bad)';
+  const lamVal = document.getElementById('lambda-val');
+  lamVal.textContent = state.phase === 'build' ? lam.toFixed(2) : '?';
+  lamVal.style.color = lam < 1 ? 'var(--good)' : 'var(--bad)';
+
+  // footer info
+  document.getElementById('footer-info').textContent =
+    state.phase === 'build'
+      ? `t=${state.time} · ${connected ? 'FLOW: connected' : 'FLOW: no path'} · λ=${lam.toFixed(2)}`
+      : `t=${state.time} · inspections left: ${state.inspectionsLeft} · ${connected ? 'flow: OK' : 'flow: broken'}`;
+}
+
+function renderCell(r, c, inFlow) {
+  const t = grid[r][c];
+  const el = document.getElementById(`c-${r}-${c}`);
+  if (!el) return;
+
+  const visible = isVisible(r, c);
+  const wetSignal = isWetSignalVisible(r, c);
+  const isSelected = state.selectedCell && state.selectedCell[0]===r && state.selectedCell[1]===c;
+
+  // reset classes
+  el.className = 'cell';
+  if (t.isSource) el.classList.add('src');
+  if (t.isSink)   el.classList.add('snk');
+  if (inFlow && state.phase === 'build') el.classList.add('flow-lit');
+  if (isSelected) el.classList.add('inspect-highlight');
+
+  let inner = '';
+
+  // source/sink special
+  if (t.isSource) {
+    inner = `<div style="color:var(--flow);font-size:0.6rem;letter-spacing:0.1em;font-weight:700">SRC<br>▶</div>`;
+    el.innerHTML = inner; return;
+  }
+  if (t.isSink) {
+    inner = `<div style="color:var(--wet);font-size:0.6rem;letter-spacing:0.1em;font-weight:700">◀<br>SNK</div>`;
+    el.innerHTML = inner; return;
+  }
+
+  // fog overlay (diagnose phase, not revealed)
+  if (!visible && t.card && t.card !== 'access') {
+    let fogContent = wetSignal ? `<div class="wet-overlay" style="background:rgba(58,127,255,0.22)"></div><div style="position:absolute;bottom:3px;left:50%;transform:translateX(-50%);font-size:0.6rem;color:var(--wet);opacity:0.8">🌊</div>` : '';
+    el.innerHTML = `<div class="fog">▓</div>${fogContent}`;
+    return;
+  }
+
+  if (!t.card) {
+    // empty, but show wet signal
+    if (wetSignal) {
+      el.innerHTML = `<div class="wet-overlay" style="background:rgba(58,127,255,0.18)"></div><div style="color:var(--wet);font-size:0.8rem;opacity:0.7">🌊</div>`;
+    } else {
+      el.innerHTML = '';
+    }
+    return;
+  }
+
+  const cd = CARDS[t.card];
+  const intPct = Math.round(t.integrity * 100);
+  const barColor = t.integrity > 0.6 ? 'var(--good)' : t.integrity > 0.3 ? 'var(--warn)' : 'var(--bad)';
+
+  // card body by type
+  let cardBody = '';
+  if (t.card === 'pipe') {
+    const lineCol = t.leak ? 'var(--bad)' : inFlow && state.phase==='build' ? 'rgba(57,255,138,0.5)' : 'rgba(255,255,255,0.15)';
+    cardBody = `<div class="pipe-h" style="background:${lineCol}"></div>
+                <div class="pipe-v" style="background:${lineCol}"></div>
+                <div class="pipe-center" style="background:${lineCol}"></div>`;
+  } else if (t.card === 'joint-good') {
+    cardBody = `<div style="font-size:1.4rem;color:var(--good);opacity:${t.integrity}">◎</div>`;
+  } else if (t.card === 'joint-weak') {
+    const col = t.integrity > 0.5 ? 'var(--warn)' : 'var(--bad)';
+    cardBody = `<div style="font-size:1.4rem;color:${col};opacity:0.9">○</div>`;
+  } else if (t.card === 'insulation') {
+    cardBody = `<div style="font-size:1.1rem;color:var(--insul);opacity:0.8">◈◈<br>◈◈</div>`;
+  } else if (t.card === 'wall') {
+    cardBody = `<div style="font-size:1.6rem;color:var(--wall)">▪</div>`;
+  } else if (t.card === 'access') {
+    cardBody = `<div style="font-size:1.2rem;color:var(--access)">⊞</div>`;
+  }
+
+  const leakHTML = (t.leak && visible) ? `<div class="leak-indicator">💧</div>` : '';
+  const labelHTML = t.label ? `<div class="cell-label">📎${t.label}</div>` : '';
+  const tagHTML = visible ? `<div class="cell-type-tag">${cd.label.slice(0,4).toUpperCase()}</div>` : '';
+  const barHTML = cd.conducts && visible
+    ? `<div class="integrity-bar" style="width:${intPct}%;background:${barColor}"></div>`
+    : '';
+  const wetHTML = wetSignal
+    ? `<div class="wet-overlay" style="background:rgba(58,127,255,${Math.min(0.35, t.wet * 0.35)})"></div>`
+    : '';
+
+  el.innerHTML = cardBody + wetHTML + leakHTML + labelHTML + tagHTML + barHTML;
+}
+
+// ═══════════════════════════════════════════════════
+// DOM SETUP
+// ═══════════════════════════════════════════════════
+function buildGridDOM() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  g.style.gridTemplateColumns = `repeat(${COLS}, 68px)`;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      div.id = `c-${r}-${c}`;
+      div.addEventListener('click', () => onCellClick(r, c));
+      g.appendChild(div);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// INTERACTIONS
+// ═══════════════════════════════════════════════════
+function onCellClick(r, c) {
+  const t = grid[r][c];
+
+  if (state.phase === 'build') {
+    if (t.isSource || t.isSink) return;
+
+    if (tool === 'erase') {
+      t.card = null; t.integrity = 1; t.label = ''; t.leak = false; t.wet = 0;
+      log(`Erased [${r},${c}]`, 'sys');
+      render(); return;
+    }
+    if (tool === 'label') {
+      if (!t.card) { log('No card to label.', 'warn'); return; }
+      const lbl = prompt('Label this tile (short):', t.label || '');
+      if (lbl !== null) {
+        t.label = lbl.trim().slice(0, 10);
+        log(`Labeled [${r},${c}]: "${t.label}"`, 'info');
+      }
+      render(); return;
+    }
+    t.card = tool;
+    t.integrity = CARDS[tool].baseInteg;
+    t.leak = false; t.wet = 0; t.revealed = false; t.label = t.label || '';
+    render(); return;
+  }
+
+  // diagnose phase
+  if (state.phase === 'diagnose') {
+    if (state.inspectMode) {
+      doInspect(r, c);
+    }
+  }
+}
+
+function doInspect(r, c) {
+  if (state.inspectionsLeft <= 0) { log('No inspections remaining.', 'warn'); return; }
+
+  const t = grid[r][c];
+  // access panel adjacency = free
+  const freeAccess = neighbors(r, c).some(([nr, nc]) => grid[nr][nc].card === 'access');
+
+  if (!freeAccess) {
+    state.inspectionsLeft--;
+    state.inspectionsUsed++;
+  }
+
+  t.revealed = true;
+  state.selectedCell = [r, c];
+  state.knowledge += 0.05;
+
+  // update inspect panel
+  const panel = document.getElementById('inspect-panel');
+  const intPct = Math.round(t.integrity * 100);
+  const docBonus = t.label ? ` (documented: "${t.label}")` : '';
+  const leakStr = t.leak ? '💧 LEAKING' : '— none';
+  const stressStr = t.card && CARDS[t.card].conducts ? (t.stress * 100).toFixed(1) + '%/tick' : 'N/A';
+
+  panel.innerHTML = `
+    <div class="field"><span>Location</span><span>[${r}, ${c}]</span></div>
+    <div class="field"><span>Card</span><span>${t.card ? CARDS[t.card].label : 'Empty'}${docBonus}</span></div>
+    <div class="field"><span>Integrity</span><span style="color:${intPct > 60 ? 'var(--good)' : intPct > 30 ? 'var(--warn)' : 'var(--bad)'}">${intPct}%</span></div>
+    <div class="field"><span>Leak</span><span style="color:${t.leak ? 'var(--bad)' : 'var(--good)'}">${leakStr}</span></div>
+    <div class="field"><span>Wet level</span><span>${Math.round(t.wet * 100)}%</span></div>
+    <div class="field"><span>Stress/tick</span><span>${stressStr}</span></div>
+    <div class="field"><span>Access free</span><span>${freeAccess ? '✓ yes' : '✗ no'}</span></div>
+  `;
+
+  const desc = t.leak
+    ? `[${r},${c}] LEAK FOUND — ${CARDS[t.card]?.label || 'empty'}${freeAccess ? ' (free via access)' : ''}`
+    : `[${r},${c}] ${t.card ? CARDS[t.card].label : 'empty'} — integrity ${intPct}%${freeAccess ? ' (free)' : ''}`;
+  log(desc, t.leak ? 'bad' : 'info');
+
+  render();
+  checkEndConditions();
+}
+
+function doRepair() {
+  if (!state.selectedCell) { log('Select a tile via inspect first.', 'warn'); return; }
+  const [r, c] = state.selectedCell;
+  const t = grid[r][c];
+  if (!t.revealed) { log('Inspect tile before repairing.', 'warn'); return; }
+  if (!t.leak) { log('No leak at this tile.', 'warn'); return; }
+
+  t.leak = false;
+  t.integrity = CARDS[t.card].baseInteg;
+  t.wet *= 0.15;
+  state.repairsComplete++;
+  state.knowledge += 0.1;
+  log(`Repaired [${r},${c}] — ${CARDS[t.card].label}`, 'good');
+  render();
+  checkEndConditions();
+}
+
+function doTimeSkip() {
+  const { connected } = computeConnectivity();
+  if (!connected) {
+    showModal('No Flow Path', 'SOURCE is not connected to SINK. Build a continuous conducting path before skipping time.\n\nPipes, good joints, and weak joints all conduct. Insulation, walls, and access panels do not.', false);
+    return;
+  }
+
+  log('━━━ TIME SKIP ━━━', 'sys');
+  for (let i = 0; i < TIME_STEPS; i++) simStep();
+
+  let leakCount = 0;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (grid[r][c].leak) leakCount++;
+
+  state.phase = 'diagnose';
+  state.inspectionsLeft = MAX_INSPECTIONS;
+  updatePhaseUI();
+
+  if (leakCount === 0) {
+    log('System survived. No failures detected.', 'good');
+    state.phase = 'complete';
+    updatePhaseUI();
+    const lam = computeLambda();
+    showModal('System Survived', `Your system ran for ${TIME_STEPS} cycles without failure.\n\nλ = ${lam.toFixed(2)} — ${lam < 1 ? 'regenerative' : 'degrading but held'}\n\nWell-designed systems remain silent.`, true);
+  } else {
+    log(`${leakCount} failure${leakCount>1?'s':''} detected. Wet signals visible. Source unknown.`, 'warn');
+    log(`Inspect budget: ${MAX_INSPECTIONS}. Use access panels to inspect adjacent tiles for free.`, 'info');
+  }
+  render();
+}
+
+function toggleInspect() {
+  if (state.phase !== 'diagnose') return;
+  state.inspectMode = !state.inspectMode;
+  const btn = document.getElementById('btn-inspect');
+  btn.textContent = state.inspectMode ? '🔍 Inspect ON [I]' : '🔍 Inspect [I]';
+  btn.style.borderColor = state.inspectMode ? 'var(--warn)' : '';
+  btn.style.color = state.inspectMode ? 'var(--warn)' : '';
+  log(state.inspectMode ? 'Inspect mode: ON — click tiles.' : 'Inspect mode: OFF.', 'sys');
+}
+
+function checkEndConditions() {
+  if (state.phase === 'complete') return;
+
+  let leakCount = 0;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (grid[r][c].leak) leakCount++;
+
+  const { connected } = computeConnectivity();
+
+  if (leakCount === 0 && connected) {
+    state.phase = 'complete';
+    updatePhaseUI();
+    const score = computeFinalScore();
+    log('━━━ FLOW RESTORED ━━━', 'good');
+    showModal('Repair Complete', buildScoreText(score), true);
+    return;
+  }
+
+  if (state.inspectionsLeft <= 0) {
+    // Check if there are found-but-unrepaired leaks
+    let foundLeaks = 0;
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (grid[r][c].leak && grid[r][c].revealed) foundLeaks++;
+
+    if (foundLeaks === 0 && leakCount > 0) {
+      state.phase = 'complete';
+      updatePhaseUI();
+      log('━━━ DIAGNOSIS FAILED ━━━', 'bad');
+      showModal('System Failure', `Inspections exhausted. ${leakCount} leak(s) remain unlocated.\n\nBetter documentation reduces search space from exponential to linear:\n  T ∝ |hypotheses| / D\n\nYour D was: ${Math.round(state.documentation * 100)}%`, false);
+    }
+  }
+}
+
+function computeFinalScore() {
+  const inspPenalty = state.inspectionsUsed * 10;
+  const docBonus    = Math.round(state.documentation * 40);
+  const lamBonus    = computeLambda() < 1 ? 20 : 0;
+  const base        = 100;
+  return Math.max(0, base - inspPenalty + docBonus + lamBonus);
+}
+
+function buildScoreText(score) {
+  const insp = state.inspectionsUsed;
+  const doc  = Math.round(state.documentation * 100);
+  const lam  = computeLambda().toFixed(2);
+  const comment = score >= 120 ? 'Exceptional. Low obstruction, well documented, regenerative system.' :
+                  score >= 90  ? 'Good. Your access planning reduced repair cost significantly.' :
+                  score >= 60  ? 'Adequate. More documentation would have narrowed the search space.' :
+                                 'Costly repair. Weak joints hidden behind walls without access panels are expensive.';
+  return `${comment}\n\nInspections used: ${insp} / ${MAX_INSPECTIONS}\nDocumentation: ${doc}%\nλ at repair: ${lam}`;
+}
+
+function updatePhaseUI() {
+  const label = document.getElementById('phase-label');
+  label.className = 'phase-label ' + state.phase;
+  label.textContent = state.phase === 'build' ? 'BUILD PHASE' :
+                      state.phase === 'diagnose' ? 'DIAGNOSIS PHASE' : 'COMPLETE';
+
+  const isBuild = state.phase === 'build';
+  const isDiag  = state.phase === 'diagnose';
+
+  document.getElementById('btn-skip').style.display    = isBuild ? '' : 'none';
+  document.getElementById('btn-inspect').style.display = isDiag  ? '' : 'none';
+  document.getElementById('btn-repair').style.display  = isDiag  ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════
+// TOOL SELECTION
+// ═══════════════════════════════════════════════════
+function setTool(t) {
+  if (state.phase !== 'build') { log('Cannot place cards after build phase.', 'warn'); return; }
+  tool = t;
+  document.querySelectorAll('.tool').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('tool-' + t);
+  if (btn) btn.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════
+// LOG
+// ═══════════════════════════════════════════════════
+function log(msg, type = 'info') {
+  const el = document.getElementById('log');
+  const div = document.createElement('div');
+  div.className = 'log-entry ' + type;
+  div.innerHTML = `<span class="log-t">t=${String(state.time).padStart(3,'0')}</span>${msg}`;
+  el.insertBefore(div, el.firstChild);
+  if (el.children.length > 60) el.removeChild(el.lastChild);
+}
+
+// ═══════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════
+function showModal(title, body, showScore) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').textContent = body;
+  const scoreLine = document.getElementById('score-line');
+  if (showScore) {
+    scoreLine.style.display = 'flex';
+    const s = computeFinalScore();
+    document.getElementById('final-score').textContent = s + ' / 160';
+  } else {
+    scoreLine.style.display = 'none';
+  }
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function confirmReset() {
+  if (confirm('Reset? All progress will be lost.')) resetGame();
+}
+function resetGame() {
+  state = new GameState();
+  tool = 'pipe';
+  initGrid();
+  buildGridDOM();
+  updatePhaseUI();
+  document.getElementById('inspect-panel').innerHTML = '<div style="color:var(--textd);font-size:0.62rem">No tile selected.</div>';
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('btn-inspect').classList.remove('active');
+  log('System initialized. Connect SOURCE [2,0] → SINK [3,5]. Skip time when ready.', 'sys');
+  log('Tip: label joints and add access panels — documentation is T ∝ 1/D', 'sys');
+  render();
+}
+
+// ═══════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const map = { '1':'pipe', '2':'joint-good', '3':'joint-weak', '4':'insulation', '5':'wall', '6':'access', 'l':'label', 'L':'label', 'e':'erase', 'E':'erase' };
+  if (map[e.key]) { setTool(map[e.key]); return; }
+  if (e.key === ' ') { e.preventDefault(); doTimeSkip(); }
+  if (e.key === 'i' || e.key === 'I') toggleInspect();
+  if (e.key === 'r' || e.key === 'R') doRepair();
+});
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+initGrid();
+buildGridDOM();
+updatePhaseUI();
+log('System initialized. Connect SOURCE [2,0] → SINK [3,5].', 'sys');
+log('Keys: 1-6 = card types · L = label · E = erase · Space = skip time · I = inspect · R = repair', 'sys');
+log('Tip: label key joints. Add access panels next to hidden pipes.', 'sys');
+render();
+</script>
+</body>
+</html>

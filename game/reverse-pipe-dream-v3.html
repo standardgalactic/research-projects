@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reverse Pipe Dream</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:    #090c09;
+  --good:  #39ff8a;
+  --wet:   #4488ff;
+  --leak:  #ff4422;
+  --warn:  #ffcc00;
+  --dim:   #1a221a;
+  --text:  #5a7a5a;
+  --textb: #9abf9a;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  user-select: none;
+}
+
+/* ── PHASE TINT ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: background 0.8s;
+}
+body.build    { border: 2px solid #39ff8a22; }
+body.diagnose { border: 2px solid #ffcc0033; }
+body.complete { border: 2px solid #39ff8a44; }
+
+/* ── TOOLBAR ── */
+#toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 10px 0 8px;
+  z-index: 1;
+}
+
+.t {
+  width: 48px; height: 44px;
+  background: #0d120d;
+  border: 1px solid #1e2a1e;
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.1s, color 0.1s;
+  position: relative;
+}
+.t:hover { border-color: #2e4a2e; color: var(--textb); }
+.t.on { border-color: var(--good); color: var(--good); }
+.t[data-key] {
+  font-size: 0.55rem;
+  color: inherit;
+}
+.t-key {
+  position: absolute;
+  bottom: 2px; right: 3px;
+  font-size: 0.45rem;
+  color: #2a3a2a;
+}
+
+/* ── GRID ── */
+#grid {
+  display: grid;
+  grid-template-columns: repeat(6, 70px);
+  gap: 3px;
+  padding: 10px;
+  background: #070a07;
+  border: 1px solid #131a13;
+  z-index: 1;
+}
+
+.c {
+  width: 70px; height: 70px;
+  background: #0a0d0a;
+  border: 1px solid #111811;
+  position: relative;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s;
+  overflow: hidden;
+}
+.c:hover { border-color: #223322; }
+
+/* cell states */
+.c.src  { border-color: #39ff8a44; }
+.c.snk  { border-color: #4488ff44; }
+.c.flow { border-color: #39ff8a33; }
+.c.insp { border-color: var(--warn); box-shadow: 0 0 0 1px var(--warn); z-index: 2; }
+
+/* pipe icon */
+.icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  transition: color 0.3s;
+  position: relative; z-index: 1;
+}
+.icon.pipe-icon { font-size: 1rem; }
+
+/* integrity bar */
+.ibar {
+  position: absolute; bottom: 0; left: 0;
+  height: 2px;
+  transition: width 0.4s, background 0.4s;
+  z-index: 2;
+}
+
+/* wet overlay */
+.weto {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: background 0.5s;
+}
+
+/* fog */
+.fog {
+  position: absolute; inset: 0;
+  background: #090c09;
+  display: flex; align-items: center; justify-content: center;
+  color: #151e15;
+  font-size: 1.4rem;
+  z-index: 3;
+}
+
+/* label pip */
+.lbl {
+  position: absolute; top: 2px; left: 3px;
+  width: 5px; height: 5px;
+  background: var(--warn);
+  border-radius: 50%;
+  z-index: 4;
+}
+
+/* inline inspect result */
+.iresult {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 5;
+  font-size: 0.55rem;
+  line-height: 1.7;
+  color: var(--textb);
+  padding: 4px;
+  text-align: center;
+}
+
+/* ── ACTIONS ── */
+#actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 0 4px;
+  z-index: 1;
+}
+
+.act {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  padding: 7px 16px;
+  background: #0d120d;
+  border: 1px solid #1e2a1e;
+  color: var(--text);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.1s;
+}
+.act:hover { border-color: var(--good); color: var(--good); }
+.act.primary { border-color: #2e4a2e; color: var(--textb); }
+.act:disabled { opacity: 0.25; cursor: default; }
+.act.on { border-color: var(--warn); color: var(--warn); }
+
+/* ── STATUS LINE ── */
+#status {
+  font-size: 0.58rem;
+  color: #2a3a2a;
+  letter-spacing: 0.12em;
+  padding: 4px 0 8px;
+  z-index: 1;
+  min-height: 1.4em;
+  transition: color 0.3s;
+  text-align: center;
+}
+#status.warn { color: var(--warn); }
+#status.bad  { color: var(--leak); }
+#status.good { color: var(--good); }
+
+/* ── MODAL ── */
+#modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 100;
+  align-items: center; justify-content: center;
+}
+#modal.open { display: flex; }
+#mbox {
+  background: #0c120c;
+  border: 1px solid var(--good);
+  padding: 32px 40px;
+  max-width: 420px;
+  width: 90%;
+  font-size: 0.72rem;
+  line-height: 1.9;
+  color: var(--textb);
+  box-shadow: 0 0 40px rgba(57,255,138,0.08);
+}
+#mbox h2 {
+  font-size: 0.78rem;
+  letter-spacing: 0.25em;
+  color: var(--good);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+#mbox button {
+  margin-top: 18px; width: 100%;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem; letter-spacing: 0.2em;
+  padding: 9px; background: #0a1a0a;
+  border: 1px solid var(--good); color: var(--good);
+  cursor: pointer; text-transform: uppercase;
+}
+#mbox button:hover { background: #0f2a0f; }
+#mbox .srow { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid #1a2a1a; }
+</style>
+</head>
+<body class="build">
+
+<div id="toolbar">
+  <button class="t on"  onclick="T('pipe')"       title="Pipe [1]">━<span class="t-key">1</span></button>
+  <button class="t"     onclick="T('jg')"          title="Good joint [2]">◎<span class="t-key">2</span></button>
+  <button class="t"     onclick="T('jw')"          title="Weak joint [3]">○<span class="t-key">3</span></button>
+  <button class="t"     onclick="T('ins')"         title="Insulation [4]">◈<span class="t-key">4</span></button>
+  <button class="t"     onclick="T('wall')"        title="Wall [5]">▪<span class="t-key">5</span></button>
+  <button class="t"     onclick="T('access')"      title="Access panel [6]">⊞<span class="t-key">6</span></button>
+  <button class="t"     onclick="T('label')"       title="Label [L]" style="font-size:0.7rem">LBL<span class="t-key">L</span></button>
+  <button class="t"     onclick="T('erase')"       title="Erase [E]" style="font-size:0.8rem">✕<span class="t-key">E</span></button>
+</div>
+
+<div id="grid"></div>
+
+<div id="actions">
+  <button class="act primary" id="brun"     onclick="doRun()">Run System [space]</button>
+  <button class="act"         id="binsp"    onclick="doInspToggle()" style="display:none">Inspect [I]</button>
+  <button class="act"         id="brepair"  onclick="doRepair()"     style="display:none">Repair [R]</button>
+  <button class="act"         id="breset"   onclick="doReset()"      style="font-size:0.55rem;border-color:#1a1a1a">reset</button>
+</div>
+
+<div id="status">place cards · connect SRC → SNK</div>
+
+<div id="modal"><div id="mbox">
+  <h2 id="mt"></h2>
+  <div id="mb"></div>
+  <div class="srow" id="msc" style="display:none"><span>score</span><span id="mscv" style="color:var(--good);font-weight:700"></span></div>
+  <button onclick="closeModal()">continue</button>
+</div></div>
+
+<script>
+// ═══════════════════════════════════════
+// CARD DEFINITIONS
+// ═══════════════════════════════════════
+const CD = {
+  pipe:   { ic:'━', cond:true,  ins:false, hide:false, acc:false, bi:1.00, sm:1.0,  lbl:'PIPE' },
+  jg:     { ic:'◎', cond:true,  ins:false, hide:false, acc:false, bi:1.00, sm:1.15, lbl:'GOOD JT' },
+  jw:     { ic:'○', cond:true,  ins:false, hide:false, acc:false, bi:0.48, sm:2.5,  lbl:'WEAK JT' },
+  ins:    { ic:'◈', cond:false, ins:true,  hide:false, acc:false, bi:1.00, sm:0,    lbl:'INSUL' },
+  wall:   { ic:'▪', cond:false, ins:false, hide:true,  acc:false, bi:1.00, sm:0,    lbl:'WALL' },
+  access: { ic:'⊞', cond:false, ins:false, hide:false, acc:true,  bi:1.00, sm:0,    lbl:'ACCESS' },
+};
+
+// ═══════════════════════════════════════
+// GRID CONFIG
+// ═══════════════════════════════════════
+const R = 6, C = 6;
+const SRC = [2, 0], SNK = [3, 5];
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+// RSVP vector (internal, not displayed directly)
+let S = {
+  phi: 0, flow: 0, entropy: 0, obstruction: 0,
+  knowledge: 0, documentation: 0,
+  time: 0, phase: 'build',
+  inspsLeft: 6, inspsUsed: 0, repairs: 0, wrongRepairs: 0,
+  inspMode: false, sel: null,
+};
+
+let G = []; // grid[r][c] = tile
+
+function makeTile(r, c) {
+  return {
+    r, c, card: null,
+    integrity: 1, stress: 0,
+    leak: false, wet: 0,
+    label: '',
+    revealed: false,
+    failSrc: null,    // causal chain memory
+  };
+}
+
+function initG() {
+  G = [];
+  for (let r = 0; r < R; r++) { G[r] = []; for (let c = 0; c < C; c++) G[r][c] = makeTile(r, c); }
+  G[SRC[0]][SRC[1]].card = 'pipe'; G[SRC[0]][SRC[1]].integrity = 1;
+  G[SNK[0]][SNK[1]].card = 'pipe'; G[SNK[0]][SNK[1]].integrity = 1;
+}
+
+// ═══════════════════════════════════════
+// PHYSICS — formalism encoded as dynamics
+// ═══════════════════════════════════════
+
+function nbrs(r, c) {
+  return [[-1,0],[1,0],[0,-1],[0,1]]
+    .map(([dr,dc])=>[r+dr,c+dc])
+    .filter(([nr,nc])=>nr>=0&&nr<R&&nc>=0&&nc<C);
+}
+
+// BFS connectivity — returns visited set
+function bfs() {
+  const V = Array.from({length:R},()=>Array(C).fill(false));
+  if (!G[SRC[0]][SRC[1]].card || !CD[G[SRC[0]][SRC[1]].card].cond) return V;
+  const Q = [[SRC[0],SRC[1]]]; V[SRC[0]][SRC[1]] = true;
+  while (Q.length) {
+    const [r,c] = Q.shift();
+    for (const [nr,nc] of nbrs(r,c)) {
+      if (V[nr][nc]) continue;
+      const nt = G[nr][nc];
+      if (!nt.card || !CD[nt.card].cond) continue;
+      V[nr][nc] = true; Q.push([nr,nc]);
+    }
+  }
+  return V;
+}
+
+function connected() { return bfs()[SNK[0]][SNK[1]]; }
+
+// Obstruction δ̄ — directional, flow-path-weighted (Čech mismatch)
+function δ̄() {
+  const V = bfs();
+  let tot = 0, cnt = 0;
+  for (let r = 0; r < R; r++) {
+    for (let c = 0; c < C; c++) {
+      const t = G[r][c];
+      for (const [nr,nc] of nbrs(r,c)) {
+        const n = G[nr][nc];
+        cnt++;
+        const tc = t.card && CD[t.card].cond;
+        const nc2 = n.card && CD[n.card].cond;
+        if (tc !== nc2) tot += V[r][c] ? 1.0 : 0.4;  // flow-path mismatch costs more
+        if (t.card === 'wall' && !t.revealed) tot += 0.3;  // hidden structure
+        if (tc && !t.label) tot += V[r][c] ? 0.25 : 0.1;  // undocumented path
+      }
+    }
+  }
+  return cnt ? Math.min(1, tot / cnt) : 0;
+}
+
+// Documentation D ∈ [0,1]
+function docScore() {
+  let docs = 0, rel = 0;
+  for (let r = 0; r < R; r++)
+    for (let c = 0; c < C; c++) {
+      const t = G[r][c];
+      if (t.card && CD[t.card].cond) { rel++; if (t.label.trim()) docs++; }
+    }
+  return rel ? docs / rel : 0;
+}
+
+// λ = (entropy + obstruction) / (flow + knowledge + doc)
+// This is not displayed — it acts on the system
+function λ() {
+  const prod = S.flow + S.knowledge + S.documentation + 0.01;
+  const extr = S.entropy + S.obstruction;
+  return extr / prod;
+}
+
+// λ feeds back into stress multiplier (xylomorphic criterion)
+function λMult() { const l = λ(); return l < 1 ? 1 : 1 + (l - 1) * 0.8; }
+
+// Stress — deterministic consequence of local bad decisions
+function computeStress(r, c) {
+  const t = G[r][c];
+  if (!t.card || !CD[t.card].cond) return 0;
+  let s = 0.008 * CD[t.card].sm;
+  let insulated = nbrs(r,c).some(([nr,nc]) => G[nr][nc].card === 'ins');
+  if (!insulated) s += 0.018;
+  nbrs(r,c).forEach(([nr,nc]) => { if (G[nr][nc].wet > 0.4) s += 0.008; });
+  return s * λMult();
+}
+
+// Single physics step
+function step() {
+  // 1. degrade
+  for (let r = 0; r < R; r++)
+    for (let c = 0; c < C; c++) {
+      const t = G[r][c];
+      if (!t.card || !CD[t.card].cond) continue;
+      t.stress = computeStress(r, c);
+      t.integrity = Math.max(0, t.integrity - t.stress);
+      const thresh = t.card === 'jw' ? 0.38 : t.card === 'jg' ? 0.14 : 0.20;
+      if (!t.leak && t.integrity < thresh && Math.random() < 0.10) {
+        t.leak = true;
+        t.failSrc = [r, c];  // causal chain origin
+      }
+    }
+
+  // 2. moisture propagation — spreads away from source (creates false leads)
+  const nw = G.map(row => row.map(t => t.wet * 0.90));
+  for (let r = 0; r < R; r++)
+    for (let c = 0; c < C; c++) {
+      const t = G[r][c];
+      if (t.leak) { nw[r][c] = 1.0; }
+      if (t.wet > 0.38) {
+        for (const [nr,nc] of nbrs(r,c)) {
+          nw[nr][nc] = Math.max(nw[nr][nc], t.wet * 0.68);
+          // propagate causal source identity (hidden — not shown to player)
+          if (!G[nr][nc].failSrc && t.failSrc) G[nr][nc].failSrc = t.failSrc;
+        }
+      }
+    }
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) G[r][c].wet = nw[r][c];
+
+  // 3. update state vector
+  S.flow = connected() ? 1.0 : 0.0;
+  S.documentation = docScore();
+  S.obstruction = δ̄();
+  S.entropy += S.obstruction * 0.08;
+  S.time++;
+}
+
+// ═══════════════════════════════════════
+// OBSERVATION — what player sees
+// ═══════════════════════════════════════
+function visible(r, c) {
+  if (S.phase === 'build') return true;
+  const t = G[r][c];
+  return t.isSource || t.isSink || t.card === 'access' || t.revealed;
+}
+
+// ═══════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════
+function render() {
+  const V = bfs();
+  S.flow = V[SNK[0]][SNK[1]] ? 1 : 0;
+
+  for (let r = 0; r < R; r++)
+    for (let c = 0; c < C; c++)
+      renderCell(r, c, V[r][c]);
+
+  // status line — minimal, contextual
+  updateStatus();
+}
+
+function renderCell(r, c, inFlow) {
+  const t = G[r][c];
+  const el = document.getElementById(`g${r}${c}`);
+  if (!el) return;
+
+  const isSrc = r===SRC[0]&&c===SRC[1];
+  const isSnk = r===SNK[0]&&c===SNK[1];
+  const vis   = visible(r, c);
+  const isSel = S.sel && S.sel[0]===r && S.sel[1]===c;
+
+  el.className = 'c';
+  if (isSrc) el.classList.add('src');
+  if (isSnk) el.classList.add('snk');
+  if (inFlow && S.phase==='build') el.classList.add('flow');
+  if (isSel) el.classList.add('insp');
+
+  let h = '';
+
+  // source / sink labels
+  if (isSrc) { el.innerHTML = `<div style="font-size:0.55rem;color:#39ff8a55;letter-spacing:0.1em">SRC<br><span style="font-size:1.2rem;color:#39ff8a88">▶</span></div>`; return; }
+  if (isSnk) { el.innerHTML = `<div style="font-size:0.55rem;color:#4488ff55;letter-spacing:0.1em"><span style="font-size:1.2rem;color:#4488ff88">◀</span><br>SNK</div>`; return; }
+
+  // fog in diagnose phase
+  if (!vis && t.card && t.card !== 'access') {
+    const wetShow = t.wet > 0.28 ? `<div class="weto" style="background:rgba(68,136,255,${Math.min(0.3,t.wet*0.3)})"></div><div style="position:absolute;bottom:3px;font-size:0.7rem;color:#4488ff88;z-index:4">🌊</div>` : '';
+    el.innerHTML = `<div class="fog">▓</div>${wetShow}`;
+    return;
+  }
+
+  if (!t.card) {
+    // empty — only show wet signal
+    if (t.wet > 0.28) {
+      el.innerHTML = `<div class="weto" style="background:rgba(68,136,255,${Math.min(0.25,t.wet*0.25)})"></div><div style="font-size:0.8rem;color:#4488ff66">🌊</div>`;
+    }
+    return;
+  }
+
+  const cd = CD[t.card];
+  const ip = Math.round(t.integrity * 100);
+  const bc = t.integrity > 0.6 ? '#39ff8a' : t.integrity > 0.3 ? '#ffcc00' : '#ff4422';
+
+  // icon color
+  let ic = t.card === 'ins' ? '#44aaff' :
+           t.card === 'wall' ? '#445544' :
+           t.card === 'access' ? '#88ff44' :
+           t.leak ? '#ff4422' :
+           inFlow && S.phase==='build' ? '#39ff8a88' :
+           '#445544';
+
+  // inspected result overlay (shown after inspect)
+  if (isSel && S.phase === 'diagnose' && t.revealed) {
+    const leakLine = t.leak ? `<div style="color:#ff4422">💧 LEAK</div>` : `<div style="color:#39ff8a">— clean</div>`;
+    const rootLine = t.failSrc && (t.failSrc[0]!==r||t.failSrc[1]!==c) ? `<div style="color:#ffcc0066">↑ propagated</div>` : '';
+    h = `<div class="iresult">
+      <div style="color:#9abf9a">${cd.lbl}</div>
+      <div style="color:${bc}">${ip}%</div>
+      ${leakLine}
+      ${rootLine}
+    </div>`;
+  } else {
+    h = `<div class="icon" style="color:${ic}">${cd.ic}</div>`;
+    if (cd.cond && vis) h += `<div class="ibar" style="width:${ip}%;background:${bc}"></div>`;
+    if (t.wet > 0.28) h += `<div class="weto" style="background:rgba(68,136,255,${Math.min(0.3,t.wet*0.28)})"></div>`;
+    if (t.leak && vis) h += `<div style="position:absolute;top:2px;right:3px;font-size:0.7rem;z-index:4;animation:drip 0.8s infinite">💧</div>`;
+    if (t.label) h += `<div class="lbl"></div>`;
+  }
+
+  el.innerHTML = h;
+}
+
+function updateStatus() {
+  const el = document.getElementById('status');
+  if (S.phase === 'build') {
+    const conn = connected();
+    el.textContent = conn ? 'path connected — run system when ready' : 'connect SRC → SNK to run';
+    el.className = conn ? 'good' : '';
+  } else if (S.phase === 'diagnose') {
+    const leaks = countLeaks();
+    el.textContent = leaks > 0
+      ? `${S.inspsLeft} inspection${S.inspsLeft===1?'':'s'} remaining · click to inspect`
+      : 'no failures detected — system stable';
+    el.className = S.inspsLeft <= 2 ? 'warn' : '';
+  } else {
+    el.textContent = 'complete';
+    el.className = 'good';
+  }
+}
+
+function countLeaks() {
+  let n = 0;
+  for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (G[r][c].leak) n++;
+  return n;
+}
+
+// ═══════════════════════════════════════
+// INTERACTIONS
+// ═══════════════════════════════════════
+let tool = 'pipe';
+
+function T(t) {
+  tool = t;
+  document.querySelectorAll('.t').forEach(b => b.classList.remove('on'));
+  // find button by onclick string
+  const btns = document.querySelectorAll('.t');
+  btns.forEach(b => { if (b.getAttribute('onclick') === `T('${t}')`) b.classList.add('on'); });
+}
+
+function cellClick(r, c) {
+  const t = G[r][c];
+  const isSrc = r===SRC[0]&&c===SRC[1];
+  const isSnk = r===SNK[0]&&c===SNK[1];
+
+  if (S.phase === 'build') {
+    if (isSrc || isSnk) return;
+    if (tool === 'erase') { t.card=null; t.integrity=1; t.label=''; t.leak=false; t.wet=0; render(); return; }
+    if (tool === 'label') {
+      if (!t.card) return;
+      const lbl = prompt('Label:', t.label || '');
+      if (lbl !== null) t.label = lbl.trim().slice(0, 8);
+      render(); return;
+    }
+    t.card = tool;
+    t.integrity = CD[tool].bi;
+    t.leak = false; t.wet = 0; t.revealed = false;
+    render(); return;
+  }
+
+  if (S.phase === 'diagnose' && S.inspMode) {
+    inspect(r, c);
+  }
+}
+
+function inspect(r, c) {
+  if (S.inspsLeft <= 0) { flash('no inspections left'); return; }
+
+  const t = G[r][c];
+  const freeAccess = nbrs(r,c).some(([nr,nc]) => G[nr][nc].card === 'access');
+
+  // documentation reduces cost (T ∝ 1/D)
+  const D = docScore();
+  const costWaived = freeAccess || (t.label && Math.random() < D);
+
+  if (!costWaived) { S.inspsLeft--; S.inspsUsed++; }
+
+  t.revealed = true;
+  S.sel = [r, c];
+  S.knowledge += 0.05;
+
+  render();
+  checkEnd();
+}
+
+function doRepair() {
+  if (!S.sel) return;
+  const [r, c] = S.sel;
+  const t = G[r][c];
+  if (!t.revealed || !t.card) return;
+  if (!t.leak) { flash('no leak here'); return; }
+
+  // wrong repair mechanic: if this is a propagated wet tile not the root
+  const isRoot = !t.failSrc || (t.failSrc[0]===r && t.failSrc[1]===c);
+
+  t.leak = false;
+  t.integrity = CD[t.card].bi;
+  t.wet *= 0.15;
+  S.repairs++;
+
+  if (!isRoot) {
+    S.wrongRepairs++;
+    S.entropy += 0.25;
+    flash('symptom treated — root cause may persist', 'warn');
+  }
+
+  render();
+  checkEnd();
+}
+
+function doRun() {
+  if (!connected()) { flash('no path — connect SRC → SNK first', 'warn'); return; }
+
+  for (let i = 0; i < 22; i++) step();
+
+  const leaks = countLeaks();
+  S.phase = leaks > 0 ? 'diagnose' : 'complete';
+  S.inspsLeft = 6;
+  document.body.className = S.phase;
+  document.getElementById('brun').style.display = 'none';
+  document.getElementById('binsp').style.display = '';
+  document.getElementById('brepair').style.display = '';
+
+  if (leaks === 0) {
+    flash('system stable', 'good');
+    modal('System Survived', `No failures after 22 cycles.\n\nYour design held.`, true);
+  } else {
+    flash(`wet signals detected · ${leaks} failure${leaks>1?'s':''} hidden`, 'warn');
+  }
+  render();
+}
+
+function doInspToggle() {
+  S.inspMode = !S.inspMode;
+  const b = document.getElementById('binsp');
+  b.classList.toggle('on', S.inspMode);
+  b.textContent = S.inspMode ? 'Inspect ON [I]' : 'Inspect [I]';
+}
+
+function checkEnd() {
+  if (S.phase === 'complete') return;
+  const leaks = countLeaks();
+  const conn  = connected();
+
+  if (leaks === 0 && conn) {
+    S.phase = 'complete';
+    document.body.className = 'complete';
+    modal('Repair Complete', buildResult(), true);
+    return;
+  }
+
+  // out of inspections with unlocated leaks
+  if (S.inspsLeft <= 0) {
+    let foundUnrepaired = 0;
+    for (let r=0;r<R;r++) for(let c=0;c<C;c++) if(G[r][c].leak&&G[r][c].revealed) foundUnrepaired++;
+    if (foundUnrepaired === 0 && leaks > 0) {
+      S.phase = 'complete';
+      document.body.className = 'complete';
+      modal('Diagnosis Failed', `Inspections exhausted.\n${leaks} failure${leaks>1?'s':''} remain hidden.\n\nSearch space collapses with documentation:\n  T ∝ 1 / D\n\nYour D: ${Math.round(docScore()*100)}%`, false);
+    }
+  }
+}
+
+function buildResult() {
+  const score = Math.max(0, 100 - S.inspsUsed*10 + Math.round(docScore()*40) + (λ()<1?20:0) - S.wrongRepairs*15);
+  const D = Math.round(docScore()*100);
+  const l = λ().toFixed(2);
+  document.getElementById('mscv').textContent = score + ' / 160';
+  return [
+    `Inspections used: ${S.inspsUsed} / 6`,
+    `Documentation:    ${D}%`,
+    `Wrong repairs:    ${S.wrongRepairs}`,
+    `λ at close:       ${l}`,
+    '',
+    score >= 120 ? 'Exceptional. Low obstruction, causal repair.' :
+    score >= 90  ? 'Good. Access panels paid off.' :
+    score >= 60  ? 'Adequate. Label more joints next time.' :
+                   'Costly. Hidden weak joints are expensive.'
+  ].join('\n');
+}
+
+// ═══════════════════════════════════════
+// DOM SETUP
+// ═══════════════════════════════════════
+function buildDOM() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  g.style.gridTemplateColumns = `repeat(${C}, 70px)`;
+  for (let r = 0; r < R; r++)
+    for (let c = 0; c < C; c++) {
+      const d = document.createElement('div');
+      d.className = 'c';
+      d.id = `g${r}${c}`;
+      d.addEventListener('click', () => cellClick(r, c));
+      g.appendChild(d);
+    }
+}
+
+// ═══════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  const m = {'1':'pipe','2':'jg','3':'jw','4':'ins','5':'wall','6':'access','l':'label','L':'label','e':'erase','E':'erase'};
+  if (m[e.key]) { T(m[e.key]); return; }
+  if (e.key===' ') { e.preventDefault(); doRun(); }
+  if (e.key==='i'||e.key==='I') doInspToggle();
+  if (e.key==='r'||e.key==='R') doRepair();
+});
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+let flashTimer;
+function flash(msg, cls='') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = cls;
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(updateStatus, 3000);
+}
+
+function modal(title, body, showScore) {
+  document.getElementById('mt').textContent = title;
+  document.getElementById('mb').textContent = body;
+  document.getElementById('msc').style.display = showScore ? 'flex' : 'none';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+function doReset() {
+  if (!confirm('Reset?')) return;
+  S = { phi:0,flow:0,entropy:0,obstruction:0,knowledge:0,documentation:0,time:0,phase:'build',inspsLeft:6,inspsUsed:0,repairs:0,wrongRepairs:0,inspMode:false,sel:null };
+  tool = 'pipe'; T('pipe');
+  initG(); buildDOM();
+  document.body.className = 'build';
+  document.getElementById('brun').style.display = '';
+  document.getElementById('binsp').style.display = 'none';
+  document.getElementById('brepair').style.display = 'none';
+  document.getElementById('binsp').classList.remove('on');
+  flash('place cards · connect SRC → SNK');
+  render();
+}
+
+// CSS for leak drip (injected)
+const style = document.createElement('style');
+style.textContent = `@keyframes drip{0%,100%{opacity:1;transform:translateY(0)}50%{opacity:.6;transform:translateY(2px)}}`;
+document.head.appendChild(style);
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+initG();
+buildDOM();
+render();
+</script>
+</body>
+</html>

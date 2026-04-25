@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reverse Pipe Dream</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --panel: #0f1318;
+    --border: #1e2a1e;
+    --pipe: #1a4a2e;
+    --pipe-lit: #2d7a4a;
+    --flow: #00ff88;
+    --wet: #0066ff;
+    --wet-glow: rgba(0,102,255,0.3);
+    --leak: #ff3300;
+    --warn: #ffaa00;
+    --good: #00cc66;
+    --dim: #334433;
+    --text: #88bb88;
+    --text-bright: #ccffcc;
+    --text-dim: #445544;
+    --accent: #00ff88;
+    --danger: #ff4422;
+    --hidden: #111a11;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(0,60,20,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(0,40,60,0.06) 0%, transparent 50%);
+  }
+
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 1.4rem;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(0,255,136,0.4);
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 200px 1fr 200px;
+    gap: 16px;
+    width: 100%;
+    max-width: 860px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 14px;
+    font-size: 0.72rem;
+    line-height: 1.7;
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+
+  /* GRID */
+  #grid-wrap {
+    position: relative;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 3px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 12px;
+  }
+
+  .cell {
+    width: 72px;
+    height: 72px;
+    background: #0c0f0c;
+    border: 1px solid #1a221a;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s;
+    font-size: 0.6rem;
+    user-select: none;
+  }
+
+  .cell:hover { border-color: #335533; }
+
+  .cell.source { border-color: var(--flow); box-shadow: inset 0 0 12px rgba(0,255,136,0.15); }
+  .cell.sink   { border-color: #0066ff;  box-shadow: inset 0 0 12px rgba(0,102,255,0.15); }
+
+  /* card face */
+  .card-face {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2px;
+    position: relative;
+  }
+
+  .card-icon { font-size: 1.5rem; line-height: 1; }
+  .card-type { font-size: 0.55rem; color: var(--text-dim); letter-spacing: 0.1em; }
+  .card-quality {
+    font-size: 0.5rem;
+    position: absolute;
+    top: 3px; right: 4px;
+  }
+  .card-label {
+    font-size: 0.5rem;
+    position: absolute;
+    bottom: 3px; left: 4px;
+    color: var(--warn);
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .integrity-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    background: var(--good);
+    transition: width 0.3s, background 0.3s;
+  }
+
+  /* cell states */
+  .cell.wet { box-shadow: inset 0 0 16px var(--wet-glow); }
+  .cell.wet::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(0,102,255,0.12);
+    pointer-events: none;
+  }
+  .cell.leaking { animation: pulse-leak 1s infinite; }
+  @keyframes pulse-leak {
+    0%,100% { box-shadow: inset 0 0 8px rgba(255,51,0,0.3); }
+    50%      { box-shadow: inset 0 0 20px rgba(255,51,0,0.6); }
+  }
+  .cell.hidden-card .card-face { visibility: hidden; }
+  .cell.hidden-card { background: var(--hidden); border-color: #151e15; }
+  .cell.hidden-card::before {
+    content: '▓';
+    color: #1a251a;
+    font-size: 1.8rem;
+    position: absolute;
+  }
+  .cell.selected-inspect { border-color: var(--warn); box-shadow: 0 0 0 1px var(--warn); }
+  .cell.flow-active { border-color: var(--flow); }
+
+  /* toolbar */
+  #toolbar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .tool-btn {
+    background: #0f1a0f;
+    border: 1px solid #2a3a2a;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    padding: 6px 12px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tool-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .tool-btn.active {
+    background: #0a1f0a;
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 8px rgba(0,255,136,0.2);
+  }
+  .tool-btn.danger { border-color: #3a1a0a; }
+  .tool-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+  .tool-btn.danger.active { background: #1f0a0a; border-color: var(--danger); color: var(--danger); }
+
+  /* phase banner */
+  #phase-banner {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.3em;
+    text-align: center;
+    padding: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    color: var(--text-bright);
+    background: #0c100c;
+  }
+
+  /* stats */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px solid #151e15;
+    font-size: 0.68rem;
+  }
+  .stat-val { color: var(--text-bright); }
+  .stat-val.warn { color: var(--warn); }
+  .stat-val.bad  { color: var(--danger); }
+  .stat-val.good { color: var(--good); }
+
+  /* log */
+  #log {
+    font-size: 0.62rem;
+    line-height: 1.6;
+    color: var(--text-dim);
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  #log .entry { padding: 2px 0; border-bottom: 1px solid #111a11; }
+  #log .entry.warn { color: var(--warn); }
+  #log .entry.bad  { color: var(--danger); }
+  #log .entry.good { color: var(--good); }
+  #log .entry.info { color: var(--text); }
+
+  /* pressure bar */
+  #pressure-bar-wrap {
+    margin: 8px 0;
+    background: #0c0f0c;
+    border: 1px solid var(--border);
+    height: 10px;
+    position: relative;
+  }
+  #pressure-bar {
+    height: 100%;
+    background: var(--flow);
+    transition: width 0.5s, background 0.5s;
+  }
+
+  /* modal */
+  #modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal.show { display: flex; }
+  #modal-box {
+    background: #0c100c;
+    border: 1px solid var(--accent);
+    padding: 28px 36px;
+    max-width: 420px;
+    width: 90%;
+    font-size: 0.8rem;
+    line-height: 1.8;
+    box-shadow: 0 0 40px rgba(0,255,136,0.15);
+  }
+  #modal-box h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  #modal-btn {
+    margin-top: 16px;
+    background: #0a1f0a;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 20px;
+    cursor: pointer;
+    letter-spacing: 0.15em;
+  }
+  #modal-btn:hover { background: #0f2a0f; }
+
+  .legend-item {
+    display: flex; gap: 8px; align-items: center;
+    padding: 3px 0;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+  }
+  .legend-icon { font-size: 1rem; width: 22px; text-align: center; }
+
+  /* quality toggle */
+  #quality-display {
+    font-size: 0.7rem;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    background: #0c100c;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #334433; }
+
+  .phase-build    { color: var(--good); border-color: #1a3a1a; }
+  .phase-diagnose { color: var(--warn); border-color: #3a2a00; }
+  .phase-repair   { color: var(--danger); border-color: #3a1500; }
+  .phase-complete { color: var(--accent); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1>REVERSE PIPE DREAM</h1>
+<p class="subtitle">BUILD · DECAY · DIAGNOSE · REPAIR</p>
+
+<div class="layout">
+  <!-- LEFT PANEL -->
+  <div>
+    <div class="panel" style="margin-bottom:12px">
+      <div class="panel-title">SYSTEM STATUS</div>
+      <div id="pressure-bar-wrap"><div id="pressure-bar" style="width:100%"></div></div>
+      <div style="font-size:0.58rem;color:var(--text-dim);margin-bottom:6px;">PRESSURE</div>
+      <div class="stat-row"><span>Phase</span><span class="stat-val" id="stat-phase">BUILD</span></div>
+      <div class="stat-row"><span>Time</span><span class="stat-val" id="stat-time">0</span></div>
+      <div class="stat-row"><span>Leaks</span><span class="stat-val" id="stat-leaks">0</span></div>
+      <div class="stat-row"><span>Inspections</span><span class="stat-val" id="stat-inspect">—</span></div>
+      <div class="stat-row"><span>Pipes placed</span><span class="stat-val" id="stat-pipes">0</span></div>
+      <div class="stat-row"><span>Documented</span><span class="stat-val" id="stat-docs">0</span></div>
+      <div class="stat-row"><span>Flow</span><span class="stat-val" id="stat-flow">✗</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">LEGEND</div>
+      <div class="legend-item"><span class="legend-icon">🔵</span>Straight pipe</div>
+      <div class="legend-item"><span class="legend-icon">🟢</span>Good joint</div>
+      <div class="legend-item"><span class="legend-icon">🟡</span>Weak joint</div>
+      <div class="legend-item"><span class="legend-icon">🧱</span>Wall (hides)</div>
+      <div class="legend-item"><span class="legend-icon">🔓</span>Access panel</div>
+      <div class="legend-item"><span class="legend-icon">🧊</span>Insulation</div>
+      <div class="legend-item"><span class="legend-icon">🌊</span>Wet signal</div>
+      <div class="legend-item"><span class="legend-icon">💧</span>Leak</div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div>
+    <div id="phase-banner" class="phase-build">— BUILD PHASE —</div>
+
+    <div id="quality-display">
+      <span>CARD TYPE:</span>
+      <span id="quality-label" style="color:var(--accent)">STRAIGHT PIPE</span>
+    </div>
+
+    <div id="toolbar">
+      <button class="tool-btn active" id="btn-pipe" onclick="setTool('pipe')">🔵 PIPE</button>
+      <button class="tool-btn" id="btn-joint-good" onclick="setTool('joint-good')">🟢 GOOD JOINT</button>
+      <button class="tool-btn" id="btn-joint-weak" onclick="setTool('joint-weak')">🟡 WEAK JOINT</button>
+      <button class="tool-btn" id="btn-insulation" onclick="setTool('insulation')">🧊 INSULATE</button>
+      <button class="tool-btn" id="btn-wall" onclick="setTool('wall')">🧱 WALL</button>
+      <button class="tool-btn" id="btn-access" onclick="setTool('access')">🔓 ACCESS</button>
+      <button class="tool-btn" id="btn-label" onclick="setTool('label')">🏷 LABEL</button>
+      <button class="tool-btn" id="btn-remove" onclick="setTool('remove')">✕ REMOVE</button>
+    </div>
+
+    <div id="grid"></div>
+
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+      <button class="tool-btn" onclick="runTimeSkip()" id="btn-time">⏩ SKIP TIME</button>
+      <button class="tool-btn" id="btn-inspect-mode" onclick="toggleInspect()">🔍 INSPECT MODE</button>
+      <button class="tool-btn" onclick="repairSelected()" id="btn-repair" style="display:none">🔧 REPAIR TILE</button>
+      <button class="tool-btn" onclick="resetGame()" style="border-color:#3a1a0a;color:#885544;">↺ RESET</button>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div>
+    <div class="panel" style="margin-bottom:12px">
+      <div class="panel-title">FIELD LOG</div>
+      <div id="log" class="scrollbar-thin"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">INSTRUCTIONS</div>
+      <div style="font-size:0.62rem;line-height:1.8;color:var(--text-dim)">
+        <div style="color:var(--good);margin-bottom:4px;">① BUILD</div>
+        Connect SOURCE (left col) to SINK (right col). Choose card types carefully.
+        <br><br>
+        <div style="color:var(--warn);margin-bottom:4px;">② SKIP TIME</div>
+        System ages invisibly. Weak joints fail. Hidden leaks form.
+        <br><br>
+        <div style="color:var(--danger);margin-bottom:4px;">③ DIAGNOSE</div>
+        You see wet tiles and pressure drop — not leaks directly. Inspect to find truth. Limited uses.
+        <br><br>
+        <div style="color:var(--accent);margin-bottom:4px;">④ REPAIR</div>
+        Fix leaks to restore flow. Minimal damage wins.
+        <br><br>
+        <div style="color:var(--text-dim);">Good design = easy repair.<br>Fast design = expensive repair.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal">
+  <div id="modal-box">
+    <h2 id="modal-title">SYSTEM MESSAGE</h2>
+    <div id="modal-body"></div>
+    <button id="modal-btn" onclick="closeModal()">CONTINUE</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════
+const COLS = 6, ROWS = 6;
+const MAX_INSPECTIONS = 5;
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let grid = [];
+let phase = 'build'; // build | diagnose | repair | complete
+let time = 0;
+let inspectionsLeft = MAX_INSPECTIONS;
+let inspectMode = false;
+let selectedTool = 'pipe';
+let selectedCell = null;
+let damageCount = 0;
+let totalLeaks = 0;
+
+const CARD_TYPES = {
+  'pipe':       { icon: '🔵', label: 'PIPE',       conducts: true,  insulates: false, hides: false, access: false, integrity: 1.0 },
+  'joint-good': { icon: '🟢', label: 'GOOD JOINT', conducts: true,  insulates: false, hides: false, access: false, integrity: 1.0 },
+  'joint-weak': { icon: '🟡', label: 'WEAK JOINT', conducts: true,  insulates: false, hides: false, access: false, integrity: 0.45 },
+  'insulation': { icon: '🧊', label: 'INSULATION', conducts: false, insulates: true,  hides: false, access: false, integrity: 1.0 },
+  'wall':       { icon: '🧱', label: 'WALL',       conducts: false, insulates: false, hides: true,  access: false, integrity: 1.0 },
+  'access':     { icon: '🔓', label: 'ACCESS',     conducts: false, insulates: false, hides: false, access: true,  integrity: 1.0 },
+};
+
+function makeCell(r, c) {
+  return {
+    r, c,
+    card: null,       // card type key or null
+    integrity: 1.0,
+    leak: false,
+    wet: 0,
+    label: '',
+    revealed: false,  // in diagnose phase, has player inspected this?
+    hidden: false,    // covered by wall above
+    damaged: false,   // player opened a wall (counts against score)
+  };
+}
+
+function initGrid() {
+  grid = [];
+  for (let r = 0; r < ROWS; r++) {
+    grid[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      grid[r][c] = makeCell(r, c);
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+// CONNECTIVITY (flood fill along conducting cards)
+// ═══════════════════════════════════════
+function isSource(r, c) { return c === 0 && r === Math.floor(ROWS/2); }
+function isSink(r, c)   { return c === COLS-1 && r === Math.floor(ROWS/2); }
+
+function cardConducts(cell) {
+  if (!cell.card) return false;
+  return CARD_TYPES[cell.card].conducts;
+}
+
+function computeFlow() {
+  // BFS from source
+  const visited = Array.from({length: ROWS}, () => Array(COLS).fill(false));
+  const queue = [];
+  const sr = Math.floor(ROWS/2), sc = 0;
+  if (cardConducts(grid[sr][sc])) { visited[sr][sc] = true; queue.push([sr, sc]); }
+
+  const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  let reachedSink = false;
+
+  while (queue.length) {
+    const [r, c] = queue.shift();
+    if (isSink(r, c)) { reachedSink = true; }
+    for (const [dr, dc] of dirs) {
+      const nr = r+dr, nc = c+dc;
+      if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+      if (visited[nr][nc]) continue;
+      if (!cardConducts(grid[nr][nc])) continue;
+      visited[nr][nc] = true;
+      queue.push([nr, nc]);
+    }
+  }
+  return { visited, connected: reachedSink };
+}
+
+// ═══════════════════════════════════════
+// SIMULATION
+// ═══════════════════════════════════════
+function simStep() {
+  // degrade pipes & joints
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = grid[r][c];
+      if (!cell.card || !CARD_TYPES[cell.card].conducts) continue;
+
+      // insulation neighbor reduces stress
+      let insulated = false;
+      for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const nr = r+dr, nc = c+dc;
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+        if (grid[nr][nc].card === 'insulation') { insulated = true; break; }
+      }
+
+      const stress = insulated
+        ? 0.004 + Math.random() * 0.003
+        : 0.012 + Math.random() * 0.008;
+
+      cell.integrity = Math.max(0, cell.integrity - stress);
+
+      // leaks form based on integrity threshold (weak joints more likely)
+      const threshold = cell.card === 'joint-weak' ? 0.35 : 0.18;
+      if (!cell.leak && cell.integrity < threshold && Math.random() < 0.15) {
+        cell.leak = true;
+        totalLeaks++;
+        addLog(`Integrity failure at [${r},${c}]`, 'bad');
+      }
+    }
+  }
+
+  // propagate moisture
+  const newWet = Array.from({length: ROWS}, (_, r) =>
+    Array.from({length: COLS}, (__, c) => grid[r][c].wet)
+  );
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (grid[r][c].leak) {
+        newWet[r][c] = 1.0;
+      } else {
+        newWet[r][c] *= 0.88;
+      }
+      for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const nr = r+dr, nc = c+dc;
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+        if (grid[nr][nc].wet > 0.45) {
+          newWet[r][c] = Math.max(newWet[r][c], grid[nr][nc].wet * 0.72);
+        }
+      }
+    }
+  }
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      grid[r][c].wet = newWet[r][c];
+}
+
+function applyHiddenCards() {
+  // walls hide cards below them (same cell is both wall and hidden card — simulate by
+  // making cells with 'wall' hide the card beneath in display only — 
+  // for the game, walls just block inspection unless access panel is adjacent)
+  // We implement: cells that have wall on top are "hidden"
+  // In our grid, a wall card on a cell hides everything underneath that cell.
+  // We'll treat wall-covered cells as: the wall IS on that cell, blocking it.
+}
+
+// ═══════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════
+function render() {
+  const { visited, connected } = computeFlow();
+  let leakCount = 0;
+  let docCount = 0;
+  let pipeCount = 0;
+  let totalWet = 0;
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = grid[r][c];
+      const el = document.getElementById(`cell-${r}-${c}`);
+      if (!el) continue;
+
+      el.className = 'cell';
+      if (isSource(r, c)) el.classList.add('source');
+      if (isSink(r, c))   el.classList.add('sink');
+
+      if (cell.card) {
+        pipeCount += CARD_TYPES[cell.card].conducts ? 1 : 0;
+        docCount  += cell.label ? 1 : 0;
+      }
+      if (cell.leak) leakCount++;
+      totalWet += cell.wet;
+
+      // determine visibility in diagnose/repair phase
+      const isWall = cell.card === 'wall';
+      const isHidden = (phase !== 'build') && isWall && !cell.revealed;
+      const isPartiallyHidden = (phase !== 'build') && !cell.revealed && !isWall && !cell.card;
+
+      // wet glow
+      if (cell.wet > 0.25) {
+        el.classList.add('wet');
+        el.style.setProperty('--wet-intensity', cell.wet);
+      }
+      if (cell.leak && (phase === 'build' || cell.revealed)) el.classList.add('leaking');
+
+      // flow highlight
+      if (visited[r][c] && phase === 'build') el.classList.add('flow-active');
+
+      // selected for inspect
+      if (selectedCell && selectedCell[0] === r && selectedCell[1] === c)
+        el.classList.add('selected-inspect');
+
+      // build card HTML
+      let inner = '';
+      if (isSource(r, c)) {
+        inner = `<div class="card-face"><div class="card-icon">▶</div><div class="card-type">SOURCE</div></div>`;
+      } else if (isSink(r, c)) {
+        inner = `<div class="card-face"><div class="card-icon">◀</div><div class="card-type">SINK</div></div>`;
+      } else if (cell.card) {
+        const ct = CARD_TYPES[cell.card];
+        let qualCol = cell.integrity > 0.6 ? 'var(--good)' : cell.integrity > 0.3 ? 'var(--warn)' : 'var(--danger)';
+        const barW = Math.round(cell.integrity * 100);
+
+        if (phase !== 'build' && isWall && !cell.revealed) {
+          // show wall face but indicate hidden state
+          inner = `<div class="card-face">
+            <div class="card-icon">🧱</div>
+            <div class="card-type">WALL</div>
+          </div>`;
+        } else if (phase !== 'build' && !cell.revealed && cell.card && cell.card !== 'access') {
+          // hidden non-wall card: show face-down
+          inner = `<div class="card-face" style="visibility:hidden"></div>`;
+          el.classList.add('hidden-card');
+        } else {
+          inner = `<div class="card-face">
+            <div class="card-icon">${ct.icon}</div>
+            <div class="card-type">${ct.label}</div>
+            ${cell.label ? `<div class="card-label">📎${cell.label}</div>` : ''}
+            ${ct.conducts ? `<div class="integrity-bar" style="width:${barW}%;background:${qualCol}"></div>` : ''}
+          </div>`;
+        }
+
+        // access panels always visible
+        if (cell.card === 'access') {
+          inner = `<div class="card-face">
+            <div class="card-icon">${ct.icon}</div>
+            <div class="card-type">${ct.label}</div>
+          </div>`;
+          el.classList.remove('hidden-card');
+        }
+      } else {
+        inner = '';
+      }
+
+      el.innerHTML = inner;
+    }
+  }
+
+  // pressure (based on flow connectivity + leaks)
+  const { connected: flowOn } = computeFlow();
+  const leakFrac = Math.min(1, leakCount * 0.3);
+  const pressure = flowOn ? Math.max(0, 1 - leakFrac) : 0;
+  const pb = document.getElementById('pressure-bar');
+  pb.style.width = `${pressure * 100}%`;
+  pb.style.background = pressure > 0.6 ? 'var(--flow)' : pressure > 0.3 ? 'var(--warn)' : 'var(--danger)';
+
+  // stats
+  document.getElementById('stat-phase').textContent = phase.toUpperCase();
+  document.getElementById('stat-time').textContent = time;
+  document.getElementById('stat-leaks').textContent = phase === 'build' ? leakCount : '?';
+  document.getElementById('stat-inspect').textContent = phase === 'build' ? '—' : inspectionsLeft + ' left';
+  document.getElementById('stat-pipes').textContent = pipeCount;
+  document.getElementById('stat-docs').textContent = docCount;
+  document.getElementById('stat-flow').textContent = flowOn ? '✓' : '✗';
+  document.getElementById('stat-flow').className = 'stat-val ' + (flowOn ? 'good' : 'bad');
+
+  // leak count coloring in diagnose
+  const leakEl = document.getElementById('stat-leaks');
+  if (phase !== 'build') {
+    leakEl.textContent = '?';
+    leakEl.className = 'stat-val warn';
+  } else {
+    leakEl.className = 'stat-val ' + (leakCount > 0 ? 'bad' : 'good');
+  }
+}
+
+// ═══════════════════════════════════════
+// GRID SETUP
+// ═══════════════════════════════════════
+function buildGridDOM() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  const sr = Math.floor(ROWS/2);
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      div.id = `cell-${r}-${c}`;
+      if (isSource(r, c)) div.classList.add('source');
+      if (isSink(r, c))   div.classList.add('sink');
+      div.addEventListener('click', () => onCellClick(r, c));
+      g.appendChild(div);
+    }
+  }
+  // pre-place source and sink pipe cards
+  grid[sr][0].card = 'pipe'; grid[sr][0].integrity = 1;
+  grid[sr][COLS-1].card = 'pipe'; grid[sr][COLS-1].integrity = 1;
+}
+
+// ═══════════════════════════════════════
+// INTERACTIONS
+// ═══════════════════════════════════════
+function onCellClick(r, c) {
+  const cell = grid[r][c];
+  const isSrc = isSource(r, c), isSk = isSink(r, c);
+
+  if (phase === 'build') {
+    if (isSrc || isSk) return;
+
+    if (selectedTool === 'label') {
+      if (!cell.card) { addLog('No card to label here.', 'warn'); return; }
+      const lbl = prompt('Label this tile:', cell.label || '');
+      if (lbl !== null) {
+        cell.label = lbl.slice(0, 12);
+        addLog(`Labeled [${r},${c}]: "${cell.label}"`, 'info');
+      }
+      render(); return;
+    }
+
+    if (selectedTool === 'remove') {
+      cell.card = null; cell.integrity = 1; cell.label = ''; cell.leak = false; cell.wet = 0;
+      addLog(`Removed card at [${r},${c}]`, 'info');
+      render(); return;
+    }
+
+    cell.card = selectedTool;
+    cell.integrity = CARD_TYPES[selectedTool].integrity;
+    cell.leak = false; cell.wet = 0; cell.revealed = false;
+    addLog(`Placed ${CARD_TYPES[selectedTool]?.label || selectedTool} at [${r},${c}]`, 'info');
+    render();
+    return;
+  }
+
+  // diagnose / repair phase
+  if (inspectMode) {
+    if (inspectionsLeft <= 0) {
+      addLog('No inspections left!', 'bad'); return;
+    }
+
+    // access panels are free
+    const hasFreeAccess = checkAdjacentAccess(r, c);
+    if (!hasFreeAccess) inspectionsLeft--;
+
+    cell.revealed = true;
+    selectedCell = [r, c];
+
+    const ct = cell.card ? CARD_TYPES[cell.card] : null;
+    if (!cell.card) {
+      addLog(`[${r},${c}] INSPECT: Empty cell. ${hasFreeAccess ? '(via access panel — free)' : ''}`, 'info');
+    } else {
+      const intPct = Math.round(cell.integrity * 100);
+      const leakStatus = cell.leak ? '💧 LEAKING' : 'no leak';
+      const docBonus = cell.label ? ` [DOCUMENTED: ${cell.label}]` : '';
+      addLog(`[${r},${c}] INSPECT: ${ct.label} | integrity ${intPct}% | ${leakStatus}${docBonus}${hasFreeAccess ? ' (free)' : ''}`, cell.leak ? 'bad' : 'info');
+    }
+
+    document.getElementById('btn-repair').style.display = 'inline-flex';
+    render();
+    checkWinLose();
+    return;
+  }
+}
+
+function checkAdjacentAccess(r, c) {
+  for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+    const nr = r+dr, nc = c+dc;
+    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+    if (grid[nr][nc].card === 'access') return true;
+  }
+  return false;
+}
+
+function repairSelected() {
+  if (!selectedCell) { addLog('No tile selected. Use inspect mode first.', 'warn'); return; }
+  const [r, c] = selectedCell;
+  const cell = grid[r][c];
+  if (!cell.card) { addLog('Nothing to repair here.', 'warn'); return; }
+  if (!cell.revealed) { addLog('Inspect this tile first.', 'warn'); return; }
+
+  cell.leak = false;
+  cell.integrity = CARD_TYPES[cell.card].integrity;
+  cell.wet *= 0.2;
+  addLog(`Repaired [${r},${c}] — ${CARD_TYPES[cell.card].label}`, 'good');
+  render();
+  checkWinLose();
+}
+
+function runTimeSkip() {
+  if (phase === 'diagnose' || phase === 'repair') {
+    addLog('Cannot skip time during diagnosis.', 'warn'); return;
+  }
+
+  const { connected } = computeFlow();
+  if (!connected) {
+    showModal('NO FLOW PATH', 'Source is not connected to sink. Build a continuous pipe path first, then skip time.');
+    return;
+  }
+
+  // run several sim steps
+  for (let i = 0; i < 18; i++) simStep();
+  time += 18;
+
+  // enter diagnose phase
+  phase = 'diagnose';
+  inspectionsLeft = MAX_INSPECTIONS;
+
+  // hide non-access, non-source, non-sink cards unless they have label
+  // (player must inspect to see truth)
+  // walls and insulation stay visible (they are not conducting)
+
+  // count actual leaks for flavor
+  let leaks = 0;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (grid[r][c].leak) leaks++;
+
+  updatePhaseBanner();
+  document.getElementById('btn-time').style.display = 'none';
+  document.getElementById('btn-inspect-mode').style.display = 'inline-flex';
+
+  addLog('═══ TIME SKIPPED ═══', 'warn');
+  addLog(`System aged ${time} cycles. Pressure unstable.`, 'warn');
+  if (leaks > 0) {
+    addLog(`Wet signals detected in ${leaks} zones. Source unknown.`, 'bad');
+  } else {
+    addLog('No critical failures detected yet. System stable.', 'good');
+    phase = 'complete';
+    updatePhaseBanner();
+    showModal('SYSTEM SURVIVED', 'Your pipe system survived the time skip without any leaks. Well designed!\n\nScore: BUILD WITH CARE.');
+  }
+
+  render();
+}
+
+function toggleInspect() {
+  if (phase === 'build') return;
+  inspectMode = !inspectMode;
+  document.getElementById('btn-inspect-mode').classList.toggle('active', inspectMode);
+  addLog(inspectMode ? 'Inspect mode ON — click tiles to reveal.' : 'Inspect mode OFF.', 'info');
+}
+
+function checkWinLose() {
+  if (phase === 'complete') return;
+
+  const { connected } = computeFlow();
+  let leaks = 0;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (grid[r][c].leak) leaks++;
+
+  if (leaks === 0 && connected) {
+    phase = 'complete';
+    updatePhaseBanner();
+    const inspUsed = MAX_INSPECTIONS - inspectionsLeft;
+    const score = Math.max(0, 100 - inspUsed * 12 - damageCount * 15);
+    addLog('═══ FLOW RESTORED ═══', 'good');
+    showModal('REPAIR COMPLETE', `Flow restored.\n\nInspections used: ${inspUsed} / ${MAX_INSPECTIONS}\nScore: ${score} / 100\n\n${score >= 80 ? 'Excellent. Your documentation and access planning paid off.' : score >= 50 ? 'Adequate. Consider labeling more tiles next time.' : 'Costly repair. Better access planning would have saved inspections.'}`);
+    return;
+  }
+
+  if (inspectionsLeft <= 0 && leaks > 0) {
+    // can still repair already-found leaks
+    const foundLeaks = [];
+    for (let r = 0; r < ROWS; r++)
+      for (let c = 0; c < COLS; c++)
+        if (grid[r][c].leak && grid[r][c].revealed) foundLeaks.push([r,c]);
+
+    if (foundLeaks.length === 0) {
+      phase = 'complete';
+      updatePhaseBanner();
+      addLog('═══ DIAGNOSIS FAILED ═══', 'bad');
+      showModal('SYSTEM FAILURE', 'You ran out of inspections without finding the leak.\n\nThe system remains broken.\n\nBetter documentation and access panels would have reduced your search space.');
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════
+function setTool(tool) {
+  if (phase !== 'build') { addLog('Cannot place cards after build phase.', 'warn'); return; }
+  selectedTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('btn-' + tool.replace('-',''));
+  if (btn) btn.classList.add('active');
+  const ct = CARD_TYPES[tool];
+  document.getElementById('quality-label').textContent = ct ? ct.label : tool.toUpperCase();
+}
+
+function updatePhaseBanner() {
+  const banner = document.getElementById('phase-banner');
+  const labels = { build: '— BUILD PHASE —', diagnose: '⚠ DIAGNOSIS PHASE ⚠', repair: '⚡ REPAIR PHASE ⚡', complete: '✓ COMPLETE' };
+  const classes = { build: 'phase-build', diagnose: 'phase-diagnose', repair: 'phase-repair', complete: 'phase-complete' };
+  banner.textContent = labels[phase] || phase;
+  banner.className = 'phase-banner ' + (classes[phase] || '');
+
+  // toolbar visibility
+  const buildTools = ['btn-pipe','btn-joint-good','btn-joint-weak','btn-insulation','btn-wall','btn-access','btn-label','btn-remove'];
+  buildTools.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = phase === 'build' ? '1' : '0.3';
+  });
+}
+
+function addLog(msg, type = 'info') {
+  const log = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = `entry ${type}`;
+  const t = String(time).padStart(3, '0');
+  entry.textContent = `[t=${t}] ${msg}`;
+  log.insertBefore(entry, log.firstChild);
+  if (log.children.length > 40) log.removeChild(log.lastChild);
+}
+
+function showModal(title, body) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').textContent = body;
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+function resetGame() {
+  if (!confirm('Reset the game? All progress will be lost.')) return;
+  phase = 'build';
+  time = 0;
+  inspectionsLeft = MAX_INSPECTIONS;
+  inspectMode = false;
+  selectedTool = 'pipe';
+  selectedCell = null;
+  damageCount = 0;
+  totalLeaks = 0;
+  initGrid();
+  buildGridDOM();
+  document.getElementById('btn-time').style.display = 'inline-flex';
+  document.getElementById('btn-inspect-mode').style.display = 'inline-flex';
+  document.getElementById('btn-repair').style.display = 'none';
+  document.getElementById('btn-inspect-mode').classList.remove('active');
+  updatePhaseBanner();
+  document.getElementById('log').innerHTML = '';
+  addLog('System reset. Begin build phase.', 'info');
+  render();
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+initGrid();
+buildGridDOM();
+addLog('System initialized. Connect SOURCE → SINK, then skip time.', 'info');
+addLog('Tip: Use GOOD JOINTs at bends. INSULATE near walls. LABEL key tiles.', 'info');
+updatePhaseBanner();
+render();
+</script>
+</body>
+</html>

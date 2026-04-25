@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reverse Pass — Domain Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Space+Mono:wght@400;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:   #0b0b09;
+  --p0:   #0f0f0c;
+  --b0:   #1e1e16;
+  --b1:   #2c2c1e;
+  --text: #7a7a58;
+  --tb:   #c8c898;
+  --td:   #303024;
+  --good: #77cc44;
+  --warn: #ddaa00;
+  --bad:  #ee4422;
+  /* overridden per domain */
+  --flow:    #39ff8a;
+  --symp:    #4488ff;
+  --protect: #44aaff;
+}
+
+html,body{
+  height:100%;background:var(--bg);color:var(--text);
+  font-family:'Courier Prime',monospace;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  user-select:none;overflow:hidden;gap:0;
+}
+
+/* domain selector */
+#domain-bar{
+  display:flex;gap:0;margin-bottom:10px;border:1px solid var(--b0);z-index:10;
+}
+.dom-btn{
+  font-family:'Space Mono',monospace;font-size:.58rem;letter-spacing:.18em;
+  padding:7px 18px;background:var(--p0);border:none;color:var(--td);
+  cursor:pointer;text-transform:uppercase;transition:all .15s;
+  border-right:1px solid var(--b0);
+}
+.dom-btn:last-child{border-right:none;}
+.dom-btn:hover{color:var(--text);}
+.dom-btn.active{background:var(--b0);color:var(--tb);}
+
+/* toolbar */
+#toolbar{display:flex;gap:2px;margin-bottom:6px;flex-wrap:wrap;justify-content:center;max-width:640px;}
+.t{
+  min-width:54px;height:40px;
+  background:var(--p0);border:1px solid var(--b0);color:var(--text);
+  font-family:'Courier Prime',monospace;font-size:.65rem;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;transition:border-color .1s,color .1s;position:relative;padding:0 6px;
+}
+.t:hover{border-color:var(--b1);color:var(--tb);}
+.t.on{border-color:var(--flow);color:var(--flow);}
+.t-sub{font-size:.42rem;color:var(--td);letter-spacing:.08em;}
+.t-key{position:absolute;bottom:1px;right:3px;font-size:.4rem;color:var(--td);}
+
+/* grid */
+#grid-wrap{position:relative;z-index:1;}
+#grid{
+  display:grid;gap:2px;
+  background:#080806;border:1px solid var(--b0);padding:8px;
+}
+
+.c{
+  position:relative;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  border:1px solid #131310;transition:border-color .12s;
+}
+.c:hover{border-color:var(--b1);}
+.c.src-cell{border-color:rgba(57,255,138,.4);background:#0c0f0c;}
+.c.energized{border-color:rgba(57,255,138,.18);}
+.c.insp{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn);z-index:2;}
+.c.fog-cell{background:#090908;border-color:#111110;cursor:default;}
+
+.ibar{position:absolute;bottom:0;left:0;height:2px;z-index:3;transition:width .4s,background .4s;}
+.ldot{position:absolute;top:3px;left:3px;width:4px;height:4px;background:var(--warn);border-radius:50%;z-index:5;}
+.iov{
+  position:absolute;inset:0;background:rgba(0,0,0,.9);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:.5rem;line-height:1.65;color:var(--tb);z-index:6;padding:3px;text-align:center;
+}
+
+/* symptom overlay */
+.sov{position:absolute;inset:0;pointer-events:none;z-index:1;transition:background .4s;}
+
+/* fault pulse */
+@keyframes fault{0%,100%{opacity:1}30%{opacity:.2}70%{opacity:.8}}
+
+/* actions */
+#actions{display:flex;gap:5px;margin-top:6px;}
+.act{
+  font-family:'Courier Prime',monospace;font-size:.6rem;letter-spacing:.12em;
+  padding:6px 14px;background:var(--p0);border:1px solid var(--b0);
+  color:var(--text);cursor:pointer;text-transform:uppercase;transition:all .1s;
+}
+.act:hover{border-color:var(--flow);color:var(--flow);}
+.act.primary{border-color:var(--b1);color:var(--tb);}
+.act.on{border-color:var(--warn);color:var(--warn);}
+
+/* status */
+#status{
+  font-size:.55rem;color:var(--td);letter-spacing:.1em;
+  padding:4px 0 0;min-height:1.2em;transition:color .3s;text-align:center;
+}
+#status.good{color:var(--good);}
+#status.warn{color:var(--warn);}
+#status.bad{color:var(--bad);}
+
+/* modal */
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;align-items:center;justify-content:center;}
+#modal.open{display:flex;}
+#mbox{
+  background:var(--p0);border:1px solid var(--flow);
+  padding:28px 36px;max-width:440px;width:92%;
+  font-size:.68rem;line-height:1.85;color:var(--tb);
+  box-shadow:0 0 50px rgba(57,255,138,.05);
+}
+#mbox h2{font-family:'Space Mono',monospace;font-size:.75rem;letter-spacing:.2em;
+  color:var(--flow);margin-bottom:12px;text-transform:uppercase;}
+#mbox pre{font-family:'Courier Prime',monospace;font-size:.65rem;color:var(--text);line-height:1.7;white-space:pre-wrap;}
+#mbox .srow{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--b0);}
+#mbox button{
+  margin-top:16px;width:100%;font-family:'Courier Prime',monospace;
+  font-size:.62rem;letter-spacing:.18em;padding:8px;
+  background:#090908;border:1px solid var(--flow);color:var(--flow);
+  cursor:pointer;text-transform:uppercase;
+}
+#mbox button:hover{background:#0d0d0a;}
+
+/* theory panel — shows invariants, updates live */
+#theory{
+  position:fixed;left:10px;top:50%;transform:translateY(-50%);
+  width:120px;background:var(--p0);border:1px solid var(--b0);
+  padding:10px 10px;font-size:.54rem;line-height:1.8;z-index:10;
+}
+#theory .th{color:var(--td);letter-spacing:.12em;font-size:.48rem;margin-bottom:4px;border-bottom:1px solid var(--b0);padding-bottom:3px;}
+#theory .tv{color:var(--tb);}
+#theory .tv.g{color:var(--good);}
+#theory .tv.w{color:var(--warn);}
+#theory .tv.b{color:var(--bad);}
+.trow{display:flex;justify-content:space-between;padding:1px 0;}
+
+/* domain label */
+#domain-label{
+  position:fixed;right:12px;top:12px;
+  font-family:'Space Mono',monospace;font-size:.55rem;letter-spacing:.2em;
+  color:var(--td);z-index:10;
+  padding:5px 10px;border:1px solid var(--b0);background:var(--p0);
+}
+</style>
+</head>
+<body class="build">
+
+<div id="theory">
+  <div class="th">INVARIANTS</div>
+  <div class="trow"><span>δ̄</span><span class="tv" id="tv-obs">—</span></div>
+  <div class="trow"><span>S</span><span class="tv" id="tv-ent">—</span></div>
+  <div class="trow"><span>D</span><span class="tv" id="tv-doc">—</span></div>
+  <div class="trow"><span>Φ</span><span class="tv" id="tv-flow">—</span></div>
+  <div class="trow"><span>λ</span><span class="tv" id="tv-lam">—</span></div>
+  <div style="margin-top:6px;font-size:.44rem;color:var(--td);line-height:1.6">
+    λ&lt;1<br>system<br>regenerates
+  </div>
+</div>
+
+<div id="domain-label">DOMAIN: <span id="dlabel">PLUMBING</span></div>
+
+<div id="domain-bar">
+  <button class="dom-btn active" onclick="switchDomain('plumbing')">Plumbing</button>
+  <button class="dom-btn" onclick="switchDomain('electrical')">Electrical</button>
+  <button class="dom-btn" onclick="switchDomain('hvac')">HVAC</button>
+</div>
+
+<div id="toolbar"></div>
+
+<div id="grid-wrap"><div id="grid"></div></div>
+
+<div id="actions">
+  <button class="act primary" id="brun"   onclick="doRun()">Run System [Space]</button>
+  <button class="act"  id="binsp"  onclick="doInspToggle()" style="display:none">Inspect [I]</button>
+  <button class="act"  id="brepair" onclick="doRepair()"    style="display:none">Repair [R]</button>
+  <button class="act"  id="breset" onclick="doReset()" style="font-size:.52rem;border-color:#1a1a14">reset</button>
+</div>
+
+<div id="status"></div>
+
+<div id="modal"><div id="mbox">
+  <h2 id="mt"></h2>
+  <pre id="mb"></pre>
+  <div class="srow" id="msc" style="display:none">
+    <span>score</span><span id="mscv" style="color:var(--flow);font-weight:700"></span>
+  </div>
+  <button onclick="closeModal()">continue</button>
+</div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DOMAIN DESCRIPTORS
+// The engine is domain-agnostic. Each domain provides:
+//   cards        — what the player places
+//   source       — [r,c] of flow origin
+//   grid [cols,rows]
+//   cellSize     — px
+//   colors       — CSS vars
+//   physics      — stress params, symptom spread
+//   symptom      — what the player sees (not the cause)
+//   runLabel     — button text
+//   inspLabel    — inspect button text
+//   statusBuild  — hint text
+// ═══════════════════════════════════════════════════════════
+
+const DOMAINS = {
+
+  // ── PLUMBING ──────────────────────────────────────────────
+  plumbing: {
+    label: 'PLUMBING',
+    runLabel: 'Pressurize [Space]',
+    inspLabel: 'Inspect [I]',
+    flow: '#39ff8a',
+    symp: '#4488ff',
+    protect: '#44aaff',
+    grid: [7, 6],          // cols, rows
+    cellSize: [72, 66],
+    source: [2, 0],
+    sourceIcon: '▶',
+    sourceLabel: 'SRC',
+    sinkIcon: '◀',
+    sinkLabel: 'SNK',
+    sink: [3, 6],
+    symptomDecay: 0.90,
+    symptomSpread: 0.68,
+    symptomSkip: false,    // moisture doesn't skip tiles
+    overloadFaultType: 'junction-weak',
+    statusBuild: 'lay pipe from SOURCE → SINK · pressurize when ready',
+    statusDiag:  'wet signals visible · source unknown · inspect to trace',
+    failWord: 'leak',
+    faultIcon: '💧',
+    sympIcon: '🌊',
+    cards: {
+      pipe:     { ic:'━', cond:true,  prot:false, bi:1.00, sm:0.9,  load:0,   lbl:'PIPE',      desc:'Standard copper pipe' },
+      'jt-good':{ ic:'◎', cond:true,  prot:false, bi:1.00, sm:1.05, load:0,   lbl:'GOOD JT',   desc:'Soldered joint — durable' },
+      'jt-weak':{ ic:'○', cond:true,  prot:false, bi:0.48, sm:2.5,  load:0,   lbl:'WEAK JT',   desc:'Compression joint — fails under stress' },
+      insul:    { ic:'◈', cond:false, prot:true,  bi:1.00, sm:0,    load:0,   lbl:'INSUL',     desc:'Pipe insulation — reduces thermal stress' },
+      wall:     { ic:'▪', cond:false, prot:false, bi:1.00, sm:0,    load:0,   lbl:'WALL',      desc:'Drywall — hides everything behind it' },
+      access:   { ic:'⊞', cond:false, prot:false, bi:1.00, sm:0,    load:0,   lbl:'ACCESS',    desc:'Access panel — free inspection of adjacent tiles' },
+      valve:    { ic:'⊗', cond:true,  prot:false, bi:0.90, sm:1.3,  load:0,   lbl:'VALVE',     desc:'Shutoff valve — isolates sections' },
+    },
+    keys: ['pipe','jt-good','jt-weak','insul','wall','access','valve'],
+    kbMap: {'1':'pipe','2':'jt-good','3':'jt-weak','4':'insul','5':'wall','6':'access','7':'valve'},
+  },
+
+  // ── ELECTRICAL ────────────────────────────────────────────
+  electrical: {
+    label: 'ELECTRICAL',
+    runLabel: 'Energize [Space]',
+    inspLabel: 'Probe [I]',
+    flow: '#ffcc00',
+    symp: '#ff8844',
+    protect: '#88aacc',
+    grid: [8, 7],
+    cellSize: [66, 56],
+    source: [3, 0],
+    sourceIcon: '⚡',
+    sourceLabel: 'PANEL',
+    sinkIcon: null,
+    sinkLabel: null,
+    sink: null,            // electrical: no single sink — loads anywhere
+    symptomDecay: 0.88,
+    symptomSpread: 0.72,
+    symptomSkip: true,     // heat/flicker jumps tiles (non-local)
+    overloadFaultType: 'junction',
+    statusBuild: 'wire from PANEL to outlets, lights, loads · energize when ready',
+    statusDiag:  'flickering / dead loads · fault location unknown · probe to trace',
+    failWord: 'fault',
+    faultIcon: '⚡',
+    sympIcon:  '〜',
+    cards: {
+      wire:    { ic:'━', cond:true,  prot:false, bi:1.00, sm:0.85, load:0,   lbl:'WIRE',    desc:'14AWG romex — standard circuit wire' },
+      junction:{ ic:'⊕', cond:true,  prot:false, bi:0.52, sm:2.3,  load:0,   lbl:'JUNCT',   desc:'Wire nut junction — common failure point' },
+      'jt-pro':{ ic:'⊛', cond:true,  prot:false, bi:1.00, sm:1.05, load:0,   lbl:'PRO JCT', desc:'Junction box — enclosed, durable' },
+      outlet:  { ic:'⊡', cond:true,  prot:false, bi:0.85, sm:1.2,  load:1,   lbl:'OUTLET',  desc:'15A outlet — standard load' },
+      light:   { ic:'◉', cond:true,  prot:false, bi:0.90, sm:1.1,  load:0.5, lbl:'LIGHT',   desc:'Light fixture — low draw' },
+      heavy:   { ic:'⚡', cond:true,  prot:false, bi:0.80, sm:1.6,  load:3,   lbl:'HEAVY',   desc:'High-draw appliance — stresses the run' },
+      conduit: { ic:'▭', cond:false, prot:true,  bi:1.00, sm:0,    load:0,   lbl:'CONDUIT', desc:'Metal conduit — thermal protection' },
+    },
+    keys: ['wire','junction','jt-pro','outlet','light','heavy','conduit'],
+    kbMap: {'1':'wire','2':'junction','3':'jt-pro','4':'outlet','5':'light','6':'heavy','7':'conduit'},
+  },
+
+  // ── HVAC ──────────────────────────────────────────────────
+  hvac: {
+    label: 'HVAC',
+    runLabel: 'Run System [Space]',
+    inspLabel: 'Measure [I]',
+    flow: '#44ccff',
+    symp: '#ffaa44',
+    protect: '#8888cc',
+    grid: [7, 6],
+    cellSize: [72, 66],
+    source: [0, 0],        // air handler — top left
+    sourceIcon: '◫',
+    sourceLabel: 'AHU',
+    sinkIcon: null,
+    sinkLabel: null,
+    sink: null,
+    symptomDecay: 0.85,
+    symptomSpread: 0.78,
+    symptomSkip: true,     // airflow jumps — symptoms very dislocated
+    overloadFaultType: 'flex',
+    statusBuild: 'duct from AIR HANDLER to vents · run system when ready',
+    statusDiag:  'cold/hot spots detected · airflow imbalance · measure to trace',
+    failWord: 'blockage',
+    faultIcon: '◌',
+    sympIcon:  '≋',
+    cards: {
+      duct:     { ic:'━', cond:true,  prot:false, bi:1.00, sm:0.8,  load:0,   lbl:'DUCT',    desc:'Sheet metal duct — rigid, reliable' },
+      flex:     { ic:'〰', cond:true,  prot:false, bi:0.50, sm:2.4,  load:0,   lbl:'FLEX',    desc:'Flexible duct — kinks, collapses over time' },
+      damper:   { ic:'⊙', cond:true,  prot:false, bi:0.85, sm:1.3,  load:0,   lbl:'DAMPER',  desc:'Zone damper — can stick or fail' },
+      vent:     { ic:'⋮⋮', cond:true,  prot:false, bi:0.95, sm:1.05, load:0.5, lbl:'VENT',    desc:'Supply vent — delivers conditioned air' },
+      return_:  { ic:'⋰⋱', cond:true,  prot:false, bi:0.95, sm:1.05, load:0.5, lbl:'RETURN',  desc:'Return vent — necessary for balance' },
+      insul:    { ic:'◈', cond:false, prot:true,  bi:1.00, sm:0,    load:0,   lbl:'INSUL',   desc:'Duct insulation — prevents condensation' },
+      ceiling:  { ic:'▔', cond:false, prot:false, bi:1.00, sm:0,    load:0,   lbl:'CEILING', desc:'Dropped ceiling — hides ducts above' },
+    },
+    keys: ['duct','flex','damper','vent','return_','insul','ceiling'],
+    kbMap: {'1':'duct','2':'flex','3':'damper','4':'vent','5':'return_','6':'insul','7':'ceiling'},
+  },
+};
+
+// ═══════════════════════════════════════════════════════════
+// ENGINE STATE
+// ═══════════════════════════════════════════════════════════
+let DOM = DOMAINS.plumbing;  // active domain
+let COLS, ROWS, CW, CH;
+
+let S = makeState();
+let G = [];
+let tool = null;
+
+function makeState() {
+  return {
+    phi:0, flow:0, entropy:0, obstruction:0, knowledge:0, documentation:0,
+    time:0, phase:'build',
+    inspsLeft:6, inspsUsed:0, repairs:0, wrongRepairs:0,
+    inspMode:false, sel:null, totalLoad:0,
+  };
+}
+
+function makeTile(r, c) {
+  return { r,c, card:null, integrity:1, stress:0,
+           leak:false, wet:0, label:'', revealed:false, failSrc:null };
+}
+
+function initG() {
+  [COLS, ROWS] = DOM.grid;
+  [CW, CH] = DOM.cellSize;
+  G = [];
+  for (let r=0;r<ROWS;r++) { G[r]=[]; for(let c=0;c<COLS;c++) G[r][c]=makeTile(r,c); }
+  const [sr,sc] = DOM.source;
+  G[sr][sc].card = Object.keys(DOM.cards)[0]; // first card type = basic conduit
+  G[sr][sc].integrity = 1;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PHYSICS — domain-agnostic core
+// ═══════════════════════════════════════════════════════════
+
+function nbrs(r, c) {
+  return [[-1,0],[1,0],[0,-1],[0,1]]
+    .map(([dr,dc])=>[r+dr,c+dc])
+    .filter(([nr,nc])=>nr>=0&&nr<ROWS&&nc>=0&&nc<COLS);
+}
+
+// BFS — flow propagation from source
+function bfs() {
+  const V = Array.from({length:ROWS},()=>Array(COLS).fill(false));
+  const [sr,sc] = DOM.source;
+  const t0 = G[sr][sc];
+  if (!t0.card || !DOM.cards[t0.card].cond) return V;
+  const Q = [[sr,sc]]; V[sr][sc]=true;
+  while (Q.length) {
+    const [r,c]=Q.shift();
+    for (const [nr,nc] of nbrs(r,c)) {
+      if (V[nr][nc]) continue;
+      const nt=G[nr][nc];
+      if (!nt.card||!DOM.cards[nt.card].cond) continue;
+      if (nt.leak) continue;   // faulted = breaks flow
+      V[nr][nc]=true; Q.push([nr,nc]);
+    }
+  }
+  // for plumbing: must reach sink
+  return V;
+}
+
+function flowSuccess(V) {
+  if (DOM.sink) return V[DOM.sink[0]][DOM.sink[1]];
+  // for sourceless-sink domains: fraction of loads energized
+  let total=0, live=0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const t=G[r][c];
+    if (t.card&&DOM.cards[t.card].load>0) { total++; if(V[r][c]) live++; }
+  }
+  return total>0 ? live/total : 0;
+}
+
+// δ̄ — Čech obstruction, flow-path weighted
+function computeObs(V) {
+  let tot=0, cnt=0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const t=G[r][c];
+    for(const [nr,nc] of nbrs(r,c)) {
+      const n=G[nr][nc]; cnt++;
+      const tc = t.card&&DOM.cards[t.card].cond;
+      const nc2= n.card&&DOM.cards[n.card].cond;
+      if (tc!==nc2) tot += V[r][c]?1.0:0.4;
+      if (tc&&!t.label) tot += V[r][c]?0.22:0.08;
+      // junction-type tiles unlabeled = extra obstruction
+      if (t.card&&DOM.cards[t.card].sm>1.5&&!t.label) tot+=0.28;
+    }
+  }
+  return cnt ? Math.min(1,tot/cnt) : 0;
+}
+
+function docScore() {
+  let docs=0, rel=0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const t=G[r][c];
+    if(t.card&&DOM.cards[t.card].cond){rel++; if(t.label.trim())docs++;}
+  }
+  return rel?docs/rel:0;
+}
+
+function λ() {
+  const prod=S.flow+S.knowledge+S.documentation+0.01;
+  const extr=S.entropy+S.obstruction;
+  return extr/prod;
+}
+function λMult(){const l=λ();return l<1?1:1+(l-1)*0.8;}
+
+// Stress — deterministic from bad local decisions
+function computeStress(r, c, V) {
+  const t=G[r][c];
+  if(!t.card||!DOM.cards[t.card].cond) return 0;
+  const cd=DOM.cards[t.card];
+  let s=0.007*cd.sm;
+  // protection neighbor reduces stress
+  let protected_=nbrs(r,c).some(([nr,nc])=>{
+    const nc2=G[nr][nc].card;
+    return nc2&&DOM.cards[nc2].prot;
+  });
+  if(!protected_) s+=0.016;
+  // symptom field adds stress (heat/moisture/pressure feedback)
+  nbrs(r,c).forEach(([nr,nc])=>{if(G[nr][nc].wet>0.4)s+=0.009;});
+  // load stress (electrical/hvac only)
+  if(V[r][c]&&S.totalLoad>4) s+=(S.totalLoad-4)*0.007;
+  return s*λMult();
+}
+
+// Symptom propagation — domain-configurable spread + skip
+function propagateSymptom() {
+  const nw=G.map(row=>row.map(t=>t.wet*DOM.symptomDecay));
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const t=G[r][c];
+    if(t.leak){nw[r][c]=1.0;}
+    if(t.wet>0.32) {
+      for(const [nr,nc] of nbrs(r,c)){
+        nw[nr][nc]=Math.max(nw[nr][nc],t.wet*DOM.symptomSpread);
+        if(!G[nr][nc].failSrc&&t.failSrc) G[nr][nc].failSrc=t.failSrc;
+      }
+    }
+    // non-local propagation (electrical, hvac)
+    if(DOM.symptomSkip&&t.wet>0.55) {
+      for(const [nr,nc] of nbrs(r,c)) {
+        for(const [nr2,nc2] of nbrs(nr,nc)) {
+          if(nr2===r&&nc2===c) continue;
+          nw[nr2][nc2]=Math.max(nw[nr2][nc2],t.wet*0.32);
+        }
+      }
+    }
+  }
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) G[r][c].wet=nw[r][c];
+}
+
+function simStep() {
+  const V=bfs();
+  // total load
+  let load=0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const t=G[r][c];
+    if(t.card&&V[r][c]&&DOM.cards[t.card].load) load+=DOM.cards[t.card].load;
+  }
+  S.totalLoad=load;
+
+  // overload fault injection
+  if(load>7&&Math.random()<0.12){
+    const ft=DOM.overloadFaultType;
+    const cands=[];
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+      if(G[r][c].card===ft&&V[r][c]) cands.push([r,c]);
+    if(cands.length){
+      const [fr,fc]=cands[Math.floor(Math.random()*cands.length)];
+      G[fr][fc].leak=true; G[fr][fc].failSrc=[fr,fc];
+    }
+  }
+
+  // degrade
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const t=G[r][c]; if(!t.card||!DOM.cards[t.card].cond) continue;
+    t.stress=computeStress(r,c,V);
+    t.integrity=Math.max(0,t.integrity-t.stress);
+    const cd=DOM.cards[t.card];
+    const thresh=cd.sm>2?0.40:cd.sm>1.3?0.28:0.16;
+    if(!t.leak&&t.integrity<thresh&&Math.random()<0.09){
+      t.leak=true; t.failSrc=[r,c];
+    }
+  }
+
+  propagateSymptom();
+
+  const V2=bfs();
+  S.flow=typeof flowSuccess(V2)==='number'?flowSuccess(V2):(flowSuccess(V2)?1:0);
+  S.documentation=docScore();
+  S.obstruction=computeObs(V2);
+  S.entropy+=S.obstruction*0.07;
+  S.time++;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════
+function render() {
+  const V=bfs();
+  const fs=flowSuccess(V);
+  S.flow=typeof fs==='number'?fs:(fs?1:0);
+  S.documentation=docScore();
+  S.obstruction=computeObs(V);
+
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) renderCell(r,c,V[r][c]);
+
+  // theory panel
+  const obs=S.obstruction, ent=S.entropy, doc=S.documentation, lam=λ();
+  const tv=document.getElementById;
+  setTV('tv-obs',obs.toFixed(2), obs<.2?'g':obs<.5?'w':'b');
+  setTV('tv-ent',ent.toFixed(2), ent<.5?'g':ent<1.5?'w':'b');
+  setTV('tv-doc',Math.round(doc*100)+'%', doc>.6?'g':doc>.3?'w':'b');
+  setTV('tv-flow',(S.flow*100).toFixed(0)+'%', S.flow>.8?'g':S.flow>.4?'w':'b');
+  setTV('tv-lam',lam.toFixed(2), lam<.8?'g':lam<1?'w':'b');
+
+  updateStatus();
+}
+
+function setTV(id,val,cls){
+  const el=document.getElementById(id);
+  el.textContent=val; el.className='tv '+(cls||'');
+}
+
+function renderCell(r, c, inFlow) {
+  const t=G[r][c]; const el=document.getElementById(`g${r}${c}`);
+  if(!el) return;
+
+  const [sr,sc]=DOM.source;
+  const isSrc=r===sr&&c===sc;
+  const isSnk=DOM.sink&&r===DOM.sink[0]&&c===DOM.sink[1];
+  const vis=S.phase==='build'||t.revealed||isSrc||(t.card&&DOM.cards[t.card].prot);
+  const isSel=S.sel&&S.sel[0]===r&&S.sel[1]===c;
+  const sym=t.wet>0.26;
+
+  el.className='c';
+  if(isSrc) el.classList.add('src-cell');
+  if(inFlow&&S.phase==='build') el.classList.add('energized');
+  if(isSel) el.classList.add('insp');
+  el.style.width=CW+'px'; el.style.height=CH+'px';
+
+  let h='';
+
+  if(isSrc){
+    h=`<div style="font-size:.52rem;color:var(--flow);opacity:.7;text-align:center;line-height:1.4">${DOM.sourceIcon}<br>${DOM.sourceLabel}</div>`;
+    el.innerHTML=h; return;
+  }
+  if(isSnk){
+    h=`<div style="font-size:.52rem;color:var(--flow);opacity:.5;text-align:center;line-height:1.4">${DOM.sinkIcon}<br>${DOM.sinkLabel}</div>`;
+    el.innerHTML=h; return;
+  }
+
+  // fog
+  if(!vis&&t.card){
+    const sv=sym?`<div style="position:absolute;bottom:3px;font-size:.65rem;color:var(--symp);opacity:.5">${DOM.sympIcon}</div>`:'';
+    el.innerHTML=`<div class="fog" style="background:var(--bg);color:var(--b1);font-size:1.1rem;">░</div>${sv}`;
+    return;
+  }
+
+  if(!t.card){
+    if(sym) h=`<div class="sov" style="background:rgba(var(--symp-rgb),.1)"></div><div style="color:var(--symp);opacity:.5;font-size:.7rem">${DOM.sympIcon}</div>`;
+    el.innerHTML=h; return;
+  }
+
+  const cd=DOM.cards[t.card];
+  const ip=Math.round(t.integrity*100);
+  const bc=t.integrity>.6?'var(--good)':t.integrity>.3?'var(--warn)':'var(--bad)';
+
+  // inspect overlay
+  if(isSel&&S.phase==='diagnose'&&t.revealed){
+    const fl=t.leak?`<div style="color:var(--bad)">${DOM.faultIcon} ${DOM.failWord.toUpperCase()}</div>`:`<div style="color:var(--good)">— clear</div>`;
+    const rl=t.failSrc&&(t.failSrc[0]!==r||t.failSrc[1]!==c)?`<div style="color:var(--symp);opacity:.6">↑ propagated</div>`:'';
+    h=`<div class="iov"><div>${cd.lbl}</div><div style="color:${bc}">${ip}%</div>${fl}${rl}</div>`;
+    el.innerHTML=h; return;
+  }
+
+  // icon color
+  const flowCol = t.leak ? 'var(--bad)' :
+                  inFlow&&S.phase==='build' ? 'var(--flow)' : 'var(--b1)';
+
+  // generic rendering — icon + bars
+  let body='';
+  if(cd.cond){
+    // cross symbol for junction-type (high sm)
+    if(cd.sm>1.8){
+      const col=t.leak?'var(--bad)':(t.integrity>.5?'var(--warn)':'var(--bad)');
+      body=`<div style="font-size:1.3rem;color:${t.leak?'var(--bad)':col};opacity:.9">${cd.ic}</div>`;
+    } else if(cd.load>0){
+      // load node
+      const alive=inFlow&&!t.leak;
+      body=`<div style="font-size:1.2rem;color:${alive?'var(--flow)':'var(--b1)'};opacity:${alive?.8:.3}${t.wet>.5?';animation:fault .5s infinite':''}">${cd.ic}</div>`;
+    } else {
+      // plain conduit
+      body=`<div style="position:absolute;top:50%;left:0;right:0;height:3px;margin-top:-1px;background:${flowCol};border-radius:1px;opacity:.7"></div>`
+          +`<div style="position:absolute;left:50%;top:0;bottom:0;width:3px;margin-left:-1px;background:${flowCol};border-radius:1px;opacity:.7"></div>`
+          +`<div style="position:absolute;top:50%;left:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:${flowCol};opacity:.7"></div>`;
+    }
+  } else {
+    // protection / structure cards
+    body=`<div style="font-size:1.0rem;color:var(--protect);opacity:.5">${cd.ic}</div>`;
+  }
+
+  const faultH=t.leak&&vis?`<div style="position:absolute;top:2px;right:2px;font-size:.6rem;z-index:4;color:var(--bad);animation:fault .4s infinite">${DOM.faultIcon}</div>`:'';
+  const sympH=sym?`<div class="sov" style="background:color-mix(in srgb,var(--symp) ${Math.round(t.wet*18)}%,transparent)"></div>`:'';
+  const barH=cd.cond&&vis?`<div class="ibar" style="width:${ip}%;background:${bc}"></div>`:'';
+  const lblH=t.label?`<div class="ldot"></div>`:'';
+
+  el.innerHTML=body+sympH+faultH+barH+lblH;
+}
+
+// ═══════════════════════════════════════════════════════════
+// INTERACTIONS
+// ═══════════════════════════════════════════════════════════
+function cellClick(r,c){
+  const t=G[r][c];
+  const [sr,sc]=DOM.source;
+  if(r===sr&&c===sc) return;
+  if(DOM.sink&&r===DOM.sink[0]&&c===DOM.sink[1]) return;
+
+  if(S.phase==='build'){
+    if(tool==='erase'){t.card=null;t.integrity=1;t.label='';t.leak=false;t.wet=0;render();return;}
+    if(tool==='label'){
+      if(!t.card) return;
+      const lbl=prompt('Label:',t.label||'');
+      if(lbl!==null)t.label=lbl.trim().slice(0,10);
+      render();return;
+    }
+    t.card=tool; t.integrity=DOM.cards[tool].bi;
+    t.leak=false;t.wet=0;t.revealed=false;
+    render();return;
+  }
+  if(S.phase==='diagnose'&&S.inspMode) inspect(r,c);
+}
+
+function inspect(r,c){
+  if(S.inspsLeft<=0){flash('no probes left','bad');return;}
+  const t=G[r][c];
+  const D=docScore();
+  const costWaived=t.label&&Math.random()<D;
+  if(!costWaived){S.inspsLeft--;S.inspsUsed++;}
+  t.revealed=true; S.sel=[r,c]; S.knowledge+=0.05;
+  render(); checkEnd();
+}
+
+function doRepair(){
+  if(!S.sel) return;
+  const [r,c]=S.sel; const t=G[r][c];
+  if(!t.revealed||!t.card||!t.leak){flash('nothing to repair here');return;}
+  const isRoot=!t.failSrc||(t.failSrc[0]===r&&t.failSrc[1]===c);
+  t.leak=false; t.integrity=DOM.cards[t.card].bi; t.wet*=0.1; S.repairs++;
+  if(!isRoot){S.wrongRepairs++;S.entropy+=0.28;flash('symptom cleared — root cause may persist','warn');}
+  else flash('repaired','good');
+  render(); checkEnd();
+}
+
+function doRun(){
+  const V=bfs(); const fs=flowSuccess(V);
+  const ok=typeof fs==='number'?fs>0:fs;
+  if(!ok){flash(DOM.sink?'no path to sink — build a route first':'place some loads first','warn');return;}
+
+  for(let i=0;i<20;i++) simStep();
+
+  const faults=countFaults();
+  S.phase=faults>0?'diagnose':'complete';
+  S.inspsLeft=6;
+  document.body.className=S.phase;
+  document.getElementById('brun').style.display='none';
+  document.getElementById('binsp').style.display='';
+  document.getElementById('brepair').style.display='';
+
+  if(faults===0){flash('system stable','good');modal('System Stable',`No ${DOM.failWord}s detected after aging cycle.\n\nYour design held.`,true);}
+  else flash(DOM.statusDiag,'warn');
+  render();
+}
+
+function doInspToggle(){
+  S.inspMode=!S.inspMode;
+  const b=document.getElementById('binsp');
+  b.classList.toggle('on',S.inspMode);
+  b.textContent=S.inspMode?DOM.inspLabel.replace('[I]','ON [I]'):DOM.inspLabel;
+}
+
+function countFaults(){
+  let n=0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(G[r][c].leak) n++;
+  return n;
+}
+
+function checkEnd(){
+  if(S.phase==='complete') return;
+  const faults=countFaults();
+  const V=bfs();
+  const fs=flowSuccess(V);
+  const ok=typeof fs==='number'?(fs>0.95):fs;
+
+  if(faults===0&&ok){
+    S.phase='complete'; document.body.className='complete';
+    modal('System Restored',buildResult(),true); return;
+  }
+
+  if(S.inspsLeft<=0){
+    let foundUnrepaired=0;
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+      if(G[r][c].leak&&G[r][c].revealed) foundUnrepaired++;
+    if(foundUnrepaired===0&&faults>0){
+      S.phase='complete'; document.body.className='complete';
+      modal('System Lost',
+        `Probes exhausted.\n${faults} ${DOM.failWord}(s) remain hidden.\n\n`+
+        `In ${DOM.label}, symptoms propagate ${DOM.symptomSkip?'non-locally':'spatially'} from cause.\n\n`+
+        `Documentation reduces search:\nT ∝ 1/D   (your D: ${Math.round(docScore()*100)}%)`,
+        false);
+    }
+  }
+}
+
+function buildResult(){
+  const score=Math.max(0,100-S.inspsUsed*10+Math.round(docScore()*40)+(λ()<1?20:0)-S.wrongRepairs*15);
+  document.getElementById('mscv').textContent=score+' / 160';
+  return [
+    `Domain:         ${DOM.label}`,
+    `Probes used:    ${S.inspsUsed} / 6`,
+    `Documentation:  ${Math.round(docScore()*100)}%`,
+    `Wrong repairs:  ${S.wrongRepairs}`,
+    `λ at close:     ${λ().toFixed(2)}`,
+    '',
+    score>=120?'Excellent. Low obstruction, documented, causal repair.':
+    score>=90 ?'Good. Preparation reduced diagnosis cost.':
+    score>=60 ?'Adequate. More labeling would help.':
+              'Costly. Hidden failure points with no documentation compound search time.'
+  ].join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════
+// DOM CONSTRUCTION
+// ═══════════════════════════════════════════════════════════
+function buildDOM(){
+  // toolbar
+  const tb=document.getElementById('toolbar');
+  tb.innerHTML='';
+  const cards=DOM.cards; const keys=DOM.keys;
+  keys.forEach((k,i)=>{
+    const cd=cards[k];
+    const btn=document.createElement('button');
+    btn.className='t'+(i===0?' on':'');
+    btn.innerHTML=`${cd.ic}<div class="t-sub">${cd.lbl}</div><span class="t-key">${i+1}</span>`;
+    btn.title=cd.desc;
+    btn.addEventListener('click',()=>setTool(k,btn));
+    tb.appendChild(btn);
+  });
+  // label + erase
+  ['label','erase'].forEach((k,i)=>{
+    const btn=document.createElement('button');
+    btn.className='t';
+    btn.innerHTML=`${k==='label'?'LBL':'✕'}<div class="t-sub">${k.toUpperCase()}</div><span class="t-key">${k==='label'?'L':'E'}</span>`;
+    btn.addEventListener('click',()=>setTool(k,btn));
+    tb.appendChild(btn);
+  });
+
+  // grid
+  const g=document.getElementById('grid');
+  g.innerHTML='';
+  g.style.gridTemplateColumns=`repeat(${COLS},${CW}px)`;
+  g.style.gridTemplateRows=`repeat(${ROWS},${CH}px)`;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const d=document.createElement('div');
+    d.className='c'; d.id=`g${r}${c}`;
+    d.style.width=CW+'px'; d.style.height=CH+'px';
+    d.addEventListener('click',()=>cellClick(r,c));
+    g.appendChild(d);
+  }
+
+  // set CSS vars for domain colors
+  document.documentElement.style.setProperty('--flow',DOM.flow);
+  document.documentElement.style.setProperty('--symp',DOM.symp);
+  document.documentElement.style.setProperty('--protect',DOM.protect);
+
+  // domain label
+  document.getElementById('dlabel').textContent=DOM.label;
+
+  // active domain button
+  document.querySelectorAll('.dom-btn').forEach(b=>{
+    b.classList.toggle('active',b.textContent.trim().toLowerCase()===Object.keys(DOMAINS).find(k=>DOMAINS[k]===DOM));
+  });
+
+  tool=DOM.keys[0];
+}
+
+function setTool(k,btn){
+  tool=k;
+  document.querySelectorAll('#toolbar .t').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+}
+
+function switchDomain(name){
+  DOM=DOMAINS[name];
+  S=makeState();
+  initG(); buildDOM();
+  document.body.className='build';
+  document.getElementById('brun').style.display='';
+  document.getElementById('binsp').style.display='none';
+  document.getElementById('brepair').style.display='none';
+  const b=document.getElementById('binsp');
+  b.classList.remove('on');
+  b.textContent=DOM.inspLabel;
+  document.getElementById('brun').textContent=DOM.runLabel;
+  document.querySelectorAll('.dom-btn').forEach(btn=>{
+    btn.classList.toggle('active',btn.textContent.trim().toLowerCase()===name);
+  });
+  flash(DOM.statusBuild);
+  render();
+}
+
+// keyboard
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  const k=DOM.kbMap[e.key];
+  if(k){ setTool(k,null); return; }
+  if(e.key==='l'||e.key==='L'){setTool('label',null);return;}
+  if(e.key==='e'||e.key==='E'){setTool('erase',null);return;}
+  if(e.key===' '){e.preventDefault();doRun();}
+  if(e.key==='i'||e.key==='I') doInspToggle();
+  if(e.key==='r'||e.key==='R') doRepair();
+});
+
+// fault animation
+const sty=document.createElement('style');
+sty.textContent=`@keyframes fault{0%,100%{opacity:1}25%{opacity:.2}75%{opacity:.7}}`;
+document.head.appendChild(sty);
+
+function modal(title,body,showScore){
+  document.getElementById('mt').textContent=title;
+  document.getElementById('mb').textContent=body;
+  document.getElementById('msc').style.display=showScore?'flex':'none';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+function updateStatus(){
+  const el=document.getElementById('status');
+  if(S.phase==='build'){
+    el.textContent=DOM.statusBuild; el.className='';
+  } else if(S.phase==='diagnose'){
+    el.textContent=`${S.inspsLeft} probe${S.inspsLeft===1?'':'s'} left · ${DOM.statusDiag}`;
+    el.className=S.inspsLeft<=2?'warn':'';
+  } else { el.textContent='complete'; el.className='good'; }
+}
+
+let flashT;
+function flash(msg,cls=''){
+  const el=document.getElementById('status');
+  el.textContent=msg; el.className=cls;
+  clearTimeout(flashT); flashT=setTimeout(updateStatus,3500);
+}
+
+function doReset(){
+  if(!confirm('Reset?')) return;
+  S=makeState(); initG(); buildDOM();
+  document.body.className='build';
+  document.getElementById('brun').style.display='';
+  document.getElementById('binsp').style.display='none';
+  document.getElementById('brepair').style.display='none';
+  flash(DOM.statusBuild); render();
+}
+
+// ── INIT
+switchDomain('plumbing');
+</script>
+</body>
+</html>

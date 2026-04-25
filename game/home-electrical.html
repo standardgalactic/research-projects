@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Home Wiring — Reverse Pass</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:    #0d0d0b;
+  --panel: #111108;
+  --b0:    #1e1e14;
+  --b1:    #2a2a1a;
+  --live:  #ffcc00;   /* live wire — hot */
+  --live2: #ff9900;
+  --neut:  #aaaaaa;   /* neutral */
+  --gnd:   #44aa44;   /* ground */
+  --heat:  #ff4422;   /* overload / short */
+  --flkr:  #ffee88;   /* flicker symptom */
+  --dim:   #888866;
+  --text:  #888866;
+  --textb: #cccc88;
+  --textd: #333322;
+  --good:  #88cc44;
+  --warn:  #ffcc00;
+  --bad:   #ff4422;
+}
+
+html,body{
+  height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Courier Prime',monospace;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:0;
+  user-select:none;
+  overflow:hidden;
+}
+
+/* phase border */
+body.build    {outline:1px solid #ffcc0018;}
+body.diagnose {outline:1px solid #ff440022;}
+body.complete {outline:1px solid #88cc4422;}
+
+/* ── TOOLBAR ── */
+#toolbar{
+  display:flex;gap:3px;padding:8px 0 6px;z-index:1;
+}
+.t{
+  width:52px;height:42px;
+  background:#0e0e09;
+  border:1px solid var(--b0);
+  color:var(--text);
+  font-family:'Courier Prime',monospace;
+  font-size:0.72rem;
+  cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;
+  transition:border-color .1s,color .1s;
+  position:relative;
+  letter-spacing:0.05em;
+  line-height:1.1;
+}
+.t:hover{border-color:var(--b1);color:var(--textb);}
+.t.on{border-color:var(--live);color:var(--live);}
+.t-sub{font-size:0.45rem;color:var(--textd);letter-spacing:0.1em;}
+.t-key{position:absolute;bottom:2px;right:3px;font-size:0.42rem;color:var(--textd);}
+
+/* ── HOME FLOOR PLAN GRID ── */
+/* 8×8 grid representing a simplified floor plan */
+#grid{
+  display:grid;
+  grid-template-columns:repeat(8,68px);
+  grid-template-rows:repeat(7,58px);
+  gap:2px;
+  background:#080806;
+  border:1px solid var(--b0);
+  padding:8px;
+  z-index:1;
+  position:relative;
+}
+
+/* room labels (decorative overlay) */
+#room-labels{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:0;
+}
+
+.c{
+  width:68px;height:58px;
+  background:#0b0b08;
+  border:1px solid #161612;
+  position:relative;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  transition:border-color .12s;
+}
+.c:hover{border-color:#2a2a1a;}
+.c.panel-cell{border-color:#ffcc0033;background:#0f0f09;}
+.c.load-cell {border-color:#333322;}
+.c.insp {border-color:var(--warn);box-shadow:0 0 0 1px var(--warn);z-index:2;}
+.c.energized{border-color:#ffcc0022;}
+.c.room-wall{background:#0d0d0a;border-color:#1a1a12;cursor:default;}
+
+/* wire rendering */
+.wire-h{position:absolute;top:50%;left:0;right:0;height:3px;margin-top:-1px;border-radius:1px;}
+.wire-v{position:absolute;left:50%;top:0;bottom:0;width:3px;margin-left:-1px;border-radius:1px;}
+.wire-dot{position:absolute;top:50%;left:50%;width:8px;height:8px;margin:-4px;border-radius:50%;}
+
+/* heat glow */
+.heat-overlay{
+  position:absolute;inset:0;pointer-events:none;
+  transition:background .5s;
+  z-index:1;
+}
+
+/* flicker shimmer */
+@keyframes flicker{
+  0%,100%{opacity:1}20%{opacity:.3}40%{opacity:.9}60%{opacity:.4}80%{opacity:.8}
+}
+.flicker{animation:flicker .4s infinite;}
+
+/* integrity bar */
+.ibar{position:absolute;bottom:0;left:0;height:2px;transition:width .4s,background .4s;z-index:3;}
+
+/* fog */
+.fog{
+  position:absolute;inset:0;
+  background:#0b0b08;
+  display:flex;align-items:center;justify-content:center;
+  color:#161612;font-size:1.2rem;z-index:4;
+}
+
+/* label dot */
+.ldot{position:absolute;top:3px;left:3px;width:4px;height:4px;background:var(--warn);border-radius:50%;z-index:5;}
+
+/* inspect overlay */
+.iov{
+  position:absolute;inset:0;background:rgba(0,0,0,.88);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:0.5rem;line-height:1.65;color:var(--textb);
+  z-index:6;padding:3px;text-align:center;
+}
+
+/* load icons */
+.load-icon{font-size:1.3rem;line-height:1;z-index:2;position:relative;}
+.load-icon.dead{opacity:.2;filter:grayscale(1);}
+.load-icon.flk{animation:flicker .6s infinite;}
+
+/* ── ACTIONS ── */
+#actions{display:flex;gap:5px;padding:6px 0 4px;z-index:1;}
+.act{
+  font-family:'Courier Prime',monospace;
+  font-size:0.6rem;letter-spacing:.12em;
+  padding:6px 14px;
+  background:#0e0e09;
+  border:1px solid var(--b0);
+  color:var(--text);
+  cursor:pointer;
+  text-transform:uppercase;
+  transition:all .1s;
+}
+.act:hover{border-color:var(--live);color:var(--live);}
+.act.primary{border-color:var(--b1);color:var(--textb);}
+.act.on{border-color:var(--warn);color:var(--warn);}
+.act:disabled{opacity:.25;cursor:default;}
+
+/* status */
+#status{
+  font-size:0.55rem;color:var(--textd);
+  letter-spacing:.12em;padding:3px 0 6px;z-index:1;
+  min-height:1.3em;transition:color .3s;text-align:center;
+}
+#status.warn{color:var(--warn);}
+#status.bad{color:var(--bad);}
+#status.good{color:var(--good);}
+
+/* breaker panel sidebar */
+#panel-sidebar{
+  position:fixed;right:12px;top:50%;transform:translateY(-50%);
+  width:110px;
+  background:#0d0d0a;
+  border:1px solid var(--b0);
+  padding:8px;
+  z-index:10;
+  font-size:0.58rem;
+}
+.ps-title{color:var(--textd);letter-spacing:.15em;font-size:.52rem;margin-bottom:6px;border-bottom:1px solid var(--b0);padding-bottom:4px;}
+.breaker{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:3px 0;border-bottom:1px solid #161612;
+  font-size:.55rem;cursor:pointer;
+  transition:color .15s;
+}
+.breaker:hover{color:var(--textb);}
+.breaker .bl{color:var(--textd);}
+.breaker .bs{width:10px;height:10px;border-radius:1px;border:1px solid var(--b1);}
+.breaker.tripped .bl{color:var(--bad);}
+.breaker.tripped .bs{background:var(--bad);border-color:var(--bad);}
+.breaker.on .bs{background:var(--live);border-color:var(--live);}
+
+/* modal */
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;align-items:center;justify-content:center;}
+#modal.open{display:flex;}
+#mbox{
+  background:#0e0e09;border:1px solid var(--live);
+  padding:28px 36px;max-width:420px;width:90%;
+  font-size:0.68rem;line-height:1.85;color:var(--textb);
+  box-shadow:0 0 50px rgba(255,204,0,.06);
+}
+#mbox h2{font-size:.75rem;letter-spacing:.22em;color:var(--live);margin-bottom:12px;text-transform:uppercase;}
+#mbox button{
+  margin-top:16px;width:100%;
+  font-family:'Courier Prime',monospace;font-size:.62rem;letter-spacing:.18em;
+  padding:8px;background:#0a0a06;
+  border:1px solid var(--live);color:var(--live);
+  cursor:pointer;text-transform:uppercase;
+}
+#mbox button:hover{background:#141408;}
+#mbox .srow{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--b0);}
+</style>
+</head>
+<body class="build">
+
+<!-- breaker panel sidebar -->
+<div id="panel-sidebar">
+  <div class="ps-title">BREAKER PANEL</div>
+  <div id="breakers"></div>
+</div>
+
+<div id="toolbar">
+  <button class="t on"  onclick="T('wire')"    title="Wire [1]">━<div class="t-sub">WIRE</div><span class="t-key">1</span></button>
+  <button class="t"     onclick="T('junction')" title="Junction box [2]">⊕<div class="t-sub">JUNCT</div><span class="t-key">2</span></button>
+  <button class="t"     onclick="T('outlet')"   title="Outlet [3]">⊡<div class="t-sub">OUTLET</div><span class="t-key">3</span></button>
+  <button class="t"     onclick="T('light')"    title="Light fixture [4]">◉<div class="t-sub">LIGHT</div><span class="t-key">4</span></button>
+  <button class="t"     onclick="T('heavy')"    title="Heavy load [5]">⚡<div class="t-sub">HEAVY</div><span class="t-key">5</span></button>
+  <button class="t"     onclick="T('conduit')"  title="Conduit [6]">▭<div class="t-sub">CONDUIT</div><span class="t-key">6</span></button>
+  <button class="t"     onclick="T('junction_good')" title="Pro junction [7]">⊛<div class="t-sub">PRO JCT</div><span class="t-key">7</span></button>
+  <button class="t"     onclick="T('label')"    title="Label [L]" style="font-size:.6rem">LBL<div class="t-sub">LABEL</div><span class="t-key">L</span></button>
+  <button class="t"     onclick="T('erase')"    title="Erase [E]" style="font-size:.75rem">✕<div class="t-sub">ERASE</div><span class="t-key">E</span></button>
+</div>
+
+<div id="grid"></div>
+
+<div id="actions">
+  <button class="act primary" id="brun"    onclick="doRun()">Energize [Space]</button>
+  <button class="act"         id="binsp"   onclick="doInspToggle()" style="display:none">Probe [I]</button>
+  <button class="act"         id="brepair" onclick="doRepair()"     style="display:none">Repair [R]</button>
+  <button class="act"         id="breset"  onclick="doReset()" style="font-size:.52rem;border-color:#1a1a10">reset</button>
+</div>
+
+<div id="status">wire from PANEL → loads · energize when ready</div>
+
+<div id="modal"><div id="mbox">
+  <h2 id="mt"></h2>
+  <div id="mb" style="white-space:pre-wrap"></div>
+  <div class="srow" id="msc" style="display:none"><span>score</span><span id="mscv" style="color:var(--live);font-weight:700"></span></div>
+  <button onclick="closeModal()">continue</button>
+</div></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DOMAIN DESCRIPTOR — electrical
+// Same engine as pipes, different physics skin
+// ═══════════════════════════════════════════════
+const DOMAIN = {
+  name: 'electrical',
+  flowName: 'current',
+  degradeName: 'heat / insulation breakdown',
+  symptomName: 'flicker / voltage drop',
+  // symptoms are spatially decoupled from cause (non-local propagation)
+  symptomDecay: 0.88,
+  symptomSpread: 0.72,
+  // signal is less spatially correlated — harder diagnosis
+  symptomNoise: 0.15,
+};
+
+// ═══════════════════════════════════════════════
+// CARD TYPES — electrical domain
+// ═══════════════════════════════════════════════
+const CD = {
+  wire:         { ic:'━', cond:true,  prot:false, hide:false, acc:false, bi:1.0,  sm:0.9,  lbl:'WIRE',     load:0,   desc:'Standard 14AWG wire' },
+  junction:     { ic:'⊕', cond:true,  prot:false, hide:false, acc:false, bi:0.55, sm:2.2,  lbl:'JUNCT',    load:0,   desc:'Wire nut junction (failure point)' },
+  junction_good:{ ic:'⊛', cond:true,  prot:false, hide:false, acc:false, bi:1.0,  sm:1.05, lbl:'PRO JCT',  load:0,   desc:'Professional junction box' },
+  outlet:       { ic:'⊡', cond:true,  prot:false, hide:false, acc:false, bi:0.85, sm:1.2,  lbl:'OUTLET',   load:1,   desc:'15A outlet' },
+  light:        { ic:'◉', cond:true,  prot:false, hide:false, acc:false, bi:0.90, sm:1.1,  lbl:'LIGHT',    load:0.5, desc:'Light fixture' },
+  heavy:        { ic:'⚡', cond:true,  prot:false, hide:false, acc:false, bi:0.80, sm:1.6,  lbl:'HEAVY',    load:3,   desc:'High-draw appliance (dryer, AC)' },
+  conduit:      { ic:'▭', cond:false, prot:true,  hide:false, acc:false, bi:1.0,  sm:0,    lbl:'CONDUIT',  load:0,   desc:'Physical protection — reduces heat stress' },
+};
+
+// ═══════════════════════════════════════════════
+// GRID CONFIG — 8×7 home floor plan
+// ═══════════════════════════════════════════════
+const COLS = 8, ROWS = 7;
+
+// Panel cell (breaker box) — source of current
+const PANEL_R = 3, PANEL_C = 0;
+
+// Room layout — decorative, affects nothing mechanically
+// but gives spatial meaning
+const ROOM_NAMES = {
+  // top row: bedroom / bathroom
+  '0,0':'BED', '0,1':'BED', '0,2':'BED', '0,3':'BATH', '0,4':'BATH', '0,5':'BED2','0,6':'BED2','0,7':'BED2',
+  // row 1
+  '1,0':'BED', '1,1':'BED', '1,2':'BED', '1,3':'BATH', '1,4':'BATH', '1,5':'BED2','1,6':'BED2','1,7':'BED2',
+  // row 2: hallway + living
+  '2,0':'HALL','2,1':'HALL','2,2':'HALL','2,3':'HALL', '2,4':'LIVE','2,5':'LIVE','2,6':'LIVE','2,7':'LIVE',
+  // row 3: panel row (kitchen / panel / dining)
+  '3,0':'PANL','3,1':'KITC','3,2':'KITC','3,3':'KITC', '3,4':'DINE','3,5':'DINE','3,6':'LIVE','3,7':'LIVE',
+  // row 4
+  '4,0':'KITC','4,1':'KITC','4,2':'KITC','4,3':'KITC', '4,4':'DINE','4,5':'DINE','4,6':'LIVE','4,7':'LIVE',
+  // row 5: garage / utility
+  '5,0':'GAR', '5,1':'GAR', '5,2':'GAR', '5,3':'UTIL','5,4':'UTIL','5,5':'LAUN','5,6':'LAUN','5,7':'LAUN',
+  // row 6
+  '6,0':'GAR', '6,1':'GAR', '6,2':'GAR', '6,3':'UTIL','6,4':'UTIL','6,5':'LAUN','6,6':'LAUN','6,7':'LAUN',
+};
+
+const ROOM_COLORS = {
+  BED:'#141410', BATH:'#0f1210', HALL:'#111108',
+  LIVE:'#121210', KITC:'#121108', DINE:'#111108',
+  GAR:'#0f0f0e', UTIL:'#101008', LAUN:'#0f100e', PANL:'#141408',
+};
+
+// ═══════════════════════════════════════════════
+// BREAKERS — circuits correspond to rooms/zones
+// ═══════════════════════════════════════════════
+const BREAKERS = [
+  { id:'br1', label:'BEDRM 1',  amp:15, tripped:false, on:true },
+  { id:'br2', label:'BEDRM 2',  amp:15, tripped:false, on:true },
+  { id:'br3', label:'BATH',     amp:20, tripped:false, on:true },
+  { id:'br4', label:'KITCHEN',  amp:20, tripped:false, on:true },
+  { id:'br5', label:'DINING',   amp:15, tripped:false, on:true },
+  { id:'br6', label:'LIVING',   amp:15, tripped:false, on:true },
+  { id:'br7', label:'LAUNDRY',  amp:20, tripped:false, on:true },
+  { id:'br8', label:'GARAGE',   amp:20, tripped:false, on:true },
+];
+
+// ═══════════════════════════════════════════════
+// STATE VECTOR X(t) — same structure as pipes
+// ═══════════════════════════════════════════════
+let S = {
+  phi:0, flow:0, entropy:0, obstruction:0,
+  knowledge:0, documentation:0,
+  time:0, phase:'build',
+  inspsLeft:7, inspsUsed:0,
+  repairs:0, wrongRepairs:0,
+  inspMode:false, sel:null,
+  // electrical-specific
+  totalLoad:0,      // sum of load values
+  overloaded:false, // λ > threshold triggers trips
+};
+
+let G = [];
+
+function makeTile(r, c) {
+  return {
+    r, c, card:null,
+    integrity:1, stress:0,
+    leak:false,       // = electrical fault (short/arc)
+    wet:0,            // = heat/flicker signal (non-local)
+    label:'',
+    revealed:false,
+    failSrc:null,
+    // electrical extras
+    voltage:0,        // computed: 1 = full, 0 = dead
+    load:0,           // local load draw
+    circuit:null,     // which breaker feeds this tile
+  };
+}
+
+function initG() {
+  G = [];
+  for (let r = 0; r < ROWS; r++) {
+    G[r] = [];
+    for (let c = 0; c < COLS; c++) G[r][c] = makeTile(r, c);
+  }
+  // panel tile
+  G[PANEL_R][PANEL_C].card = 'wire';
+  G[PANEL_R][PANEL_C].integrity = 1;
+  G[PANEL_R][PANEL_C].voltage = 1;
+}
+
+// ═══════════════════════════════════════════════
+// PHYSICS — electrical domain
+// ═══════════════════════════════════════════════
+
+function nbrs(r, c) {
+  return [[-1,0],[1,0],[0,-1],[0,1]]
+    .map(([dr,dc])=>[r+dr,c+dc])
+    .filter(([nr,nc])=>nr>=0&&nr<ROWS&&nc>=0&&nc<COLS);
+}
+
+// BFS — voltage propagation from panel
+function bfs() {
+  const V = Array.from({length:ROWS},()=>Array(COLS).fill(false));
+  const t0 = G[PANEL_R][PANEL_C];
+  if (!t0.card || !CD[t0.card].cond) return V;
+  const Q = [[PANEL_R,PANEL_C]]; V[PANEL_R][PANEL_C] = true;
+  while (Q.length) {
+    const [r,c] = Q.shift();
+    for (const [nr,nc] of nbrs(r,c)) {
+      if (V[nr][nc]) continue;
+      const nt = G[nr][nc];
+      if (!nt.card || !CD[nt.card].cond) continue;
+      if (nt.leak) continue; // faulted = breaks circuit
+      V[nr][nc] = true; Q.push([nr,nc]);
+    }
+  }
+  return V;
+}
+
+// Count energized loads
+function countEnergizedLoads(V) {
+  let total = 0, energized = 0;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++) {
+      const t = G[r][c];
+      if (!t.card) continue;
+      const cd = CD[t.card];
+      if (cd.load > 0) {
+        total++;
+        if (V[r][c]) energized++;
+      }
+    }
+  return { total, energized };
+}
+
+// δ̄ — obstruction (directional, flow-path weighted)
+function δ̄(V) {
+  let tot = 0, cnt = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const t = G[r][c];
+      for (const [nr,nc] of nbrs(r,c)) {
+        const n = G[nr][nc];
+        cnt++;
+        const tc = t.card && CD[t.card].cond;
+        const nc2 = n.card && CD[n.card].cond;
+        if (tc !== nc2) tot += V[r][c] ? 1.0 : 0.4;
+        if (!t.label && t.card && CD[t.card].cond) tot += V[r][c] ? 0.22 : 0.08;
+        // junction without cover = obstruction
+        if (t.card === 'junction' && !t.label) tot += 0.3;
+      }
+    }
+  }
+  return cnt ? Math.min(1, tot/cnt) : 0;
+}
+
+function docScore() {
+  let docs = 0, rel = 0;
+  for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const t = G[r][c];
+    if (t.card && CD[t.card].cond) { rel++; if(t.label.trim()) docs++; }
+  }
+  return rel ? docs/rel : 0;
+}
+
+function λ() {
+  const prod = S.flow + S.knowledge + S.documentation + 0.01;
+  const extr = S.entropy + S.obstruction;
+  return extr / prod;
+}
+function λMult() { const l=λ(); return l<1?1:1+(l-1)*0.8; }
+
+// Electrical stress — heat accumulation
+// Key difference from pipes: overloaded circuits stress ALL tiles on that run
+function computeStress(r, c, V) {
+  const t = G[r][c];
+  if (!t.card || !CD[t.card].cond) return 0;
+
+  let s = 0.007 * CD[t.card].sm;
+
+  // conduit neighbor protects
+  let protected_ = nbrs(r,c).some(([nr,nc]) => G[nr][nc].card === 'conduit');
+  if (!protected_) s += 0.014;
+
+  // heat propagates from overloaded tiles
+  nbrs(r,c).forEach(([nr,nc]) => {
+    if (G[nr][nc].wet > 0.4) s += 0.010;  // wet = heat signal here
+  });
+
+  // if on energized path and total load is high
+  if (V[r][c] && S.totalLoad > 4) s += (S.totalLoad - 4) * 0.008;
+
+  return s * λMult();
+}
+
+// Symptom propagation — electrical (less local than pipes)
+// Heat / flicker spreads further and faster; cause harder to pinpoint
+function propagateSymptom() {
+  const nw = G.map(row => row.map(t => t.wet * DOMAIN.symptomDecay));
+  for (let r=0;r<ROWS;r++)
+    for (let c=0;c<COLS;c++) {
+      const t = G[r][c];
+      if (t.leak) { nw[r][c] = 1.0; }
+      if (t.wet > 0.32) {
+        for (const [nr,nc] of nbrs(r,c)) {
+          nw[nr][nc] = Math.max(nw[nr][nc], t.wet * DOMAIN.symptomSpread);
+          if (!G[nr][nc].failSrc && t.failSrc) G[nr][nc].failSrc = t.failSrc;
+        }
+      }
+      // electrical: also skip one tile (non-local propagation)
+      if (t.wet > 0.55) {
+        for (const [nr,nc] of nbrs(r,c)) {
+          for (const [nr2,nc2] of nbrs(nr,nc)) {
+            if (nr2===r&&nc2===c) continue;
+            nw[nr2][nc2] = Math.max(nw[nr2][nc2], t.wet * 0.35);
+          }
+        }
+      }
+    }
+  for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) G[r][c].wet = nw[r][c];
+}
+
+function simStep(V) {
+  // compute total load
+  let load = 0;
+  for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const t = G[r][c];
+    if (t.card && V[r][c] && CD[t.card].load) load += CD[t.card].load;
+  }
+  S.totalLoad = load;
+
+  // overload check — trips breakers
+  if (load > 8 && Math.random() < 0.15) {
+    // find a random energized junction to fault
+    const cands = [];
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+      if(G[r][c].card==='junction' && V[r][c]) cands.push([r,c]);
+    if (cands.length) {
+      const [fr,fc] = cands[Math.floor(Math.random()*cands.length)];
+      G[fr][fc].leak = true;
+      G[fr][fc].failSrc = [fr,fc];
+    }
+  }
+
+  // degrade
+  for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const t = G[r][c];
+    if (!t.card || !CD[t.card].cond) continue;
+    t.stress = computeStress(r, c, V);
+    t.integrity = Math.max(0, t.integrity - t.stress);
+    const thresh = t.card==='junction' ? 0.40 : t.card==='heavy' ? 0.35 : 0.18;
+    if (!t.leak && t.integrity < thresh && Math.random() < 0.09) {
+      t.leak = true;
+      t.failSrc = [r,c];
+    }
+  }
+
+  propagateSymptom();
+
+  // update state
+  const V2 = bfs();
+  const { energized, total } = countEnergizedLoads(V2);
+  S.flow = total > 0 ? energized / total : 0;
+  S.documentation = docScore();
+  S.obstruction = δ̄(V2);
+  S.entropy += S.obstruction * 0.07;
+  S.time++;
+}
+
+// ═══════════════════════════════════════════════
+// DOM SETUP
+// ═══════════════════════════════════════════════
+function buildDOM() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  g.style.gridTemplateColumns = `repeat(${COLS},68px)`;
+  g.style.gridTemplateRows = `repeat(${ROWS},58px)`;
+
+  for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const d = document.createElement('div');
+    d.className = 'c';
+    d.id = `g${r}${c}`;
+    const roomKey = `${r},${c}`;
+    const room = ROOM_NAMES[roomKey];
+    if (room && ROOM_COLORS[room]) d.style.background = ROOM_COLORS[room];
+    if (r===PANEL_R && c===PANEL_C) d.classList.add('panel-cell');
+    d.addEventListener('click', ()=>cellClick(r,c));
+    g.appendChild(d);
+  }
+
+  buildBreakerPanel();
+}
+
+function buildBreakerPanel() {
+  const el = document.getElementById('breakers');
+  el.innerHTML = '';
+  for (const br of BREAKERS) {
+    const d = document.createElement('div');
+    d.className = 'breaker on';
+    d.id = br.id;
+    d.innerHTML = `<span class="bl">${br.label}</span><span class="bs"></span>`;
+    d.addEventListener('click', ()=>toggleBreaker(br));
+    el.appendChild(d);
+  }
+}
+
+function toggleBreaker(br) {
+  if (S.phase !== 'diagnose') return;
+  br.tripped = !br.tripped;
+  renderBreakers();
+  flash(br.tripped ? `${br.label}: tripped` : `${br.label}: reset`, br.tripped ? 'warn' : 'good');
+}
+
+function renderBreakers() {
+  for (const br of BREAKERS) {
+    const el = document.getElementById(br.id);
+    if (!el) continue;
+    el.className = 'breaker ' + (br.tripped ? 'tripped' : 'on');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════
+function render() {
+  const V = bfs();
+  S.flow = (() => {
+    const { energized, total } = countEnergizedLoads(V);
+    return total > 0 ? energized/total : 0;
+  })();
+
+  for (let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) renderCell(r,c,V[r][c]);
+  updateStatus();
+}
+
+function renderCell(r, c, inFlow) {
+  const t = G[r][c];
+  const el = document.getElementById(`g${r}${c}`);
+  if (!el) return;
+
+  const isPanel = r===PANEL_R && c===PANEL_C;
+  const vis = S.phase==='build' || t.card==='conduit' || t.revealed || isPanel;
+  const isSel = S.sel && S.sel[0]===r && S.sel[1]===c;
+  const sym = t.wet > 0.28; // symptom visible regardless
+
+  el.className = 'c';
+  const roomKey = `${r},${c}`;
+  const room = ROOM_NAMES[roomKey];
+  if (room && ROOM_COLORS[room]) el.style.background = ROOM_COLORS[room];
+  if (isPanel) el.classList.add('panel-cell');
+  if (inFlow && S.phase==='build') el.classList.add('energized');
+  if (isSel) el.classList.add('insp');
+
+  let h = '';
+
+  // panel tile special
+  if (isPanel) {
+    h = `<div style="font-size:.52rem;color:#ffcc0088;letter-spacing:.08em;text-align:center;line-height:1.4">⚡<br>PANEL</div>`;
+    el.innerHTML = h; return;
+  }
+
+  // fog in diagnose
+  if (!vis && t.card) {
+    const symH = sym ? `<div style="position:absolute;bottom:3px;font-size:.65rem;color:#ffcc0055;z-index:5" class="${t.wet>.6?'flicker':''}">〜</div>` : '';
+    el.innerHTML = `<div class="fog">░</div>${symH}`;
+    return;
+  }
+
+  if (!t.card) {
+    // empty room tile — show symptom if present
+    if (sym) {
+      const intensity = Math.min(.28, t.wet*.28);
+      h = `<div class="heat-overlay" style="background:rgba(255,204,0,${intensity})"></div>`
+        + `<div style="font-size:.6rem;color:#ffcc0055;${t.wet>.6?'animation:flicker .5s infinite':''}">〜</div>`;
+    }
+    el.innerHTML = h; return;
+  }
+
+  const cd = CD[t.card];
+  const ip = Math.round(t.integrity*100);
+  const bc = t.integrity>.6 ? 'var(--good)' : t.integrity>.3 ? 'var(--warn)' : 'var(--bad)';
+
+  // inspect overlay
+  if (isSel && S.phase==='diagnose' && t.revealed) {
+    const faultLine = t.leak
+      ? `<div style="color:var(--bad)">⚡ FAULT</div>`
+      : `<div style="color:var(--good)">— clear</div>`;
+    const rootLine = t.failSrc&&(t.failSrc[0]!==r||t.failSrc[1]!==c)
+      ? `<div style="color:#ffcc0055">↑ propagated</div>` : '';
+    h = `<div class="iov"><div style="color:var(--textb)">${cd.lbl}</div><div style="color:${bc}">${ip}%</div>${faultLine}${rootLine}</div>`;
+    el.innerHTML = h; return;
+  }
+
+  // wire color by state
+  let wireCol = t.leak ? 'var(--bad)' :
+                inFlow && S.phase==='build' ? '#ffcc0066' :
+                vis ? '#2a2a18' : '#1a1a10';
+
+  // icon by card type
+  let body = '';
+  if (t.card==='wire') {
+    body = `<div class="wire-h" style="background:${wireCol}"></div>
+            <div class="wire-v" style="background:${wireCol}"></div>
+            <div class="wire-dot" style="background:${wireCol}"></div>`;
+  } else if (t.card==='junction'||t.card==='junction_good') {
+    const col = t.card==='junction_good' ? 'var(--good)' : (t.integrity>.5?'var(--warn)':'var(--bad)');
+    body = `<div style="font-size:1.3rem;color:${t.leak?'var(--bad)':col}">${cd.ic}</div>`;
+  } else if (t.card==='outlet') {
+    const alive = inFlow && !t.leak;
+    body = `<div class="load-icon ${alive?'':'dead'} ${t.wet>.5?'flk':''}" style="color:${alive?'#ffcc0088':'#333322'}">${cd.ic}</div>`;
+  } else if (t.card==='light') {
+    const alive = inFlow && !t.leak;
+    body = `<div class="load-icon ${alive?'':'dead'} ${t.wet>.5?'flk':''}" style="color:${alive?'#ffee8899':'#222218'}">${cd.ic}</div>`;
+  } else if (t.card==='heavy') {
+    const alive = inFlow && !t.leak;
+    body = `<div class="load-icon ${alive?'':'dead'}" style="color:${alive?'var(--heat)88':'#222218'};font-size:1.5rem">${cd.ic}</div>`;
+  } else if (t.card==='conduit') {
+    body = `<div style="font-size:.65rem;color:#333322;letter-spacing:.05em">${cd.ic}<br><span style="font-size:.42rem">CONDUIT</span></div>`;
+  }
+
+  const faultH = t.leak&&vis ? `<div style="position:absolute;top:2px;right:2px;font-size:.6rem;z-index:4;animation:flicker .3s infinite;color:var(--bad)">⚡</div>` : '';
+  const symH   = sym&&!t.leak ? `<div class="heat-overlay" style="background:rgba(255,204,0,${Math.min(.22,t.wet*.22)})"></div>` : '';
+  const barH   = cd.cond&&vis ? `<div class="ibar" style="width:${ip}%;background:${bc}"></div>` : '';
+  const lblH   = t.label ? `<div class="ldot"></div>` : '';
+
+  el.innerHTML = body + symH + faultH + barH + lblH;
+}
+
+function updateStatus() {
+  const el = document.getElementById('status');
+  const V = bfs();
+  const { energized, total } = countEnergizedLoads(V);
+
+  if (S.phase==='build') {
+    const load = S.totalLoad.toFixed(1);
+    el.textContent = total > 0
+      ? `${energized}/${total} loads energized · run system when ready`
+      : 'place wire from PANEL to outlets, lights, loads';
+    el.className = energized===total&&total>0 ? 'good' : '';
+  } else if (S.phase==='diagnose') {
+    el.textContent = `${S.inspsLeft} probe${S.inspsLeft===1?'':'s'} left · symptoms: flickering / dead loads`;
+    el.className = S.inspsLeft<=2 ? 'warn' : '';
+  } else {
+    el.textContent = 'complete';
+    el.className = 'good';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// INTERACTIONS
+// ═══════════════════════════════════════════════
+let tool = 'wire';
+
+function T(t_) {
+  tool = t_;
+  document.querySelectorAll('.t').forEach(b=>b.classList.remove('on'));
+  const btns = document.querySelectorAll('.t');
+  btns.forEach(b=>{if(b.getAttribute('onclick')===`T('${t_}')`)b.classList.add('on');});
+}
+
+function cellClick(r, c) {
+  const t = G[r][c];
+  const isPanel = r===PANEL_R && c===PANEL_C;
+  if (isPanel) return;
+
+  if (S.phase==='build') {
+    if (tool==='erase') {
+      t.card=null;t.integrity=1;t.label='';t.leak=false;t.wet=0;
+      render(); return;
+    }
+    if (tool==='label') {
+      if (!t.card) return;
+      const lbl = prompt('Circuit label:', t.label||'');
+      if (lbl!==null) t.label=lbl.trim().slice(0,10);
+      render(); return;
+    }
+    t.card = tool;
+    t.integrity = CD[tool].bi;
+    t.leak=false;t.wet=0;t.revealed=false;
+    render(); return;
+  }
+
+  if (S.phase==='diagnose' && S.inspMode) probe(r,c);
+}
+
+function probe(r, c) {
+  if (S.inspsLeft<=0) { flash('no probes remaining','bad'); return; }
+
+  const t = G[r][c];
+  // documented tiles cost less (T ∝ 1/D)
+  const D = docScore();
+  const hasLabel = t.label.trim();
+  const costWaived = hasLabel && Math.random() < D;
+
+  if (!costWaived) { S.inspsLeft--; S.inspsUsed++; }
+
+  t.revealed=true;
+  S.sel=[r,c];
+  S.knowledge+=0.05;
+
+  render();
+  checkEnd();
+}
+
+function doRepair() {
+  if (!S.sel) return;
+  const [r,c]=S.sel;
+  const t=G[r][c];
+  if (!t.revealed||!t.card||!t.leak) { flash('no fault here','warn'); return; }
+
+  const isRoot = !t.failSrc||(t.failSrc[0]===r&&t.failSrc[1]===c);
+
+  t.leak=false;
+  t.integrity=CD[t.card].bi;
+  t.wet*=0.1;
+  S.repairs++;
+
+  if (!isRoot) {
+    S.wrongRepairs++;
+    S.entropy+=0.3;
+    flash('symptom cleared — upstream fault persists','warn');
+  } else {
+    flash('fault repaired','good');
+  }
+
+  render();
+  checkEnd();
+}
+
+function doRun() {
+  const V = bfs();
+  const { energized, total } = countEnergizedLoads(V);
+  if (total===0) { flash('place some loads (outlets, lights) first','warn'); return; }
+
+  for (let i=0;i<20;i++) simStep(bfs());
+
+  const faults = countFaults();
+  S.phase = faults>0 ? 'diagnose' : 'complete';
+  S.inspsLeft=7;
+  document.body.className = S.phase;
+  document.getElementById('brun').style.display='none';
+  document.getElementById('binsp').style.display='';
+  document.getElementById('brepair').style.display='';
+
+  if (faults===0) {
+    flash('system stable','good');
+    modal('System Stable', 'No faults after aging cycle.\n\nYour wiring held.', true);
+  } else {
+    // tell player what they observe — NOT where the fault is
+    const V2 = bfs();
+    const { energized:e2, total:t2 } = countEnergizedLoads(V2);
+    const deadLoads = t2-e2;
+    flash(`${deadLoads} load${deadLoads!==1?'s':''} dead · flickering signals detected`, 'warn');
+  }
+  render();
+}
+
+function countFaults() {
+  let n=0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(G[r][c].leak) n++;
+  return n;
+}
+
+function checkEnd() {
+  if (S.phase==='complete') return;
+  const faults = countFaults();
+  const V = bfs();
+  const { energized, total } = countEnergizedLoads(V);
+
+  if (faults===0 && energized===total) {
+    S.phase='complete';
+    document.body.className='complete';
+    modal('Power Restored', buildResult(), true);
+    return;
+  }
+
+  if (S.inspsLeft<=0) {
+    let foundUnrepaired=0;
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+      if(G[r][c].leak&&G[r][c].revealed) foundUnrepaired++;
+    if (foundUnrepaired===0&&faults>0) {
+      S.phase='complete';
+      document.body.className='complete';
+      modal('Circuit Lost', `Probes exhausted. ${faults} fault(s) remain hidden.\n\nElectrical faults propagate non-locally — symptoms appear rooms away from causes.\n\nDocumentation reduces search space:\nT ∝ 1/D   (your D: ${Math.round(docScore()*100)}%)`, false);
+    }
+  }
+}
+
+function buildResult() {
+  const score = Math.max(0, 100 - S.inspsUsed*10 + Math.round(docScore()*40) + (λ()<1?20:0) - S.wrongRepairs*15);
+  document.getElementById('mscv').textContent = score+' / 160';
+  const D = Math.round(docScore()*100);
+  const l = λ().toFixed(2);
+  return [
+    `Probes used:     ${S.inspsUsed} / 7`,
+    `Labeled circuits: ${D}%`,
+    `Wrong repairs:   ${S.wrongRepairs}`,
+    `λ at close:      ${l}`,
+    '',
+    score>=120 ? 'Clean installation. Every junction labeled, every circuit traceable.' :
+    score>=90  ? 'Solid work. Documentation paid off on diagnosis.' :
+    score>=60  ? 'Functional. Label your junctions next time.' :
+                 'Expensive diagnosis. Bare wire-nut junctions in walls are future unknowns.'
+  ].join('\n');
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+let flashT;
+function flash(msg,cls='') {
+  const el=document.getElementById('status');
+  el.textContent=msg; el.className=cls;
+  clearTimeout(flashT);
+  flashT=setTimeout(updateStatus,3500);
+}
+
+function modal(title,body,showScore) {
+  document.getElementById('mt').textContent=title;
+  document.getElementById('mb').textContent=body;
+  document.getElementById('msc').style.display=showScore?'flex':'none';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+function doInspToggle() {
+  S.inspMode=!S.inspMode;
+  const b=document.getElementById('binsp');
+  b.classList.toggle('on',S.inspMode);
+  b.textContent=S.inspMode?'Probe ON [I]':'Probe [I]';
+}
+
+function doReset() {
+  if(!confirm('Reset?')) return;
+  S={phi:0,flow:0,entropy:0,obstruction:0,knowledge:0,documentation:0,time:0,phase:'build',inspsLeft:7,inspsUsed:0,repairs:0,wrongRepairs:0,inspMode:false,sel:null,totalLoad:0,overloaded:false};
+  tool='wire'; T('wire');
+  for(const br of BREAKERS){br.tripped=false;br.on=true;}
+  initG(); buildDOM();
+  document.body.className='build';
+  document.getElementById('brun').style.display='';
+  document.getElementById('binsp').style.display='none';
+  document.getElementById('brepair').style.display='none';
+  document.getElementById('binsp').classList.remove('on');
+  flash('wire from PANEL → loads · energize when ready');
+  render();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+  const m={'1':'wire','2':'junction','3':'outlet','4':'light','5':'heavy','6':'conduit','7':'junction_good','l':'label','L':'label','e':'erase','E':'erase'};
+  if(m[e.key]){T(m[e.key]);return;}
+  if(e.key===' '){e.preventDefault();doRun();}
+  if(e.key==='i'||e.key==='I') doInspToggle();
+  if(e.key==='r'||e.key==='R') doRepair();
+});
+
+// flicker keyframe
+const sty=document.createElement('style');
+sty.textContent=`@keyframes flicker{0%,100%{opacity:1}20%{opacity:.2}40%{opacity:.85}60%{opacity:.3}80%{opacity:.75}}`;
+document.head.appendChild(sty);
+
+initG(); buildDOM(); render();
+</script>
+</body>
+</html>
