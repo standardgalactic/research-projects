@@ -278,25 +278,6 @@ The operator $\operatorname{Read}(\mathcal{M}_t,p_t)$ extracts a
 view-dependent slice of the field, analogous to a camera projection from
 a three-dimensional scene.
 
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}[scale=1.2]
-\draw[thick] (-3,-1) .. controls (-2,2) and (-1,2) .. (0,-1)
-             .. controls (-1,-2) and (-2,-2) .. cycle;
-\node at (-1.5,2.3) {$\mathcal{M}_t$};
-\filldraw (-1.5,0.2) circle (2pt);
-\node[left] at (-1.5,0.2) {$x$};
-\draw[->, thick] (-0.5,0) -- (2,0);
-\node at (0.75,0.4) {$\mathcal{O}_\theta$};
-\draw[thick] (2.5,-1.2) rectangle (5,1.2);
-\node at (3.75,1.5) {$o_{t+1}$};
-\end{tikzpicture}
-\caption{Observation as projection from latent field memory to visible
-state. The operator $\mathcal{O}_\theta$ maps a point in $\mathcal{M}_t$
-to a rendered observation, introducing noise proportional to the local
-entropy $S_t(x)$.}
-\end{figure}
-
 \subsection{Observation Does Not Store State}
 
 Unlike autoregressive systems, $\mathcal{O}_\theta$ does not maintain
@@ -598,76 +579,6 @@ semantic configurations, perturbed by learned forces that drive the system
 toward observed evidence.
 
 % =============================================================
-\section{Renormalization and Scale Separation in Semantic Fields}
-\label{sec:renorm}
-
-The RSVP--Polyxan framework operates across multiple spatial and semantic
-scales, from fine-grained latent appearance fields $z_t(x)$ to global
-hypergraph structure.
-The relationship between these scales is not merely informal: the theory
-must specify how field descriptions at one resolution are related to those
-at another, and how effective dynamics emerge from integrating out
-fine-scale fluctuations.
-We therefore introduce a renormalization operator that makes scale
-separation explicit.
-
-\subsection{Renormalization Operator}
-
-Define a scale parameter $\ell > 0$ and a coarse-graining operator:
-\[
-\mathcal{R}_\ell : \mathcal{M}_t \;\longrightarrow\; \mathcal{M}_t^{(\ell)},
-\]
-where $\mathcal{M}_t^{(\ell)}$ is a smoothed field representation over
-regions of diameter $\ell$ in $X$.
-Each component transforms under a convolution kernel $K_\ell$:
-\[
-\Phi_t^{(\ell)}(x)
-= \int_{B_\ell(x)} K_\ell(x,y)\,\Phi_t(y)\,d\mu_g(y),
-\]
-with analogous definitions for $\mathbf{v}_t$, $S_t$, $A_t$, $R_t$, and
-$z_t$.
-The kernel $K_\ell$ is required to be non-negative, normalized, and to
-converge to a delta function as $\ell \to 0$.
-
-\subsection{Scale-Dependent Dynamics}
-
-The effective dynamics at scale $\ell$ are governed by a renormalized
-energy functional:
-\[
-E^{(\ell)}[\mathcal{M}]
-=
-\int_X V^{(\ell)}(\mathcal{M}^{(\ell)})\, d\mu_g,
-\]
-where $V^{(\ell)}$ incorporates the contributions from field fluctuations
-below scale $\ell$ that have been integrated out.
-This is the field-theoretic analogue of Wilson's renormalization group:
-coarser descriptions are related to finer ones by integrating out
-short-wavelength degrees of freedom.
-
-\subsection{Semantic Interpretation and Limiting Cases}
-
-At small $\ell$, the field retains fine-grained appearance, local entropy,
-and object-level residue.
-At large $\ell$, only coarse structural constraints and global semantic
-organization survive.
-MultiGen corresponds to the large-$\ell$ limit in which only scalar
-geometry persists and all semantic components collapse.
-The discrete prototype of Section~\ref{sec:prototype} corresponds to an
-intermediate $\ell$ at which the field is resolved on a $128 \times 128$
-grid, sacrificing high-frequency appearance detail while retaining the
-structural asymmetry between observation and substrate.
-The full RSVP formulation retains all scales simultaneously via the
-multi-component field $\mathcal{M}_t$.
-
-\begin{principle}
-Semantic structure is scale-dependent, but governed by a unified field
-theory under renormalization.
-The diversity of existing generative world models corresponds to different
-choices of coarse-graining scale, not to fundamentally different
-architectures.
-\end{principle}
-
-% =============================================================
 \section{Polyxan as a Discrete Interface to Field Memory}
 
 The Polyxan hypergraph $G=(V,E)$ provides a discrete interface into the
@@ -718,24 +629,6 @@ subject to the requirement that observations be gauge-invariant:
 \mathcal{O}_\theta(\mathcal{M}_t^g, p_t) =
 \mathcal{O}_\theta(\mathcal{M}_t, p_t).
 \]
-
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}
-\draw[thick] (0,0) circle (2);
-\filldraw ( 2, 0) circle (2pt);
-\filldraw (-2, 0) circle (2pt);
-\filldraw ( 0, 2) circle (2pt);
-\filldraw ( 0,-2) circle (2pt);
-\node at (0, 2.6) {$[\mathcal{M}]_{\mathcal{G}}$};
-\draw[->, thick] (2,0) arc (0:82:2);
-\node at (1.6,1.6) {\small $g \in \mathcal{G}$};
-\end{tikzpicture}
-\caption{Gauge orbit of semantically equivalent field configurations.
-All points on the orbit produce identical observations under
-$\mathcal{O}_\theta$; the equivalence class $[\mathcal{M}]_{\mathcal{G}}$
-is the physical degree of freedom.}
-\end{figure}
 
 \subsection{Examples of Gauge Groups}
 
@@ -887,24 +780,6 @@ limit:
 \]
 \end{theorem}
 
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}
-\draw[thick] (0,0) circle (1.5);
-\draw[thick] (2.4,0) circle (1.5);
-\node at (0, 1.85)   {$U_1$};
-\node at (2.4, 1.85) {$U_2$};
-\draw[thick, dashed] (1.2,0) ellipse (0.9 and 1.1);
-\node at (1.2,-1.6) {\small $U_1 \cap U_2$};
-\node[font=\Large] at (1.2,0) {$\times$};
-\node at (1.2,0.55) {\small obstruction};
-\end{tikzpicture}
-\caption{Failure of sheaf gluing corresponds to non-vanishing cohomology
-$H^1(\mathscr{G}^\infty) \neq 0$. The cross marks the obstruction class
-that prevents local patches from assembling into a globally consistent
-world-state.}
-\end{figure}
-
 \subsection{Interpretation of Hallucination}
 
 We interpret hallucination as non-vanishing first cohomology of the derived
@@ -951,7 +826,6 @@ transformation describing generative semantic deformation.
 
 % =============================================================
 \section{Quantization of RSVP Field Dynamics}
-\label{sec:quantization}
 
 We now construct a quantum, or equivalently stochastic, extension of RSVP
 memory dynamics, interpreting the latent field evolution as a path integral
@@ -1037,182 +911,6 @@ $S_t(x)$, which is high where the path integral measure is diffuse and
 low where it concentrates on a narrow set of field configurations.
 
 % =============================================================
-\section{Information Geometry of RSVP Field Space}
-\label{sec:infogeo}
-
-The stochastic formulation of Section~\ref{sec:quantization} induces an
-information-geometric structure on the space of field configurations.
-This structure connects the entropy field $S_t$, the score function of
-the diffusion process, and the learning dynamics of $\mathcal{N}_\psi$
-within a unified statistical manifold.
-
-\subsection{Statistical Manifold}
-
-Let $p(\mathcal{M}) \propto e^{-E(\mathcal{M})/\hbar}$ be the Boltzmann
-distribution over field configurations induced by the RSVP energy.
-Define the Fisher information metric:
-\[
-g_{ij}(\mathcal{M})
-=
-\mathbb{E}_{p}\!\left[
-\partial_i \log p(\mathcal{M})\;
-\partial_j \log p(\mathcal{M})
-\right],
-\]
-where $i,j$ index directions in field space.
-This metric equips the space of field configurations with a Riemannian
-structure that is intrinsic to the distribution $p$, rather than inherited
-from the ambient Euclidean structure of $\mathbb{R}^d$.
-
-\subsection{Natural Gradient Flow}
-
-The Langevin dynamics of Section~\ref{sec:quantization}:
-\[
-\partial_\tau \mathcal{M}
-=
--\nabla_{\mathcal{M}} E(\mathcal{M}) + \eta(\tau)
-\]
-correspond, in the zero-noise limit, to steepest descent under the
-Euclidean metric.
-Under the Fisher metric $g_{ij}$, the analogous flow is natural gradient
-descent:
-\[
-\partial_\tau \mathcal{M}
-=
--g^{ij}\,\partial_j E(\mathcal{M}),
-\]
-which converges more efficiently by following the intrinsic curvature of
-the probability simplex rather than the extrinsic geometry of parameter
-space.
-The learning dynamics of $\mathcal{N}_\psi$ are thus interpretable as
-approximating natural gradient flow on the statistical manifold of field
-configurations.
-
-\subsection{Entropy as Local Curvature}
-
-The entropy field $S_t(x)$ corresponds to local dispersion in the
-distribution over field configurations at position $x$.
-Regions of high $S_t(x)$ correspond to flat directions in the energy
-landscape at $x$: many field configurations are nearly equally probable,
-and the Hessian of $E$ at those points is small.
-Regions of low $S_t(x)$ correspond to sharply curved energy basins in
-which the field is tightly concentrated near a local minimum.
-The write operator $\mathcal{W}$ reduces $S_t(x)$ by injecting residue
-that deepens the energy basin at the interaction site, causing the field
-distribution to sharpen and the observation operator $\mathcal{O}_\theta$
-to produce more deterministic outputs.
-
-\begin{principle}
-Learning and inference in RSVP--Polyxan correspond to geometric flows on
-a statistical manifold of field configurations, where the entropy field
-encodes local curvature and the write operator acts as a mechanism of
-basin sharpening.
-\end{principle}
-
-% =============================================================
-\section{Existence and Stability of RSVP Field Dynamics}
-\label{sec:stability}
-
-We address the well-posedness of the RSVP evolution equations, establishing
-that solutions exist locally in time, that stable configurations correspond
-to semantically coherent world-states, and that observations are not
-sufficient alone to reconstruct the full latent field.
-
-\subsection{Existence of Solutions}
-
-\begin{theorem}
-Under smooth initial conditions $\mathcal{M}_0 \in \mathcal{F}$ and
-bounded forcing $F_\psi$, the constrained RSVP evolution admits a
-local-in-time solution $\mathcal{M}_t$ for $t \in [0, T)$.
-\end{theorem}
-
-\begin{proof}[Sketch]
-The unconstrained Euler--Lagrange equations derived from
-$\mathcal{A}_{\text{aug}}$ define a hyperbolic PDE system in $\mathcal{M}$.
-Standard energy methods yield local existence for smooth data.
-The constraint projection $\Pi_{\mathcal{C}}$ acts as a Lipschitz
-retraction onto the closed admissible set $\mathcal{C}$, which by standard
-results for projected dynamical systems preserves local existence and
-adds at most a bounded constraint force to the right-hand side.
-\end{proof}
-
-\subsection{Convergence Toward Stable Configurations}
-
-\begin{proposition}
-If the energy functional $E(\mathcal{M})$ is bounded below and the entropy
-dissipation $\mathcal{D}(S_t)$ is strictly positive, then trajectories of
-the constrained RSVP system converge toward a stable set of admissible
-configurations.
-\end{proposition}
-
-\begin{proof}[Sketch]
-$E$ is a Lyapunov functional: the unforced dynamics decrease $E$ by the
-symplectic flow established in Section~10, and the dissipation term
-$\mathcal{D}(S_t)$ removes energy from the system.
-By LaSalle's invariance principle applied to the projected system,
-trajectories accumulate at the largest invariant set within
-$\{\mathcal{M} : \mathcal{D}(S(\mathcal{M})) = 0\} \cap \mathcal{C}$,
-which is precisely the set of admissible configurations with minimal
-entropy dissipation.
-\end{proof}
-
-Stability in this sense is semantic coherence: the field converges to
-configurations that minimize energy while satisfying the conservation
-constraints of Section~\ref{sec:factored}, and these configurations
-correspond to consistent world-states in which no constraint is violated
-and no residue is being actively generated.
-
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}[scale=1.2]
-\draw[thick, domain=-2.1:2.1, smooth, samples=80]
-  plot (\x, {0.5*\x*\x});
-\filldraw (-1.4, 0.98) circle (2pt);
-\filldraw ( 1.4, 0.98) circle (2pt);
-\draw[->, thick] (-1.4, 0.98) -- (-0.25, 0.03);
-\draw[->, thick] ( 1.4, 0.98) -- ( 0.25, 0.03);
-\node at (0,-0.35) {\small stable configuration};
-\node[left]  at (-1.4, 0.98) {\small $\mathcal{M}$};
-\node[right] at ( 1.4, 0.98) {\small $\mathcal{M}'$};
-\end{tikzpicture}
-\caption{Field evolution as gradient descent in the energy landscape
-$E(\mathcal{M})$. Distinct initial configurations converge to the
-same stable admissible state under constrained dynamics.}
-\end{figure}
-
-\subsection{Observability and Identifiability}
-\label{sec:observability}
-
-The separation between latent field memory $\mathcal{M}_t$ and
-observations $o_t$ raises the question of observability: whether distinct
-field configurations produce distinct observation distributions under
-$\mathcal{O}_\theta$, and whether the field can in principle be
-reconstructed from the observation sequence alone.
-
-Partial observability is the generic case.
-Multiple field configurations may map to identical observations, since
-$\mathcal{O}_\theta$ is a projection from the high-dimensional field
-$\mathcal{M}_t$ to the lower-dimensional observation $o_{t+1}$.
-In particular, components of $\mathcal{M}_t$ that lie outside the current
-view cone $\operatorname{view}(p_t)$ are not constrained by $o_{t+1}$ at
-all.
-
-The write operator $\mathcal{W}$ resolves this ambiguity progressively by
-collapsing equivalence classes through residue accumulation.
-When a region $x$ is observed, the injection of residue $\mathcal{R}_t(x)$
-and the collapse of $S_t(x)$ distinguish the realized configuration from
-all others in its equivalence class under $\mathcal{O}_\theta$.
-Repeated observation of overlapping regions thus accumulates enough
-constraint to identify the field configuration in the observed subset of
-$X$.
-
-\begin{principle}
-Observation alone is insufficient for world reconstruction.
-Persistence and identifiability require write-back into the field: the
-world is not recovered by reading; it is fixed by writing.
-\end{principle}
-
-% =============================================================
 \section{Stability and Energy Minimization}
 
 Define energy:
@@ -1276,27 +974,6 @@ $p_t$, and (iii) replacing the full observation history with a window of
 length $L$.
 MultiGen is therefore not a different kind of system but the RSVP system
 evaluated at $\pi$.
-
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}[scale=1.1]
-\draw[thick] (-3.2,-1.6) rectangle (-0.3,1.6);
-\node at (-1.75,1.95) {$X_t$};
-\node at (-1.75, 0.5) {$\mathcal{M}_t$};
-\node[font=\footnotesize] at (-1.75,-0.1)
-  {$(\Phi,\mathbf{v},S,A,R,z)$};
-\draw[->, thick, dashed] (-0.3,0) -- (2.2,0);
-\node at (0.95,0.45) {$\pi$};
-\draw[thick] (2.5,-1.1) rectangle (5.8,1.1);
-\node at (4.15,1.45) {$S_t$};
-\node at (4.15, 0.3) {$(M,\,p_t,\,h_t)$};
-\node[font=\footnotesize, gray] at (4.15,-0.35) {MultiGen state};
-\end{tikzpicture}
-\caption{MultiGen as a projection $\pi$ of the full RSVP state.
-The dashed arrow indicates that MultiGen's state bundle arises by
-collapsing the rich latent field to scalar geometry alone and
-discarding the write operator.}
-\end{figure}
 
 \subsection{Field Correspondences}
 
@@ -1415,27 +1092,6 @@ where $\mathcal{N}_\psi$ is the neural proposal network, which generates
 local edits to the field; $\Pi_{\mathcal{C}}$ is the projection onto the
 admissible constraint manifold; and the commit stage writes back only the
 closest valid state.
-where $\mathcal{N}_\psi$ is the neural proposal network, which generates
-local edits to the field; $\Pi_{\mathcal{C}}$ is the projection onto the
-admissible constraint manifold; and the commit stage writes back only the
-closest valid state.
-
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}[node distance=2.8cm, auto]
-\node (M)      {$\mathcal{M}_t$};
-\node (prop)   [right of=M]    {$\mathcal{M}_t + \mathcal{N}_\psi$};
-\node (proj)   [right of=prop] {$\Pi_{\mathcal{C}}$};
-\node (Mnext)  [right of=proj] {$\mathcal{M}_{t+1}$};
-\draw[->, thick] (M)    -- node[above] {proposal}   (prop);
-\draw[->, thick] (prop) -- node[above] {projection} (proj);
-\draw[->, thick] (proj) -- node[above] {commit}     (Mnext);
-\end{tikzpicture}
-\caption{Factored update: the neural proposal $\mathcal{N}_\psi$ generates
-a candidate field increment, which is projected onto the constraint
-manifold $\mathcal{C}$ and committed as the next state.}
-\end{figure}
-
 This structure mirrors incompressible flow solvers: an unconstrained
 velocity update is followed by a pressure solve that enforces
 incompressibility.
@@ -1864,24 +1520,6 @@ This prototype realizes the minimal closure:
 in which observation produces realizations, realizations are written back
 as residue, and the field evolves under those accumulated constraints.
 
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}[node distance=3cm, auto]
-\node (M)     {$\mathcal{M}_t$};
-\node (O)     [right of=M]  {$o_{t+1}$};
-\node (W)     [below of=O]  {$\mathcal{W}$};
-\node (Mnext) [below of=M]  {$\mathcal{M}_{t+1}$};
-\draw[->, thick] (M)     -- node[above] {$\mathcal{O}_\theta$} (O);
-\draw[->, thick] (O)     -- (W);
-\draw[->, thick] (W)     -- node[below] {residue write-back} (Mnext);
-\draw[->, thick] (Mnext) -- node[left]  {$\mathcal{T}$}       (M);
-\end{tikzpicture}
-\caption{Read--write closure: observation $\mathcal{O}_\theta$ projects
-the field to a visible state; the write operator $\mathcal{W}$ injects
-residue and collapses local entropy; the dynamics $\mathcal{T}$ evolve
-the field; and the cycle repeats.}
-\end{figure}
-
 The essential property is that stochastic variation in the observation
 layer does not produce temporal incoherence, because the field retains the
 history of prior realizations through $\mathcal{R}_t$.
@@ -1935,114 +1573,9 @@ accumulation.
 It is not a toy in the usual sense but a collapsed limit of the general
 RSVP--Polyxan theory: the system already inhabits the same category of
 constrained dynamical systems as the full formalism, with the richness of
-$\mathcal{M}_t$ replaced by the three-component field $(\Phi_t, S_t,
+$\mathcal{M}_t$ replaced by the three-component field $({\Phi}_t, S_t,
 \mathcal{R}_t)$ sufficient to exhibit the core asymmetry.
 
-One theoretical gap between the prototype and the full formalism should
-be named explicitly.
-Section~\ref{sec:quantization} derives the stochastic observation process
-via Wick rotation of $\mathcal{A}_{\text{aug}}$, showing that the
-Euclidean path integral yields a Langevin dynamics whose invariant measure
-is $p(\mathcal{M}) \propto e^{-E(\mathcal{M})/\hbar}$, and that diffusion
-generative models are samplers from this distribution with the RSVP energy
-functional acting as the score.
-The prototype realizes the \emph{structure} of stochastic observation ---
-noise proportional to $S_t$ --- but not yet the \emph{derivation}.
-The renderer is a hand-coded stochastic projection that uses $S_t$ as a
-proxy for the variance of the Boltzmann distribution over field
-configurations; it is not a Langevin sampler governed by
-$\nabla_{\mathcal{M}} E(\mathcal{M})$, nor a learned score network
-conditioned on $\mathcal{M}_t$.
-Closing this gap would require replacing the noise term
-$\eta \cdot S_t(x)$ in the render function with a score-based denoiser
-trained against the RSVP energy, at which point the prototype's
-observation operator would be a genuine discrete approximation to the
-Euclidean path integral of Section~\ref{sec:quantization} rather than
-a structural analogue of it.
-This constitutes the primary open step between the formal theory and a
-fully derived implementation.
-
-% =============================================================
-\section*{Architecture Diagram}
-\addcontentsline{toc}{section}{Architecture Diagram}
-
-\begin{figure}[h]
-\centering
-\begin{tikzpicture}[scale=1.05, every node/.style={font=\small}]
-
-% Field state (top)
-\node (M) at (0,3.5)
-  {$\mathcal{M}_t = (\Phi,\mathbf{v},S,A,R,z)$};
-
-% Next state (top right)
-\node (Mnext) at (5,3.5) {$\mathcal{M}_{t+1}$};
-
-% Neural proposal (middle left)
-\node (dyn) at (0,2) {$\mathcal{N}_\psi$};
-
-% Constraint projection (middle centre)
-\node (proj) at (2.5,2) {$\Pi_{\mathcal{C}}$};
-
-% Observation (right)
-\node (obs) at (7.5,2) {$o_{t+1}$};
-
-% Action (bottom left)
-\node (act) at (0,0.5) {$a_t$};
-
-% Write operator (bottom centre)
-\node (write) at (5,0.5) {$\mathcal{W}$};
-
-% MultiGen degenerate projection (far left)
-\node (multi) at (-3.5,3.5)
-  {$S_t = (M, p_t, h_t)$};
-
-% Dynamics path
-\draw[->, thick] (M)    -- (dyn);
-\draw[->, thick] (dyn)  -- node[above] {proposal}   (proj);
-\draw[->, thick] (proj) -- node[above] {commit}      (Mnext);
-
-% Observation
-\draw[->, thick] (Mnext) -- node[above] {$\mathcal{O}_\theta$} (obs);
-
-% Action into proposal
-\draw[->, thick] (act)  -- (dyn);
-
-% Write-back loop
-\draw[->, thick] (obs)   -- (write);
-\draw[->, thick] (write) -- node[right] {residue} (Mnext);
-
-% Time recurrence
-\draw[->, thick, bend left=25] (Mnext) to
-  node[above] {\footnotesize next step} (M);
-
-% MultiGen projection (dashed)
-\draw[->, thick, dashed] (M) -- node[above] {$\pi$} (multi);
-
-% Layer annotations
-\node[gray, font=\footnotesize] at (2.5,4.2)
-  {\textsc{Latent Field}};
-\node[gray, font=\footnotesize] at (2.5,2.6)
-  {\textsc{Dynamics + Constraints}};
-\node[gray, font=\footnotesize] at (7.5,2.6)
-  {\textsc{Observation}};
-\node[gray, font=\footnotesize] at (5,-0.1)
-  {\textsc{Write-Back}};
-\node[gray, font=\footnotesize] at (-3.5,4.2)
-  {\textsc{Degenerate Projection}};
-
-\end{tikzpicture}
-\caption{The RSVP--Polyxan architecture as a closed operator system.
-The neural proposal $\mathcal{N}_\psi$ and constraint projection
-$\Pi_{\mathcal{C}}$ evolve the latent field; the observation operator
-$\mathcal{O}_\theta$ projects to visible state; the write operator
-$\mathcal{W}$ closes the loop by promoting realized structure into
-persistent memory.
-The curved arrow encodes temporal recurrence.
-MultiGen appears as the dashed projection $\pi$ in which the write
-operator and all non-scalar field components are suppressed.}
-\end{figure}
-
-\newpage
 % =============================================================
 \section{Conclusion}
 
@@ -2092,20 +1625,6 @@ invariants.
 Multiplayer interaction becomes causal field synchronization over a shared
 substrate, with concurrent edits resolved by the constraint projection
 rather than by consensus protocol.
-
-Three further sections close the remaining structural gaps in the framework.
-A renormalization operator $\mathcal{R}_\ell$ relates field descriptions
-at different resolutions, establishing that MultiGen and the discrete
-prototype correspond to large-$\ell$ and intermediate-$\ell$ limits of
-the full RSVP theory.
-An information-geometric analysis equips the space of field configurations
-with a Fisher metric, interprets the Langevin dynamics as natural gradient
-flow, and identifies the entropy field $S_t$ as local curvature in the
-energy landscape.
-An existence and stability theorem grounds the constrained evolution in
-standard results for projected hyperbolic PDE systems, and a principle of
-observability establishes that the field cannot be reconstructed from
-observations alone: persistence requires write-back.
 
 The resulting system constitutes a unified framework in which continuous
 fields, discrete hypergraphs, and generative operators interact within a
