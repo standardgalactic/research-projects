@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aurora Monitor</title>
+
+<style>
+:root{
+  --green:#00ff88;
+}
+
+html,body{
+  margin:0;
+  height:100%;
+  background:#000;
+  overflow:hidden;
+  font-family:monospace;
+  color:var(--green);
+}
+
+/* CRT overlay */
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.04) 0,
+    rgba(255,255,255,0.04) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  opacity:.15;
+}
+
+/* Canvas (background only) */
+canvas{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+}
+
+/* ───────── Timeline ───────── */
+.timeline{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:14px;
+  background:rgba(0,255,136,0.12);
+  cursor:pointer;
+  z-index:10;
+  pointer-events:auto;
+}
+
+.progress{
+  height:100%;
+  width:0%;
+  background:#00ff88;
+  box-shadow:0 0 10px #00ff88;
+  pointer-events:none;
+}
+
+.thumb{
+  position:absolute;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:10px;
+  height:10px;
+  background:#00ff88;
+  border-radius:50%;
+  box-shadow:0 0 8px #00ff88;
+  pointer-events:none;
+}
+
+/* ───────── Subtitles ───────── */
+.sub{
+  position:fixed;
+  bottom:70px;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(92vw,600px);
+  text-align:center;
+  font-size:14px;
+  line-height:1.5;
+  white-space:pre-wrap;
+  padding:0 10px;
+  text-shadow:0 0 8px var(--green);
+  z-index:10;
+}
+
+/* ───────── Selector ───────── */
+.selector{
+  position:fixed;
+  bottom:10px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  justify-content:center;
+  width:min(95vw,700px);
+  z-index:10;
+}
+
+button{
+  background:#000;
+  color:var(--green);
+  border:1px solid var(--green);
+  padding:6px 10px;
+  cursor:pointer;
+  font-size:11px;
+}
+
+button.active{
+  background:#022;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="timeline" id="timeline">
+  <div class="progress" id="progress"></div>
+  <div class="thumb" id="thumb"></div>
+</div>
+
+<canvas id="c"></canvas>
+
+<div class="sub" id="sub"></div>
+<div class="selector" id="selector"></div>
+
+<audio id="audio" preload="auto"></audio>
+
+<script>
+const TRACKS = [
+  "The_Physics_of_the_Clip_Economy",
+  "The_Physics_of_Recomposable_Fragmentation",
+  "Why_Flat_Roofs_Are_Mathematically_Broken",
+  "The_Universal_Topology_of_Failure",
+  "The_secret_geometric_dance_of_typing",
+  "Your_hands_are_not_typing_symbols"
+]
+
+const audio = document.getElementById('audio')
+const timeline = document.getElementById('timeline')
+const progress = document.getElementById('progress')
+const thumb = document.getElementById('thumb')
+const subEl = document.getElementById('sub')
+const selector = document.getElementById('selector')
+
+let cues=[]
+let lastText=""
+let current=0
+let scrubbing=false
+
+/* ───────── Track ───────── */
+function loadTrack(i){
+  current=i
+  cues=[]
+  lastText=""
+  subEl.textContent=""
+
+  audio.src = TRACKS[i]+".mp3"
+  audio.load()
+
+  loadVTT(TRACKS[i]+".vtt")
+  updateUI()
+}
+
+/* ───────── VTT ───────── */
+async function loadVTT(file){
+  try{
+    const txt = await (await fetch(file)).text()
+    cues = parseVTT(txt)
+  }catch{ cues=[] }
+}
+
+function parseVTT(txt){
+  txt = txt.replace(/^\uFEFF/, "")
+  const lines = txt.split('\n')
+  const out=[]
+  let i=0
+
+  while(i<lines.length){
+    const l=lines[i].trim()
+    if(l.includes('-->')){
+      const [s,eRaw]=l.split('-->').map(x=>x.trim())
+      const e=eRaw.split(/\s+/)[0]
+      i++
+
+      const t=[]
+      while(i<lines.length && lines[i].trim()){
+        t.push(lines[i].trim())
+        i++
+      }
+
+      out.push({start:toSec(s),end:toSec(e),text:t.join('\n')})
+    } else i++
+  }
+  return out
+}
+
+function toSec(t){
+  t=t.replace(',', '.')
+  const p=t.split(':').map(Number)
+  return p.length===3 ? p[0]*3600+p[1]*60+p[2] :
+         p.length===2 ? p[0]*60+p[1] : 0
+}
+
+/* ───────── Scrubber ───────── */
+function setTime(e){
+  const rect = timeline.getBoundingClientRect()
+  const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1)
+
+  if(isNaN(audio.duration)){
+    audio.addEventListener('loadedmetadata', ()=>{
+      audio.currentTime = ratio * audio.duration
+    }, { once: true })
+  } else {
+    audio.currentTime = ratio * audio.duration
+  }
+
+  /* immediate UI update */
+  const pct = ratio * 100
+  progress.style.width = pct + "%"
+  thumb.style.left = pct + "%"
+
+  audio.dispatchEvent(new Event('timeupdate'))
+}
+
+timeline.addEventListener("pointerdown", async e=>{
+  e.preventDefault()
+  e.stopPropagation()
+
+  initAudio()
+  if(ctxA.state !== "running") await ctxA.resume()
+
+  timeline.setPointerCapture(e.pointerId)
+  scrubbing = true
+  setTime(e)
+})
+
+timeline.addEventListener("pointermove", e=>{
+  if(scrubbing) setTime(e)
+})
+
+timeline.addEventListener("pointerup", e=>{
+  scrubbing = false
+  timeline.releasePointerCapture(e.pointerId)
+})
+
+timeline.addEventListener("pointercancel", e=>{
+  scrubbing = false
+  timeline.releasePointerCapture(e.pointerId)
+})
+
+/* ───────── Audio ───────── */
+audio.ontimeupdate = ()=>{
+  const t=audio.currentTime
+  const d=audio.duration||1
+  const pct = (t/d)*100
+
+  progress.style.width=pct+"%"
+  thumb.style.left=pct+"%"
+
+  let active=null
+  for(let i=cues.length-1;i>=0;i--){
+    const c=cues[i]
+    if(t>=c.start-0.1){
+      if(t<=c.end+0.5) active=c
+      break
+    }
+  }
+
+  if(active) lastText=active.text
+  subEl.textContent=lastText
+}
+
+/* ───────── Buttons ───────── */
+TRACKS.forEach((_,i)=>{
+  const b=document.createElement("button")
+  b.textContent=i+1
+  b.onclick=e=>{
+    e.stopPropagation()
+    loadTrack(i)
+    audio.play()
+  }
+  selector.appendChild(b)
+})
+
+function updateUI(){
+  [...selector.children].forEach((b,i)=>{
+    b.classList.toggle("active", i===current)
+  })
+}
+
+/* ───────── Chain playback ───────── */
+audio.onended=()=>{
+  loadTrack((current+1)%TRACKS.length)
+  audio.play()
+}
+
+/* ───────── Audio init ───────── */
+let ctxA, analyser, buf
+
+function initAudio(){
+  if(ctxA) return
+  ctxA = new (window.AudioContext||window.webkitAudioContext)()
+  analyser = ctxA.createAnalyser()
+  analyser.fftSize=1024
+  buf = new Uint8Array(analyser.fftSize)
+
+  const src = ctxA.createMediaElementSource(audio)
+  src.connect(analyser)
+  analyser.connect(ctxA.destination)
+}
+
+/* body click play/pause */
+document.body.addEventListener("pointerdown", async (e)=>{
+  if(e.target.closest('.timeline, .selector')) return
+
+  initAudio()
+  if(ctxA.state!=="running") await ctxA.resume()
+  audio.paused ? audio.play() : audio.pause()
+})
+
+/* ───────── Visualizer (porthole) ───────── */
+const c = document.getElementById('c')
+const g = c.getContext('2d')
+
+let w,h,cx,cy
+
+function resize(){
+  w=c.width=innerWidth
+  h=c.height=innerHeight
+  cx=w/2; cy=h/2
+}
+resize()
+addEventListener('resize',resize)
+
+function draw(){
+  g.fillStyle='rgba(0,0,0,0.12)'
+  g.fillRect(0,0,w,h)
+
+  const R=Math.min(w,h)*0.4
+
+  g.save()
+  g.beginPath()
+  g.arc(cx,cy,R,0,Math.PI*2)
+  g.clip()
+
+  if(analyser){
+    analyser.getByteTimeDomainData(buf)
+
+    g.beginPath()
+    for(let i=0;i<buf.length;i++){
+      const a=(buf[i]-128)/128
+      const t=i/buf.length*Math.PI*2
+
+      const x=cx + Math.sin(t*2)*a*R*0.7
+      const y=cy + Math.sin(t*3)*a*R*0.7
+
+      i?g.lineTo(x,y):g.moveTo(x,y)
+    }
+
+    g.strokeStyle='#00ff88'
+    g.shadowColor='#00ff88'
+    g.shadowBlur=12
+    g.stroke()
+    g.shadowBlur=0
+  }
+
+  g.restore()
+
+  g.beginPath()
+  g.arc(cx,cy,R,0,Math.PI*2)
+  g.strokeStyle='rgba(0,255,136,0.7)'
+  g.lineWidth=2
+  g.stroke()
+
+  requestAnimationFrame(draw)
+}
+
+draw()
+loadTrack(0)
+</script>
+
+</body>
+</html>
