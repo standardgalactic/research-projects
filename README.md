@@ -1,4 +1,8 @@
-# Research Projects Overview
+# Research Projects
+
+[Trajectory Inference](https://standardgalactic.github.io/research-projects/rsvp-lab/trajectory_inference.pdf)
+
+* [Everything Is a Slow-Moving Verb](https://standardgalactic.github.io/research-projects/rsvp-lab/) — *Audio Overview*
 
 # RSVP–Polyxan World Engine Framework
 
