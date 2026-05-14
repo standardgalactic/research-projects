@@ -1,3 +1,9 @@
+Constraint-First Topology
+
+* [Essay](https://standardgalactic.github.io/research-projects/working/constraint-first-topology.pdf)
+
+* [Audio Overview](https://standardgalactic.github.io/research-projects/working/topology.html)
+
 Dynamics of the Capital Order
 
 * [Essay](https://standardgalactic.github.io/research-projects/working/capital_order_rsvp.pdf)
