@@ -264,7 +264,8 @@ topology-versus-localization distinction that motivates Section~13. Section~13 a
 tremor connectomics and distributed causal manifolds. Section~14 addresses paleoclimate
 reconstruction and distributed temporal memory. Section~15 argues for universality
 across domains, rebutting vacuous universalism. Section~16 synthesizes the admissibility
-principle and states the main theoretical result. Section~17 concludes with the reversal
+principle, states the main theoretical result, and establishes the connection between
+computational universality and admissibility closure. Section~17 concludes with the reversal
 of computational reductionism and open problems. Three appendices provide extended
 mathematical derivations: the Hamiltonian formulation of RSVP (Appendix~A),
 renormalization group analysis of the admissibility manifold (Appendix~B), and TARTAN
@@ -1496,6 +1497,347 @@ share the same admissibility geometry:
     relative to the symptom causal manifold boundary.
 \end{enumerate}
 \end{corollary}
+
+\subsection{Computational Universality as Constraint Closure}
+
+The admissibility principle has a precise antecedent in the theory of computation that
+has not previously been recognized as such. The classical result that a system becomes
+Turing complete when and only when it can represent mutable state, test conditions on
+that state, modify memory based on those tests, and repeat the process indefinitely is
+not merely an observation about programming languages. It is a characterization of the
+minimal admissibility geometry required to sustain universal computation. This subsection
+makes the connection explicit.
+
+\begin{definition}[\ClaimR\ Computationally Admissible Transition System]
+\label{def:comp-adm}
+A transition system $(\mathcal{M}, Q, \delta)$ consists of a memory space
+$\mathcal{M}$ (a set of configurations of an unbounded storage medium), a finite
+state set $Q$, and a transition function $\delta : Q \times \mathcal{M} \to Q
+\times \mathcal{M}$. The system is called \emph{computationally admissible} if:
+\begin{enumerate}[label=(\roman*)]
+  \item $\mathcal{M}$ is unbounded: for every $m \in \mathcal{M}$ and every finite
+    extension $m'$ of $m$, there exists $m'' \in \mathcal{M}$ containing $m'$;
+  \item $\delta$ is effectively computable from the local configuration at the current
+    memory position;
+  \item the iteration $\delta^t = \delta \circ \delta^{t-1}$ is defined for all
+    $t \in \mathbb{N}$ from any initial condition;
+  \item $\delta$ is non-trivial: there exist states $q, q' \in Q$ with $q \neq q'$
+    and configurations $m \in \mathcal{M}$ such that $\delta(q, m) = (q', m')$
+    for some $m' \neq m$.
+\end{enumerate}
+\end{definition}
+
+A Turing machine is precisely a computationally admissible transition system in which
+$\mathcal{M}$ is the set of bi-infinite binary tape configurations, $Q$ is the finite
+machine table, and $\delta$ is the local read-write-move rule. The content of any
+particular tape or state is immaterial to this definition; what matters is the
+\emph{geometry} of admissible transitions: that the transition function is local,
+iterable, and non-trivially state-dependent.
+
+\begin{theorem}[\ClaimR\ Turing Completeness as Admissibility Closure]
+\label{thm:turing-adm}
+Let $(\mathcal{M}, Q, \delta)$ be a computationally admissible transition system. Then
+the orbit space
+\begin{equation}
+  \mathcal{O}(q_0, m_0) = \bigl\{ (q_t, m_t) \bigm| (q_t, m_t) = \delta^t(q_0, m_0),\; t \in \mathbb{N} \bigr\}
+\end{equation}
+is determined entirely by the admissibility geometry of $\delta$, not by the specific
+symbols in $m_0$. Moreover, if $(\mathcal{M}, Q, \delta)$ is universal---that is, if
+there exists an initial configuration $(q_0, m_0)$ encoding any target machine
+$\mathcal{T}$ and any input $w$ such that $\delta^t(q_0, m_0)$ halts with output
+equal to $\mathcal{T}(w)$---then the set of admissible transitions is a universal
+approximator over all computable functions.
+\end{theorem}
+
+\begin{proof}
+The first claim is immediate from the definition of $\delta^t$: the orbit is fully
+determined by the initial condition and the transition rule, with no dependence on
+symbol identity beyond what $\delta$ encodes in its local behavior. The second claim
+follows from the standard construction of a universal Turing machine: given any
+Turing machine $\mathcal{T}$ and input $w$, the universal machine $U$ encodes
+$(\mathcal{T}, w)$ on its tape and simulates $\mathcal{T}$ step by step. The
+existence of $U$ within the computationally admissible class is established by
+Turing's original 1936 construction. Since every computable function is computable
+by some Turing machine $\mathcal{T}$, and $U$ can simulate any $\mathcal{T}$, the
+admissible transition set of $U$ generates all computable transformations.
+\end{proof}
+
+The structural parallel with the RSVP framework is direct. An RSVP field trajectory
+$\gamma : [0, T] \to \Adm$ is an admissible orbit of the field triple $(\Phi, \vfield, S)$
+under the dynamics of equations~\eqref{eq:rsvp1}--\eqref{eq:rsvp3}. A computationally
+admissible orbit $\mathcal{O}(q_0, m_0)$ is an admissible orbit of $(q, m)$ under
+the transition function $\delta$. In both cases, global behavior is the closure of
+local admissible transitions over an unbounded state space. The admissibility manifold
+$\Adm$ in the RSVP setting plays exactly the role of the computationally admissible
+transition set in the Turing setting: it specifies which transitions can occur, and
+the orbit of any admissible trajectory is fully determined by the geometry of that
+set.
+
+\begin{proposition}[\ClaimH\ TARTAN Tiling as Computation]
+\label{prop:tartan-turing}
+Let $\gamma^* : [0, T] \to \mathcal{X}$ be a ground-truth trajectory, and let
+$\mathcal{T} = (I_i, \alpha(i))_{i=1}^N$ be a TARTAN tiling of $\gamma^*$. Define
+the tiling transition operator $\Delta : \mathcal{T}_{\Adm} \to \mathcal{T}_{\Adm}$
+by $\Delta(\mathcal{T}) = \overline{\mathcal{T}}$, the TARTAN closure. Then $\Delta$
+is a computationally admissible transition function on the space of admissible tilings,
+and the fixed points of $\Delta$ correspond precisely to globally coherent completions
+of $\gamma^*$.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+The closure operation $\Delta$ is local in the sense that it modifies tiles only
+where admissibility fails, leaving admissible tiles unchanged. It is iterable because
+the space $\mathcal{T}_{\Adm}$ is closed under the closure operation by definition.
+Non-triviality holds whenever $\mathcal{T}$ contains inadmissible tiles, in which case
+$\Delta(\mathcal{T}) \neq \mathcal{T}$. The fixed-point condition $\Delta(\mathcal{T})
+= \mathcal{T}$ holds if and only if $\mathcal{T}$ is admissible, which by
+Theorem~\ref{thm:tartan-complete} corresponds to a globally coherent completion of
+$\gamma^*$ within the reconstruction error bound.
+\end{proof}
+
+The significance of this result extends beyond analogy. Turing completeness is
+traditionally characterized as a property of formal language systems---a statement
+about what symbolic operations can, in principle, compute. Proposition~\ref{prop:tartan-turing}
+shows that the TARTAN closure operation, applied to a space of annotated trajectory
+tilings, already constitutes a computationally admissible process. The TARTAN tiling
+does not merely \emph{describe} computation; it \emph{is} computation in the formal
+sense, operating on a memory space of annotated tiles rather than a binary tape.
+
+This permits a precise statement of the computational content of the admissibility
+principle. A system governed by admissibility constraints does not require an external
+computational process to determine its behavior. Its behavior \emph{is} the computation:
+the iterative navigation of admissible transitions through the constraint manifold.
+Biological morphology computes by being admissible. Neural criticality computes by
+maintaining spectral admissibility. Protein self-assembly computes by minimizing the
+distance to the closure manifold.
+
+\begin{corollary}[\ClaimC\ Universality of Morphological Computation]
+\label{cor:morphological-turing}
+Any physical system whose state space contains an admissible transition structure
+satisfying the conditions of Definition~\ref{def:comp-adm} is capable, in principle,
+of universal computation. In particular, systems governed by RSVP dynamics on sufficiently
+rich admissibility manifolds are computationally universal, provided the manifold
+supports non-trivial, iterable, locally-determined transitions on an unbounded state space.
+\end{corollary}
+
+This corollary reframes the minimal conditions for Turing completeness in geometric
+terms. The standard formulation---memory, conditional branching, looping, mutable
+state---is equivalent to the geometric formulation: an unbounded state space equipped
+with a non-trivially structured admissibility manifold through which the system navigates
+by local transition rules. Neither formulation requires high-level symbolic instructions.
+Both require only that the geometry of admissible transitions be rich enough to sustain
+arbitrary chains of state-dependent evolution.
+
+The deepest consequence is that universality is not an engineered property but an
+emergent one. Whenever a physical system organizes itself near an admissibility boundary
+with the four required structural features, universal computation becomes possible as a
+consequence of the geometry alone. This is why Turing completeness appears in systems
+as diverse as cellular automata, rewrite systems, combinatory logic, tag systems, and
+register machines: not because each was designed to compute, but because each
+instantiates an admissibility geometry sufficiently rich to support universal transition
+closure. The admissibility principle is the common mathematical foundation beneath all
+of them.
+
+%% -------------------------------------------------------------------
+\subsection{Spherepop: A Calculus for Admissibility-Preserving Collapse}
+%% -------------------------------------------------------------------
+
+The preceding subsection established that Turing completeness is equivalent to the
+existence of a computationally admissible transition geometry. The Spherepop calculus
+provides an explicit symbolic system in which this geometry is the primary object,
+and computation appears as the navigation of admissible collapse trajectories over an
+extensible provenance structure. Where the standard account of computation proceeds
+from instructions to behavior, Spherepop proceeds from constraint geometry to emergent
+trajectory. This subsection develops the formal basis of Spherepop and proves that it
+satisfies the universality criterion of Corollary~\ref{cor:morphological-turing}.
+
+\begin{definition}[\ClaimR\ Spherepop System]
+\label{def:spherepop}
+A Spherepop system is a tuple $(\mathcal{B}, \mathcal{A}, \Pi, \mathcal{H})$ where:
+\begin{enumerate}[label=(\roman*)]
+  \item $\mathcal{B}$ is a set of \emph{bubbles}, each carrying a symbolic label
+    $\ell(b) \in \Sigma$ for a finite alphabet $\Sigma$ and a \emph{provenance
+    record} $\pi(b) \in \mathcal{H}$;
+  \item $\mathcal{A} : \mathcal{B}^* \to \{0,1\}$ is the \emph{admissibility operator},
+    a decidable predicate on finite bubble configurations;
+  \item $\Pi = \{\mathrm{Pop}, \mathrm{Bind}, \mathrm{Collapse}, \mathrm{Refuse}\}$
+    is the set of \emph{primitive operations};
+  \item $\mathcal{H}$ is the \emph{provenance algebra}, a monoid $(\mathcal{H},
+    \cdot, \varepsilon)$ in which elements encode the structural history of a bubble's
+    formation through prior collapse events.
+\end{enumerate}
+\end{definition}
+
+The four primitive operations act on bubble configurations as follows. $\mathrm{Pop}(b)$
+eliminates a bubble $b$ from the current configuration and deposits its symbolic
+residue into the provenance records of adjacent bubbles. $\mathrm{Bind}(b_1, b_2)$
+merges two bubbles into a single composite bubble whose provenance is the product
+$\pi(b_1) \cdot \pi(b_2)$ in $\mathcal{H}$. $\mathrm{Collapse}(\beta)$ applies
+$\mathrm{Pop}$ to an entire configuration $\beta \in \mathcal{B}^*$ according to
+an admissibility-respecting order, producing a residue configuration. $\mathrm{Refuse}(\beta)$
+is the identity on inadmissible configurations: it blocks collapse when $\mathcal{A}(\beta) = 0$.
+
+\begin{definition}[\ClaimR\ Admissible Collapse Trajectory]
+\label{def:collapse-traj}
+A \emph{collapse trajectory} of length $T$ is a sequence
+$\beta_0, \beta_1, \ldots, \beta_T \in \mathcal{B}^*$ such that each transition
+$\beta_t \to \beta_{t+1}$ is the result of applying exactly one primitive operation
+$\pi_t \in \Pi$ to $\beta_t$. The trajectory is called \emph{admissible} if
+$\mathcal{A}(\beta_t) = 1$ for all $t \in \{0, \ldots, T\}$, or equivalently if
+$\mathrm{Refuse}$ is never invoked along the trajectory. The \emph{provenance depth}
+of a trajectory is
+\begin{equation}
+  D(\beta_0, \ldots, \beta_T) = \max_{t \leq T} \max_{b \in \beta_t} |\pi(b)|_\mathcal{H},
+\end{equation}
+where $|\cdot|_\mathcal{H}$ denotes the word length in the provenance monoid $\mathcal{H}$.
+\end{definition}
+
+The provenance depth measures the maximum structural complexity accumulated in any
+bubble's history over the course of a trajectory. A trajectory of bounded provenance
+depth can only accumulate finitely many collapse events into any single bubble's
+record; a trajectory of unbounded provenance depth can recursively encode arbitrarily
+deep collapse histories.
+
+\begin{theorem}[\ClaimR\ Spherepop Universality Criterion]
+\label{thm:spherepop-universal}
+A Spherepop system $(\mathcal{B}, \mathcal{A}, \Pi, \mathcal{H})$ is computationally
+universal if and only if:
+\begin{enumerate}[label=(\roman*)]
+  \item the bubble set $\mathcal{B}$ is indefinitely extensible under $\mathrm{Bind}$:
+    for every finite configuration $\beta$, the configuration $\mathrm{Bind}(\beta, b)$
+    exists for some fresh bubble $b \notin \beta$;
+  \item the admissibility operator $\mathcal{A}$ is non-trivially state-dependent:
+    there exist configurations $\beta, \beta'$ with $\ell(\beta) = \ell(\beta')$
+    (same symbolic content) but $\mathcal{A}(\beta) \neq \mathcal{A}(\beta')$
+    (different admissibility), owing to differences in provenance;
+  \item the provenance algebra $\mathcal{H}$ is unbounded: the monoid $\mathcal{H}$
+    contains elements of arbitrary word length, so that provenance depth is not
+    bounded by any fixed constant;
+  \item admissible collapse trajectories of unbounded provenance depth exist: there
+    is no $D_{\max} < \infty$ such that all admissible trajectories have provenance
+    depth at most $D_{\max}$.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+We show that conditions (i)--(iv) are jointly equivalent to the conditions of
+Definition~\ref{def:comp-adm}. Condition~(i) corresponds to the unboundedness
+of the memory space $\mathcal{M}$: the bubble configuration under iterated $\mathrm{Bind}$
+is an extensible encoding of the tape. Condition~(ii) corresponds to the non-triviality
+of $\delta$: the admissibility operator must distinguish configurations on the basis
+of their collapse history, not merely their symbolic labels, so that $\mathrm{Collapse}$
+can implement state-dependent branching. Condition~(iii) corresponds to the requirement
+that $\mathcal{M}$ support arbitrary-length configurations: an unbounded provenance
+algebra can encode an unbounded tape. Condition~(iv) corresponds to the existence
+of trajectories of unbounded length: without this, all computations terminate in
+bounded time and the system cannot simulate non-terminating Turing machines.
+
+To construct the encoding explicitly: given a Turing machine $(\mathcal{M}_\mathcal{T},
+Q, \delta_\mathcal{T})$, encode each tape cell as a bubble $b_i$ with label $\ell(b_i)$
+equal to the tape symbol at position $i$. Encode the machine state $q \in Q$ as a
+distinguished \emph{control bubble} $b_q$ with label $q$. The current head position
+is encoded as the location of $b_q$ in the bubble sequence. The transition rule
+$\delta_\mathcal{T}(q, \sigma) = (q', \sigma', d)$ is encoded in $\mathcal{A}$
+as follows: the configuration $(b_q, b_i)$ is admissible for $\mathrm{Collapse}$
+if and only if $\ell(b_q) = q$ and $\ell(b_i) = \sigma$, and the collapse produces
+$(b_{q'}, b_i')$ where $\ell(b_i') = \sigma'$ and the control bubble shifts in
+direction $d$. Under this encoding, each step of $\delta_\mathcal{T}$ corresponds
+to exactly one admissible collapse, and the provenance record of $b_q$ after $t$
+steps encodes the complete computation history up to time $t$. By
+Theorem~\ref{thm:turing-adm}, the system so constructed is universal.
+
+The converse direction---that failure of any of (i)--(iv) implies non-universality---is
+established by noting that a Spherepop system violating (i) has a bounded memory
+space (simulating only finite-state machines), one violating (ii) has a trivially
+uniform collapse rule (simulating only label-determined branching, i.e.\ a
+deterministic finite automaton), one violating (iii) has bounded provenance depth
+(simulating only pushdown automata with bounded stack), and one violating (iv)
+necessarily halts all trajectories within bounded time (simulating only linear-bounded
+automata on finite inputs).
+\end{proof}
+
+The encoding constructed in the proof makes the Spherepop interpretation of a Turing
+machine explicit. The tape becomes a distributed bubble field in which each bubble
+carries a symbolic label and a provenance record encoding its write history. The
+machine state becomes a control bubble whose label tracks the current admissibility
+regime. The read-write head becomes the locus of collapse focus, traversing the
+bubble sequence and applying $\mathrm{Collapse}$ wherever the control bubble and
+adjacent tape bubbles form an admissible pair. The transition table becomes the
+admissibility operator $\mathcal{A}$, determining which (control, tape) bubble pairs
+are admissible for collapse and what residue the collapse produces.
+
+The critical difference from the standard account is that the Spherepop system does
+not contain an explicit loop construct. Iteration emerges from the re-entry of the
+control bubble into prior regions of the bubble field carrying altered provenance
+residue. The following proposition makes this precise.
+
+\begin{proposition}[\ClaimH\ Loops as Recurrent Admissibility Traversal]
+\label{prop:loop-recurrence}
+In a universal Spherepop system, every computable function $f : \Sigma^* \to \Sigma^*$
+can be computed by an admissible collapse trajectory in which no syntactic loop
+construct appears. Iterative behavior arises exclusively from the recurrent return
+of the control bubble to previously visited bubble-field regions under altered
+provenance state.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+By Theorem~\ref{thm:spherepop-universal}, the system can simulate any Turing machine.
+A Turing machine computes $f$ by repeatedly applying $\delta_\mathcal{T}$ until a
+halting state is reached. In the Spherepop encoding, each application of
+$\delta_\mathcal{T}$ corresponds to a single admissible collapse at the control bubble's
+current position, followed by a shift of the collapse focus. The control bubble
+returns to previously visited tape positions whenever $\delta_\mathcal{T}$ moves the
+head leftward over a cell already written. This recurrence is not a primitive loop
+instruction but a consequence of admissible collapse producing a control bubble at
+a position already occupied by a tape bubble. Since the provenance record of the
+control bubble has been updated by the intervening collapses, the admissibility
+predicate $\mathcal{A}$ may produce a different collapse outcome on the second visit,
+implementing state-dependent conditional branching without any branching syntactic
+construct.
+\end{proof}
+
+Proposition~\ref{prop:loop-recurrence} establishes that the standard syntactic
+primitives of computation---conditionals, loops, mutable variables---are not
+fundamental. They are projections of a single underlying geometry: admissibility-preserving
+collapse over an extensible provenance structure. This conclusion connects directly
+to the paper's central claim. Biological morphology, neural criticality, protein
+self-assembly, and neuromorphic material computation are not running programs in
+the syntactic sense. They are navigating admissibility manifolds, accumulating
+provenance residue across collapse events, and generating coherent global trajectories
+from local constraint satisfaction. Spherepop is the calculus that makes this
+navigation explicit.
+
+\begin{definition}[\ClaimR\ Provenance Criticality Threshold]
+\label{def:prov-criticality}
+A Spherepop system is said to be \emph{subcritical} if all admissible trajectories
+have bounded provenance depth, \emph{supercritical} if admissible trajectories
+generically grow without bound in provenance depth, and \emph{critical} if the
+system lies at the boundary: admissible trajectories of unbounded provenance depth
+exist but are measure-zero in the space of all admissible trajectories under the
+natural uniform measure on collapse orderings.
+\end{definition}
+
+The provenance criticality threshold is the Spherepop analogue of the admissibility
+boundary in the RSVP framework (Definition~2.2) and the spectral criticality threshold
+in neural dynamics (Theorem~3.1). Universality is achieved precisely at or above
+the critical threshold. Below it, the system can compute only bounded-depth functions;
+above it, provenance depth grows without bound and most trajectories fail to reach
+coherent fixed points. At criticality, the system supports universal computation
+while retaining the capacity to produce coherent, terminating trajectories for
+computable functions---a precise analogue of the edge-of-chaos phenomenon observed
+in Wolfram class IV cellular automata and in the critically initialized neural
+networks of Pachitariu and collaborators~\cite{Pachitariu2026Critical}.
+
+The alignment between the provenance criticality threshold and the RSVP admissibility
+boundary is not merely structural. Both thresholds mark the onset of a qualitative
+change in the system's trajectory space: from bounded, locally-determined behavior
+to unbounded, globally-organized complexity. In RSVP, this transition is governed
+by the entropy bound $\Lambda_S$ and the vorticity constraint in $\Adm$. In Spherepop,
+it is governed by the growth rate of the provenance monoid $\mathcal{H}$ under
+iterated collapse. That two formally distinct frameworks locate their universality
+thresholds at the same qualitative boundary---the onset of indefinitely extensible
+structured complexity---is a further instance of the admissibility principle operating
+as a cross-domain invariant.
 
 \subsection{The Return of Structure}
 

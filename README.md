@@ -1,5 +1,9 @@
 # Research Projects
 
+[Morphology as Computation](https://standardgalactic.github.io/research-projects/epistemology/morphology-as-computation.pdf)
+
+* [Why Physical Boundaries Define Intelligence](https://standardgalactic.github.io/research-projects/epistemology/) — *Audio Overview*
+
 [Semantic Relaxation Networks](https://standardgalactic.github.io/research-projects/intelligence/semantic-relaxation-networks.pdf)
 
 * [Why Next Token Prediction Is Not Intelligence](https://standardgalactic.github.io/research-projects/intelligence/) — *Audio Overviews*
