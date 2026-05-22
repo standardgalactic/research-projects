@@ -136,6 +136,10 @@ The implication is direct:
 
 ---
 
+## Borges
+
+What would Borges think of all of this?
+
 ## Conclusion
 
 The transition from sequence-based models to field-based systems replaces transient outputs with persistent structure.
