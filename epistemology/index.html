@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morphology as Computation Audioscope</title>
+
+<style>
+
+:root{
+  --green:#00ff88;
+  --soft:#dcffee;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+  font-family:monospace;
+  color:var(--green);
+  touch-action:manipulation;
+}
+
+/* =========================================================
+   CRT
+========================================================= */
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:200;
+
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,.03) 0px,
+      rgba(255,255,255,.03) 1px,
+      transparent 2px,
+      transparent 4px
+    );
+
+  opacity:.14;
+}
+
+/* =========================================================
+   BACKGROUND
+========================================================= */
+
+#bg{
+  position:fixed;
+  inset:0;
+  z-index:1;
+}
+
+/* =========================================================
+   TITLE
+========================================================= */
+
+.title{
+  position:fixed;
+  top:16px;
+  left:50%;
+
+  transform:translateX(-50%);
+
+  width:min(94vw,920px);
+
+  text-align:center;
+
+  font-size:clamp(11px,1.9vw,18px);
+
+  line-height:1.5;
+
+  letter-spacing:.18em;
+
+  text-transform:uppercase;
+
+  color:#d9fff0;
+
+  text-shadow:
+    0 0 14px var(--green);
+
+  z-index:40;
+}
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.status{
+  position:fixed;
+
+  top:60px;
+  left:50%;
+
+  transform:translateX(-50%);
+
+  font-size:11px;
+
+  opacity:.55;
+
+  letter-spacing:.14em;
+
+  z-index:55;
+}
+
+/* =========================================================
+   PORTAL
+========================================================= */
+
+.portal-wrap{
+  position:fixed;
+  inset:0;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#viz{
+  width:min(520px,90vw);
+  height:min(520px,90vw);
+
+  border-radius:50%;
+
+  background:
+    radial-gradient(circle at center,
+      rgba(0,40,16,.96),
+      rgba(0,0,0,1));
+
+  border:
+    2px solid rgba(0,255,120,.38);
+
+  box-shadow:
+    inset 0 0 60px rgba(0,255,120,.08),
+    inset 0 0 120px rgba(0,255,120,.05),
+    0 0 32px rgba(0,255,120,.14);
+
+  display:block;
+}
+
+/* =========================================================
+   SUBTITLES
+========================================================= */
+
+.subs{
+
+  position:fixed;
+
+  bottom:56px;
+
+  left:0;
+  right:0;
+
+  margin:auto;
+
+  width:min(760px,92vw);
+
+  padding:10px 16px;
+
+  min-height:3em;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  text-align:center;
+
+  font-size:clamp(13px,3.4vw,17px);
+
+  line-height:1.5;
+
+  color:#d9fff0;
+
+  text-shadow:
+    0 0 10px rgba(0,255,120,.8);
+
+  background:
+    rgba(0,16,0,.34);
+
+  border:
+    1px solid rgba(0,255,120,.18);
+
+  border-radius:8px;
+
+  pointer-events:none;
+
+  z-index:70;
+
+  transition:
+    opacity .15s ease,
+    transform .08s ease;
+}
+
+/* =========================================================
+   ESSAY
+========================================================= */
+
+.essay{
+  position:fixed;
+
+  bottom:14px;
+  left:50%;
+
+  transform:translateX(-50%);
+
+  color:#9effd0;
+
+  text-decoration:none;
+
+  letter-spacing:.10em;
+
+  font-size:11px;
+
+  opacity:.72;
+
+  z-index:90;
+}
+
+.essay:hover{
+  opacity:1;
+}
+
+/* =========================================================
+   GLITCH
+========================================================= */
+
+.glitch{
+  position:fixed;
+  inset:0;
+
+  pointer-events:none;
+
+  z-index:160;
+
+  opacity:0;
+}
+
+.glitch.active{
+  animation:glitch .18s linear;
+}
+
+@keyframes glitch{
+
+  0%{
+    opacity:0;
+
+    transform:translate(0,0);
+
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgba(255,255,255,.08) 0px,
+        transparent 2px,
+        transparent 5px
+      );
+  }
+
+  35%{
+    opacity:.22;
+    transform:translate(-10px,5px);
+  }
+
+  70%{
+    opacity:.12;
+    transform:translate(12px,-4px);
+  }
+
+  100%{
+    opacity:0;
+    transform:translate(0,0);
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media(max-width:700px){
+
+  #viz{
+    width:min(96vw,96vw);
+    height:min(96vw,96vw);
+  }
+
+  .status{
+    top:66px;
+    font-size:10px;
+  }
+
+  .subs{
+    bottom:50px;
+  }
+}
+
+</style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="title">
+  WHY PHYSICAL BOUNDARIES DEFINE INTELLIGENCE
+</div>
+
+<div class="status">
+  TOUCH / CLICK ANYWHERE TO PLAY OR PAUSE
+</div>
+
+<div class="portal-wrap">
+  <canvas id="viz"></canvas>
+</div>
+
+<div class="subs" id="subs"></div>
+
+<a class="essay"
+href="https://standardgalactic.github.io/research-projects/epistemology/morphology-as-computation.pdf"
+target="_blank">
+MORPHOLOGY AS COMPUTATION
+</a>
+
+<div class="glitch" id="glitch"></div>
+
+<audio id="audio" preload="auto"></audio>
+
+<script>
+
+/* =========================================================
+   AUDIO FILE
+========================================================= */
+
+const AUDIO_FILE =
+  "Why_physical_boundaries_define_intelligence.mp3"
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const audio =
+  document.getElementById("audio")
+
+const subs =
+  document.getElementById("subs")
+
+const glitch =
+  document.getElementById("glitch")
+
+/* =========================================================
+   AUDIO
+========================================================= */
+
+let audioCtx
+let analyser
+let data
+
+function initAudio(){
+
+  if(audioCtx) return
+
+  audioCtx =
+    new (
+      window.AudioContext ||
+      window.webkitAudioContext
+    )()
+
+  analyser =
+    audioCtx.createAnalyser()
+
+  analyser.fftSize = 2048
+
+  const src =
+    audioCtx.createMediaElementSource(audio)
+
+  src.connect(analyser)
+  analyser.connect(audioCtx.destination)
+
+  data =
+    new Uint8Array(
+      analyser.frequencyBinCount
+    )
+}
+
+/* =========================================================
+   SUBTITLES
+========================================================= */
+
+let cues = []
+
+async function loadVTT(file){
+
+  cues = []
+
+  try{
+
+    const r =
+      await fetch(file)
+
+    if(!r.ok){
+      console.warn("Missing VTT:",file)
+      return
+    }
+
+    const txt =
+      await r.text()
+
+    cues =
+      parseVTT(txt)
+
+  }catch(e){
+
+    console.warn(e)
+  }
+}
+
+function parseVTT(txt){
+
+  const lines =
+    txt.split('\n')
+
+  const out = []
+
+  let i = 0
+
+  while(i < lines.length){
+
+    const line =
+      lines[i].trim()
+
+    if(line.includes('-->')){
+
+      const [s,e] =
+        line.split('-->')
+            .map(v=>v.trim())
+
+      i++
+
+      const text = []
+
+      while(
+        i < lines.length &&
+        lines[i].trim()
+      ){
+
+        text.push(
+          lines[i].trim()
+        )
+
+        i++
+      }
+
+      out.push({
+
+        start:toSec(s),
+        end:toSec(e),
+        text:text.join('\n')
+
+      })
+
+    }else{
+
+      i++
+    }
+  }
+
+  return out
+}
+
+function toSec(t){
+
+  const p =
+    t.replace(',','.')
+     .split(':')
+
+  if(p.length===3){
+
+    return (
+      (+p[0])*3600 +
+      (+p[1])*60 +
+      (+p[2])
+    )
+  }
+
+  return (
+    (+p[0])*60 +
+    (+p[1])
+  )
+}
+
+audio.ontimeupdate = ()=>{
+
+  const t =
+    audio.currentTime
+
+  const cue =
+    cues.find(c=>
+      t >= c.start &&
+      t < c.end + .25
+    )
+
+  subs.textContent =
+    cue ? cue.text : ""
+}
+
+/* =========================================================
+   PLAY
+========================================================= */
+
+document.body.onclick =
+  async ()=>{
+
+    initAudio()
+
+    if(audioCtx.state === "suspended")
+      await audioCtx.resume()
+
+    if(!audio.src){
+
+      audio.src = AUDIO_FILE
+
+      await loadVTT(
+        AUDIO_FILE.replace('.mp3','.vtt')
+      )
+
+      try{
+        await audio.play()
+      }catch(e){}
+
+      return
+    }
+
+    if(audio.paused){
+
+      audio.play()
+
+    }else{
+
+      audio.pause()
+    }
+  }
+
+/* =========================================================
+   BACKGROUND
+========================================================= */
+
+const bg =
+  document.getElementById("bg")
+
+const bgc =
+  bg.getContext("2d")
+
+let SW,SH
+
+function resizeBG(){
+
+  SW =
+    bg.width =
+      innerWidth
+
+  SH =
+    bg.height =
+      innerHeight
+}
+
+resizeBG()
+
+addEventListener(
+  'resize',
+  resizeBG
+)
+
+const cells = []
+
+for(
+  let i=0;
+  i<260;
+  i++
+){
+
+  cells.push({
+
+    x:Math.random()*SW,
+    y:Math.random()*SH,
+
+    r:
+      Math.random()*2.5 + .5,
+
+    drift:
+      Math.random()*0.4 + .1
+  })
+}
+
+function drawBG(){
+
+  bgc.clearRect(
+    0,0,SW,SH
+  )
+
+  for(const c of cells){
+
+    c.y += c.drift
+
+    if(c.y > SH){
+
+      c.y = -10
+      c.x = Math.random()*SW
+    }
+
+    bgc.beginPath()
+
+    bgc.arc(
+      c.x,
+      c.y,
+      c.r,
+      0,
+      Math.PI*2
+    )
+
+    bgc.fillStyle =
+      "rgba(140,255,190,0.05)"
+
+    bgc.fill()
+  }
+
+  /* faint topology */
+
+  bgc.strokeStyle =
+    "rgba(120,255,180,0.03)"
+
+  for(let i=0; i<cells.length; i+=10){
+
+    const a = cells[i]
+    const b = cells[(i+21)%cells.length]
+
+    bgc.beginPath()
+
+    bgc.moveTo(a.x,a.y)
+    bgc.lineTo(b.x,b.y)
+
+    bgc.stroke()
+  }
+}
+
+/* =========================================================
+   GLITCH
+========================================================= */
+
+setInterval(()=>{
+
+  glitch.classList.add(
+    'active'
+  )
+
+  setTimeout(()=>{
+
+    glitch.classList.remove(
+      'active'
+    )
+
+  },180)
+
+},30000 + Math.random()*12000)
+
+/* =========================================================
+   CANVAS
+========================================================= */
+
+const canvas =
+  document.getElementById("viz")
+
+const ctx =
+  canvas.getContext("2d")
+
+const size = 560
+
+canvas.width  = size
+canvas.height = size
+
+/* =========================================================
+   STATE
+========================================================= */
+
+let phaseCursor = 0
+
+let smoothBass = 0
+let smoothMid  = 0
+let smoothHigh = 0
+
+let frameT = 0
+
+/* =========================================================
+   DRAW
+========================================================= */
+
+function drawMorphology(){
+
+  if(analyser && data){
+
+    analyser.getByteFrequencyData(data)
+
+    let bass = 0
+    let mid  = 0
+    let high = 0
+
+    for(let i=0; i<48; i++)
+      bass += data[i]
+
+    for(let i=48; i<220; i++)
+      mid += data[i]
+
+    for(let i=220; i<640; i++)
+      high += data[i]
+
+    bass /= 48 * 255
+    mid  /= 172 * 255
+    high /= 420 * 255
+
+    smoothBass +=
+      (bass - smoothBass) * 0.08
+
+    smoothMid +=
+      (mid - smoothMid) * 0.06
+
+    smoothHigh +=
+      (high - smoothHigh) * 0.05
+  }
+
+  phaseCursor +=
+    0.018 + smoothBass * 0.04
+
+  const cx = size / 2
+  const cy = size / 2
+
+  ctx.save()
+
+  ctx.beginPath()
+
+  ctx.arc(
+    cx,
+    cy,
+    size * 0.47,
+    0,
+    Math.PI * 2
+  )
+
+  ctx.clip()
+
+  ctx.fillStyle =
+    "rgba(0,5,0,0.10)"
+
+  ctx.fillRect(
+    0,
+    0,
+    size,
+    size
+  )
+
+  /* membrane structures */
+
+  for(let layer=0; layer<10; layer++){
+
+    const r =
+      size *
+      (0.10 + layer * 0.045)
+
+    ctx.beginPath()
+
+    for(let a=0; a<=Math.PI*2+.02; a+=0.045){
+
+      const fold =
+
+        Math.sin(
+          a *
+          (3 + layer*0.28) +
+
+          phaseCursor *
+          (0.4 + layer*0.04)
+        ) *
+
+        (5 + smoothMid * 15)
+
+      const x =
+        cx +
+        Math.cos(a) * (r + fold)
+
+      const y =
+        cy +
+        Math.sin(a) * (r + fold)
+
+      if(a===0)
+        ctx.moveTo(x,y)
+      else
+        ctx.lineTo(x,y)
+    }
+
+    ctx.strokeStyle =
+      `rgba(120,255,180,${
+        0.02 + layer*0.018
+      })`
+
+    ctx.lineWidth = 1
+
+    ctx.stroke()
+  }
+
+  /* adaptive lattice */
+
+  for(let i=0; i<36; i++){
+
+    const theta =
+      i / 36 * Math.PI * 2 +
+      phaseCursor * 0.18
+
+    const inner =
+      size * 0.09
+
+    const outer =
+      size * (
+        0.24 +
+        smoothBass * 0.10
+      )
+
+    ctx.beginPath()
+
+    ctx.moveTo(
+      cx + Math.cos(theta)*inner,
+      cy + Math.sin(theta)*inner
+    )
+
+    ctx.lineTo(
+      cx + Math.cos(theta)*outer,
+      cy + Math.sin(theta)*outer
+    )
+
+    ctx.strokeStyle =
+      "rgba(120,255,180,0.03)"
+
+    ctx.stroke()
+  }
+
+  /* central intelligence trace */
+
+  const scale =
+    size *
+    (0.14 + smoothBass * 0.08)
+
+  const a =
+    3 + smoothMid * 1.2
+
+  const b =
+    2 + smoothHigh * 1.5
+
+  ctx.save()
+
+  ctx.translate(
+    cx +
+    Math.sin(frameT * 0.00022) * 12,
+
+    cy +
+    Math.cos(frameT * 0.00018) * 9
+  )
+
+  ctx.rotate(
+    Math.sin(frameT * 0.0001) * 0.18
+  )
+
+  for(let pass=0; pass<3; pass++){
+
+    ctx.beginPath()
+
+    const alpha =
+      pass===0 ? 0.08 :
+      pass===1 ? 0.24 :
+      0.9
+
+    const spread =
+      pass===0 ? 1.18 :
+      pass===1 ? 1.06 :
+      1
+
+    for(let i=0; i<=1200; i++){
+
+      const p =
+        i / 1200
+
+      const theta =
+        phaseCursor +
+        p * Math.PI * 2.4
+
+      const topology =
+
+        Math.sin(
+          theta *
+          (18 + smoothHigh*20) +
+          frameT * 0.002
+        ) *
+
+        smoothHigh * 12
+
+      const x =
+
+        Math.sin(
+          a * theta +
+          smoothBass * 1.7
+        ) *
+
+        scale *
+        spread +
+
+        topology
+
+      const y =
+
+        Math.sin(
+          b * theta +
+          smoothMid * 1.4
+        ) *
+
+        scale *
+        0.82 *
+        spread
+
+      if(i===0)
+        ctx.moveTo(x,y)
+      else
+        ctx.lineTo(x,y)
+    }
+
+    ctx.strokeStyle =
+      `rgba(120,255,180,${alpha})`
+
+    ctx.lineWidth =
+      pass===2
+        ? 1.8 + smoothBass * 2.6
+        : 0.7
+
+    ctx.shadowBlur =
+      pass===2
+        ? 18 + smoothBass * 30
+        : 0
+
+    ctx.shadowColor =
+      "#00ff88"
+
+    ctx.stroke()
+  }
+
+  ctx.restore()
+
+  ctx.restore()
+}
+
+function loop(){
+
+  frameT++
+
+  drawBG()
+
+  drawMorphology()
+
+  subs.style.transform =
+    `scaleY(${1 + smoothBass * 0.05})`
+
+  subs.style.opacity =
+    `${0.7 + smoothBass * 0.3}`
+
+  requestAnimationFrame(loop)
+}
+
+loop()
+
+</script>
+
+</body>
+</html>

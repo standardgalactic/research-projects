@@ -1,0 +1,2135 @@
+% ============================================================
+%  Bayesian Statistics and Photonics:
+%  Failures of Traditional Models and Solutions via the
+%  RSVP Framework and the Spherepop/KES Calculus
+%
+%  Flyxion, Independent Researcher
+% ============================================================
+\documentclass[11pt, openright, twoside]{book}
+
+% ── Fonts & encoding ─────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+
+% ── Mathematics ───────────────────────────────────────────────
+\usepackage{amsmath, amssymb, amsthm, mathtools}
+\usepackage{bm}
+
+% ── Page geometry ─────────────────────────────────────────────
+\usepackage[
+  paperwidth=6.5in, paperheight=9.5in,
+  top=1in, bottom=1in,
+  inner=1.1in, outer=0.9in,
+  includeheadfoot
+]{geometry}
+
+% ── Headers & footers ─────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\small\itshape\leftmark}
+\fancyhead[RO]{\small\itshape\rightmark}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Chapter style ─────────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\Large\bfseries}
+  {\chaptername\ \thechapter}{16pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{50pt}{40pt}
+
+% ── Boxes ─────────────────────────────────────────────────────
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable, skins}
+
+\newtcolorbox{implbox}[1][]{
+  colback=gray!8, colframe=gray!50,
+  fonttitle=\bfseries\small, title=Technical Note,
+  breakable, #1}
+
+\newtcolorbox{epistbox}[1][]{
+  colback=blue!5, colframe=blue!30,
+  fonttitle=\bfseries\small, title=Epistemic Status,
+  breakable, #1}
+
+\newtcolorbox{exbox}[1][]{
+  colback=green!5, colframe=green!40,
+  fonttitle=\bfseries\small, title=Worked Example,
+  breakable, #1}
+
+\newtcolorbox{compbox}[1][]{
+  colback=red!3, colframe=red!40,
+  fonttitle=\bfseries\small, title=Orthodox vs.\ RSVP,
+  breakable, #1}
+
+\newtcolorbox{depbox}[1][]{
+  colback=yellow!4, colframe=orange!40,
+  fonttitle=\bfseries\small, title=Chapter Dependencies,
+  breakable, #1}
+
+% ── Hyperlinks ────────────────────────────────────────────────
+\usepackage[hidelinks]{hyperref}
+
+% ── Graphics & tables ─────────────────────────────────────────
+\usepackage{graphicx, booktabs, array, longtable}
+
+% ── Algorithms ────────────────────────────────────────────────
+\usepackage{algorithm, algpseudocode}
+
+% ── Index ─────────────────────────────────────────────────────
+\usepackage{makeidx}
+\makeindex
+
+% ── Bibliography ─────────────────────────────────────────────
+\usepackage[authoryear, round]{natbib}
+
+% ── Theorem environments ──────────────────────────────────────
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{axiom}[theorem]{Axiom}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{conjecture}[theorem]{Conjecture}
+
+% ── Notation ─────────────────────────────────────────────────
+\newcommand{\vfield}{\mathbf{v}}
+\newcommand{\Sfield}{S}
+\newcommand{\rsvp}{(\Phi,\vfield,\Sfield)}
+\newcommand{\Pop}{\mathbf{Pop}}
+\newcommand{\Bind}{\mathbf{Bind}}
+\newcommand{\Collapse}{\mathbf{Collapse}}
+\newcommand{\Refuse}{\mathbf{Refuse}}
+\newcommand{\KES}{\Omega_t \to H_{t+1}}
+\newcommand{\E}[1]{\mathbb{E}\!\left[#1\right]}
+\newcommand{\given}{\,|\,}
+\newcommand{\Normal}{\mathcal{N}}
+\newcommand{\Admiss}{\mathcal{A}}
+\newcommand{\Traj}{X}
+\newcommand{\Rep}{M}
+\newcommand{\proj}{\pi}
+\newcommand{\kvec}{\mathbf{k}}
+\newcommand{\xvec}{\mathbf{x}}
+
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{1.4em}
+
+% ─────────────────────────────────────────────────────────────
+\begin{document}
+\frontmatter
+
+% ── Title page ───────────────────────────────────────────────
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\Huge\bfseries Bayesian Statistics and Photonics\par}
+\vspace{0.6cm}
+{\Large Failures of Traditional Models and Solutions\\[4pt]
+via the RSVP Framework\\[4pt]
+and the Spherepop/KES Calculus\par}
+\vspace{2cm}
+{\large Flyxion\par}
+{\normalsize Independent Researcher\par}
+\vfill
+\end{titlepage}
+\clearpage{\pagestyle{empty}\cleardoublepage}
+
+% ── Preface ──────────────────────────────────────────────────
+\chapter*{Preface}
+\addcontentsline{toc}{chapter}{Preface}
+
+This textbook undertakes a foundational reconstruction of Bayesian inference and quantum
+photonics. It begins from the claim that existing frameworks operate on the wrong primitive
+objects. Standard Bayesian inference takes probability distributions over predefined
+hypothesis spaces as its primary objects. Standard quantum optics takes Hilbert space
+vectors and the Born rule as its primary objects. Both are compressions of a richer
+underlying structure: the admissible trajectory field from which observable quantities
+and statistical distributions both emerge.
+
+The book is organized around four structural ideas that recur at every level of the
+exposition. The first is \emph{admissibility}: not all configurations are equally
+accessible at a given time, and this differential accessibility is the true primitive from
+which probability distributions emerge. The second is \emph{projection}: the map from rich
+trajectory space to compressed representational manifold, whose fiber structure encodes the
+information lost by conventional models. The third is \emph{entropy as accessibility}: the
+entropy field $\Sfield$ measures future trajectory volume, not merely Shannon uncertainty.
+The fourth is \emph{irreversible event structure}: the Spherepop/KES calculus treats events
+as primitive and derives states as equivalence classes of event histories, placing
+irreversibility at the foundation rather than deriving it from reversible dynamics.
+
+Every chapter of this text is anchored to one or more of these four ideas. The reader who
+loses the thread can always return to them.
+
+\medskip
+The book is organized as follows. Part~0 covers mathematical prerequisites: Hilbert spaces,
+manifolds, Fisher-Rao geometry, and rigorous Bayesian inference. Part~I is diagnostic,
+identifying specific failures of orthodox models. Part~II develops the RSVP framework as
+a field-theoretic replacement, beginning with admissibility geometry as the conceptual
+foundation. Part~III develops the Spherepop/KES irreversible event calculus. Part~IV
+unifies the two frameworks, compares them to existing programs, and catalogues experimental
+predictions. Part~V develops extensions: projection failure, information geometry beyond
+Fisher-Rao, non-Markovian dynamics, photonics as constraint propagation, topological
+defects, thermodynamics, learning, and cosmological optics. Part~VI closes with a unified
+accessibility calculus and open problems.
+
+\medskip
+\textbf{Epistemic status labels} used throughout:
+\begin{description}
+  \item[Theorem/Proposition] Mathematically derived from stated assumptions.
+  \item[Conjecture] Believed true but not yet proved within this framework.
+  \item[Ansatz] A working assumption adopted for tractability.
+  \item[Interpretation] Physical or inferential reading of a formal result.
+  \item[Prediction] Empirically testable consequence, dependent on stated ansätze.
+\end{description}
+
+\bigskip
+\noindent\textit{Flyxion, Independent Researcher}
+
+% ── Notation ─────────────────────────────────────────────────
+\chapter*{Notation and Symbols}
+\addcontentsline{toc}{chapter}{Notation and Symbols}
+
+\begin{longtable}{@{}lll@{}}
+\toprule
+\textbf{Symbol} & \textbf{Name} & \textbf{Interpretation} \\
+\midrule\endhead
+$\Phi$ & Scalar field & Likelihood potential / salience landscape \\
+$\vfield$ & Vector field & Admissibility flow / information transport \\
+$\Sfield$ & Entropy field & Local accessibility density \\
+$\rsvp$ & RSVP triple & The full RSVP field configuration \\
+$\mathcal{M}$ & Plenum manifold & Parameter / state space \\
+$g$ & Riemannian metric & Geometry of the plenum \\
+$\Traj$ & Trajectory space & Space of all admissible histories \\
+$\Rep$ & Representational manifold & Compressed model space \\
+$\proj:\Traj\to\Rep$ & Projection & Compression map \\
+$\proj^{-1}(m)$ & Fiber & Trajectories projecting to $m\in\Rep$ \\
+$\Admiss(x,t)$ & Admissibility & Dynamic accessibility of $x$ at time $t$ \\
+$\Omega_t$ & World-state & Constraint-weighted distribution \\
+$H_t$ & History state & Realized causal event sequence \\
+$\Pop$ & Pop operator & Event to immediate consequence \\
+$\Bind$ & Bind operator & Joins causally compatible events \\
+$\Collapse$ & Collapse operator & Identifies compatible configurations \\
+$\Refuse$ & Refuse operator & Filters events by consistency \\
+$\mathcal{F}(e)$ & KES functional & Selection weight for event $e$ \\
+$\pi_{\rm RSVP}$ & RSVP prior & Dynamically generated prior \\
+$\rho$ & Density operator & Quantum optical state \\
+$E_k$ & POVM element & Measurement operator \\
+$p_k$ & Born probability & $\operatorname{tr}(\rho E_k)$ \\
+$S(\rho)$ & von Neumann entropy & $-\operatorname{tr}(\rho\log\rho)$ \\
+$F_{ij}$ & Fisher information & $\mathbb{E}[\partial_i\log\mathcal{L}\,\partial_j\log\mathcal{L}]$ \\
+$g^{\rm FR}$ & Fisher-Rao metric & Information geometry metric \\
+$g^{\rm RSVP}$ & RSVP metric & Extended accessibility metric \\
+$D(\sigma_1,\sigma_2)$ & Trace distance & $\frac{1}{2}\|\sigma_1-\sigma_2\|_1$ \\
+$\Delta$ & Laplace-Beltrami & Geometric Laplacian on $(\mathcal{M},g)$ \\
+$\hat{n}$ & Photon number & $a^\dagger a$ \\
+$Q$ & Mandel parameter & Sub/super-Poissonian character \\
+$\Gamma(m)$ & Degeneracy ratio & Fiber volume relative to total \\
+$\Gamma_D$ & Decoherence rate & Rate of distinguishability loss \\
+$K_m$ & KES memory kernel & $m$-step non-Markovian kernel \\
+$\mathfrak{A}$ & Total admissibility & $\int_\Traj\Admiss(x,t)\,dx$ \\
+\bottomrule
+\end{longtable}
+
+\tableofcontents
+\mainmatter
+
+% =============================================================
+\part{Mathematical Prerequisites}
+% =============================================================
+
+\chapter{Hilbert Spaces, Operators, and Quantum Optical States}
+
+\section{Hilbert Spaces and Fock Space}
+
+A \emph{Hilbert space} $\mathcal{H}$ is a complete inner product space over $\mathbb{C}$.
+The bosonic Fock space for quantum optics is
+$\mathcal{F}(\mathcal{H}_1) = \bigoplus_{n=0}^\infty \mathcal{H}_1^{\otimes_s n}$,
+where $\mathcal{H}_1 = L^2(\mathbb{R}^3)\otimes\mathbb{C}^2$ is the single-photon Hilbert
+space and $\otimes_s$ denotes the symmetrized tensor product.
+
+\begin{definition}[Density operator]
+A \emph{density operator} $\rho:\mathcal{H}\to\mathcal{H}$ satisfies $\rho=\rho^\dagger$,
+$\rho\geq 0$, and $\operatorname{tr}(\rho)=1$. Pure states satisfy $\rho^2=\rho$.
+\end{definition}
+
+The creation and annihilation operators satisfy $[a_k,a_{k'}^\dagger]=\delta_{kk'}$.
+Coherent states $|\alpha\rangle = e^{-|\alpha|^2/2}\sum_n \frac{\alpha^n}{\sqrt{n!}}|n\rangle$
+satisfy $a|\alpha\rangle=\alpha|\alpha\rangle$ and are overcomplete. The Wigner function
+$W(\alpha) = \frac{2}{\pi}\operatorname{tr}(\rho\,D(-\alpha)(-1)^{a^\dagger a}D(\alpha))$
+is a quasi-probability distribution whose negativity witnesses non-classicality.
+
+\section{Quantum Optical Measurements}
+
+\begin{definition}[POVM]
+A \emph{positive operator-valued measure} is a set $\{E_k\}$ with $E_k\geq 0$ and
+$\sum_k E_k=\mathbf{1}$. The probability of outcome $k$ is $p_k=\operatorname{tr}(\rho E_k)$.
+\end{definition}
+
+POVMs generalize projection-valued measures to realistic detectors that never project onto
+sharp eigenstates. Informationally complete POVMs with $M\geq d^2$ elements are required
+for quantum state tomography of a $d$-dimensional system.
+
+\chapter{Manifolds, Riemannian Geometry, and Statistical Manifolds}
+
+\section{Smooth Manifolds and Differential Operators}
+
+An $n$-dimensional smooth manifold $\mathcal{M}$ is locally homeomorphic to $\mathbb{R}^n$
+with smooth transition maps. A Riemannian metric $g$ assigns an inner product to each
+tangent space $T_p\mathcal{M}$. The key operators used throughout are: gradient $\nabla f$,
+divergence $\operatorname{div}(X) = \frac{1}{\sqrt{\det g}}\partial_\mu(\sqrt{\det g}\,X^\mu)$,
+and Laplace-Beltrami $\Delta f = \operatorname{div}(\nabla f)$.
+
+\section{Statistical Manifolds and the Fisher-Rao Metric}
+
+A \emph{statistical manifold} parameterizes a family of probability distributions
+$\{p(\cdot\given\theta)\}_{\theta\in\mathcal{M}}$. The Fisher-Rao metric is
+\begin{equation}
+  g^{\rm FR}_{\mu\nu}(\theta) = \int p(x\given\theta)\,
+  \frac{\partial\log p}{\partial\theta^\mu}\frac{\partial\log p}{\partial\theta^\nu}\,dx.
+\end{equation}
+
+\begin{theorem}[Chentsov, 1972]
+Up to a constant, the Fisher-Rao metric is the unique Riemannian metric on the manifold of
+probability distributions invariant under Markov morphisms.
+\end{theorem}
+
+The RSVP metric extends the Fisher-Rao metric by incorporating entropy gradients (Chapter~17).
+
+\section{Entropy and Variational Principles}
+
+The Jaynes maximum entropy principle selects the distribution $p^*$ maximizing
+$H(p)=-\int p\log p$ subject to moment constraints $\mathbb{E}_p[f_k]=c_k$. The solution
+is always an exponential family $p^*(x)=Z^{-1}e^{-\sum_k\lambda_k f_k(x)}$. The RSVP
+framework implements this principle \emph{dynamically} via the field equation for
+$\Sfield$ rather than as a static optimization.
+
+\chapter{Bayesian Inference: A Rigorous Foundation}
+
+\section{Probability Spaces and Bayes' Theorem}
+
+A probability space $(\Omega,\mathcal{F},P)$ consists of a sample space, $\sigma$-algebra,
+and countably additive measure with $P(\Omega)=1$. Bayes' theorem in measure-theoretic form
+is
+\begin{equation}
+  \pi(\theta\given x) = \frac{p(x\given\theta)\,\pi(\theta)}
+  {\int p(x\given\theta')\,\pi(\theta')\,d\nu(\theta')},
+  \label{eq:bayes}
+\end{equation}
+valid when the posterior is proper ($\int\pi(\theta\given x)\,d\nu=1$) and $p(x)>0$.
+
+\section{Conjugate Priors and Exponential Families}
+
+A prior $\pi(\theta)$ is \emph{conjugate} to $p(x\given\theta)$ if the posterior lies in
+the same parametric family. For the Poisson likelihood relevant to photon counting, the
+conjugate prior is $\Gamma(a,b)$ and the posterior given counts $\{n_i\}$ is
+$\Gamma(a+\sum n_i, b+N)$, with posterior mean $(a+\sum n_i)/(b+N)$.
+
+\section{Variational Inference and the ELBO}
+
+When the posterior is intractable, variational inference maximizes the evidence lower bound
+\begin{equation}
+  \mathrm{ELBO}(\phi) = \mathbb{E}_{q_\phi}[\log p(x\given\theta)] - \mathrm{KL}(q_\phi\|\pi).
+  \label{eq:elbo}
+\end{equation}
+The ELBO is tight only when $q_\phi = \pi(\cdot\given x)$. The RSVP framework avoids the
+structural assumptions of variational families by treating the prior as a dynamically
+evolving field rather than a fixed parametric form.
+
+% =============================================================
+\part{Failures of Traditional Models}
+% =============================================================
+
+\chapter{The Born Rule and Its Discontents}
+
+\begin{depbox}
+This chapter uses Definition 1.1 (density operator), Definition 1.2 (POVM), and
+Hilbert space theory from Chapter~1.
+\end{depbox}
+
+\section{The Measurement Problem}
+
+The Born rule $p_k = \operatorname{tr}(\rho E_k)$ is a postulate, not a theorem. The
+Schr\"{o}dinger equation is linear, deterministic, and unitary; measurement outcomes are
+discrete, stochastic, and irreversible. No continuous deformation of the unitary dynamics
+produces the Born rule.
+
+\begin{theorem}[Gleason, 1957]
+In a separable Hilbert space of dimension $\geq 3$, every frame function
+$\mu:\mathcal{P}(\mathcal{H})\to[0,1]$ with $\mu(\mathcal{H})=1$ arises from a unique
+density operator $\rho$ via $\mu(V)=\operatorname{tr}(\rho P_V)$.
+\end{theorem}
+
+Gleason's theorem shows the Born rule is the \emph{only} consistent assignment; it does
+not explain why measurement outcomes should form a frame function. The theorem also fails
+in dimension two, precisely where single-qubit polarization states live.
+
+\begin{compbox}
+\textbf{Orthodox assumption:} The Born rule $p_k=\operatorname{tr}(\rho E_k)$ is a
+fundamental postulate appended to the unitary dynamics.
+
+\textbf{RSVP replacement:} Born statistics emerge as a limiting case of the KES selection
+functional (Theorem~\ref{thm:kes_born}) when RSVP fields are trivial ($\Sfield=\mathrm{const}$,
+$\Phi=\log p$). In non-trivial backgrounds, the effective probability acquires field-dependent
+corrections.
+
+\textbf{Orthodox pathology:} No dynamical explanation for measurement irreversibility.
+
+\textbf{RSVP resolution:} Irreversibility is primitive in the Spherepop event calculus;
+the Schr\"{o}dinger equation is a limit, not the foundation.
+\end{compbox}
+
+\section{QBism and the Epistemic Deflation}
+\label{sec:qbism}
+
+QBism treats $\rho$ as an agent's personal probability assignment, and the Born rule as a
+consistency norm analogous to Dutch book coherence. The SIC-POVM reformulation gives
+\begin{equation}
+  p(E_k) = (d+1)\sum_j q_j r(E_k|\pi_j) - 1,
+\end{equation}
+departing from the classical law of total probability by an additive correction. This
+correction has no dynamical interpretation in QBism. The RSVP framework provides a
+field-theoretic account: the correction term is the difference between RSVP-weighted
+and classical probability sums arising from non-trivial $\Sfield$ geometry.
+
+\section{The Path Integral and Its Measure Problem}
+
+The Feynman path integral $\mathcal{A} = \int\mathcal{D}[\gamma]\,e^{iS[\gamma]/\hbar}$
+is the closest existing approach to admissibility geometry. The RSVP framework replaces
+the oscillatory weight $e^{iS/\hbar}$ with the real, positive admissibility weight
+$\Admiss(x,t)\propto\Sfield\,e^\Phi$, avoiding the phase-cancellation problem of
+the Feynman integral while retaining the sum-over-histories structure.
+
+\begin{exbox}
+\textbf{Single-photon polarimetry.} A photon with state $\rho=\mathbf{1}/2$ (maximally
+mixed) measured by a polarizing beam splitter gives $p_H=p_V=1/2$ by Born. In the RSVP
+framework, this equal probability arises from a flat entropy field $\Sfield=\mathrm{const}$
+on the Bloch sphere. When $\Sfield$ is non-uniform due to prior optical interactions, the
+effective probabilities shift by an $O(\alpha\Sfield)$ correction testable via photon
+statistics.
+\end{exbox}
+
+\chapter{Prior Specification in Quantum Optical Inference}
+
+\begin{depbox}
+This chapter depends on Definition 3.1 (Jeffreys prior), Bayes' theorem~\eqref{eq:bayes},
+and Section~3.2 (conjugate priors).
+\end{depbox}
+
+\section{The Prior Assignment Problem}
+
+No canonical rule exists for specifying $\pi(\theta)$ prior to data. The Jeffreys prior
+$\pi_J(\theta)\propto\sqrt{\det F(\theta)}$ is reparameterization-invariant but concentrates
+mass near the boundary of the density operator manifold for mixed-state tomography, and is
+computationally intractable for $n\geq 3$ qubits.
+
+\begin{proposition}[Positivity violation under Gaussian priors]
+\label{prop:gaussian_failure}
+Let $\tilde\rho$ be drawn from a Gaussian prior on the entries of a $d\times d$ Hermitian
+matrix with variance $\sigma^2>0$. Then $\Pr(\tilde\rho\geq 0)\to 0$ as $d\to\infty$.
+\end{proposition}
+
+\begin{proof}
+The eigenvalues of a GUE matrix with variance $\sigma^2$ follow the Wigner semicircle law
+on $[-2\sigma,2\sigma]$, which assigns positive mass to $(-2\sigma,0)$. By Soshnikov's
+edge universality (1999), $\lambda_{\min}$ has Tracy-Widom fluctuations around $-2\sigma$,
+so $\Pr(\lambda_{\min}\geq 0)\to 0$ as $d\to\infty$.
+\end{proof}
+
+\begin{compbox}
+\textbf{Orthodox assumption:} Gaussian or Jeffreys priors are standard choices for quantum
+state tomography, enforced by Cholesky reparameterization.
+
+\textbf{RSVP replacement:} The RSVP prior $\pi_{\rm RSVP}(\theta)=\Sfield(\theta)e^{\Phi(\theta)}/Z$
+is strictly positive by Theorem~\ref{thm:rsvp_prior_well}, derived from field dynamics
+rather than algebraic constraint.
+
+\textbf{Orthodox pathology:} Positivity must be enforced post hoc, introducing Jacobian
+biases toward pure states.
+
+\textbf{RSVP resolution:} Positivity is a dynamical consequence of $\Sfield>0$.
+\end{compbox}
+
+\section{Maximum Entropy Priors and the UV Divergence}
+
+The Jaynes maximum entropy multimode prior
+$Z = \prod_k(1-e^{-\beta_k})^{-1}$ diverges unless an ultraviolet cutoff is imposed.
+The RSVP entropy field resolves this via Theorem~\ref{thm:uv_finite}: the coupling
+structure of the field equations provides intrinsic UV regularization.
+
+\chapter{Coherence, Decoherence, and the Entropy of Observation}
+
+\begin{depbox}
+This chapter depends on the Lindblad equation~\eqref{eq:lindblad}, the decoherence
+functional (Definition~\ref{def:decoherence_functional}), and Section~2.1 (manifolds).
+\end{depbox}
+
+\section{The Lindblad Master Equation and Its Limits}
+
+\begin{equation}
+  \frac{d\rho}{dt} = -\frac{i}{\hbar}[H,\rho]
+  + \sum_k\gamma_k\!\left(L_k\rho L_k^\dagger - \tfrac{1}{2}\{L_k^\dagger L_k,\rho\}\right).
+  \label{eq:lindblad}
+\end{equation}
+
+The pathology is not in the Lindblad form but in the post hoc assignment of $L_k$ and
+$\gamma_k$: these are fit to data, converting a dynamical equation into a statistical
+interpolation device with no principled connection to the Bayesian update on $\rho$.
+
+\begin{definition}[Decoherence functional]
+\label{def:decoherence_functional}
+For bipartite system-environment evolution $U_t$ from $|\psi_0\rangle_S\otimes|\varepsilon_0\rangle_E$,
+the decoherence functional for histories $\alpha,\alpha'$ is
+$D(\alpha,\alpha') = \operatorname{tr}(C_\alpha\rho_0 C_{\alpha'}^\dagger)$
+where $C_\alpha = P_{\alpha_n}^{t_n}U_{t_n-t_{n-1}}\cdots P_{\alpha_1}^{t_1}U_{t_1}$.
+Histories are \emph{consistent} if $D(\alpha,\alpha')\approx 0$ for $\alpha\neq\alpha'$.
+\end{definition}
+
+The pointer basis problem: the preferred basis for consistency is not selected by the
+formalism. The Spherepop $\Refuse$ operator resolves this (Theorem~\ref{thm:refuse_pointer}).
+
+\begin{theorem}[Entropy non-monotonicity under non-Markovian evolution]
+\label{thm:non_markov_entropy}
+Let $\{\mathcal{E}_t\}$ be a non-divisible family of CPTP maps. Then there exist initial
+states $\rho_1,\rho_2$ such that $D(\mathcal{E}_t(\rho_1),\mathcal{E}_t(\rho_2))$ is
+non-monotone in $t$.
+\end{theorem}
+
+\begin{proof}
+Non-divisibility means $\mathcal{E}_{t,s}=\mathcal{E}_t\circ\mathcal{E}_s^{-1}$ is not
+completely positive for some $t>s$. By the Choi-Jamio\l{}kowski isomorphism, there exists
+a bipartite state $\tau$ such that $(\mathcal{E}_{t,s}\otimes\mathrm{id})(\tau)$ has a
+negative eigenvalue. Constructing $\rho_1,\rho_2$ from its eigenvectors produces a
+backflow of distinguishability, violating monotone decay.
+\end{proof}
+
+\chapter{Statistical Pathologies in Quantum Optical Tomography}
+
+\begin{depbox}
+This chapter depends on the MLE objective~\eqref{eq:mle_tomography}, Proposition~\ref{prop:gaussian_failure},
+and the density operator manifold structure from Chapter~1.
+\end{depbox}
+
+\section{Boundary Concentration of MLE Estimates}
+
+\begin{equation}
+  \hat\rho_{\rm MLE} = \arg\max_{\rho\geq 0,\,\operatorname{tr}\rho=1}
+  \sum_k n_k\log\operatorname{tr}(\rho E_k).
+  \label{eq:mle_tomography}
+\end{equation}
+
+\begin{proposition}[Boundary concentration]
+\label{prop:mle_boundary}
+Let $\operatorname{rank}(\rho^\star)=r<d$. For finite $N$, $\hat\rho_{\rm MLE}$ is almost
+surely rank-$d$, and Fisher-information confidence regions at $\hat\rho_{\rm MLE}$ are
+asymptotically incorrect because $\rho^\star$ lies on the boundary of the density matrix manifold.
+\end{proposition}
+
+\begin{proof}
+The log-likelihood is strictly concave on the interior of the density matrix body, with
+gradient diverging to $-\infty$ toward the boundary in any direction with $n_k>0$. Hence
+any interior maximum has $\operatorname{rank}(\hat\rho_{\rm MLE})=d$. Asymptotic normality
+of MLE requires the true parameter to be interior; boundary targets invalidate the delta method.
+\end{proof}
+
+\begin{compbox}
+\textbf{Orthodox assumption:} Regularization (hedged MLE, MAP with Bures prior) enforces
+positivity algebraically.
+
+\textbf{RSVP replacement:} Positivity of the posterior emerges from $\Sfield>0$ without
+regularization (Theorem~\ref{thm:rsvp_prior_well}).
+
+\textbf{Orthodox pathology:} Regularization Jacobians bias estimates toward pure states.
+
+\textbf{RSVP resolution:} The RSVP prior generates its own curvature through the entropy
+field, with no Cholesky-induced bias.
+\end{compbox}
+
+% =============================================================
+\part{The RSVP Framework}
+% =============================================================
+
+\chapter{Admissibility Geometry: Probability as Emergent Accessibility}
+\label{ch:admissibility}
+
+\begin{depbox}
+This chapter introduces the central conceptual foundation of the RSVP framework. All
+subsequent chapters in Parts~II--VI depend on Definitions~\ref{def:admissibility}--\ref{def:emergent_prob}
+and Axiom~\ref{axiom:admissibility_primacy}.
+\end{depbox}
+
+\section{Trajectory Space and Representational Compression}
+
+Let $\Traj$ be the space of all admissible world-histories and $\Rep$ a finite-dimensional
+manifold on which statistical models operate. A \emph{projection} $\proj:\Traj\to\Rep$ maps
+trajectory structure into observable quantities. For each $m\in\Rep$, the \emph{fiber}
+$\proj^{-1}(m)$ is the set of all trajectories projecting to the same point. Classical
+models are defined entirely on $\Rep$ and are silent about fiber structure.
+
+\begin{definition}[Admissibility functional]
+\label{def:admissibility}
+An \emph{admissibility functional} $\Admiss:\Traj\times\mathbb{R}\to[0,\infty)$ measures
+the degree to which trajectory $x$ remains dynamically and inferentially available at time $t$.
+\end{definition}
+
+\begin{definition}[Emergent probability]
+\label{def:emergent_prob}
+The \emph{emergent probability} of a representational event $B\subset\Rep$ is
+\begin{equation}
+  P(B,t) = \frac{\int_{\proj^{-1}(B)}\Admiss(x,t)\,dx}{\int_\Traj\Admiss(x',t)\,dx'}.
+  \label{eq:emergent_prob}
+\end{equation}
+\end{definition}
+
+\begin{axiom}[Admissibility primacy]
+\label{axiom:admissibility_primacy}
+The admissibility functional $\Admiss$ is the fundamental object of inference. Probability
+distributions over $\Rep$ are derived quantities obtained by projecting $\Admiss$ via
+equation~\eqref{eq:emergent_prob}.
+\end{axiom}
+
+\section{Entropy as Accessibility}
+
+In the admissibility framework, entropy is the logarithm of accessible trajectory volume:
+\begin{equation}
+  \Sfield(x,t) = \log\Omega(x,t),
+\end{equation}
+where $\Omega(x,t)$ is the volume of admissible continuations from $x$ at time $t$. Low
+entropy means strong constraint; high entropy means rich accessibility. This differs from
+Shannon uncertainty, which is defined over predefined symbol sets.
+
+\begin{proposition}[Shannon entropy as a limit]
+\label{prop:shannon_limit}
+If $\Admiss(x,t)=p(x)$ is time-independent and fibers are uniform, then the accessibility
+entropy $\Sfield$ equals the Shannon entropy of the projected distribution $P(\cdot,t)$
+up to a constant depending on fiber volume.
+\end{proposition}
+
+\begin{proof}
+Under uniform fibers $|\proj^{-1}(m)|=C$, $\Omega(m,t)=Cp(m)$, so $\Sfield(m,t)=\log p(m)+\log C$.
+Then $-\mathbb{E}[\Sfield]=H(P(\cdot,t))-\log C$, giving $H=\mathbb{E}[\Sfield]+\mathrm{const}$.
+\end{proof}
+
+\section{Why Bayesian Inference Fails at the Boundary of $\Rep$}
+
+The projection $\proj$ is many-to-one. Inference fails at the boundary of $\Rep$ precisely
+when the boundary corresponds to measure-zero trajectory fibers: the density matrix manifold
+boundary (pure states) is the image of a measure-zero set of fibers in trajectory space,
+yet maximum likelihood and Lindblad machineries assign finite probability to these boundary
+regions by treating them as interior points of $\Rep$. This is the geometric explanation
+for Proposition~\ref{prop:mle_boundary}.
+
+\begin{compbox}
+\textbf{Orthodox assumption:} The representational manifold $\Rep$ is a complete description;
+all relevant information is in $m\in\Rep$.
+
+\textbf{RSVP replacement:} $\Rep$ is a projection of $\Traj$; the fiber $\proj^{-1}(m)$
+contains the lost causal history, alternative admissible paths, and trajectory distinctions
+relevant to future inference.
+
+\textbf{Orthodox pathology:} Fiber degeneracy causes observational aliasing,
+boundary singularities, and representational fragility under model change.
+
+\textbf{RSVP resolution:} The admissibility functional is defined on $\Traj$, making
+fiber structure explicit and the cost of compression computable via the degeneracy ratio $\Gamma(m)$.
+\end{compbox}
+
+\section{Minimal Working Example: One-Dimensional RSVP System}
+
+Before introducing the full RSVP machinery, we work through a minimal complete example
+to anchor the formalism.
+
+\begin{exbox}
+\textbf{Binary Bayesian inference via 1D RSVP.} Let $\Theta=\{0,1\}$ encoded as
+$\mathcal{M}=[-1,1]$, with $\Phi(\theta)=\log p(D\given\theta)$ initialized from a
+binomial likelihood, $\Sfield(\theta)=(1-\theta^2)^{1/2}$ (high entropy near $\theta=0$,
+low near the boundaries), and $\vfield(\theta)=(\alpha/\Sfield)\nabla\Phi$.
+
+The RSVP prior is
+$\pi_{\rm RSVP}(\theta)\propto(1-\theta^2)^{1/2}e^{\Phi(\theta)}$,
+which is a semicircle-weighted likelihood. The posterior concentrates near the maximum of
+$\Phi(\theta)$ but is moderated by the entropy field: if data strongly favor $\theta=+1$
+(a boundary), the entropy field $\Sfield(\pm 1)=0$ suppresses the prior at the boundary,
+preventing the overconfident boundary concentration of the MLE.
+
+A three-event KES history $H_3=(e_1,e_2,e_3)$ with $e_i$ drawn from this system gives
+an empirical frequency that converges to $\pi_{\rm RSVP}$ by Theorem~\ref{thm:kes_born}.
+\end{exbox}
+
+\chapter{The Relativistic Scalar-Vector Plenum: Field Equations}
+
+\begin{depbox}
+This chapter depends on Chapter~\ref{ch:admissibility} (admissibility geometry),
+Chapter~2 (Riemannian manifolds and Fisher-Rao metric), and the Euler-Lagrange formalism.
+\end{depbox}
+
+\section{The RSVP Lagrangian}
+
+\begin{definition}[RSVP Lagrangian density]
+\begin{equation}
+  \mathcal{L}_{\rm RSVP} = \tfrac{1}{2}|\nabla\Phi|^2
+  - \tfrac{1}{2}\Sfield\,g(\vfield,\vfield)
+  - V(\Phi,\Sfield)
+  + \alpha\,\Phi\operatorname{div}(\vfield)
+  - \beta\,\Sfield\log\Sfield.
+  \label{eq:rsvp_lagrangian}
+\end{equation}
+\end{definition}
+
+The term $-\beta\Sfield\log\Sfield$ drives $\Sfield$ dynamically toward maximum entropy
+configurations, implementing the Jaynes principle as field evolution. The Euler-Lagrange
+equations are:
+\begin{align}
+  \Delta\Phi &= \tfrac{\partial V}{\partial\Phi} - \alpha\operatorname{div}(\vfield),
+  \label{eq:rsvp_phi}\\
+  \Sfield\,\vfield^\flat &= \alpha\,d\Phi,
+  \label{eq:rsvp_v}\\
+  \partial_t\Sfield &= -\operatorname{div}(\Sfield\vfield)
+  + \beta(1+\log\Sfield) + \tfrac{\partial V}{\partial\Sfield}.
+  \label{eq:rsvp_S}
+\end{align}
+
+\begin{implbox}
+\textbf{Numerical evolution.} Equations~\eqref{eq:rsvp_phi}--\eqref{eq:rsvp_S} are
+discretized on a rectangular lattice with semi-Lagrangian advection for
+$\operatorname{div}(\Sfield\vfield)$. Clamp $\Sfield\geq\epsilon>0$ at each step.
+\begin{verbatim}
+  Phi  += dt*(laplacian(Phi) - dV_dPhi + alpha*divergence(v))
+  v     = (alpha/S)*gradient(Phi)
+  S    += dt*(-divergence(S*v) + beta*(1+log(S)) + dV_dS)
+  S     = clip(S, epsilon, None)
+\end{verbatim}
+\end{implbox}
+
+\section{Well-Posedness and the RSVP Prior}
+
+\begin{theorem}[Well-posedness]
+\label{thm:rsvp_wellposed}
+Let $(\mathcal{M},g)$ be compact without boundary, $\dim\leq 4$, and
+$V=\frac{\lambda}{4}(\Phi^2-\mu^2)^2+\frac{\kappa}{2}\Phi\Sfield$.
+For initial data $(\Phi_0,\vfield_0,\Sfield_0)\in H^2\times H^1\times H^1$ with
+$\Sfield_0\geq s_0>0$, there exists a unique strong solution on $[0,T]$ with
+$\Sfield\geq s_0 e^{-Ct}$.
+\end{theorem}
+
+\begin{proof}
+Define energy $\mathcal{E}=\frac{1}{2}\|\nabla\Phi\|^2+\frac{1}{2}\|\Sfield^{1/2}\vfield\|^2
++\int V\,d\mathrm{vol}+\beta\int\Sfield\log\Sfield\,d\mathrm{vol}$.
+Differentiating and integrating by parts on the compact manifold eliminates boundary terms.
+Sobolev embedding $H^2\hookrightarrow L^\infty$ for $n\leq 4$ bounds the potential gradient.
+Gronwall gives $\mathcal{E}(t)\leq\mathcal{E}(0)e^{C_1 t}$; local existence follows from
+contraction mapping. The $\Sfield$ lower bound follows from the comparison principle applied
+to~\eqref{eq:rsvp_S}.
+\end{proof}
+
+\begin{definition}[RSVP-generated prior]
+At steady state, the RSVP prior over $\Theta\subset\mathcal{M}$ is
+\begin{equation}
+  \pi_{\rm RSVP}(\theta) = \frac{\Sfield(\theta)\,e^{\Phi(\theta)}}
+  {\int_\Theta\Sfield(\theta')\,e^{\Phi(\theta')}\,d\mathrm{vol}_g}.
+  \label{eq:rsvp_prior}
+\end{equation}
+\end{definition}
+
+\begin{theorem}[RSVP prior positivity]
+\label{thm:rsvp_prior_well}
+Under Theorem~\ref{thm:rsvp_wellposed}, $\pi_{\rm RSVP}$ is strictly positive on $\Theta$
+and defines a probability measure, resolving Proposition~\ref{prop:gaussian_failure}
+at the dynamical level.
+\end{theorem}
+
+\begin{proof}
+$\Sfield(\theta)e^{\Phi(\theta)}>0$ everywhere by $\Sfield>0$ and $e^\Phi>0$.
+The denominator is a positive continuous integral over a compact set, hence finite and positive.
+\end{proof}
+
+\section{Correspondence Limits}
+
+\begin{proposition}[Classical Bayesian limit]
+If $\Sfield=\mathrm{const}$ and $\Phi=\log\mathcal{L}(\theta)$, then RSVP inference
+reduces to ordinary Bayesian updating with likelihood $\mathcal{L}$ and uniform prior.
+\end{proposition}
+
+\begin{proposition}[Shannon entropy limit]
+If $\Admiss(x,t)=p(x)$ (time-independent, uniform fibers), then the RSVP entropy field
+$\Sfield$ equals the Shannon entropy of the projected distribution up to a fiber-volume constant
+(Proposition~\ref{prop:shannon_limit}).
+\end{proposition}
+
+\begin{proposition}[Markovian limit]
+The KES memory kernel $K_m$ (Definition~\ref{def:kes_memory}) reduces to the standard KES
+map when $m=0$, giving Markovian event selection.
+\end{proposition}
+
+\begin{proposition}[Gaussian approximation limit]
+Near a maximum $\theta^*$ of $\Phi$, Taylor expanding to second order gives
+$\pi_{\rm RSVP}(\theta)\approx\Sfield(\theta^*)e^{\Phi(\theta^*)}\exp(-\frac{1}{2}(\theta-\theta^*)^T F(\theta^*)(\theta-\theta^*))$,
+recovering a Gaussian posterior with Fisher information covariance.
+\end{proposition}
+
+\section{UV Finiteness of the Multimode Prior}
+
+\begin{theorem}[UV finiteness]
+\label{thm:uv_finite}
+Let $\mathcal{M}=\prod_{k=1}^K[0,\infty)$ parameterize $K$ modes. With $\kappa_k\geq ck^\gamma$
+for $c,\gamma>0$, the steady-state RSVP entropy field satisfies
+$\int_\mathcal{M}\Sfield^*\,d\bar n<\infty$ without any ultraviolet cutoff.
+\end{theorem}
+
+\begin{proof}
+The potential penalizes large $\bar n_k$ with strength $\kappa_k$, forcing
+$\Sfield^*\leq C\prod_k e^{-\kappa_k\bar n_k}$ by the maximum principle.
+Then $\int\Sfield^*\leq C\prod_k\kappa_k^{-1}$, which vanishes as $K\to\infty$
+for $\kappa_k\geq ck^\gamma$.
+\end{proof}
+
+\chapter{RSVP Applied to Quantum Optical Inference}
+
+\begin{depbox}
+This chapter applies Theorems~\ref{thm:rsvp_wellposed}--\ref{thm:uv_finite} to concrete
+photonic inference problems. Requires the Mandel $Q$ parameter and photon number operator
+from Chapter~1.
+\end{depbox}
+
+\section{The Velocity Field as Natural Gradient}
+
+\begin{theorem}[RSVP velocity as entropic natural gradient]
+At steady state with $g=g^{\rm FR}$, the RSVP velocity field satisfies
+$\vfield=(\alpha/\Sfield)(g^{\rm FR})^{-1}\nabla\Phi$:
+the Fisher-Rao natural gradient of the likelihood, suppressed by entropy density in
+high-uncertainty regions. Bayesian updating is geometrically implemented by the RSVP
+velocity field. The RSVP framework does not add Bayesian inference to a field theory;
+it shows that Bayesian inference \emph{is} a field theory with Lagrangian~\eqref{eq:rsvp_lagrangian}.
+\end{theorem}
+
+\begin{proof}
+From~\eqref{eq:rsvp_v}, $\Sfield\vfield^\flat=\alpha\,d\Phi$. Raising with $(g^{\rm FR})^{-1}$
+gives $\Sfield\vfield=\alpha\nabla_{g^{\rm FR}}\Phi$, so $\vfield=(\alpha/\Sfield)(g^{\rm FR})^{-1}\nabla\Phi$.
+\end{proof}
+
+\section{Mandel $Q$ Inference}
+
+\begin{exbox}
+\textbf{Sub-Poissonian light.} From $N=20$ counts with $\bar n=0.4$ and $s^2=0.1$,
+the standard estimator gives $\hat Q=-0.75$. A Gaussian prior on $Q\in(-1,\infty)$ assigns
+non-negligible mass to the unphysical region $Q<-1$. The RSVP prior with
+$V\supset-\lambda\log(Q+1)$ gives $\Phi\to-\infty$ as $Q\to-1^+$, automatically enforcing
+the constraint. The posterior mean is regularized toward $Q=0$ by $\Sfield$ weighting,
+preventing over-interpretation of small-sample fluctuations.
+\end{exbox}
+
+\chapter{RSVP Photon Propagation and Entropic Phase}
+
+\begin{depbox}
+This chapter depends on Theorem~\ref{thm:rsvp_prior_well}, Section~2.1 (manifolds),
+and the free photon propagator from quantum field theory.
+\end{depbox}
+
+\section{RSVP-Modified Propagator}
+
+\begin{definition}[RSVP-modified propagator]
+\begin{equation}
+  \widetilde D_{\mu\nu}(x,y) = D_{\mu\nu}(x-y)
+  \exp\!\left(-\tfrac{1}{2}\int_x^y\nabla\Phi\cdot d\ell
+  -\tfrac{\alpha}{2}\int_x^y\Sfield\,ds\right).
+  \label{eq:rsvp_propagator}
+\end{equation}
+\end{definition}
+
+The potential factor $e^{-(\Phi(y)-\Phi(x))/2}$ is path-independent. The attenuation
+factor $e^{-\frac{\alpha}{2}\int\Sfield\,ds}$ encodes decoherence without invoking the
+environment explicitly: photons traversing high-entropy regions experience additional damping.
+
+\begin{proposition}[RSVP entropic phase shift]
+A photon of frequency $\omega_0$ propagating from $x_0$ to $x_1$ acquires
+$\Delta\omega = \frac{\omega_0}{2}(\Phi(x_1)-\Phi(x_0))+O(\alpha\Sfield)$.
+\end{proposition}
+
+\begin{epistbox}
+The identification of $\widetilde D_{\mu\nu}$ with the physical photon Green's function is
+an ansatz. Testing the entropic phase shift requires a regime where $\nabla\Phi$ is
+significant along the photon path, e.g., photonic crystals with engineered entropy profiles.
+\end{epistbox}
+
+\section{Optics as Admissibility Dynamics}
+
+Standard optical phenomena acquire RSVP interpretations: interference is admissibility-bundle
+compatibility; diffraction is the spread of admissible continuations after an aperture;
+coherence $g^{(1)}(\tau)$ measures admissibility-bundle overlap over time $\tau$; a lens
+is an admissibility operator imposing $\Phi(x)=-k|x|^2/(2f)$ that drives $\vfield$ toward
+focal convergence.
+
+\begin{exbox}
+\textbf{Mach-Zehnder interferometer.} A photon entering path 1 or path 2 corresponds to
+two trajectory bundles $x_1,x_2$ with $\proj(x_1)=\proj(x_2)$ at the final detector (same
+outcome). Constructive interference occurs when the admissibility phases are compatible,
+i.e., $\Phi(x_1)-\Phi(x_2)\in 2\pi\mathbb{Z}$. Destructive interference corresponds to
+admissibility cancellation: the fiber $\proj^{-1}(\text{detector})$ has two contributions
+that exactly cancel in the admissibility integral~\eqref{eq:emergent_prob}.
+\end{exbox}
+
+% =============================================================
+\part{The Spherepop/KES Calculus}
+% =============================================================
+
+\chapter{The Spherepop Operators: An Irreversible Event Calculus}
+\label{ch:spherepop}
+
+\begin{depbox}
+This chapter depends on Chapter~\ref{ch:admissibility} (admissibility geometry) and
+the decoherence functional (Definition~\ref{def:decoherence_functional}).
+\end{depbox}
+
+\section{Event Primacy}
+
+\begin{axiom}[Event primacy]
+\label{axiom:event_primacy}
+A state in the usual sense is an equivalence class of event histories. Two histories are
+equivalent if and only if they are indistinguishable by all subsequent events.
+\end{axiom}
+
+Axiom~\ref{axiom:event_primacy} inverts the standard ordering: states are derived from
+events, not the reverse. Irreversibility is primitive, not emergent.
+
+\begin{definition}[Event algebra]
+An \emph{event algebra} $(\mathcal{E},\leq,\sqcup,\bot)$ consists of events, causal
+precedence, event composition, and null event. An event $e$ is \emph{irreversible} if no
+$e^{-1}$ satisfies $e\sqcup e^{-1}=\bot$. All photon detection events are irreversible.
+\end{definition}
+
+\section{The Four Operators}
+
+\begin{definition}[$\Pop$] Maps an event to its immediate causal consequence; models photon
+detection as the creation of a new event, not a state update.\end{definition}
+
+\begin{definition}[$\Bind$] Joins causally compatible events: $\Bind(e_1,e_2)=e_1\sqcup e_2$
+when neither $e_1\leq e_2$ nor $e_2\leq e_1$; models coincidence measurement of entangled pairs.\end{definition}
+
+\begin{definition}[$\Collapse$] Maps an event $e$ to the subspace
+$\{|\psi\rangle:P_k|\psi\rangle\neq 0\}$ of states compatible with outcome $k$; identifies
+compatible configurations without destroying pre-event information.\end{definition}
+
+\begin{definition}[$\Refuse$] Filters events by a consistency condition $\mathcal{C}$:
+$\Refuse(A,\mathcal{C})=\{e\in A:e\text{ is consistent with all }c\in\mathcal{C}\}$;
+implements pointer basis selection.\end{definition}
+
+\begin{theorem}[$\Refuse$ resolves the pointer basis problem]
+\label{thm:refuse_pointer}
+With $\mathcal{C}=\{\text{robustness under tracing out }\mathcal{H}_E\}$,
+$\Refuse(\mathcal{E}_S,\mathcal{C})$ selects precisely the Quantum Darwinism pointer basis:
+system states that leave redundant records in multiple environmental fragments.
+\end{theorem}
+
+\begin{proof}
+A state is in the pointer basis iff $I(S:E_\alpha)\approx H(S)$ for many disjoint
+environmental fragments $\mathcal{H}_{E_\alpha}$. The $\Refuse$ consistency condition
+requires any event associated with the state to be reproducible from multiple fragments,
+which is precisely the Quantum Darwinism redundancy condition.
+\end{proof}
+
+\begin{proposition}[Non-commutativity of $\Pop$ and $\Bind$]
+$\Pop(\Bind(e_1,e_2))\neq\Bind(\Pop(e_1),\Pop(e_2))$ in general.
+\end{proposition}
+
+\begin{proof}
+For photons from parametric down-conversion, $\Pop(\Bind(e_1,e_2))$ yields HOM-correlated
+outcomes; $\Bind(\Pop(e_1),\Pop(e_2))$ yields no HOM interference. The measurement statistics
+differ experimentally, confirming the inequality.
+\end{proof}
+
+\chapter{KES: Kinetic-Event Synthesis}
+\label{ch:kes}
+
+\begin{depbox}
+This chapter depends on the Spherepop operators (Chapter~\ref{ch:spherepop}), the RSVP
+prior~\eqref{eq:rsvp_prior}, and the admissibility functional (Definition~\ref{def:admissibility}).
+\end{depbox}
+
+\section{The KES Map}
+
+\begin{definition}[World-state and history state]
+$\Omega_t=(\mathcal{X}_t,w_t)$ with $w_t:\mathcal{X}_t\to[0,1]$ normalized is the
+posterior-weighted set of consistent configurations at time $t$.
+$H_t=(e_1,\ldots,e_m)$ is an irreversible causal sequence.
+\end{definition}
+
+\begin{definition}[KES map]
+\label{def:kes}
+The KES map $\mathrm{KES}:\Omega_t\to H_{t+1}$ selects $e^*$ maximizing
+\begin{equation}
+  \mathcal{F}(e) = w_t(\Collapse(e))\cdot\Sfield(\Collapse(e))\cdot e^{\Phi(\Collapse(e))},
+  \label{eq:kes_functional}
+\end{equation}
+and sets $H_{t+1}=H_t\sqcup(e^*)$.
+\end{definition}
+
+\begin{theorem}[KES recovers Born statistics]
+\label{thm:kes_born}
+When $\Sfield=\mathrm{const}$ and $\Phi=\log p$, the long-run frequency of KES-selected
+outcomes converges almost surely to $p(e_k)=\operatorname{tr}(\rho E_k)$.
+\end{theorem}
+
+\begin{proof}
+$\mathcal{F}(e_k)=S_0 w_t(\Collapse(e_k))p(e_k)$; for uniform $w_t$, KES samples from
+$(p(e_k))_k$. The strong law of large numbers gives almost-sure convergence to
+$\operatorname{tr}(\rho E_k)$.
+\end{proof}
+
+\section{KES Update and No-Collapse Interpretation}
+
+Post-selection updates $w_t$ by Bayesian conditioning on $e^*$:
+\begin{equation}
+  w_{t+1}(x) = \frac{w_t(x)\cdot\mathbf{1}[x\in\Collapse(e^*)]}
+  {\sum_{x'\in\Collapse(e^*)}w_t(x')}.
+\end{equation}
+
+No Hilbert-space collapse occurs. The apparent collapse is an artifact of conflating history
+states with world-states.
+
+\section{KES Entropy and the Second Law}
+
+\begin{definition}[KES entropy]
+\begin{equation}
+  \mathcal{S}_{\rm KES}(t) = -\sum_x w_t(x)\log w_t(x) + |H_t|\log|\mathcal{E}|.
+\end{equation}
+\end{definition}
+
+\begin{theorem}[KES second law]
+$\mathbb{E}[\mathcal{S}_{\rm KES}(t+1)]\geq\mathcal{S}_{\rm KES}(t)$, with equality iff
+$w_t$ is a point mass.
+\end{theorem}
+
+\begin{proof}
+The history term increases by $\log|\mathcal{E}|>0$ per step. The Shannon term decreases
+by at most $H(w_t)$ by the data processing inequality. The net change is non-negative for
+$|\mathcal{E}|\geq|\mathcal{X}_t|$.
+\end{proof}
+
+\section{Non-Markovian Memory}
+
+\begin{definition}[KES memory kernel of depth $m$]
+\label{def:kes_memory}
+\begin{equation}
+  K_m(e_{t-m},\ldots,e_{t-1}) = \int_{\mathcal{X}_t}
+  w_t(x\given H_{t-m:t})\,\mathcal{F}(e^\star(x))\,dx.
+  \label{eq:kes_memory}
+\end{equation}
+\end{definition}
+
+For $m=0$, the kernel is Markovian. For $m>0$, past events influence event selection,
+modeling the distinguishability revivals of Theorem~\ref{thm:non_markov_entropy}.
+
+\begin{implbox}
+\textbf{KES memory as transformer attention.} The memory kernel $K_m$ is approximated by
+attention over the last $m$ events encoded as feature vectors. This maps KES dynamics
+directly onto transformer architecture: attention heads may be learning approximations to
+admissibility kernels.
+\end{implbox}
+
+% =============================================================
+\part{Synthesis and Connections}
+% =============================================================
+
+\chapter{Unification: RSVP Fields as KES Selection Geometry}
+
+\begin{depbox}
+This chapter synthesizes all preceding material. Requires Theorems~\ref{thm:rsvp_wellposed},
+\ref{thm:rsvp_prior_well}, \ref{thm:kes_born}, and the Spherepop operators.
+\end{depbox}
+
+\section{The Unification Theorem}
+
+\begin{theorem}[RSVP-KES unification]
+\label{thm:unification}
+Let $(\mathcal{M},g,\rsvp)$ be a compact RSVP configuration and define the KES functional
+by~\eqref{eq:kes_functional}. Then: (1) KES-selected events form a Markov chain with
+kernel $K(e,e')=\mathcal{F}(e')/Z(e)$; (2) the stationary distribution is $\pi_{\rm RSVP}$;
+(3) convergence is exponential with rate given by the spectral gap of the RSVP Laplacian.
+\end{theorem}
+
+\begin{proof}
+(1) $\mathcal{F}(e')>0$ and $Z(e)<\infty$ on a compact manifold give a well-defined kernel.
+(2) At steady state $\mathcal{F}(\theta)\propto\Sfield e^\Phi$ and $Z$ is constant; detailed
+balance confirms $\pi=\pi_{\rm RSVP}$. (3) The Poincar\'{e} inequality on a compact
+Riemannian manifold gives a positive spectral gap for $\Delta$, which controls the Markov
+chain mixing time.
+\end{proof}
+
+\chapter{Comparisons: QBism, Darwinism, Entropic Dynamics, Free Energy}
+
+\begin{depbox}
+This chapter compares RSVP-KES to four existing programs. Requires Theorems~\ref{thm:kes_born},
+\ref{thm:refuse_pointer}, and the ELBO~\eqref{eq:elbo}.
+\end{depbox}
+
+For each framework, we state what RSVP-KES reproduces, what it modifies, and what
+predictions differ.
+
+\section{QBism}
+
+\textbf{Reproduced:} Epistemic status of $\rho$; Born-rule consistency in the flat limit
+(Theorem~\ref{thm:kes_born}).
+\textbf{Modified:} The consistency norm is replaced by the KES functional dynamics. The
+SIC-POVM correction term acquires a field-theoretic account via $\Sfield$ geometry.
+\textbf{Differing predictions:} In non-trivial RSVP backgrounds, effective probabilities
+deviate from Born by $O(\alpha\Sfield)$. This is absent in QBism, which provides no
+field dynamics.
+
+\section{Quantum Darwinism}
+
+\textbf{Reproduced:} Theorem~\ref{thm:refuse_pointer} shows $\Refuse(\mathcal{E}_S,\mathcal{C}_{\rm robust})$
+selects precisely the pointer basis.
+\textbf{Modified:} The RSVP entropy field $\Sfield$ provides a dynamical measure of
+redundancy; low $\Sfield$ corresponds to high environmental recording.
+\textbf{Differing predictions:} A specific functional form for the quantum-to-classical
+transition as a function of $\Sfield$ along the system-environment interaction.
+
+\section{Entropic Dynamics}
+
+\textbf{Reproduced:} The term $-\beta\Sfield\log\Sfield$ in the RSVP Lagrangian
+implements maximum entropy dynamics, paralleling Caticha's entropic update.
+\textbf{Modified:} Entropic Dynamics does not couple entropy to $\Phi$ or $\vfield$.
+The RSVP velocity field has no analog in Entropic Dynamics.
+\textbf{New structure:} The KES memory kernel~\eqref{eq:kes_memory} handles non-Markovian
+dynamics that Entropic Dynamics cannot model.
+
+\section{Friston's Free Energy Principle}
+
+\textbf{Reproduced:} ELBO maximization~\eqref{eq:elbo} corresponds to minimizing
+$\mathrm{KL}(q_\phi\|\pi_{\rm RSVP})$. Active inference corresponds to KES event selection.
+\textbf{Modified:} The FEP treats the generative model $p$ as fixed. In RSVP-KES, the
+prior $\pi_{\rm RSVP}$ is dynamically generated; evidence updates both the posterior and
+the prior geometry.
+\textbf{Formal connection:} The FEP is the special case of RSVP-KES where the fields are
+static (no field dynamics, only posterior updates).
+
+\chapter{Experimental Predictions and Falsifiability}
+
+\begin{depbox}
+This chapter requires the RSVP propagator~\eqref{eq:rsvp_propagator}, the KES functional,
+and the memory kernel~\eqref{eq:kes_memory}. Predictions 1--3 depend on ansätze stated explicitly.
+\end{depbox}
+
+\begin{description}
+\item[\textbf{Prediction 1}] \textit{Modified photon detection statistics.} In a photonic
+  system where $\Sfield$ is engineered to be non-uniform, KES predicts
+  $\tilde p_k\propto\Sfield_k\operatorname{tr}(\rho E_k)$, deviating from Born by an
+  $O(\Sfield)$ factor. \textit{Ansatz:} identification of $\mathcal{F}$ with physical
+  detection weight.
+
+\item[\textbf{Prediction 2}] \textit{Entropic phase shift.} Photons propagating through a
+  medium with $\nabla\Phi\neq 0$ acquire $\Delta\omega=\frac{\omega_0}{2}\nabla\Phi\cdot\Delta x$,
+  distinguishable from dispersive shifts by its $\nabla\Phi$ dependence.
+
+\item[\textbf{Prediction 3}] \textit{Controlled non-Markovian entropy revivals.} Systems
+  with $m>0$ KES memory exhibit distinguishability revivals at times determined by $K_m$
+  without free parameters once $\Sfield$ and $\Phi$ are calibrated.
+
+\item[\textbf{Prediction 4}] \textit{UV-finite multimode prior.} The RSVP prior is
+  normalizable without UV cutoff (Theorem~\ref{thm:uv_finite}), predicting specific
+  mode-number dependence of prior probability testable against Jeffreys and Bures priors.
+
+\item[\textbf{Prediction 5}] \textit{Pointer basis selection by $\Refuse$.} In quantum eraser
+  experiments, $\Refuse$ predicts which basis is selected with a quantitative relationship
+  between $\Sfield$ and the redundancy fraction, agreeing with Quantum Darwinism but
+  providing a specific dynamical mechanism.
+\end{description}
+
+\begin{epistbox}
+Predictions 1 and 2 require experimentally accessing RSVP field quantities independently.
+Current proposals: (a) inverse RSVP field equations from posterior data; (b) deliberate
+engineering of $\Sfield$ via structured reservoir coupling; (c) estimating $\Phi$ from the
+natural gradient structure of the experimental likelihood. These are research directions,
+not established methods.
+\end{epistbox}
+
+% =============================================================
+\part{Extensions}
+% =============================================================
+
+\chapter{Projection Failure and Representational Collapse}
+
+\begin{depbox}
+This chapter depends on Chapter~\ref{ch:admissibility} (admissibility geometry and the
+projection $\proj:\Traj\to\Rep$), Proposition~\ref{prop:mle_boundary}, and
+Theorem~\ref{thm:non_markov_entropy}.
+\end{depbox}
+
+\section{Fiber Degeneracy and Observational Aliasing}
+
+Define the \emph{degeneracy ratio}
+\begin{equation}
+  \Gamma(m) = \frac{\mu(\proj^{-1}(m))}{\int_\Rep\mu(\proj^{-1}(m'))\,dm'},
+\end{equation}
+measuring the relative volume of the fiber over $m\in\Rep$. Large $\Gamma(m)$ means many
+distinct trajectories are aliased to the same representational point: the inference system
+cannot distinguish them, and any prediction that depends on their difference is compromised.
+
+\begin{proposition}[Degeneracy implies inference failure]
+If $\Gamma(m)>\Gamma(m')$ and future predictions depend on trajectories in
+$\proj^{-1}(m)\setminus\proj^{-1}(m')$, then any model operating on $\Rep$ cannot achieve
+the prediction accuracy of a model operating on $\Traj$.
+\end{proposition}
+
+\begin{proof}
+By definition, the fiber $\proj^{-1}(m)$ contains trajectories that are indistinguishable
+from $m$ alone. If these trajectories lead to different future outcomes, then any model
+that uses only $m$ cannot distinguish the outcomes and must average over the fiber,
+producing prediction error equal to the variance of outcomes within the fiber.
+\end{proof}
+
+\section{Boundary Singularities as Measure-Zero Fibers}
+
+The boundary of $\Rep$ (e.g., pure states in quantum tomography) corresponds to
+measure-zero fibers in $\Traj$: only a single trajectory (or a lower-dimensional
+submanifold) projects to each boundary point. The MLE boundary concentration
+(Proposition~\ref{prop:mle_boundary}) is therefore a symptom of a deeper pathology:
+the inference system is assigning finite probability to representational regions
+whose preimage in trajectory space has measure zero.
+
+\section{Projection Curvature and Berry Phase}
+
+The curvature of the fiber bundle $\proj:\Traj\to\Rep$ is measured by the \emph{connection}
+induced by the RSVP vector field $\vfield$ on the horizontal distribution
+$H_x\Traj = \ker(d\proj_x)^\perp$. Non-trivial curvature---the holonomy of this
+connection around closed loops in $\Rep$---corresponds to the Berry phase in quantum
+mechanics: a photon transported around a loop in parameter space acquires a geometric
+phase proportional to the fiber bundle curvature.
+
+\begin{conjecture}
+The Berry phase of a quantum optical system is equal to the holonomy of the RSVP
+admissibility connection $\nabla^{\rm RSVP}$ around the corresponding loop in
+the statistical manifold $\Rep$.
+\end{conjecture}
+
+\begin{implbox}
+\textbf{Sparse tensor representation of high-dimensional fibers.} For $K$-mode systems,
+$\Traj$ has dimension $O(4^K)$ while $\Rep$ has dimension $O(K)$. The fiber
+$\proj^{-1}(m)$ is an $O(4^K-K)$-dimensional manifold. Sparse tensor formats (Tucker
+decomposition, tensor train) can represent the admissibility measure on fibers with
+$O(Kr^2)$ parameters for bond dimension $r$, enabling scalable fiber-aware inference.
+\end{implbox}
+
+\chapter{Information Geometry Beyond Fisher-Rao}
+
+\begin{depbox}
+This chapter extends Chapter~2 (Fisher-Rao geometry) using the RSVP entropy field from
+Chapter~\ref{ch:admissibility} and the field equations~\eqref{eq:rsvp_phi}--\eqref{eq:rsvp_S}.
+\end{depbox}
+
+\section{Limitations of Fisher-Rao Geometry}
+
+The Fisher-Rao metric assumes: fixed probability spaces, predefined observables, and static
+admissibility. It is a metric on \emph{representational} manifold $\Rep$, not on the
+trajectory space $\Traj$. It captures the geometry of probability distributions but not
+the geometry of the fibers that generate them.
+
+\section{The RSVP Metric}
+
+\begin{definition}[RSVP metric]
+The RSVP metric on $\mathcal{M}$ is
+\begin{equation}
+  g^{\rm RSVP}_{ij} = g^{\rm FR}_{ij} + \lambda\,\partial_i\Sfield\,\partial_j\Sfield,
+  \label{eq:rsvp_metric}
+\end{equation}
+extending the Fisher-Rao metric by a term encoding entropy gradients.
+\end{definition}
+
+Entropy gradients contribute to the metric because regions where $\Sfield$ changes rapidly
+are informationally distinct: inference is harder across entropy-gradient boundaries. The
+RSVP metric penalizes such boundaries geometrically.
+
+\begin{proposition}[RSVP metric is positive definite]
+For $\lambda\geq 0$, $g^{\rm RSVP}$ is positive semidefinite; for $\lambda>0$ and
+$\Sfield$ non-constant, it is positive definite.
+\end{proposition}
+
+\begin{proof}
+$g^{\rm FR}$ is positive semidefinite by construction. The second term
+$\lambda\,\partial_i\Sfield\,\partial_j\Sfield$ is a rank-one positive semidefinite correction.
+For $\lambda>0$ and $\nabla\Sfield\neq 0$, the correction is positive definite in the
+direction of $\nabla\Sfield$, and $g^{\rm FR}>0$ in the orthogonal directions.
+\end{proof}
+
+\section{Admissibility Geodesics}
+
+Geodesics in the RSVP metric~\eqref{eq:rsvp_metric} generalize Fisher-Rao geodesics
+(which correspond to the most informatively efficient paths between distributions) by
+penalizing paths that cross entropy-gradient barriers. These geodesics correspond to:
+\begin{itemize}
+\item Bayesian natural gradient paths (in the Fisher-Rao component),
+\item Entropy-avoiding inference trajectories (in the $\lambda\,\partial\Sfield\,\partial\Sfield$ component),
+\item Wasserstein gradient flows when the metric is the $L^2$ Wasserstein metric on the space of probability measures.
+\end{itemize}
+
+\begin{exbox}
+\textbf{Geodesic on the Bloch sphere.} For a single qubit, the Fisher-Rao metric on the
+Bloch sphere is the round metric $g^{\rm FR}=d\theta^2+\sin^2\theta\,d\phi^2$. The RSVP
+metric adds a term $\lambda(\partial_\theta\Sfield)^2 d\theta^2+\lambda(\partial_\phi\Sfield)^2 d\phi^2$.
+If $\Sfield(\theta)=\sin\theta$ (maximum entropy at the equator, zero at poles), geodesics
+are deflected toward the equatorial plane, reflecting the higher admissibility near $\theta=\pi/2$
+and the lower admissibility (zero entropy) at the poles (pure states).
+\end{exbox}
+
+\chapter{Non-Markovian Dynamics and Recursive Inference}
+
+\begin{depbox}
+This chapter depends on Theorem~\ref{thm:non_markov_entropy}, the KES memory kernel
+(Definition~\ref{def:kes_memory}), and Section~2.3 (entropy and variational principles).
+\end{depbox}
+
+\section{Inference With Historical Retention}
+
+The KES memory kernel $K_m$ from Definition~\ref{def:kes_memory} defines recursive Bayesian
+accessibility: the admissibility at time $t$ is modulated by the event history $H_{t-m:t}$,
+\begin{equation}
+  P_t(B) = \frac{\int_{\proj^{-1}(B)}\Admiss(x,t,H_t)\,dx}
+  {\int_\Traj\Admiss(x',t,H_t)\,dx'}.
+\end{equation}
+
+This generalizes equation~\eqref{eq:emergent_prob} to history-dependent admissibility,
+enabling systems that fail under Markovian approximation---photonic memory, biological
+adaptation, recursive learning---to be modeled within the RSVP framework.
+
+\section{Admissibility Continuity Equation}
+
+\begin{theorem}[Admissibility conservation]
+If $\operatorname{div}(\vfield)=0$, the total admissibility measure
+$\mathfrak{A}(t)=\int_\mathcal{M}\Admiss(x,t)\,dx$ is conserved:
+$\partial_t\mathfrak{A}=0$.
+\end{theorem}
+
+\begin{proof}
+The admissibility continuity equation is
+$\partial_t\Admiss+\operatorname{div}(\Admiss\vfield)=0$.
+Integrating over $\mathcal{M}$ and applying the divergence theorem gives
+$\partial_t\mathfrak{A}=-\int_{\partial\mathcal{M}}\Admiss\vfield\cdot\hat n\,dA$.
+On a compact manifold without boundary, or with $\Admiss\vfield\cdot\hat n=0$ on $\partial\mathcal{M}$,
+the boundary term vanishes.
+\end{proof}
+
+\chapter{Photonics as Constraint Propagation}
+\label{ch:photonics_constraint}
+
+\begin{depbox}
+This chapter applies the RSVP propagator~\eqref{eq:rsvp_propagator} and the admissibility
+framework (Chapter~\ref{ch:admissibility}) to optical systems from Chapter~1.
+\end{depbox}
+
+\section{Optical Systems as Admissibility Transformers}
+
+An optical system (beam splitter, cavity, lens, fiber) is an operator on the admissibility
+field that transforms $\rsvp$ while preserving certain conserved quantities.
+
+\textbf{Beam splitters} partition the trajectory admissibility: a 50:50 beam splitter
+performs $\Admiss_{\rm out}\propto\Admiss_{\rm in}^{(1)}+\Admiss_{\rm in}^{(2)}$
+with interference structure in the admissibility overlap.
+
+\textbf{Optical cavities} create low-entropy trajectory basins: resonant frequencies
+correspond to stable fixed points of the RSVP velocity field $\vfield$, where
+$\vfield\cdot\nabla\Phi=0$ (no net flow) and $\Sfield$ is locally minimized (high constraint).
+
+\textbf{Wigner negativity} corresponds to inaccessible classical fibers: the negative
+regions of $W(\alpha)$ are those where classical admissibility $\Admiss_{\rm cl}$ is
+suppressed but quantum admissibility $\Admiss_{\rm qu}$ is not, reflecting the inaccessibility
+of the classical trajectory structure in those phase-space regions.
+
+\begin{exbox}
+\textbf{Double-slit decoherence.} In a double-slit experiment, two trajectory bundles
+$x_{\rm slit\,1}$ and $x_{\rm slit\,2}$ arrive at the same screen point. Their admissibility
+overlap $\int\Admiss(x_{\rm slit\,1},t)\Admiss(x_{\rm slit\,2},t)\,dt$ determines the
+fringe visibility. As the entropy field $\Sfield$ between the slits and the screen increases
+(due to environmental coupling), the overlap decreases. The decoherence rate is
+$\Gamma_D = \partial_t D(\rho_1,\rho_2) \propto \alpha\int\Sfield\,ds$, which is the
+entropy-attenuation term in the RSVP propagator~\eqref{eq:rsvp_propagator}.
+\end{exbox}
+
+\chapter{Adversarial Robustness of Photonic Neural Networks: Non-Ideality as Defense}
+\label{ch:adversarial}
+
+\begin{depbox}
+This chapter depends on Chapter~\ref{ch:admissibility} (admissibility geometry and the
+projection $\proj:\Traj\to\Rep$), Chapter~\ref{ch:photonics_constraint} (photonics as
+constraint propagation), and the KES sensitivity functional~\eqref{eq:kes_functional}.
+It draws on the work of Lu et al.\ (2024), which demonstrated that hardware
+non-idealities in photonic analog neural networks can function as intrinsic adversarial
+defenders rather than merely as sources of degradation.
+\end{depbox}
+
+\section{Hardware Non-Ideality as an Admissibility Constraint}
+
+Analog optical neural networks (ONNs) are photonic hardware systems in which neural
+network weights are encoded as light amplitudes using digital-to-analog conversion (DAC)
+modules, propagated through photonic tensor cores, and accumulated at photodetectors. The
+standard design concern is that hardware non-idealities---low-precision control, optical
+noise, crosstalk, fabrication variation---degrade inference accuracy relative to the
+ideal digital computation. The conventional response is to suppress these non-idealities
+through hardware-software co-design.
+
+The RSVP framework suggests a different interpretation. Hardware non-idealities are
+constraints on the admissibility field of the photonic system: they reduce the set of
+reachable states $\mathcal{X}_t$ and alter the entropy field $\Sfield$ by restricting
+accessible trajectory continuations. From the RSVP perspective, a system with low
+precision has a coarser admissibility resolution---fewer distinct states are reachable---
+which is a reduction in $\Sfield$ locally. This reduced accessibility is conventionally
+undesirable for accuracy, but it simultaneously restricts the space available to an
+adversary performing a weight attack.
+
+Lu et al.\ (2024) made this precise for a specific class of attacks: gradient-based
+bit-flip attacks (BFA) on stored neural network weights. Their central observation is
+that low-bit quantization, sparse (pruned) weight representations, and the unary encoding
+natively used by optical DAC hardware each reduce the \emph{weight sensitivity} to
+bit-flip perturbations, and that this reduction has an adversarial protection effect that
+can be harnessed deliberately. We formalize this observation within the RSVP framework
+and extend it to a general principle.
+
+\begin{definition}[Weight sensitivity in the ONN context]
+\label{def:weight_sensitivity}
+Let $\mathcal{L}(W, \mathcal{D})$ be the loss of an ONN with weights $W$ on dataset
+$\mathcal{D}$. The \emph{bit-flip sensitivity} of weight $W_i$ is the Taylor expansion
+of the loss change induced by flipping the most significant bit (MSB) of $W_i$:
+\begin{equation}
+  S_i = \mathcal{L}(W \oplus \Delta W_i^{\rm MSB}) - \mathcal{L}(W)
+  \approx \nabla_{W_i}\mathcal{L}\cdot\Delta W_i^{\rm MSB}
+  + \tfrac{1}{2}\nabla^2_{W_i}\mathcal{L}\cdot(\Delta W_i^{\rm MSB})^2,
+  \label{eq:onn_sensitivity}
+\end{equation}
+where $\Delta W_i^{\rm MSB}$ is the weight perturbation caused by an MSB flip.
+\end{definition}
+
+In binary-coded decimal (BCD) representation with $b$ bits, an MSB flip changes the
+weight by approximately half the weight range: $|\Delta W_i^{\rm MSB}| \approx 2^{b-1}$.
+This is a large perturbation, and $S_i$ is correspondingly large for most weights. The
+adversarial attack selects the weight with the largest $|S_i|$ and flips it, repeating
+this process until all of a Hamming distance budget $HD$ is exhausted.
+
+\section{Unary Encoding as Admissibility Restriction}
+
+The key hardware observation is that optical DACs in photonic accelerators natively
+encode weights in \emph{unary} format rather than BCD. In a unary-encoded $b$-bit weight,
+the value $w$ is represented as $w$ leading ones followed by $(2^b - 1 - w)$ trailing
+zeros: $(w)_B = (\underbrace{1,\ldots,1}_{w},\underbrace{0,\ldots,0}_{2^b-1-w})_U$.
+
+\begin{proposition}[Unary encoding minimizes MSB sensitivity]
+\label{prop:unary_sensitivity}
+In the unary representation, every bit is a least-significant bit (LSB) in the sense
+that flipping any single bit changes the weight value by exactly $\pm 1$ (one count unit).
+In BCD representation, flipping the MSB changes the weight by $2^{b-1}$. Therefore,
+$|\Delta W_i^{\rm MSB}|_{\rm unary} \ll |\Delta W_i^{\rm MSB}|_{\rm BCD}$ for $b \geq 2$,
+and the sensitivity $S_i$ is correspondingly reduced by a factor of order $2^{b-1}$.
+\end{proposition}
+
+\begin{proof}
+In a $b$-bit BCD representation with 2's complement, the MSB contributes value $-2^{b-1}$
+(sign bit). An MSB flip changes the weight by $\pm 2^{b-1}$. In unary representation of
+a $(2^b-1)$-bit string, each bit contributes value $+1$ (one count unit). Any single-bit
+flip changes the encoded count by exactly $\pm 1$. Since the weight range is the same
+in both representations, the ratio of MSB-flip perturbation sizes is $2^{b-1}:1$.
+For $b=8$, this is a $128\times$ reduction in $|\Delta W^{\rm MSB}|$ and therefore
+in the first-order sensitivity contribution.
+\end{proof}
+
+In RSVP terms, the unary encoding imposes a constraint on the admissibility field of the
+weight space: the topology of the weight manifold $\mathcal{M}_W$ changes from one where
+large jumps are accessible via single bit-flips (BCD) to one where only unit steps are
+reachable (unary). This is a reduction in the local admissibility radius of the adversary's
+action space. The entropy field $\Sfield$ of the weight manifold, which measures the volume
+of accessible perturbations at each weight, is dramatically lower under unary encoding.
+
+\begin{compbox}
+\textbf{Orthodox assumption:} Hardware non-idealities (low precision, sparse encoding,
+unary representation) are constraints that degrade accuracy and should be minimized.
+
+\textbf{RSVP replacement:} Non-idealities are admissibility constraints on the weight
+manifold $\mathcal{M}_W$. They reduce $\Sfield$ locally, restricting the trajectory space
+available to an adversary. The reduction in adversarial accessibility is the dual of the
+reduction in representational capacity.
+
+\textbf{Orthodox pathology:} The adversary's action space (all possible MSB flips) is
+large in BCD format; small Hamming distance attacks can cause catastrophic accuracy drops.
+
+\textbf{RSVP resolution:} Unary encoding contracts the admissibility radius of the
+adversary's actions to $O(1)$ rather than $O(2^{b-1})$, making even large Hamming
+distance budgets ($HD=100$) nearly ineffective.
+\end{compbox}
+
+\section{Memory-Efficient Truncated Complementary Unary Encoding}
+
+The original unary representation requires $2^b - 1$ bits to encode a $b$-bit weight,
+a factor of $2^{b-1}-1/b$ memory overhead relative to BCD. This is prohibitive for
+large networks. Lu et al.\ (2024) propose a memory-efficient variant, the
+\emph{truncated complementary unary} (TCU) encoding, which exploits the Gaussian-like
+weight distribution of trained neural networks.
+
+The key observation is that the trailing zeros of small positive values and the leading
+ones of small negative values are redundant for storage: they carry no information beyond
+alignment. Truncating them reduces the required bitwidth from $2^b-1$ to $\hat b$, where
+$\hat b$ is chosen to cover the weight's magnitude. For negative values, the complementary
+encoding stores trailing zeros (counting from the right) rather than leading ones,
+achieving the same compression for the negative half of the weight distribution.
+
+\begin{proposition}[TCU memory overhead]
+For a weight $W_i$ with $|W_i| = k$ (in integer count units, $0 \leq k \leq 2^{b-1}$),
+the TCU representation requires
+\begin{equation}
+  \hat b_i = \lceil\log_2\min(2^b - |W_i|, |W_i|)\rceil + 1
+  \label{eq:tcu_bits}
+\end{equation}
+bits, compared to $2^b - 1$ bits for the full unary representation. For weights
+concentrated near zero (as in trained networks), $\hat b_i \ll 2^b - 1$ for most $i$,
+giving memory overhead reduction of $6$--$11\times$ relative to full unary encoding.
+\end{proposition}
+
+The TCU encoding creates an exponentially-spaced partition of the weight range: weights
+of magnitude $k$ require $O(\log_2 k)$ bits. This is analogous to logarithmic
+quantization, but motivated by the unary admissibility constraint rather than by
+rate-distortion considerations.
+
+In RSVP terms, the TCU encoding defines a non-uniform admissibility metric on the weight
+manifold: small weights have a fine-grained admissibility structure (many distinguishable
+states in a small neighborhood) while large weights have a coarser structure. The
+entropy field $\Sfield$ is correspondingly non-uniform, higher for large weights and
+lower for small weights. Since empirically the most attack-sensitive weights tend to have
+small magnitudes, the TCU encoding concentrates the low-$\Sfield$ region precisely
+where adversarial vulnerability is highest.
+
+\begin{exbox}
+\textbf{TCU memory overhead for 8-bit VGG-8.} For a network where weights are stored
+in 8-bit BCD, the full unary representation requires $2^8-1=255$ bits per weight,
+a $255/8\approx 32\times$ memory overhead. With TCU encoding, protecting $0.2\%$ of
+weights (the most sensitive ones) requires only $1.07\%$ additional memory overhead ---
+a $30\times$ reduction. Lu et al.\ (2024) report that this $0.2\%$ protection rate,
+combined with post-attack weight locking (Section~\ref{sec:weight_locking}), achieves
+$86.73\%$ mean post-attack accuracy on VGG-8/CIFAR-10, compared to $32.89\%$ without
+any defense, at a total memory overhead below $3\%$.
+\end{exbox}
+
+\section{Post-Attack Recovery via Sensitivity-Aware Weight Locking}
+\label{sec:weight_locking}
+
+Pre-attack unary protection covers only a small fraction $\alpha$ of weights. An adversary
+with Hamming distance budget $HD$ will eventually attack unprotected weights.
+Post-attack recovery requires: (1) detection of which weights were flipped, and
+(2) correction of the flipped values.
+
+Detection uses group-wise MSB checksum verification: weights are partitioned into groups
+of size $G$; a checksum mismatch flags the entire group as potentially compromised.
+The choice of $G$ trades detection precision (smaller $G$ localizes attacks more
+precisely) against memory overhead (smaller $G$ requires more checksum storage).
+
+\begin{definition}[Weight locking]
+\label{def:weight_locking}
+Given $K$ pre-computed \emph{centroids} $\{W_k\}_{k=1}^K$ for a layer's weights,
+\emph{weight locking} replaces all weights in a detected victim group with their
+nearest centroid. Centroids are computed pre-deployment via a sensitivity-aware
+$K$-means variant in which the clustering distance is the locking-induced accuracy loss
+(equation~\eqref{eq:onn_sensitivity}) rather than Euclidean distance:
+\begin{equation}
+  d_{in} = \nabla_{W_i}\mathcal{L}\cdot(W_i - \widetilde{W}_n)
+  + \tfrac{1}{2}\nabla^2_{W_i}\mathcal{L}\cdot(W_i - \widetilde{W}_n)^2,
+  \label{eq:locking_distance}
+\end{equation}
+where $\widetilde{W}_n$ is the centroid of the $n$-th detection group.
+\end{definition}
+
+Weight locking generalizes the simpler pruning-based recovery method, which forces
+detected victim weights to zero. Pruning to zero is a special case of weight locking
+with $K=1$ and centroid $W_1=0$. The locking approach allows $K>1$ centroids that
+better approximate the pre-attack weight distribution, recovering higher accuracy
+at comparable or lower memory cost.
+
+The memory overhead of the locking scheme is
+\begin{equation}
+  m_L = \frac{|W|(\log_2 K + 2)}{G \cdot b|W|} \quad (G > 1),
+\end{equation}
+where the $\log_2 K$ term stores the cluster ID per weight and the $2/G$ term stores
+the checksum. The accuracy-constrained optimization over $(G, K)$ is solved offline
+by a greedy search that initializes at $(G=512, K=1)$ and halves $G$ while doubling
+$K$ until the accuracy drop threshold $\eta$ is satisfied.
+
+\section{RSVP Interpretation: Non-Ideality as Admissibility Engineering}
+
+The full defense framework of Lu et al.\ (2024) --- TCU pre-attack encoding combined
+with sensitivity-aware post-attack weight locking --- is, in RSVP terms, a deliberate
+engineering of the admissibility field of the weight manifold $\mathcal{M}_W$.
+
+The TCU encoding restricts the admissibility radius of the adversary's action space
+(Proposition~\ref{prop:unary_sensitivity}): it lowers $\Sfield$ in the neighborhood of
+vulnerable weights, making large-perturbation trajectories inaccessible to the attacker.
+The weight locking pre-assigns centroid attractors in $\mathcal{M}_W$: after an attack,
+the KES-like recovery map sends detected victim weights to their pre-designated centroid,
+analogous to a $\Refuse$ operation that filters post-attack configurations to those
+consistent with the pre-deployment constraint set.
+
+\begin{proposition}[Weight locking as a Refuse operation]
+\label{prop:locking_as_refuse}
+Let $\mathcal{C}_{\rm lock} = \{W_k\}_{k=1}^K$ be the pre-deployed centroid set. Then
+weight locking is equivalent to applying $\Refuse(\mathcal{E}_W, \mathcal{C}_{\rm lock})$:
+it filters the post-attack weight configuration to the nearest element of
+$\mathcal{C}_{\rm lock}$, exactly as $\Refuse$ filters events to those consistent
+with a constraint set.
+\end{proposition}
+
+\begin{proof}
+The $\Refuse$ operator (Definition in Chapter~\ref{ch:spherepop}) selects events
+consistent with $\mathcal{C}$. Here, the events are weight configurations and
+$\mathcal{C}_{\rm lock}$ is the constraint that the weight must lie in $\{W_k\}_{k=1}^K$.
+Locking maps each detected weight to $\arg\min_k \|W_i - W_k\|$, which is the element
+of $\mathcal{C}_{\rm lock}$ nearest to the post-attack weight --- precisely the nearest
+consistent configuration. This is a special case of $\Refuse$ under the Euclidean
+proximity consistency condition.
+\end{proof}
+
+The combined TCU + locking framework therefore implements a two-stage RSVP defense:
+the first stage (TCU) engineers the entropy field $\Sfield$ of $\mathcal{M}_W$ to be
+low in adversarially vulnerable regions, making large perturbations inadmissible;
+the second stage (locking) applies a $\Refuse$-like correction that restores violated
+configurations to the nearest admissible centroid.
+
+\begin{theorem}[Admissibility-security duality]
+\label{thm:security_duality}
+Let $\mathcal{M}_W$ be the weight manifold with RSVP entropy field $\Sfield_W$ encoding
+local admissibility radius. Let $HD$ be an adversary's Hamming distance budget and let
+$\Sfield_W^{\rm max}(\theta) = \max_{x\in B_{HD}(\theta)}\Sfield_W(x)$ be the maximum
+entropy accessible to the adversary within Hamming distance $HD$ of weight $\theta$.
+Then the adversary's maximum achievable loss perturbation is bounded by
+\begin{equation}
+  \max_{HD\text{-attack}} |\Delta\mathcal{L}|
+  \leq C \cdot HD \cdot \exp(\Sfield_W^{\rm max}(\theta)),
+  \label{eq:security_bound}
+\end{equation}
+for a constant $C$ depending on the second-order structure of $\mathcal{L}$.
+\end{theorem}
+
+\begin{proof}
+Each bit-flip of a TCU-encoded weight changes $W_i$ by at most $\Delta_{\rm TCU} =
+\exp(-\hat b_i)$ in normalized units. The entropy field $\Sfield_W(\theta)$ at weight
+$\theta$ is the log-volume of the admissible perturbation neighborhood, which under
+TCU encoding satisfies $\Sfield_W \leq \log(\Delta_{\rm TCU}) = -\hat b_i \log 2$.
+Since each of the $HD$ flips contributes at most $C'\exp(\Sfield_W)$ to the loss
+perturbation (by the first-order term in~\eqref{eq:onn_sensitivity} and
+$|\Delta W^{\rm MSB}_{\rm TCU}| = e^{\Sfield_W}$), summing over $HD$ flips gives
+the bound~\eqref{eq:security_bound}.
+\end{proof}
+
+Theorem~\ref{thm:security_duality} makes the RSVP security principle precise: the
+adversary's damage is bounded by the entropy field of the weight manifold times the
+attack budget. Engineering $\Sfield_W$ to be small in sensitive regions is equivalent
+to engineering adversarial robustness.
+
+\section{Experimental Grounding}
+
+Lu et al.\ (2024) evaluate the defense framework on VGG-8/CIFAR-10 and ResNet-18/CIFAR-100
+with 4-, 6-, and 8-bit quantization under BFA attacks with $HD=100$. Without any defense,
+8-bit VGG-8 achieves $13.52\%$ mean post-attack accuracy (from $88\%$ clean accuracy).
+The combined TCU + weight locking framework recovers $86.73\%$ mean post-attack accuracy
+at $2.36\%$ total memory overhead. This represents a practical realization of the
+admissibility-security duality (Theorem~\ref{thm:security_duality}): by engineering
+$\Sfield_W$ to be low in the $0.2\%$ most sensitive weights via TCU, and applying
+a $\Refuse$-like locking correction post-attack, the framework recovers near-ideal
+accuracy at marginal storage cost.
+
+The key quantitative relationships that ground the RSVP interpretation are:
+
+\begin{description}
+\item[Sensitivity reduction] TCU reduces MSB-flip perturbation size by $2^{b-1}:1$
+  relative to BCD (Proposition~\ref{prop:unary_sensitivity}), which reduces the first-order
+  term in sensitivity~\eqref{eq:onn_sensitivity} by the same factor.
+
+\item[Memory compression] TCU achieves $6$--$11\times$ memory reduction over full unary
+  (Eq.~\eqref{eq:tcu_bits}), enabling protection of a sufficient fraction $\alpha$
+  of vulnerable weights within practical overhead.
+
+\item[Post-attack recovery] Weight locking with $K>1$ centroids outperforms pruning
+  ($K=1$, centroid at zero) at equal or lower memory overhead, confirming that
+  the $\Refuse$ operation with a richer constraint set $\mathcal{C}_{\rm lock}$
+  provides better admissibility recovery.
+
+\item[Noise as partial defense] Hardware Gaussian noise with standard deviation $0.005$
+  provides some protection by adding uncertainty to the adversary's gradient estimates,
+  but larger noise levels degrade clean accuracy faster than they improve robustness.
+  In RSVP terms, noise increases $\Sfield_W$ uniformly (more uncertainty everywhere),
+  which helps the defender but also degrades the prior landscape $\Phi$.
+\end{description}
+
+\begin{epistbox}
+The formal identification of TCU encoding with engineering the RSVP entropy field
+$\Sfield_W$, and of weight locking with a $\Refuse$ operation, is an interpretation
+within the RSVP framework rather than a claim made by Lu et al.\ (2024). Their paper
+establishes the empirical and algorithmic results; the RSVP formalization is the
+contribution of this section. Theorem~\ref{thm:security_duality} is a bound derived
+within the RSVP framework under assumptions (TCU encoding, first-order loss approximation)
+that are validated by the experiments of Lu et al.\ but are stated as approximations
+in that work.
+\end{epistbox}
+
+\chapter{Topological Defects in RSVP Fields}
+
+\begin{depbox}
+This chapter depends on the RSVP field equations~\eqref{eq:rsvp_phi}--\eqref{eq:rsvp_S}
+and the admissibility framework (Chapter~\ref{ch:admissibility}).
+\end{depbox}
+
+\section{Entropy Vortices and Accessibility Horizons}
+
+A \emph{topological defect} in the RSVP fields is a point (or manifold) where the field
+configuration is singular: $\Phi$ diverges, $\Sfield\to 0$, or admissibility fibers
+disconnect. These defects are not numerical artefacts; they correspond to physically
+meaningful boundaries in the admissibility structure.
+
+The \emph{entropy vortex} is characterized by non-zero circulation
+$\Gamma=\oint_C\vfield\cdot d\ell\neq 0$, indicating a persistent loop in the information
+flow. Non-zero $\Gamma$ means the admissibility flow does not converge to a fixed point
+but circulates---a signature of periodic or quasi-periodic inference dynamics, such as the
+oscillatory non-Markovian revivals of Theorem~\ref{thm:non_markov_entropy}.
+
+An \emph{accessibility horizon} is a region where the RSVP velocity field $\vfield$
+flows outward in all directions: no trajectory can enter from outside. Inside the horizon,
+the entropy field $\Sfield$ may be very low (highly constrained dynamics) or effectively
+decoupled from the exterior.
+
+\begin{conjecture}
+Long-lived physical and cognitive structures correspond to stabilized entropy defects in
+RSVP field geometry: configurations where $\Sfield\approx 0$ in a localized region
+(strong constraint, persistent memory) surrounded by $\Sfield>0$ (flexible accessibility).
+\end{conjecture}
+
+\begin{exbox}
+\textbf{Entropy-vortex simulation.} On a $64\times 64$ lattice with periodic boundary
+conditions, initialize $\Phi=\cos(2\pi x/L)\cos(2\pi y/L)$, $\Sfield=0.5+0.3\sin(2\pi x/L)$,
+$\vfield=0$. Evolve for $T=200$ steps with $\alpha=0.1$, $\beta=0.05$, $\lambda=0.01$.
+Entropy vortices form at the saddle points of $\Phi$ where $\vfield$ circulates around the
+$\Sfield$ gradient maximum. Vortex strength (circulation $\Gamma$) grows as $\alpha$ increases.
+\end{exbox}
+
+\chapter{RSVP Thermodynamics}
+
+\begin{depbox}
+This chapter reinterprets thermodynamic quantities using the RSVP field triple, depending
+on Chapters~\ref{ch:admissibility} and the entropy-accessibility identification.
+\end{depbox}
+
+\section{Temperature as Accessibility Gradient}
+
+Define the effective temperature in a RSVP system as
+\begin{equation}
+  T^{-1} = \frac{\partial\Sfield}{\partial E},
+\end{equation}
+where $E$ is the effective energy of the admissibility configuration. This parallels the
+thermodynamic definition $T^{-1}=\partial S/\partial E$ but applies to the accessibility
+entropy field rather than thermodynamic entropy.
+
+\section{Entropy Production and the Admissibility Dissipation Functional}
+
+The entropy production rate in the RSVP framework is
+\begin{equation}
+  \Sigma = \int_\mathcal{M}|\nabla\Sfield|^2\,d\mathrm{vol}_g \geq 0,
+\end{equation}
+measuring the spatial inhomogeneity of the accessibility field.
+
+\begin{theorem}[Minimum admissibility dissipation]
+Steady RSVP states (solutions to $\partial_t\Sfield=0$) minimize $\Sigma$ subject to
+fixed boundary conditions on $\Sfield$.
+\end{theorem}
+
+\begin{proof}
+$\partial_t\Sfield=0$ in equation~\eqref{eq:rsvp_S} gives $\Delta\Sfield\propto\Sfield$ at
+leading order (for $\vfield$ given by~\eqref{eq:rsvp_v}). This is the Euler-Lagrange
+equation for the functional $\int|\nabla\Sfield|^2$, so steady states minimize the
+Dirichlet energy $\int|\nabla\Sfield|^2$, which equals $\Sigma$.
+\end{proof}
+
+\chapter{The Geometry of Learning and Semantic Compression}
+
+\begin{depbox}
+This chapter connects the RSVP framework to machine learning and representation theory,
+depending on the admissibility projection~\eqref{eq:emergent_prob} and the ELBO~\eqref{eq:elbo}.
+\end{depbox}
+
+\section{Learning as Accessibility Compression}
+
+Learning is the process of finding a projection $\proj_\theta:\Traj\to\Rep$ that preserves
+the admissibility distinctions relevant to a given task while discarding irrelevant ones.
+The compression operator is
+\begin{equation}
+  \mathcal{R}_\theta:\Traj\to\Traj'
+\end{equation}
+where $\Traj'$ is a reduced trajectory space. Generalization corresponds to the stability
+of $\mathcal{R}_\theta$ under perturbations of the training trajectories: if nearby
+trajectories in $\Traj$ map to the same region of $\Traj'$, the model generalizes; if
+nearby trajectories are separated by $\mathcal{R}_\theta$, the model overfits.
+
+\section{CLIO: Constraint-Leveraged Inference and Optimization}
+
+The CLIO operator acts on the constraint structure rather than on parameters:
+\begin{equation}
+  \mathrm{CLIO}:(\Traj,\Admiss,\proj)\to(\Traj',\Admiss',\proj').
+\end{equation}
+
+A CLIO update penalizes destructive projection and accessibility collapse:
+\begin{equation}
+  \theta_{t+1} = \theta_t - \eta\nabla_\theta\!\left[
+  \mathcal{L}(\proj_\theta(x),d)
+  + \lambda\mathcal{D}(\proj_\theta)
+  + \mu\mathcal{E}(\Sfield)\right],
+\end{equation}
+where $\mathcal{D}(\proj_\theta)$ penalizes fiber collapse and $\mathcal{E}(\Sfield)$
+penalizes entropy field collapse toward zero.
+
+\begin{implbox}
+\textbf{Semantic attractors and transformer embeddings.} Stable regions in representational
+geometry correspond to semantic attractors: configurations of $(\Phi,\Sfield)$ where the
+RSVP velocity field $\vfield$ converges. In transformer models, token embeddings that are
+stable under attention operations correspond to high-$\Phi$, low-$\Sfield$ regions:
+high salience, low residual uncertainty. The CLIO penalty $\mathcal{E}(\Sfield)$ prevents
+collapse to a single attractor, maintaining diversity of representation.
+\end{implbox}
+
+\chapter{Functorial Structure of Spherepop}
+
+\begin{depbox}
+This chapter develops the category-theoretic structure of the Spherepop operators, depending
+on Chapter~\ref{ch:spherepop} and requiring familiarity with symmetric monoidal categories.
+\end{depbox}
+
+\section{Spherepop as a Symmetric Monoidal Category}
+
+Define the \emph{Spherepop category} $\mathbf{Sp}$ with:
+objects: event histories $H_t$;
+morphisms: admissible transitions $H_t\to H_{t'}$ (causal extensions);
+tensor product: $\Bind$ (event composition);
+unit: the null event $\bot$.
+
+\begin{proposition}[$\mathbf{Sp}$ is a strict symmetric monoidal category]
+The Spherepop category with $\Bind$ as tensor product satisfies the axioms of a strict
+symmetric monoidal category: associativity of $\Bind$, existence of unit $\bot$, and
+commutativity up to natural isomorphism.
+\end{proposition}
+
+\begin{proof}
+Associativity: $\Bind(\Bind(e_1,e_2),e_3)=\Bind(e_1,\Bind(e_2,e_3))$ by the associativity
+of $\sqcup$ in the event algebra. Unit: $\Bind(e,\bot)=e$ by $e\sqcup\bot=e$. Commutativity
+up to isomorphism: $\Bind(e_1,e_2)\cong\Bind(e_2,e_1)$ since $\sqcup$ is commutative
+for causally compatible events.
+\end{proof}
+
+\section{Collapse as a Functor and Topological Obstructions}
+
+$\Collapse:\mathcal{E}\to\mathcal{H}_{\rm eff}$ is a functor from the event algebra to
+the category of effective Hilbert spaces, mapping event composition to tensor product of
+compatible subspaces.
+
+\begin{conjecture}
+The non-trivial cohomology classes of the Spherepop category $\mathbf{Sp}$ correspond to
+irreversible physical memory structures: configurations where the holonomy of the
+admissibility connection (Chapter~18) is non-trivial.
+\end{conjecture}
+
+\chapter{Computational Complexity of RSVP Inference}
+
+\begin{depbox}
+This chapter estimates scaling behavior for RSVP field evolution and KES dynamics,
+depending on the field equations~\eqref{eq:rsvp_phi}--\eqref{eq:rsvp_S} and the KES
+memory kernel~\eqref{eq:kes_memory}.
+\end{depbox}
+
+\section{Scaling of Field Evolution}
+
+\begin{theorem}[Single-step RSVP complexity]
+Under bounded entropy gradients $|\nabla\Sfield|\leq C$, a single step of RSVP field
+evolution on an $N$-cell lattice (using finite differences) is $O(N)$.
+\end{theorem}
+
+\begin{proof}
+Each lattice cell requires $O(1)$ operations: computing the Laplacian of $\Phi$ (via
+$O(d)$ neighbor values in $d$ dimensions), updating $\vfield$ from~\eqref{eq:rsvp_v},
+and updating $\Sfield$ from~\eqref{eq:rsvp_S}. The total is $O(dN)=O(N)$ for fixed $d$.
+The entropy gradient bound $|\nabla\Sfield|\leq C$ ensures the nonlinear $\log\Sfield$
+term does not cause blow-up.
+\end{proof}
+
+\section{Memory Cost and Approximate Inference}
+
+The KES memory kernel $K_m$ of depth $m$ requires storing the last $m$ event vectors:
+$O(m|\mathcal{E}|)$ memory. For deep memory ($m\gg 1$), variational RSVP approximates
+the full kernel by a parametric family:
+\begin{equation}
+  K_m^\phi(e_{t-m},\ldots,e_{t-1}) \approx f_\phi(e_{t-m},\ldots,e_{t-1}),
+\end{equation}
+where $f_\phi$ is a neural network trained to minimize the KL divergence from the true
+kernel. This gives $O(|\phi|)$ memory independent of $m$, at the cost of approximation error.
+
+\begin{implbox}
+\textbf{GPU parallelism for RSVP evolution.} Each RSVP lattice cell is an independent
+CUDA thread. Fields $(\Phi_i,\vfield_i,\Sfield_i)$ are stored as structure-of-arrays in
+global memory; the update kernel~\eqref{eq:rsvp_phi}--\eqref{eq:rsvp_S} is launched with
+$N$ threads per step. Asynchronous entropy propagation uses shared memory for the
+$\operatorname{div}(\Sfield\vfield)$ term within each warp.
+
+\medskip
+\textbf{Complexity summary.}
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Component & Per-step cost & Memory \\
+\midrule
+RSVP field evolution & $O(N)$ & $O(N)$ \\
+KES event selection & $O(|\mathcal{E}|)$ & $O(|\mathcal{X}_t|)$ \\
+KES memory ($m$ steps) & $O(m|\mathcal{E}|)$ & $O(m|\mathcal{E}|)$ \\
+Variational KES & $O(|\phi|)$ & $O(|\phi|)$ \\
+TARTAN ($K$ cells) & $O(KN)$ & $O(KN)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{implbox}
+
+\chapter{RSVP Cosmological Optics}
+
+\begin{depbox}
+This chapter applies the RSVP propagator~\eqref{eq:rsvp_propagator} to cosmological photon
+propagation. It is conjectural throughout; epistemic status is stated explicitly.
+\end{depbox}
+
+\begin{epistbox}
+This chapter presents conjectural cosmological applications of RSVP rather than
+experimentally established physics. All results should be understood as predictions of
+the framework contingent on its physical identification with the photon propagation equation.
+\end{epistbox}
+
+\section{Entropic Redshift}
+
+The RSVP propagator predicts a cosmological photon frequency shift
+\begin{equation}
+  \frac{\Delta\omega}{\omega_0} = \frac{1}{2}(\Phi(x_{\rm obs})-\Phi(x_{\rm emit}))
+  - \frac{\alpha}{2}\int_{\rm path}\Sfield\,ds.
+\end{equation}
+
+If $\Phi$ decreases along the line of sight (earlier epochs have lower likelihood potential),
+this produces a redshift without metric expansion. The entropic attenuation term modifies
+the luminosity-distance relation relative to $\Lambda$CDM.
+
+\section{Structure Formation as Accessibility Condensation}
+
+Large-scale structure forms where the RSVP scalar field $\Phi$ develops local maxima
+(high admissibility basins): matter and energy are drawn toward high-$\Phi$ regions by
+the RSVP velocity field $\vfield=(\alpha/\Sfield)\nabla\Phi$. This replaces gravitational
+collapse as the primary mechanism of structure formation, with the gravitational potential
+identified as a component of $\Phi$.
+
+\begin{conjecture}
+Observed cosmological acceleration may arise from large-scale entropy-gradient effects
+($\nabla\Sfield\neq 0$ on Hubble scales) rather than from a cosmological constant.
+\end{conjecture}
+
+% =============================================================
+\part{Toward a Unified Accessibility Calculus}
+% =============================================================
+
+\chapter{Projection, Agency, and Observer Geometry}
+
+\begin{depbox}
+This chapter depends on the admissibility framework (Chapter~\ref{ch:admissibility}) and
+the Spherepop axioms (Chapter~\ref{ch:spherepop}).
+\end{depbox}
+
+\section{Observers as Recursive Projection Systems}
+
+An observer is a system that recursively projects $\Traj$ onto a sequence of increasingly
+compressed representations $\Rep_1\supset\Rep_2\supset\cdots$, retaining only admissible
+distinctions at each level. Define the \emph{observer projection map}
+$\proj_i:\Traj\to\Rep_i$, where $\Rep_i$ is the $i$-th observer's representational manifold.
+
+\begin{definition}[Consensus manifold]
+The \emph{consensus manifold} for a set of observers $\{\proj_i\}$ is
+\begin{equation}
+  \Rep_{\rm consensus} = \bigcap_i\proj_i(\Traj),
+\end{equation}
+the intersection of representational images restricted to mutually stable admissibility regions.
+\end{definition}
+
+Shared classical reality corresponds to a large, stable consensus manifold. Quantum
+non-classicality corresponds to configurations where different observer projections disagree:
+$\proj_i(x)\neq\proj_j(x)$ for trajectories $x$ in the non-classical regime.
+
+\begin{conjecture}
+Persistent observer identity corresponds to a stable fixed point of recursive admissibility
+compression: a configuration $\proj^*$ such that $\proj^*\circ\proj^*\approx\proj^*$ in
+the sense that repeated self-projection does not substantially reduce the admissibility structure.
+\end{conjecture}
+
+\chapter{The Unified Accessibility Calculus and Open Problems}
+
+\begin{depbox}
+This final chapter synthesizes all preceding material and defines the long-term research
+program. All results marked as conjectures or open problems are formally stated but unproved.
+\end{depbox}
+
+\section{The Universal Accessibility Functional}
+
+Define the \emph{total admissibility} of a system at time $t$:
+\begin{equation}
+  \mathfrak{A}(t) = \int_\Traj\Admiss(x,t)\,dx.
+\end{equation}
+
+The unified evolution equation for the admissibility functional is proposed as
+\begin{equation}
+  \partial_t\Admiss = \mathcal{G}(\Phi,\vfield,\Sfield,H_t),
+\end{equation}
+where $\mathcal{G}$ is a generalized admissibility operator encoding the coupled RSVP
+dynamics, the KES event selection, and the history-dependent memory kernel. The RSVP
+field equations~\eqref{eq:rsvp_phi}--\eqref{eq:rsvp_S} are the leading-order approximation
+to $\mathcal{G}$ in the limit of small history dependence ($m=0$) and compact manifold.
+
+\section{Mathematical Open Problems}
+
+\begin{description}
+\item[Global existence.] Theorem~\ref{thm:rsvp_wellposed} gives local-in-time well-posedness.
+  Whether solutions exist globally or develop finite-time singularities (entropy field reaching
+  zero) remains open. The lower bound $\Sfield\geq s_0 e^{-Ct}$ suggests sufficiently strong
+  $\beta$ is needed.
+
+\item[Categorical coherence of $\mathbf{Sp}$.] The Spherepop category $\mathbf{Sp}$ should
+  admit a dagger structure encoding time-reversal asymmetry. Whether $\mathbf{Sp}$ embeds
+  into the Abramsky-Coecke categorical framework for quantum mechanics is open.
+
+\item[Fiber bundle curvature and Berry phase.] The conjecture that RSVP admissibility
+  connection holonomy equals the quantum mechanical Berry phase requires a formal identification
+  of the RSVP horizontal distribution with the quantum geometric tensor.
+
+\item[Quantization of RSVP.] The classical field theory $\mathcal{L}_{\rm RSVP}$ should be
+  quantized. The positivity of $\Sfield$ in the classical theory must be preserved as a
+  constraint on the quantum Hilbert space.
+
+\item[Complexity of exact KES.] The exact KES map requires solving the optimization
+  $\max_e\mathcal{F}(e)$ over $\mathcal{E}$. The computational complexity of this
+  optimization as a function of $|\mathcal{E}|$ and $|\mathcal{X}_t|$ is not known in general.
+\end{description}
+
+\section{The Four Core Ideas}
+
+Every open problem, extension, and application in this text is anchored to the same four
+conceptual pillars, which the reader should hold in view throughout:
+
+\begin{enumerate}
+\item \textbf{Admissibility}: not all configurations are equally accessible; differential
+  accessibility is the true primitive.
+
+\item \textbf{Projection}: the map $\proj:\Traj\to\Rep$ and its fiber structure encode
+  the information cost of conventional modeling.
+
+\item \textbf{Entropy as accessibility}: $\Sfield$ measures future trajectory volume,
+  not merely Shannon uncertainty.
+
+\item \textbf{Irreversible event structure}: events are primitive; states are equivalence
+  classes of event histories; irreversibility is foundational, not emergent.
+\end{enumerate}
+
+These four ideas are the invariants of the framework. Any section that cannot be connected
+to at least two of them is a candidate for removal.
+
+\backmatter
+
+\bibliographystyle{plainnat}
+\begin{thebibliography}{99}
+
+\bibitem[Amari(2016)]{amari2016}
+Amari, S. (2016). \textit{Information Geometry and Its Applications}. Springer.
+
+\bibitem[Lu et al.(2024)]{lu2024}
+Lu, H., Yin, Z., Bhoumik, P., Banerjee, S., Chakrabarty, K., and Gu, J. (2024).
+The unlikely hero: Nonideality in analog photonic neural networks as built-in defender
+against adversarial attacks. \textit{arXiv:2410.01289}. To appear in \textit{Proc.\ ASP-DAC}, 2025.
+
+\bibitem[Born(1926)]{born1926}
+Born, M. (1926). Zur Quantenmechanik der Stossvorg\"{a}nge.
+\textit{Zeitschrift f\"{u}r Physik}, 37, 863--867.
+
+\bibitem[Caticha(2019)]{caticha2019}
+Caticha, A. (2019). The entropic dynamics approach to quantum mechanics.
+\textit{Entropy}, 21(10), 943.
+
+\bibitem[Fuchs, Mermin and Schack(2014)]{fuchs2014}
+Fuchs, C.~A., Mermin, N.~D., and Schack, R. (2014).
+An introduction to QBism. \textit{American Journal of Physics}, 82(8), 749--754.
+
+\bibitem[Friston(2010)]{friston2010}
+Friston, K. (2010). The free-energy principle: a unified brain theory?
+\textit{Nature Reviews Neuroscience}, 11(2), 127--138.
+
+\bibitem[Gelman et al.(2013)]{gelman2013}
+Gelman, A., Carlin, J.~B., Stern, H.~S., Dunson, D.~B., Vehtari, A., and Rubin, D.~B. (2013).
+\textit{Bayesian Data Analysis}. 3rd ed. CRC Press.
+
+\bibitem[Gleason(1957)]{gleason1957}
+Gleason, A.~M. (1957). Measures on the closed subspaces of a Hilbert space.
+\textit{Journal of Mathematics and Mechanics}, 6(6), 885--893.
+
+\bibitem[Gorini, Kossakowski and Sudarshan(1976)]{gks1976}
+Gorini, V., Kossakowski, A., and Sudarshan, E.~C.~G. (1976).
+Completely positive dynamical semigroups of $N$-level systems.
+\textit{Journal of Mathematical Physics}, 17(5), 821--825.
+
+\bibitem[Griffiths(1984)]{griffiths1984}
+Griffiths, R.~B. (1984). Consistent histories and the interpretation of quantum mechanics.
+\textit{Journal of Statistical Physics}, 36(1), 219--272.
+
+\bibitem[Hong, Ou and Mandel(1987)]{hom1987}
+Hong, C.~K., Ou, Z.~Y., and Mandel, L. (1987).
+Measurement of subpicosecond time intervals between two photons by interference.
+\textit{Physical Review Letters}, 59(18), 2044.
+
+\bibitem[Jaynes(1957)]{jaynes1957}
+Jaynes, E.~T. (1957). Information theory and statistical mechanics.
+\textit{Physical Review}, 106(4), 620.
+
+\bibitem[Kasap(2013)]{kasap2013}
+Kasap, S.~O. (2013).
+\textit{Optoelectronics and Photonics: Principles and Practices}. 2nd ed. Pearson.
+
+\bibitem[Lindblad(1976)]{lindblad1976}
+Lindblad, G. (1976). On the generators of quantum dynamical semigroups.
+\textit{Communications in Mathematical Physics}, 48(2), 119--130.
+
+\bibitem[Mandel and Wolf(1995)]{mandel1995}
+Mandel, L. and Wolf, E. (1995).
+\textit{Optical Coherence and Quantum Optics}. Cambridge University Press.
+
+\bibitem[Rivas and Huelga(2012)]{rivas2012}
+Rivas, A. and Huelga, S.~F. (2012).
+\textit{Open Quantum Systems: An Introduction}. Springer.
+
+\bibitem[Rovelli(1996)]{rovelli1996}
+Rovelli, C. (1996). Relational quantum mechanics.
+\textit{International Journal of Theoretical Physics}, 35(8), 1637--1678.
+
+\bibitem[Schlosshauer(2007)]{schlosshauer2007}
+Schlosshauer, M. (2007).
+\textit{Decoherence and the Quantum-to-Classical Transition}. Springer.
+
+\bibitem[Soshnikov(1999)]{soshnikov1999}
+Soshnikov, A. (1999). Universality at the edge of the spectrum in Wigner random matrices.
+\textit{Communications in Mathematical Physics}, 207(3), 697--733.
+
+\bibitem[Tracy and Widom(1994)]{tracy_widom1994}
+Tracy, C.~A. and Widom, H. (1994). Level-spacing distributions and the Airy kernel.
+\textit{Communications in Mathematical Physics}, 159(1), 151--174.
+
+\bibitem[Wakefield(2013)]{wakefield2013}
+Wakefield, J. (2013).
+\textit{Bayesian and Frequentist Regression Methods}. Springer.
+
+\bibitem[Zurek(2003)]{zurek2003}
+Zurek, W.~H. (2003). Decoherence, einselection, and the quantum origins of the classical.
+\textit{Reviews of Modern Physics}, 75(3), 715.
+
+\end{thebibliography}
+
+\printindex
+\end{document}

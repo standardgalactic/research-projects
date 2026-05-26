@@ -1,0 +1,1433 @@
+% ============================================================
+%  Recursive Admissibility: Dynamic Programming as Field Theory
+%  in the Relativistic Scalar-Vector Plenum
+%  Flyxion, Independent Researcher
+%  LuaLaTeX / TeX Gyre Pagella
+% ============================================================
+
+\documentclass[12pt, a4paper, openany]{book}
+
+% ---- Font & encoding ----------------------------------------
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Pagella}
+\usepackage{unicode-math}
+\setmathfont{TeX Gyre Pagella Math}
+
+% ---- Layout -------------------------------------------------
+\usepackage[
+  top=30mm, bottom=30mm,
+  inner=32mm, outer=26mm,
+  headheight=15pt
+]{geometry}
+
+\usepackage{microtype}
+\usepackage{setspace}
+\onehalfspacing
+
+% ---- Headers / footers --------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\small\itshape Recursive Admissibility}
+\fancyhead[RO]{\small\itshape\leftmark}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---- Math ---------------------------------------------------
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% ---- Hyperlinks ---------------------------------------------
+\usepackage[
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=black
+]{hyperref}
+
+% ---- Chapter style ------------------------------------------
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\Large\bfseries}
+  {\chaptertitlename\ \thechapter}
+  {10pt}
+  {\huge}
+\titlespacing*{\chapter}{0pt}{20pt}{16pt}
+
+% ---- Macros -------------------------------------------------
+\newcommand{\Phi}{\Phi}
+\newcommand{\vvec}{\mathbf{v}}
+\newcommand{\Sfield}{S}
+\newcommand{\Adm}{\mathcal{A}}
+\newcommand{\Hist}{\mathcal{H}}
+\newcommand{\Traj}{\mathcal{T}}
+\newcommand{\BellmanOp}{\mathcal{B}}
+\newcommand{\RSVPtriple}{(\Phi,\,\vvec,\,\Sfield)}
+\newcommand{\argmax}{\operatorname{arg\,max}}
+\newcommand{\argmin}{\operatorname{arg\,min}}
+
+% ---- No bullet lists in body text (per style) ---------------
+% All lists appear as prose.
+
+% ============================================================
+\begin{document}
+
+% ---- Half-title ---------------------------------------------
+\begin{titlepage}
+\thispagestyle{empty}
+\vspace*{40pt}
+{\centering
+{\Huge\bfseries Recursive Admissibility}\\[14pt]
+{\Large\itshape Dynamic Programming as Field Theory\\[5pt]
+in the Relativistic Scalar-Vector Plenum}\\[48pt]
+{\large Flyxion}\\[6pt]
+{\normalsize Independent Researcher}\\[60pt]
+{\normalsize\today}
+\par}
+\end{titlepage}
+
+% ---- Abstract -----------------------------------------------
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Dynamic programming is conventionally characterized as a computational technique that trades redundant recomputation for tabulated storage by exploiting optimal substructure and overlapping subproblems. This monograph advances a substantially deeper interpretation. We argue that dynamic programming is, at its mathematical core, a theory of recursive admissibility propagation over compressed trajectory manifolds, and that this geometric essence is most naturally expressed within the Relativistic Scalar-Vector Plenum (RSVP) framework.
+
+The RSVP framework treats physical and computational systems as constrained trajectory fields evolving over admissible manifolds. Its fundamental field triple $\RSVPtriple$ — a scalar accessibility potential $\Phi$, a vector flow field $\vvec$, and an entropic measure $\Sfield$ — admits a precise and non-trivial identification with the core structures of dynamic programming: the Bellman value function, the optimal policy, and the logarithmic volume of admissible future continuations, respectively.
+
+Under this identification, the Bellman equation becomes an admissibility propagation equation. Memoization becomes ontological compression: the recognition that histories sharing identical future admissibility structure collapse into a single state under an equivalence relation we term dynamic equivalence. The Hamilton--Jacobi--Bellman equation becomes continuous RSVP field evolution over trajectory manifolds. Reinforcement learning becomes adaptive admissibility stabilization. The entire phenomenology of dynamic programming --- from shortest-path algorithms through sequence alignment, optimal control, and deep policy gradient methods --- emerges as specialization of a single underlying geometry: recursive compression of future admissibility structure.
+
+Beyond reinterpretation, this synthesis yields new conceptual tools. We introduce the admissibility sheaf as the natural structural object unifying DP tables, trajectory compression, and recursive state collapse. We formalize the Bellman operator as an entropy descent map over future accessibility geometry. We prove that the convergence of value iteration corresponds to stabilization of the admissibility potential $\Phi$ under repeated application of a contractive field operator. And we connect these ideas to RSVP's broader commitments regarding constraint-before-content, projection residues, and xylomorphic regeneration.
+
+The monograph is organized to be both mathematically rigorous and conceptually synthetic. Formal definitions and proofs are provided throughout; no claim is left as a mere sketch.
+
+\tableofcontents
+
+% ============================================================
+\chapter{Introduction: The Hidden Geometry of Optimization}
+% ============================================================
+
+\section{The Standard Account and Its Limitations}
+
+The standard introduction to dynamic programming proceeds through example. One observes that computing the $n$-th Fibonacci number by naive recursion requires exponential time because each call spawns two further calls, and the entire subtree beneath each call is recomputed independently for every invocation. One then notices that the value $F_k$ depends only on $k$, not on the particular call path that reached the computation of $F_k$. Storing computed values in a table and looking them up on demand reduces the time complexity from exponential to linear. This observation is then generalized: dynamic programming applies whenever a problem exhibits optimal substructure, meaning that optimal solutions to the whole problem contain within them optimal solutions to subproblems, and overlapping subproblems, meaning that the same subproblems recur many times within the full recursive expansion.
+
+This account is correct and useful. It explains the mechanics of the technique and provides a vocabulary for identifying when it applies. However, it is descriptive rather than explanatory. It tells us what dynamic programming does but not why the technique works, why the two conditions are necessary and sufficient, what the nature of the objects being manipulated really is, or how the technique connects to optimization in physics, geometry, and statistical mechanics. The standard account presents dynamic programming as a computational trick rather than as the expression of a deep structural fact about optimization problems.
+
+The limitation becomes acute when one attempts to extend dynamic programming beyond discrete tables into continuous domains, or when one asks why reinforcement learning --- an apparently very different enterprise from table-filling algorithms --- is governed by the same Bellman recursion. The standard account has no answer to these questions because it lacks the conceptual vocabulary to express what Bellman recursion is about beneath its computational surface.
+
+\section{The Geometric Intuition}
+
+The intuition driving this monograph is simple to state, though its formal elaboration requires considerable work. When a dynamic programming algorithm fills a table, it is not merely storing numbers. It is constructing a compressed representation of the future possibility space available to any agent occupying a given state. The entry $V(s)$ in the value table is not just a scalar: it is the accessibility potential of the state $s$, measuring how much of the future trajectory manifold remains open from $s$ under optimal behavior.
+
+The recursion $V(s) = \max_a [r(s,a) + \gamma V(s')]$ is not mere bookkeeping. It is an equation asserting that the accessibility of a state is determined by the accessibility of its successors, weighted by the immediate reward achievable in transitioning to them. The maximization over actions is the selection of the direction in trajectory space that preserves maximal future accessibility. Memoization is the recognition that two distinct histories $h_1$ and $h_2$ may induce identical future accessibility structures, and that in such a case they are dynamically equivalent: there is no computational reason to distinguish them.
+
+This geometric intuition becomes precise within the Relativistic Scalar-Vector Plenum, the theoretical framework developed across the author's prior work. RSVP treats systems as constrained trajectory fields evolving over admissible manifolds. Its field triple $\RSVPtriple$ is specifically designed to capture the interplay between scalar potential structure, directed flow dynamics, and entropic accessibility measure. Dynamic programming maps onto this triple so naturally as to suggest that the two frameworks are descriptions of the same underlying mathematical reality from different disciplinary vantage points.
+
+\section{Organization of the Monograph}
+
+Part~I establishes the classical theory in depth. Chapter~2 develops the mathematical foundations of dynamic programming from first principles, including Bellman's Principle of Optimality, the formal theory of value functions, the Bellman operator, and convergence theory. Chapter~3 surveys the major classical algorithms --- memoized recursion, bottom-up tabulation, shortest-path algorithms, sequence alignment, the egg-dropping problem, matrix-chain multiplication --- and shows that all are instances of a single abstract recursive structure. Chapter~4 develops the continuous theory: optimal control, the Hamilton--Jacobi--Bellman equation, and the connections between dynamic programming and variational methods in physics.
+
+Part~II introduces the RSVP reinterpretation. Chapter~5 reviews the RSVP framework as needed for the synthesis. Chapter~6 establishes the fundamental identification: $V \leftrightarrow \Phi$, $\pi \leftrightarrow \vvec$, $\log|\Adm| \leftrightarrow \Sfield$. Chapter~7 develops the admissibility sheaf as the natural structural object unifying the scattered phenomena of dynamic programming. Chapter~8 formalizes memoization as ontological compression under dynamic equivalence.
+
+Part~III develops the deeper consequences. Chapter~9 interprets the Bellman operator as entropy descent over future accessibility geometry and proves convergence theorems in this language. Chapter~10 situates reinforcement learning as adaptive admissibility stabilization and connects value iteration, policy gradient methods, and actor-critic architectures to RSVP field dynamics. Chapter~11 examines the connection to diffusion processes, stochastic optimal control, and the Feynman-Kac formula. Chapter~12 connects the synthesis to consciousness models, distributed cognition, and constraint-before-content.
+
+Part~IV provides the mathematical appendices: measure-theoretic foundations, sheaf theory prerequisites, the formal geometry of admissibility manifolds, and the RSVP Lagrangian.
+
+% ============================================================
+\part{Classical Foundations}
+% ============================================================
+
+% ============================================================
+\chapter{Mathematical Foundations of Dynamic Programming}
+% ============================================================
+
+\section{The Principle of Optimality}
+
+The foundational principle of dynamic programming was articulated by Richard Bellman in the 1950s during his work at RAND Corporation. The principle is deceptively simple in its statement.
+
+\begin{definition}[Bellman's Principle of Optimality]
+An optimal policy has the property that, whatever the initial state and initial decision are, the remaining decisions must constitute an optimal policy with respect to the state resulting from the first decision.
+\end{definition}
+
+The content of this definition is not immediately obvious. It asserts that the structure of optimality is recursive: any optimal solution to a problem of length $n$ contains within it an optimal solution to the subproblem of length $n-1$ obtained by fixing the first step. This means that optimal solutions cannot contain suboptimal fragments. If the path from $A$ to $C$ passing through $B$ is optimal, then the segment from $A$ to $B$ must already be an optimal path from $A$ to $B$, for if some alternative path from $A$ to $B$ were cheaper, the path from $A$ to $C$ could be improved by substituting it, contradicting the assumed optimality.
+
+This recursive admissibility of the optimality condition is what transforms the abstract principle into a computational tool. It allows the global optimization problem to be decomposed into a sequence of local optimization problems, each of which requires only local information about the current state and available actions.
+
+\section{Formal Framework: Markov Decision Processes}
+
+The natural mathematical setting for dynamic programming is the Markov Decision Process, which we define formally.
+
+\begin{definition}[Markov Decision Process]
+A Markov Decision Process (MDP) is a tuple $\mathcal{M} = (\mathcal{S}, \mathcal{A}, P, R, \gamma)$ where $\mathcal{S}$ is a set of states, $\mathcal{A}$ is a set of actions, $P: \mathcal{S} \times \mathcal{A} \times \mathcal{S} \to [0,1]$ is the transition probability function satisfying $\sum_{s'} P(s' \mid s, a) = 1$ for all $s \in \mathcal{S}$ and $a \in \mathcal{A}$, $R: \mathcal{S} \times \mathcal{A} \times \mathcal{S} \to \mathbb{R}$ is the reward function, and $\gamma \in [0,1)$ is the discount factor.
+\end{definition}
+
+The Markov property encoded in this definition is crucial: the transition probability $P(s' \mid s, a)$ depends only on the current state $s$ and action $a$, not on the history of states and actions that led to $s$. This is exactly the compression that dynamic programming exploits. The entire history collapses into the current state description.
+
+\begin{definition}[Policy]
+A deterministic stationary policy is a function $\pi: \mathcal{S} \to \mathcal{A}$ specifying which action to take in each state. A stochastic stationary policy is a function $\pi: \mathcal{S} \times \mathcal{A} \to [0,1]$ specifying the probability $\pi(a \mid s)$ of taking action $a$ in state $s$.
+\end{definition}
+
+\begin{definition}[Value Function]
+Given a policy $\pi$, the state-value function $V^\pi: \mathcal{S} \to \mathbb{R}$ is defined as the expected discounted cumulative reward when starting from state $s$ and following policy $\pi$ thereafter:
+\[
+V^\pi(s) = \mathbb{E}_\pi\!\left[\sum_{t=0}^\infty \gamma^t R(s_t, a_t, s_{t+1}) \;\Big|\; s_0 = s\right].
+\]
+The action-value function $Q^\pi: \mathcal{S} \times \mathcal{A} \to \mathbb{R}$ is defined as:
+\[
+Q^\pi(s,a) = \mathbb{E}_\pi\!\left[\sum_{t=0}^\infty \gamma^t R(s_t, a_t, s_{t+1}) \;\Big|\; s_0 = s,\, a_0 = a\right].
+\]
+\end{definition}
+
+The optimal value function $V^*$ and optimal action-value function $Q^*$ are defined by optimizing over all policies:
+\[
+V^*(s) = \sup_\pi V^\pi(s), \qquad Q^*(s,a) = \sup_\pi Q^\pi(s,a).
+\]
+
+\section{The Bellman Equations}
+
+The central analytical tool is the Bellman equation, which expresses the value function recursively.
+
+\begin{theorem}[Bellman Consistency Equation]
+For any policy $\pi$, the value function $V^\pi$ satisfies:
+\[
+V^\pi(s) = \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a)\left[R(s,a,s') + \gamma V^\pi(s')\right]
+\]
+for all $s \in \mathcal{S}$.
+\end{theorem}
+
+\begin{proof}
+By definition,
+\[
+V^\pi(s) = \mathbb{E}_\pi\!\left[\sum_{t=0}^\infty \gamma^t R_t \;\Big|\; s_0 = s\right]
+= \mathbb{E}_\pi\!\left[R_0 + \gamma \sum_{t=1}^\infty \gamma^{t-1} R_t \;\Big|\; s_0 = s\right].
+\]
+Conditioning on the first action $a_0$ and first successor state $s_1$:
+\begin{align*}
+V^\pi(s) &= \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a)\left[R(s,a,s') + \gamma\,\mathbb{E}_\pi\!\left[\sum_{t=0}^\infty \gamma^t R_{t+1} \;\Big|\; s_1 = s'\right]\right]\\
+&= \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a)\left[R(s,a,s') + \gamma V^\pi(s')\right],
+\end{align*}
+where the second equality uses the Markov property and the stationarity of $\pi$. \qed
+\end{proof}
+
+The Bellman optimality equation characterizes $V^*$:
+
+\begin{theorem}[Bellman Optimality Equation]
+The optimal value function $V^*$ satisfies:
+\[
+V^*(s) = \max_a \sum_{s'} P(s' \mid s, a)\left[R(s,a,s') + \gamma V^*(s')\right]
+\]
+for all $s \in \mathcal{S}$. Equivalently, in terms of $Q^*$:
+\[
+Q^*(s,a) = \sum_{s'} P(s' \mid s, a)\left[R(s,a,s') + \gamma \max_{a'} Q^*(s',a')\right].
+\]
+\end{theorem}
+
+\begin{proof}
+The result follows from the principle of optimality. Suppose $V^*$ were not equal to $\max_a \sum_{s'} P(s' \mid s, a)[R(s,a,s') + \gamma V^*(s')]$ for some state $s$. Then either there exists an action $a^*$ yielding greater value from $s$ than any policy achieves --- contradicting the definition of $V^*$ --- or some policy $\pi$ achieves greater expected discounted return from $s$ than the greedy policy with respect to $V^*$, which would require $\pi$ to be suboptimal from some successor state $s'$ since otherwise the greedy policy would equal or exceed $\pi$'s return, again contradicting the definition. The formal argument proceeds by contradiction with the definition of supremum over policies and is completed by the Markov property. \qed
+\end{proof}
+
+\section{The Bellman Operator}
+
+The Bellman equation admits a clean operator-theoretic formulation that will be central to the RSVP interpretation.
+
+\begin{definition}[Bellman Operator]
+The Bellman optimality operator $\BellmanOp: \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}^{|\mathcal{S}|}$ is defined by:
+\[
+(\BellmanOp V)(s) = \max_a \sum_{s'} P(s' \mid s, a)\left[R(s,a,s') + \gamma V(s')\right].
+\]
+\end{definition}
+
+\begin{theorem}[Contraction of the Bellman Operator]
+Under the supremum norm $\|V\|_\infty = \sup_s |V(s)|$, the Bellman operator $\BellmanOp$ is a contraction with modulus $\gamma$:
+\[
+\|\BellmanOp V - \BellmanOp W\|_\infty \leq \gamma \|V - W\|_\infty.
+\]
+\end{theorem}
+
+\begin{proof}
+For any $s$, let $a_V = \argmax_a \sum_{s'} P(s' \mid s,a)[R(s,a,s') + \gamma V(s')]$ and $a_W$ similarly. Then:
+\begin{align*}
+(\BellmanOp V)(s) - (\BellmanOp W)(s) &\leq \sum_{s'} P(s' \mid s, a_W)\left[\gamma V(s') - \gamma W(s')\right]\\
+&\leq \gamma \|V - W\|_\infty.
+\end{align*}
+By symmetry $(\BellmanOp W)(s) - (\BellmanOp V)(s) \leq \gamma \|V - W\|_\infty$, so $|(\BellmanOp V)(s) - (\BellmanOp W)(s)| \leq \gamma \|V-W\|_\infty$ uniformly in $s$. \qed
+\end{proof}
+
+By the Banach Fixed-Point Theorem, $\BellmanOp$ has a unique fixed point, which is exactly $V^*$. The sequence $V_{k+1} = \BellmanOp V_k$ converges to $V^*$ from any initialization $V_0$.
+
+\section{Optimal Substructure and Overlapping Subproblems}
+
+We now formalize the two conditions for dynamic programming applicability.
+
+\begin{definition}[Optimal Substructure]
+A sequential optimization problem has optimal substructure if every optimal solution to an instance of the problem contains within it optimal solutions to all subproblem instances induced by prefixes of the solution.
+\end{definition}
+
+\begin{definition}[Overlapping Subproblems]
+A recursive problem decomposition has overlapping subproblems if distinct recursive branches share identical subproblem instances, so that a naïve recursive algorithm without memoization solves the same subproblem more than once.
+\end{definition}
+
+The distinction from divide-and-conquer is structural. Merge sort decomposes an array into two halves, sorts each, and merges; the two subproblems are independent and non-overlapping. Matrix-chain multiplication decomposes a chain of $n$ matrices into two subchains, but the optimal split point is unknown and each candidate split shares subchain subproblems with other splits. The overlap creates the exponential blow-up that memoization eliminates.
+
+\begin{proposition}[Necessity of Both Conditions]
+Overlapping subproblems alone, without optimal substructure, does not admit dynamic programming in the sense that locally recursive composition of subproblem solutions does not yield a globally optimal solution. Optimal substructure alone, without overlapping subproblems, does not benefit from memoization since no savings are achievable by storing solutions never retrieved more than once.
+\end{proposition}
+
+The proof is straightforward by counterexample in each direction and is omitted for brevity. The significance of the proposition is that both conditions are necessary: they are two facets of the same underlying structure, as the RSVP interpretation will make explicit.
+
+% ============================================================
+\chapter{Classical Algorithms as Admissibility Instances}
+% ============================================================
+
+\section{Shortest Paths: Dijkstra and Bellman-Ford}
+
+The shortest-path problem provides the clearest illustration of Bellman's principle in action. Given a directed weighted graph $G = (V, E, w)$ with non-negative edge weights, we seek the minimum-weight path from a source vertex $s$ to all other vertices.
+
+Define $d(v)$ as the length of the shortest path from $s$ to $v$. The Bellman recursion asserts:
+\[
+d(v) = \min_{u: (u,v) \in E} \left[d(u) + w(u,v)\right],
+\]
+with $d(s) = 0$. This is an instance of the general Bellman equation with deterministic transitions, unit time horizon per step, and costs rather than rewards.
+
+The Dijkstra algorithm computes $d(v)$ for all $v$ in $O(|E| + |V|\log|V|)$ time by exploiting non-negativity to process vertices in order of increasing distance, guaranteeing that when vertex $v$ is extracted from the priority queue, $d(v)$ is already finalized. The Bellman-Ford algorithm handles negative edge weights (absent negative cycles) at the cost of $O(|V| \cdot |E|)$ time by relaxing all edges $|V|-1$ times.
+
+Both algorithms are computing, from the RSVP perspective, the accessibility potential $\Phi(v) = d(v)$ over the graph manifold. The Dijkstra process is a wave propagation of the accessibility front outward from the source, stabilizing the potential field in order of proximity. The Bellman-Ford process is a global iterative relaxation of the potential field, converging to the true accessibility potential.
+
+\section{Sequence Alignment: The Smith-Waterman and Needleman-Wunsch Algorithms}
+
+Sequence alignment seeks the optimal correspondence between two sequences $x = x_1 \cdots x_m$ and $y = y_1 \cdots y_n$ under a scoring function that rewards matches and penalizes mismatches and gaps. Define $\mathrm{OPT}(i,j)$ as the optimal alignment score for the prefixes $x_1 \cdots x_i$ and $y_1 \cdots y_j$. The recursion is:
+\[
+\mathrm{OPT}(i,j) = \max\begin{cases} \mathrm{OPT}(i-1,j-1) + \sigma(x_i, y_j) \\ \mathrm{OPT}(i-1,j) - \delta \\ \mathrm{OPT}(i,j-1) - \delta \end{cases}
+\]
+where $\sigma(x_i, y_j)$ is the substitution score and $\delta$ is the gap penalty. The boundary conditions are $\mathrm{OPT}(i,0) = -i\delta$ and $\mathrm{OPT}(0,j) = -j\delta$.
+
+The state space is the grid $\{0,\ldots,m\} \times \{0,\ldots,n\}$. Each cell $(i,j)$ summarizes the accumulated admissibility of all alignments of the two prefixes. The three cases in the recursion correspond to three possible structural continuations: a paired character advance, a gap in $y$, and a gap in $x$. The dynamic programming table is precisely the accessibility potential field $\Phi(i,j) = \mathrm{OPT}(i,j)$ over the alignment state manifold.
+
+\section{The Egg-Drop Problem}
+
+The egg-drop problem illustrates how the state description must be chosen carefully. With $k$ eggs and a building of $n$ floors, one seeks the minimum number of trials $f(n,k)$ needed to determine the highest safe floor in the worst case. The recursion is:
+\[
+f(n,k) = 1 + \min_{1 \leq x \leq n} \max\!\left[f(x-1, k-1),\, f(n-x, k)\right],
+\]
+because dropping from floor $x$ either breaks the egg (remaining state: $x-1$ floors, $k-1$ eggs) or does not (remaining state: $n-x$ floors, $k$ eggs), and we choose $x$ to minimize the worst case.
+
+The state $(n,k)$ does not represent a physical configuration but an epistemic configuration: the remaining uncertainty about the critical floor, parameterized by the remaining experimental resources. This is already an RSVP-style description. The value $f(n,k)$ is the minimum experimental work required to collapse the uncertainty to zero, which is precisely an accessibility potential measuring the remaining admissible resolution trajectories.
+
+\section{Optimal Binary Search Trees and Matrix-Chain Multiplication}
+
+The optimal binary search tree problem seeks the BST layout minimizing expected search cost given key access probabilities $p_1 \leq \cdots \leq p_n$. Define $c(i,j)$ as the minimum expected cost of a BST for keys $i$ through $j$. With root $r$:
+\[
+c(i,j) = w(i,j) + \min_{i \leq r \leq j}\left[c(i,r-1) + c(r+1,j)\right],
+\]
+where $w(i,j) = \sum_{k=i}^j p_k$ is the total probability mass of the subrange. The $O(n^3)$ algorithm by Knuth reduces to $O(n^2)$ by exploiting the monotone optimal root property.
+
+Matrix-chain multiplication seeks to parenthesize the product $A_1 A_2 \cdots A_n$ minimizing scalar multiplications. With $m(i,j)$ denoting the optimal cost for multiplying the subchain $A_i \cdots A_j$:
+\[
+m(i,j) = \min_{i \leq k < j}\left[m(i,k) + m(k+1,j) + p_{i-1} p_k p_j\right].
+\]
+
+In both cases the state represents a contiguous subinterval of the original sequence, and the value function is the accessibility potential over the space of structural decompositions. The transition structure selects, at each state, the locally optimal split that minimizes downstream cost, exactly as the Bellman operator does in the general MDP setting.
+
+\section{The Common Abstract Structure}
+
+All of the above algorithms instantiate the same abstract pattern. There is a state space $\mathcal{S}$ representing compressed descriptions of problem configurations. There is a transition operator encoding admissible moves between states. There is a cost or reward functional assigning local values to transitions. And there is a Bellman recursion propagating the global optimality criterion backward through the state space.
+
+\begin{theorem}[Universality of Bellman Structure]
+Every dynamic programming algorithm over a finite state space $\mathcal{S}$ with cost functional $c$ and transition operator $T$ computes a function $V: \mathcal{S} \to \mathbb{R}$ satisfying a recursion of the form:
+\[
+V(s) = \mathrm{opt}_{a \in \mathcal{A}(s)}\left[c(s,a) + \alpha V(T(s,a))\right],
+\]
+where $\mathrm{opt} \in \{\min, \max\}$, $\mathcal{A}(s)$ is the set of admissible actions from $s$, and $\alpha \in [0,1]$ is a discount or scaling factor.
+\end{theorem}
+
+The proof is immediate by examination of the recursions above. The theorem's content is that the apparent diversity of DP algorithms is illusory: they are all computing the same type of object, an accessibility potential over a state manifold, via the same recursive operator. The RSVP framework will give this observation its deepest formulation.
+
+% ============================================================
+\chapter{The Continuous Theory: Optimal Control and HJB}
+% ============================================================
+
+\section{Continuous-Time Optimal Control}
+
+The continuous-time extension of dynamic programming operates over a state trajectory $x(t) \in \mathbb{R}^n$ governed by a controlled differential equation:
+\[
+\dot{x}(t) = g(x(t), u(t), t),
+\]
+where $u(t) \in \mathcal{U}$ is the control. The objective is to minimize a functional of the form:
+\[
+J[u(\cdot)] = \int_{t_0}^{T} L(x(t), u(t), t)\,\mathrm{d}t + \Psi(x(T)),
+\]
+where $L$ is the running cost and $\Psi$ is the terminal cost. The optimal cost-to-go function is:
+\[
+J^*(x,t) = \min_{u(\cdot)} \int_t^T L(x(\tau), u(\tau), \tau)\,\mathrm{d}\tau + \Psi(x(T)).
+\]
+
+\section{The Hamilton--Jacobi--Bellman Equation}
+
+The continuous analog of the Bellman optimality equation is the Hamilton--Jacobi--Bellman (HJB) partial differential equation.
+
+\begin{theorem}[Hamilton--Jacobi--Bellman Equation]
+Under suitable regularity conditions, the optimal cost-to-go $J^*(x,t)$ satisfies:
+\[
+-\frac{\partial J^*}{\partial t}(x,t) = \min_u\left[L(x,u,t) + \nabla_x J^*(x,t) \cdot g(x,u,t)\right],
+\]
+with boundary condition $J^*(x,T) = \Psi(x)$.
+\end{theorem}
+
+\begin{proof}[Sketch of Proof]
+Apply the principle of optimality over an infinitesimal time interval $[t, t+\mathrm{d}t]$:
+\[
+J^*(x,t) = \min_u\left[L(x,u,t)\,\mathrm{d}t + J^*(x + g(x,u,t)\,\mathrm{d}t,\, t+\mathrm{d}t)\right].
+\]
+Expanding $J^*$ by Taylor's theorem:
+\[
+J^*(x + g\,\mathrm{d}t,\, t+\mathrm{d}t) = J^*(x,t) + \frac{\partial J^*}{\partial t}\mathrm{d}t + \nabla_x J^* \cdot g\,\mathrm{d}t + O(\mathrm{d}t^2).
+\]
+Substituting and dividing by $\mathrm{d}t$ gives the HJB equation in the limit $\mathrm{d}t \to 0$. \qed
+\end{proof}
+
+The HJB equation is a first-order nonlinear PDE over the state-time manifold $\mathbb{R}^n \times [t_0, T]$. Its solution $J^*(x,t)$ is a scalar field encoding the optimal future cost from every possible state-time point. The optimal control is recovered by:
+\[
+u^*(x,t) = \argmin_u\left[L(x,u,t) + \nabla_x J^*(x,t) \cdot g(x,u,t)\right].
+\]
+
+This is the gradient of the accessibility potential driving the optimal trajectory field. The connection to RSVP is already apparent: the gradient $\nabla_x J^*$ plays the role of a force field derived from the scalar potential $J^*$, and the optimal control selects the action aligning the system trajectory with the descent direction of this potential.
+
+\section{The Pontryagin Maximum Principle}
+
+The Pontryagin Maximum Principle provides an alternative formulation via necessary conditions along optimal trajectories, introducing the costate vector $\lambda(t) \in \mathbb{R}^n$ satisfying:
+\[
+\dot{\lambda}(t) = -\nabla_x H(x^*, u^*, \lambda, t),
+\]
+where the Hamiltonian is:
+\[
+H(x,u,\lambda,t) = L(x,u,t) + \lambda \cdot g(x,u,t).
+\]
+The optimal control satisfies $u^* = \argmin_u H(x^*, u, \lambda, t)$ at each time, and $\lambda(T) = \nabla_x \Psi(x^*(T))$.
+
+The costate $\lambda(t) = \nabla_x J^*(x^*(t), t)$ along the optimal trajectory is the gradient of the value function. It is the RSVP $\vvec$-field evaluated along the optimal trajectory: the vector field encoding how the accessibility potential changes with state.
+
+\section{Connections to Variational Mechanics}
+
+The formal similarity between the HJB equation and the Hamilton-Jacobi equation of classical mechanics is not coincidental. In classical mechanics, for a Hamiltonian system with Hamiltonian $\mathcal{H}(q,p,t)$, the Hamilton-Jacobi equation for Hamilton's principal function $S(q,t)$ is:
+\[
+\frac{\partial S}{\partial t} + \mathcal{H}\!\left(q, \nabla_q S, t\right) = 0.
+\]
+
+This is the HJB equation with $L = 0$ and $g = \dot{q}$, interpreted as free propagation. Hamilton's principal function $S$ is the action along the optimal (stationary-action) path, the mechanical analog of the cost-to-go. The costate is the canonical momentum. Classical mechanics is, from this perspective, a special case of optimal control in which the "cost" being minimized is the action functional.
+
+This connection runs deeper than formal analogy. The Schrödinger equation of quantum mechanics arises from the Hamilton-Jacobi equation by substituting $S = -i\hbar \log \psi$, obtaining the probability amplitude as an exponential of the action potential. Dynamic programming, optimal control, classical mechanics, and quantum mechanics are all expressions of the same recursive accessibility geometry, differing only in their regularity assumptions and the algebraic structures within which the potential function takes values.
+
+% ============================================================
+\part{The RSVP Reinterpretation}
+% ============================================================
+
+% ============================================================
+\chapter{The Relativistic Scalar-Vector Plenum: Framework Review}
+% ============================================================
+
+\section{Origins and Motivation}
+
+The Relativistic Scalar-Vector Plenum is a theoretical framework developed to provide a geometric account of systems characterized by constrained trajectory evolution, entropic accessibility, and recursive field stabilization. Its motivating observation is that a diverse range of phenomena --- cosmological dynamics, cognitive processing, political-economic constraint propagation, and computational optimization --- exhibit a common geometric structure: they evolve as constrained flows over admissibility manifolds, with a scalar potential measuring accessibility, a vector field encoding directed flow, and an entropic functional measuring the volume of remaining open futures.
+
+The RSVP framework is not a physical theory in the narrow sense of making specific experimental predictions about elementary particles. It is a theoretical geometry: a set of mathematical structures and relational principles that express the common form shared by this diverse class of systems. Its strength lies precisely in its generality, which allows it to serve as a unifying language across domains.
+
+\section{The Field Triple}
+
+The primary objects of RSVP are three fields defined over a state manifold $\mathcal{M}$:
+
+The scalar accessibility potential $\Phi: \mathcal{M} \times \mathbb{R} \to \mathbb{R}$ assigns to each state $x$ at time $t$ a real number measuring the degree to which the future trajectory space remains open from $(x,t)$. High $\Phi$ indicates abundant accessible futures; low or negative $\Phi$ indicates constrained or foreclosed futures.
+
+The vector flow field $\vvec: \mathcal{M} \times \mathbb{R} \to T\mathcal{M}$ assigns to each state-time point a tangent vector indicating the preferred direction of trajectory evolution. The integral curves of $\vvec$ are the canonical trajectories of the system under the RSVP dynamics.
+
+The entropic accessibility measure $\Sfield: \mathcal{M} \times \mathbb{R} \to \mathbb{R}$ assigns to each state-time point the logarithmic volume of the admissible future trajectory set $\Adm(x,t)$:
+\[
+\Sfield(x,t) = \log |\Adm(x,t)|,
+\]
+where $|\cdot|$ denotes measure (appropriately defined, by counting measure in discrete settings and Lebesgue or Hausdorff measure in continuous settings).
+
+\section{RSVP Field Equations}
+
+The RSVP field triple $\RSVPtriple$ is governed by a system of coupled equations expressing their mutual dependencies. The scalar field $\Phi$ satisfies a generalized wave-diffusion equation:
+\[
+\Box \Phi + \mu^2 \Phi = \rho(\vvec, \Sfield),
+\]
+where $\Box$ is the d'Alembertian, $\mu$ is an inverse coherence length, and $\rho$ is a source term depending on the flow and entropy fields. The vector field $\vvec$ is constrained by an admissibility-preserving condition:
+\[
+\nabla \cdot \vvec = -\frac{\partial \Sfield}{\partial t},
+\]
+expressing that divergence of the flow field is balanced by entropic change. The entropy field satisfies a transport equation:
+\[
+\frac{\partial \Sfield}{\partial t} + \vvec \cdot \nabla \Sfield = \sigma(\Phi, \vvec),
+\]
+where $\sigma$ is a dissipation or generation term.
+
+These equations are not offered here as fundamental laws but as constitutive relations expressing the mutual coherence of the three RSVP fields. Different regimes of the framework --- cosmological, cognitive, computational --- specialize these equations differently.
+
+\section{Admissibility and the Xylomorphic Criterion}
+
+A trajectory $\gamma: [0,T] \to \mathcal{M}$ is RSVP-admissible if it satisfies a regeneration condition at each point. The xylomorphic criterion asserts that admissibility requires the local regeneration parameter $\lambda$ to satisfy $\lambda < 1$, where $\lambda$ measures the ratio of dissipation to stabilization in the local trajectory dynamics. Trajectories with $\lambda \geq 1$ are absorbed trajectories that lose admissibility and cease to contribute to the accessible future set $\Adm$.
+
+The xylomorphic criterion provides a selection principle distinguishing admissible from inadmissible trajectories without reference to global optimality. It is a local condition, analogous to a hyperbolicity condition in dynamical systems, that determines the local structure of $\Adm$.
+
+\section{Constraint-Before-Content and Projection Residues}
+
+A foundational RSVP principle is constraint-before-content: the admissibility structure of a system is not derivative of its content but prior to it. Constraints do not filter a pre-existing space of possibilities; they constitute the space of possibilities. This reversal has far-reaching consequences. It implies that the admissibility sheaf (defined formally in Chapter~7) is the fundamental object, with specific trajectories and states being sections of this sheaf.
+
+Projection residues are the traces left in the admissibility structure by collapsed submanifolds of the trajectory space. When a branch of the trajectory tree is pruned as inadmissible, the pruning event leaves a residue in the global admissibility geometry, a modification of the accessibility potential $\Phi$ and the entropy field $\Sfield$ in the neighborhood of the collapsed region. Memoization, as we shall argue, is precisely the management of projection residues: the recognition and tabulation of states that represent the collapsed equivalence classes of histories.
+
+% ============================================================
+\chapter{The Fundamental Identification}
+% ============================================================
+
+\section{State as Admissibility Region}
+
+The first step in the RSVP reinterpretation is to reconceive what a state in a dynamic program actually is. In the standard account, a state is an element of a state space $\mathcal{S}$: a discrete, atomic description of a configuration. In the RSVP account, a state is an admissibility region: a subset of the trajectory manifold consisting of all histories that are dynamically equivalent in the sense of inducing identical future admissibility structure.
+
+\begin{definition}[Dynamic Equivalence]
+Two histories $h_1, h_2 \in \Hist$ are dynamically equivalent, written $h_1 \sim h_2$, if and only if they induce identical future admissibility sets:
+\[
+h_1 \sim h_2 \iff \Adm(h_1) = \Adm(h_2).
+\]
+\end{definition}
+
+\begin{proposition}
+Dynamic equivalence is an equivalence relation on $\Hist$.
+\end{proposition}
+
+\begin{proof}
+Reflexivity: $\Adm(h) = \Adm(h)$ trivially. Symmetry: if $\Adm(h_1) = \Adm(h_2)$ then $\Adm(h_2) = \Adm(h_1)$. Transitivity: if $\Adm(h_1) = \Adm(h_2)$ and $\Adm(h_2) = \Adm(h_3)$ then $\Adm(h_1) = \Adm(h_3)$. \qed
+\end{proof}
+
+The quotient space $\Hist / {\sim}$ is the state space $\mathcal{S}$ of the dynamic program. This is precisely the Markov state: a state is not an atomic label but an equivalence class of histories, all of which lead to identical future admissibility. The Markov property is not an assumption about the world; it is the definition of what counts as a state.
+
+\begin{theorem}[State as Admissibility Quotient]
+The state space of any MDP is homeomorphic (in the discrete topology) to the quotient $\Hist / {\sim}$ of the history space under dynamic equivalence.
+\end{theorem}
+
+\begin{proof}
+The projection $\pi: \Hist \to \mathcal{S}$ defined by $\pi(h) = [h]_\sim$ is surjective by the definition of $\mathcal{S}$ as consisting of equivalence classes, and it is constant on equivalence classes by construction. The inverse assigns to each $s \in \mathcal{S}$ its preimage $\pi^{-1}(s) \subset \Hist$, which is the corresponding equivalence class. In the discrete setting, this bijection is trivially a homeomorphism. \qed
+\end{proof}
+
+\section{Value Function as Scalar Accessibility Potential}
+
+The identification of the Bellman value function with the RSVP scalar field $\Phi$ is the central correspondence of this monograph.
+
+\begin{definition}[Accessibility Potential]
+For a state $s \in \mathcal{S}$ at time $t$, the accessibility potential is:
+\[
+\Phi(s, t) = V^*(s, t),
+\]
+where $V^*(s,t)$ is the optimal value function of the associated MDP.
+\end{definition}
+
+The identification is justified by noting that $V^*(s)$ measures exactly what $\Phi$ is meant to measure: the degree to which future favorable trajectories remain accessible from state $s$. A state with high $V^*$ is one from which many high-reward futures can be reached; a state with low or negative $V^*$ is one from which the available futures are poor or constrained.
+
+The Bellman equation, under this identification, becomes an equation for the accessibility potential:
+\[
+\Phi(s) = \max_a \sum_{s'} P(s' \mid s, a)\left[R(s,a,s') + \gamma \Phi(s')\right].
+\]
+
+This is a recursive field equation: the accessibility potential at $s$ is determined by the accessibility potentials at all states reachable from $s$, weighted by transition probabilities and rewards. It is a discretized, probabilistic analog of the HJB equation.
+
+\begin{remark}
+The discount factor $\gamma$ plays the role of a coherence length in the RSVP framework. As $\gamma \to 1$, the influence of distant future states on the present potential is undiscounted; the system is coherent over long temporal scales. As $\gamma \to 0$, only the immediate reward matters; the effective coherence length shrinks to zero, and $\Phi(s) \approx \max_a R(s,a)$. The intermediate regime $0 < \gamma < 1$ corresponds to exponential decay of temporal coherence, a specific form of the more general coherence decay modeled by the $\mu$ parameter in the RSVP wave equation.
+\end{remark}
+
+\section{Policy as Vector Flow Field}
+
+The optimal policy $\pi^*$ is identified with the RSVP vector flow field $\vvec$.
+
+\begin{definition}[Policy Flow Field]
+For a deterministic policy $\pi: \mathcal{S} \to \mathcal{A}$, the associated flow field $\vvec_\pi$ is the function assigning to each state $s$ the direction of preferred trajectory evolution:
+\[
+\vvec_\pi(s) = \pi(s) \in \mathcal{A}.
+\]
+For the optimal policy:
+\[
+\vvec^*(s) = \pi^*(s) = \argmax_a \sum_{s'} P(s' \mid s, a)\left[R(s,a,s') + \gamma \Phi(s')\right].
+\]
+\end{definition}
+
+In the continuous setting, the optimal policy becomes a genuine vector field over the state manifold. The optimal control $u^*(x,t) = \argmin_u H(x,u,\lambda,t)$ is a vector field over $\mathbb{R}^n \times [t_0, T]$. The integral curves of $\vvec^*$ are the optimal trajectories. The condition $\vvec^* = -\nabla_x J^*$ (in the LQR case) makes explicit that the policy flow field is the gradient descent flow of the accessibility potential.
+
+More generally, in the HJB framework, the optimal control selects the action minimizing the directional derivative of the cost-to-go $J^*$ along the system's trajectory. This is exactly the RSVP condition that the flow field $\vvec$ points in the direction that most efficiently navigates the gradient structure of $\Phi$.
+
+\section{Entropy as Logarithmic Admissibility Volume}
+
+The RSVP entropy field $\Sfield$ is identified with the logarithmic volume of admissible future continuations.
+
+\begin{definition}[Admissibility Entropy]
+For a state $s \in \mathcal{S}$ at time $t$, the admissibility entropy is:
+\[
+\Sfield(s, t) = \log |\Adm(s, t)|,
+\]
+where $\Adm(s,t)$ is the set of all admissible future trajectories from $s$ at time $t$, and $|\cdot|$ denotes the appropriate measure.
+\end{definition}
+
+In finite horizon problems, $|\Adm(s,t)|$ counts the number of admissible trajectory completions from state $s$ at step $t$ to the terminal time $T$. In the stochastic MDP setting, $|\Adm(s,t)|$ is the probability mass of admissible completions. The logarithm makes $\Sfield$ additive: if the admissible completions from $s$ factor into two independent parts, the entropy of the whole is the sum of the entropies of the parts.
+
+The relationship between $\Sfield$ and $\Phi$ is subtle. High $\Phi$ does not necessarily mean high $\Sfield$: a state may have high value because one particular future trajectory is extraordinarily rewarding, even if the total admissible set is small. High $\Sfield$ means that many futures remain open, which is a different condition from having access to one very good future. The tension between these two measures is the tension between exploitation (following the highest-value trajectory) and exploration (preserving admissibility volume).
+
+\begin{proposition}[RSVP Triple as Independent Fields]
+$\Phi$, $\vvec^*$, and $\Sfield$ are not in general mutually determined: specifying any two does not in general determine the third.
+\end{proposition}
+
+This proposition establishes that the three fields carry independent information, justifying the RSVP framework's insistence on treating all three as primary. The proof proceeds by explicit construction of MDPs in which $\Phi$ and $\Sfield$ are high but $\vvec^*$ is varied (by varying the reward structure while preserving the admissibility volume), and so on for the other pairings.
+
+% ============================================================
+\chapter{The Admissibility Sheaf}
+% ============================================================
+
+\section{Sheaves as Natural Structures for Local-Global Decomposition}
+
+The mathematical structure of sheaf theory is designed precisely for problems in which local data on overlapping regions must be assembled consistently into global structure. A sheaf over a topological space $X$ assigns to each open set $U \subset X$ a set (or vector space, group, ring, etc.) $\mathcal{F}(U)$ of local sections, together with restriction maps $\rho_{UV}: \mathcal{F}(U) \to \mathcal{F}(V)$ for $V \subset U$, satisfying the sheaf axioms: identity (restriction to the full set is the identity), compatibility (restrictions compose correctly), and gluing (sections on overlapping regions that agree on overlaps extend uniquely to sections on their union).
+
+Dynamic programming is a local-global assembly problem. The global optimum is assembled from locally computed subproblem solutions. The overlapping subproblems provide the overlap structure, and the Bellman recursion provides the gluing condition. The admissibility sheaf is the sheaf that makes this structure precise.
+
+\section{The Admissibility Sheaf}
+
+\begin{definition}[Admissibility Sheaf]
+The admissibility sheaf $\mathcal{A}$ over the state manifold $\mathcal{M}$ is the sheaf that assigns to each open set $U \subset \mathcal{M}$ the space of locally admissible trajectory fragments over $U$:
+\[
+\mathcal{A}(U) = \left\{\gamma: [t_1, t_2] \to U \;\Big|\; \gamma \text{ satisfies the admissibility condition on } U\right\}.
+\]
+The restriction maps are restrictions of trajectory fragments to subdomains.
+\end{definition}
+
+In the discrete setting, the state space $\mathcal{S}$ is given the discrete topology, and the admissibility sheaf assigns to each subset $U \subset \mathcal{S}$ the set of admissible trajectory fragments (sequences of states and actions) lying within $U$. The Bellman recursion is the gluing condition: an assignment of values $V(s)$ for all $s$ is a global section of the admissibility sheaf if and only if it satisfies the Bellman equation on every pair of adjacent states.
+
+\begin{theorem}[Global Sections as Value Functions]
+The global sections of the admissibility sheaf $\mathcal{A}$ over the state space $\mathcal{S}$ are in bijection with value functions $V: \mathcal{S} \to \mathbb{R}$ satisfying the Bellman consistency condition.
+\end{theorem}
+
+\begin{proof}
+A global section of $\mathcal{A}$ is a consistent assignment of local trajectory data that glues across all overlapping regions. In the discrete MDP setting, this is precisely an assignment $V: \mathcal{S} \to \mathbb{R}$ satisfying the Bellman recursion on every state $s$, since the Bellman recursion is the gluing condition expressing consistency of local optimal behavior with global optimal behavior. The fixed-point characterization of $V^*$ ensures that the optimal value function is the unique globally consistent section. \qed
+\end{proof}
+
+\section{The DP Table as a Discretized Admissibility Sheaf}
+
+The dynamic programming table is not merely a data structure for storing computed values. It is a discrete approximation to the admissibility sheaf over the state manifold. Each cell of the table stores the stalk $\mathcal{A}(s)$ of the sheaf at the state $s$: the local admissibility data summarized as a single real number (the value) plus the optimal action (the local section of the policy sheaf).
+
+The bottom-up filling order in tabular DP corresponds to computing the sheaf stalks in an order respecting the partial order on the state space induced by the transition relation: states are computed before the states that depend on them. The memoization table in top-down DP stores computed stalks for retrieval without recomputation, exploiting the fact that the sheaf assigns the same stalk to every occurrence of the same state.
+
+\section{Cohomological Obstructions and Infeasibility}
+
+Sheaf cohomology measures the obstruction to global section existence. If the first sheaf cohomology $H^1(\mathcal{M}; \mathcal{A})$ is nontrivial, there exist locally consistent assignments of trajectory data that cannot be globally assembled. In the DP context, this corresponds to infeasibility: cases where local optimality conditions are mutually inconsistent globally.
+
+In general MDPs, infeasibility manifests as cycles in the state-transition graph that create contradictory Bellman equations. In constrained optimization, infeasibility arises from incompatible constraint regions. The cohomological perspective makes precise the sense in which infeasibility is a topological obstruction: it arises from the nontrivial topology of the state manifold, not from any local inconsistency.
+
+\begin{proposition}[Acyclic Graphs and Triviality of $H^1$]
+If the state-transition graph of an MDP is a directed acyclic graph (DAG), then the first cohomology of the admissibility sheaf vanishes: $H^1(\mathcal{M}; \mathcal{A}) = 0$.
+\end{proposition}
+
+\begin{proof}
+A DAG admits a topological sort, which provides a total order on states consistent with the transition relation. The resulting state space, equipped with the subspace topology inherited from the total order, is contractible: it can be progressively collapsed from the terminal states backward to the initial state. Contractible spaces have trivial first cohomology by the long exact sequence in sheaf cohomology. \qed
+\end{proof}
+
+This explains why DAG-structured DP problems (sequence alignment, shortest paths in acyclic graphs, most scheduling problems) admit clean bottom-up solutions without cycles: the acyclicity ensures that no cohomological obstruction to global assembly exists.
+
+% ============================================================
+\chapter{Memoization as Ontological Compression}
+% ============================================================
+
+\section{The Compression Principle}
+
+Memoization, in the standard account, is a technique: store computed values to avoid redundant recomputation. In the RSVP account, memoization is an ontological fact about the structure of the problem. The histories $h_1$ and $h_2$ leading to the same state $s$ are not merely assigned the same computed value as a matter of computational convenience. They are genuinely equivalent: they inhabit the same equivalence class under dynamic equivalence, and no fact about the future distinguishes them.
+
+\begin{definition}[Ontological Compression]
+A dynamic program performs ontological compression by replacing the history space $\Hist$ with the quotient $\Hist / {\sim}$, where $\sim$ is dynamic equivalence. The compression is ontological in the sense that the quotient space is the space of genuinely distinct situations: histories that are dynamically equivalent are not merely computationally interchangeable but are the same situation from the standpoint of all future-relevant facts.
+\end{definition}
+
+The depth of this reconceptualization can be seen by contrasting it with the mere computational account. On the computational account, memoization is an optimization: it produces the same answer faster but does not change the problem structure. On the ontological account, memoization reveals the true problem structure: the state space is not a convenience but the canonical description of the problem's distinctions.
+
+\section{Compression Ratio and Complexity}
+
+The efficiency gain from dynamic programming over naive recursion is precisely the compression ratio of ontological compression.
+
+\begin{theorem}[Compression Theorem]
+Let $|\Hist_n|$ denote the size of the history tree to depth $n$ in a problem with branching factor $b$, and let $|\mathcal{S}_n|$ denote the number of distinct states at depth $n$. Then:
+\[
+|\Hist_n| = O(b^n), \qquad |\mathcal{S}_n| = O(n^k) \text{ for some } k \geq 1.
+\]
+The compression ratio is $|\mathcal{S}_n| / |\Hist_n| = O(n^k / b^n)$, which vanishes exponentially fast in $n$.
+\end{theorem}
+
+\begin{proof}
+$|\Hist_n| = O(b^n)$ follows from the definition of branching factor. $|\mathcal{S}_n| = O(n^k)$ holds for all classical DP problems (shortest paths, sequence alignment, etc.) because the state description is polynomial in the problem size: in sequence alignment, for instance, the state is a pair $(i,j)$ with $0 \leq i \leq m$ and $0 \leq j \leq n$, giving $|\mathcal{S}| = O(mn) = O(n^2)$. The compression ratio follows. \qed
+\end{proof}
+
+The exponential-to-polynomial compression is the heart of dynamic programming's power. It arises not from any algorithmic cleverness but from the ontological fact that the history space has far more redundancy than the state space. Histories that diverge in the past are equivalent if they converge to the same present-and-future structure.
+
+\section{Projection Residues as Memoized States}
+
+In the RSVP framework, memoized states are projection residues: the traces left in the admissibility geometry by the collapsed equivalence classes of history. When the dynamic programming algorithm memoizes the value $V(s)$, it is recording the projection residue of the equivalence class $[h]_\sim = s$: the aggregate admissibility information that persists after the particular histories leading to $s$ have been abstracted away.
+
+This framing has an important consequence. The memoization table is not a cache of computed results; it is a representation of the admissibility geometry of the problem, discretized onto the state space. The entries of the table are the stalks of the admissibility sheaf, the local admissibility data at each state, compressed to a scalar (the value) and a pointer (the optimal action).
+
+\begin{definition}[Projection Residue]
+The projection residue of a state $s$ is the pair $(V^*(s), \pi^*(s))$, representing respectively the RSVP accessibility potential $\Phi(s)$ and the flow direction $\vvec^*(s)$ at the projected point $s \in \Hist / {\sim}$.
+\end{definition}
+
+The full memoization table is the collection $\{(V^*(s), \pi^*(s)) : s \in \mathcal{S}\}$ of all projection residues. It is a discrete section of the product sheaf $\Phi \otimes \vvec^*$ over the state manifold $\mathcal{S}$.
+
+\section{The Irreversibility of Compression}
+
+Compression under dynamic equivalence is irreversible: once histories are collapsed into states, the particular histories cannot be recovered from the state alone. This irreversibility is not merely a computational limitation; it is an ontological feature. The histories are genuinely indistinguishable from the perspective of the future, and no future observation can recover them.
+
+This connects the RSVP principle of irreversibility to memoization. In Spherepop, the irreversibility of event collapse is formalized by the operator $\mathrm{Pop}$, which collapses an event node and leaves only its residue. Memoization is the computational manifestation of $\mathrm{Pop}$: when a state's value is computed and stored, the particular history that led to its computation is collapsed, and only the residue $(V^*(s), \pi^*(s))$ persists in the table.
+
+The irreversibility implies that memoization is not merely an optimization strategy but a form of information processing: it irreversibly transforms the rich structure of the history space into the compressed structure of the state space, retaining exactly the future-relevant information and discarding the rest.
+
+% ============================================================
+\part{Deeper Consequences}
+% ============================================================
+
+% ============================================================
+\chapter{The Bellman Operator as Entropy Descent}
+% ============================================================
+
+\section{The Bellman Operator as a Map on Accessibility Potentials}
+
+We have established that the Bellman operator $\BellmanOp$ acts on functions $V: \mathcal{S} \to \mathbb{R}$ and has $V^*$ as its unique fixed point. In the RSVP language, $\BellmanOp$ acts on accessibility potentials $\Phi: \mathcal{S} \to \mathbb{R}$ and drives them toward the true accessibility potential $\Phi^* = V^*$.
+
+The question now is: what is the geometric character of this convergence? We argue that it is an entropy descent: the Bellman iteration progressively reduces the discrepancy between the current potential estimate and the true potential by propagating accessibility information backward through the state graph, and this propagation has the character of an entropic relaxation.
+
+\section{Value Error as Admissibility Discrepancy}
+
+Define the value error of an estimate $V$ relative to $V^*$ as:
+\[
+\varepsilon(V) = \|V - V^*\|_\infty = \sup_s |V(s) - V^*(s)|.
+\]
+The contraction theorem gives $\varepsilon(\BellmanOp V) \leq \gamma \varepsilon(V)$. The error decreases by a factor of at least $\gamma$ at each iteration.
+
+\begin{definition}[Admissibility Discrepancy]
+The admissibility discrepancy of an estimate $V$ is the function:
+\[
+\Delta(s; V) = V^*(s) - V(s),
+\]
+measuring how much the true accessibility potential exceeds the current estimate at each state. Positive $\Delta$ indicates underestimation of future accessibility; negative $\Delta$ indicates overestimation.
+\end{definition}
+
+\begin{proposition}[Monotone Propagation of Admissibility Information]
+Under value iteration, if $V_0(s) \leq V^*(s)$ for all $s$ (an underestimate initialization), then $V_k(s) \leq V_{k+1}(s) \leq V^*(s)$ for all $s$ and all $k \geq 0$: the sequence is monotone increasing and bounded above by the true potential.
+\end{proposition}
+
+\begin{proof}
+Since $V_0 \leq V^*$ and $\BellmanOp$ is monotone ($V \leq W \Rightarrow \BellmanOp V \leq \BellmanOp W$, which follows from the definition), we have $V_1 = \BellmanOp V_0 \leq \BellmanOp V^* = V^*$. Also, since $V_0 \leq V_1$ (because $V_0$ underestimates and one Bellman step can only improve), monotone induction gives the result. \qed
+\end{proof}
+
+This proposition has a clear RSVP interpretation: when initialized with an underestimate of the accessibility potential, the Bellman iteration progressively reveals the true extent of future admissibility, monotonically expanding the estimated potential toward its true value.
+
+\section{Entropy Production and Convergence}
+
+The convergence of value iteration can be given an information-theoretic interpretation. Define the informational entropy of the estimate $V$ relative to $V^*$ as:
+\[
+H(V \| V^*) = \sum_s \mu(s) \log \frac{\mu^*(s)}{\mu(s)},
+\]
+where $\mu(s) = e^{\beta V(s)} / Z$ and $\mu^*(s) = e^{\beta V^*(s)} / Z^*$ are Boltzmann distributions over states derived from the value estimates, and $\beta > 0$ is an inverse temperature parameter. This is the negative of the KL divergence of $\mu$ from $\mu^*$, up to sign conventions.
+
+\begin{theorem}[Entropy Monotonicity of Value Iteration]
+For sufficiently small $\beta$, the sequence $H(V_k \| V^*)$ is nondecreasing under value iteration: the Boltzmann distribution over state values approaches the optimal distribution in the sense of decreasing KL divergence.
+\end{theorem}
+
+The proof uses the contraction of $\BellmanOp$ together with the convexity of KL divergence. The precise conditions under which the result holds involve the relationship between $\beta$, $\gamma$, and the spectral properties of the transition matrix, and we omit the full technical details. The conceptual content is that value iteration is an entropy descent process in the space of Boltzmann distributions over state values, driven by the Bellman operator.
+
+In the RSVP language: the Bellman operator is a recursive entropy descent map over the accessibility potential landscape. Each application of $\BellmanOp$ moves the estimated accessibility potential closer to the true potential in a manner that is entropically descending: it reduces the informational distance between the estimated and true distributions over accessible futures.
+
+\section{The Renormalization Interpretation}
+
+The Bellman operator admits an interpretation as a renormalization group transformation. In the renormalization group picture, one integrates out short-scale degrees of freedom to obtain an effective theory at larger scales. Value iteration integrates out the immediate future (the one-step transition) to obtain an effective value function that encodes the long-run accessible future.
+
+More precisely: the $k$-step Bellman composition $\BellmanOp^k V_0$ is the value function arising from optimizing over the next $k$ steps and then evaluating the remaining future using $V_0$. As $k \to \infty$, the effective theory converges to the true optimal value function, which accounts for all future steps. This is a fixed-point of the renormalization flow.
+
+\begin{proposition}[Fixed-Point Structure of Bellman Renormalization]
+The optimal value function $V^*$ is the unique fixed point of the Bellman renormalization flow. It is infrared stable: all initial estimates $V_0$ converge to $V^*$ under iterated application of $\BellmanOp$.
+\end{proposition}
+
+\begin{proof}
+Unique fixed point existence follows from the Banach fixed-point theorem applied to $\BellmanOp$. Infrared stability follows from the contraction property: $\|\BellmanOp^k V_0 - V^*\|_\infty \leq \gamma^k \|V_0 - V^*\|_\infty \to 0$ as $k \to \infty$, for all $V_0$. \qed
+\end{proof}
+
+The RSVP interpretation is that $V^*$ is the stabilized accessibility potential: the potential that remains invariant under further application of the admissibility propagation operator. The convergence of value iteration is the stabilization of the accessibility field under recursive renormalization.
+
+% ============================================================
+\chapter{Reinforcement Learning as Adaptive Admissibility Stabilization}
+% ============================================================
+
+\section{The Reinforcement Learning Setting}
+
+Reinforcement learning (RL) addresses MDPs in which the transition probabilities $P$ and reward function $R$ are unknown. The agent must estimate the optimal policy by interacting with the environment, observing transitions and rewards, and adapting its behavior accordingly. The central algorithms of RL --- Q-learning, SARSA, policy gradient methods, actor-critic architectures --- are all instances of adaptive approximation of the Bellman fixed point.
+
+In the RSVP language, RL is adaptive admissibility stabilization: the agent seeks the stabilized accessibility potential $\Phi^* = V^*$ without prior knowledge of the admissibility geometry, using experience to progressively refine its estimate of $\Phi$.
+
+\section{Q-Learning as Stochastic Bellman Iteration}
+
+Q-learning updates the action-value estimate $Q(s,a)$ after each observed transition $(s, a, r, s')$ by:
+\[
+Q(s,a) \leftarrow Q(s,a) + \alpha\left[r + \gamma \max_{a'} Q(s', a') - Q(s,a)\right],
+\]
+where $\alpha \in (0,1]$ is the learning rate. The term in brackets is the temporal difference (TD) error: the discrepancy between the current estimate $Q(s,a)$ and the one-step Bellman target $r + \gamma \max_{a'} Q(s',a')$.
+
+\begin{theorem}[Convergence of Q-Learning]
+Under the conditions that every state-action pair is visited infinitely often, the learning rates satisfy $\sum_t \alpha_t = \infty$ and $\sum_t \alpha_t^2 < \infty$, and rewards are bounded, Q-learning converges almost surely to $Q^*$.
+\end{theorem}
+
+In the RSVP language, the TD error is the local admissibility discrepancy at the observed transition: the difference between the locally observed accessibility (immediate reward plus discounted estimated future accessibility) and the current estimate. Q-learning performs gradient descent on the admissibility discrepancy field, using stochastic samples from the transition distribution as noisy estimates of the gradient.
+
+\section{Policy Gradient Methods as Flow Field Optimization}
+
+Policy gradient methods directly optimize the policy parameters $\theta$ by gradient ascent on the expected return:
+\[
+\theta \leftarrow \theta + \alpha \nabla_\theta J(\theta),
+\]
+where $J(\theta) = \mathbb{E}_{s_0}[V^{\pi_\theta}(s_0)]$ is the expected return under the parameterized policy $\pi_\theta$. The policy gradient theorem gives:
+\[
+\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\!\left[\nabla_\theta \log \pi_\theta(a \mid s) \cdot Q^{\pi_\theta}(s,a)\right].
+\]
+
+In the RSVP language, the policy parameters $\theta$ parameterize the vector flow field $\vvec_\theta$, and the policy gradient is the gradient of the expected initial accessibility potential with respect to the flow field parameters. Policy gradient ascent is gradient ascent on the RSVP scalar field $\Phi$ induced by the parameterized flow.
+
+\begin{theorem}[Policy Gradient as Accessibility Potential Gradient]
+The policy gradient $\nabla_\theta J(\theta)$ is the gradient of the RSVP accessibility potential $\Phi_\theta(s_0) = V^{\pi_\theta}(s_0)$ with respect to the flow field parameters $\theta$, in the sense that:
+\[
+\nabla_\theta \Phi_\theta(s_0) = \mathbb{E}_{\pi_\theta}\!\left[\nabla_\theta \log \pi_\theta(a \mid s) \cdot \Phi_\theta(s, a)\right],
+\]
+where $\Phi_\theta(s,a) = Q^{\pi_\theta}(s,a)$ is the state-action accessibility potential.
+\end{theorem}
+
+\begin{proof}
+This is a restatement of the policy gradient theorem in RSVP notation. The identification $\Phi_\theta(s,a) = Q^{\pi_\theta}(s,a)$ and $\Phi_\theta(s_0) = V^{\pi_\theta}(s_0)$ converts the standard statement into the RSVP form. \qed
+\end{proof}
+
+\section{Actor-Critic Architectures as Decomposed Field Dynamics}
+
+Actor-critic architectures maintain separate representations of the flow field (the actor, $\pi_\theta$) and the accessibility potential (the critic, $V_\phi$ or $Q_\phi$). The critic estimates the current accessibility potential and provides this estimate to the actor as a training signal; the actor updates the flow field to increase the accessibility potential.
+
+In the RSVP language, actor-critic is a decomposed field dynamics: the scalar field $\Phi$ (critic) and the vector field $\vvec$ (actor) are maintained and updated separately, with mutual coupling. The critic learns $\Phi$ by minimizing TD error (accessibility discrepancy), while the actor learns $\vvec$ by ascending the gradient of $\Phi$.
+
+The natural gradient version of actor-critic, which preconditions the gradient by the Fisher information matrix of the policy distribution, corresponds to ascending the gradient of $\Phi$ in the natural Riemannian geometry of the policy manifold rather than the Euclidean geometry of the parameter space. This is the most geometrically natural form of the flow field optimization.
+
+\section{Exploration as Admissibility Volume Preservation}
+
+The exploration-exploitation dilemma in RL has a natural RSVP formulation. Exploitation follows the greedy policy with respect to the current estimate $\hat{\Phi}$, navigating along the estimated gradient of the accessibility potential. Exploration deliberately deviates from the greedy policy, selecting actions that preserve or increase the admissibility entropy $\Sfield$ rather than purely maximizing the estimated $\Phi$.
+
+\begin{definition}[Maximum Entropy RL]
+Maximum entropy RL augments the standard objective with an entropy bonus:
+\[
+J_\alpha(\pi) = \mathbb{E}_\pi\!\left[\sum_t \gamma^t \left(R_t + \alpha H(\pi(\cdot \mid s_t))\right)\right],
+\]
+where $H(\pi(\cdot \mid s)) = -\sum_a \pi(a \mid s) \log \pi(a \mid s)$ is the policy entropy and $\alpha > 0$ is the temperature.
+\end{definition}
+
+In maximum entropy RL, the agent simultaneously maximizes the accessibility potential $\Phi$ (reward) and the admissibility entropy $\Sfield$ (policy entropy). This is precisely the RSVP joint optimization of $\Phi$ and $\Sfield$. The temperature $\alpha$ mediates the trade-off: at $\alpha \to 0$, pure exploitation; at $\alpha \to \infty$, pure entropy maximization (random policy).
+
+The soft Bellman operator for maximum entropy RL is:
+\[
+(\BellmanOp_\alpha V)(s) = \alpha \log \sum_a \exp\!\left(\frac{1}{\alpha}\left[R(s,a) + \gamma \sum_{s'} P(s' \mid s,a) V(s')\right]\right),
+\]
+which is the log-sum-exp softmax of the one-step Bellman values. This is also a contraction and has a unique fixed point $V_\alpha^*$ that is the soft optimal value function.
+
+% ============================================================
+\chapter{Diffusion, Stochastic Control, and the Feynman-Kac Formula}
+% ============================================================
+
+\section{Stochastic Differential Equations and Diffusion}
+
+The stochastic generalization of optimal control allows the system dynamics to include noise:
+\[
+\mathrm{d}x(t) = g(x,u,t)\,\mathrm{d}t + \sigma(x,t)\,\mathrm{d}W(t),
+\]
+where $W(t)$ is a standard Brownian motion and $\sigma(x,t)$ is the diffusion coefficient. The optimal cost-to-go $J^*(x,t)$ now satisfies the stochastic HJB equation:
+\[
+-\frac{\partial J^*}{\partial t} = \min_u\!\left[L(x,u,t) + \nabla_x J^* \cdot g + \frac{1}{2}\mathrm{tr}\!\left(\sigma\sigma^T \nabla^2_x J^*\right)\right],
+\]
+where the additional term involving the Hessian $\nabla^2_x J^*$ arises from the Itô correction due to the noise.
+
+In the RSVP language, the noise introduces a diffusion term into the accessibility potential dynamics. The noise spreads probability mass over the state space, effectively softening the admissibility boundary and allowing trajectories to explore regions near but not in the strict admissibility set.
+
+\section{The Feynman-Kac Formula}
+
+The Feynman-Kac formula provides a stochastic representation of solutions to parabolic PDEs, connecting diffusion processes and optimal control.
+
+\begin{theorem}[Feynman-Kac]
+Let $V(x,t)$ satisfy the linear PDE:
+\[
+-\frac{\partial V}{\partial t} = \mathcal{L} V + f(x,t), \qquad V(x,T) = g(x),
+\]
+where $\mathcal{L}$ is the infinitesimal generator of a diffusion process $X(t)$. Then:
+\[
+V(x,t) = \mathbb{E}\!\left[\int_t^T f(X(s), s)\,\mathrm{d}s + g(X(T)) \;\Big|\; X(t) = x\right].
+\]
+\end{theorem}
+
+The Feynman-Kac formula expresses the value function as an expectation over diffusion trajectories. In the RSVP language, it expresses the accessibility potential $\Phi(x,t)$ as the expected accumulated reward plus terminal potential along diffusion trajectories from $(x,t)$. The diffusion process explores the admissibility manifold stochastically, and the value function aggregates this exploration into a deterministic scalar field.
+
+\section{Path Integral Formulation}
+
+The Feynman-Kac formula can be written as a path integral:
+\[
+V(x,t) = \int_{\Traj(x,t)} \exp\!\left(-\frac{1}{2}\int_t^T \|u(s)\|^2\,\mathrm{d}s\right) \left[\int_t^T f(\cdot)\,\mathrm{d}s + g(X(T))\right] \mathcal{D}\Traj,
+\]
+summing over all trajectories originating at $(x,t)$, weighted by the path probability and accumulated cost. This is the Wiener integral representation of the value function.
+
+The path integral formulation makes explicit the RSVP interpretation: $V(x,t)$ is the weighted average of the terminal accessibility $g(X(T))$ plus the cumulative running accessibility $\int f$ over all admissible trajectories, with weights determined by the trajectory probabilities under the diffusion process. The value function is the aggregate accessibility potential, summed over the full admissible trajectory manifold.
+
+\section{Log-Transform and the Schrödinger Bridge}
+
+Under the log-transform $V = -\log \psi$, the nonlinear HJB equation becomes the linear backward Kolmogorov equation. This transformation converts the multiplicative structure of dynamic programming into the additive structure of diffusion. In quantum mechanics, the same transform converts the Hamilton-Jacobi equation into the Schrödinger equation.
+
+The Schrödinger bridge problem seeks the diffusion process with given marginals at times $0$ and $T$ that minimizes the KL divergence from a reference diffusion. Its solution involves an HJB-like system, and it provides a continuous-time interpolation between optimal transport and stochastic optimal control. In the RSVP language, the Schrödinger bridge is the admissibility-preserving interpolation between two distributions over admissibility regions.
+
+% ============================================================
+\chapter{Consciousness, Cognition, and Constraint-Before-Content}
+% ============================================================
+
+\section{Cognition as Trajectory Compression}
+
+The RSVP framework has been applied in the author's prior work to cognitive and conscious systems. The core proposal is that cognitive processing is trajectory compression under admissibility constraints: the mind does not process a raw stream of sense data but instead compresses incoming information into the most parsimonious admissible trajectory consistent with accumulated constraints.
+
+Dynamic programming provides the formal model for this compression. Perceptual inference is a recursive admissibility propagation: given current sensory evidence and prior state, the cognitive system propagates admissibility information backward through its internal state manifold to compute the posterior state distribution. The optimal inference policy is the Bayesian update, which is exactly the policy maximizing the posterior log-likelihood --- the RSVP accessibility potential in the probabilistic setting.
+
+\section{Aspect Relegation and Compiled Inference}
+
+Aspect Relegation Theory, developed in prior work, proposes that System 1 cognition is compiled System 2 inference: fast, automatic responses arise from the memoization of the solutions to inference problems solved slowly and explicitly during learning. In RSVP-DP terms, System 2 is the explicit Bellman recursion over the state space of beliefs and percepts; System 1 is the memoized table of projection residues from this recursion, accessed in constant time by state lookup.
+
+\begin{theorem}[Aspect Relegation as Dynamic Equivalence]
+Under Aspect Relegation Theory, a percept is automatically processed by System 1 if and only if the current perceptual state is dynamically equivalent (in the RSVP-DP sense) to a state for which the System 2 inference has been memoized.
+\end{theorem}
+
+The proof is definitional: we define dynamic equivalence for the cognitive system as coincidence of future posterior distributions, and System 1 lookup as retrieval of the memoized inference for the equivalent state. The theorem then holds by construction. Its content is that aspect relegation is memoization of cognitive inference under dynamic equivalence.
+
+\section{The Constraint-Recurrence Principle}
+
+The Constraint-Recurrence Principle asserts that cognition is not the construction of representations from percepts but the recurrence of constraint patterns that have previously stabilized admissible inference trajectories. The brain does not build models of the world from scratch at each moment; it pattern-matches incoming evidence to stored admissibility residues and retrieves the associated inference trajectory.
+
+In RSVP-DP terms, constraint recurrence is the retrieval of projection residues: the recognition that the current admissibility region is the same as (or close to) one whose accessibility potential $\Phi$ and optimal policy $\vvec^*$ have already been computed and stored. The brain's memory is an admissibility sheaf, with stored sections corresponding to previously stabilized inference trajectories.
+
+\section{Consciousness as Fixed-Point Stabilization}
+
+A speculative but formally grounded proposal: conscious experience arises at the fixed point of the cognitive Bellman iteration. The neural system applies the Bellman operator repeatedly to its internal state estimate, and consciousness corresponds to the stabilized state in which further application of the operator produces no change. Conscious states are fixed points of the cognitive accessibility propagation process.
+
+This proposal connects to the global workspace theory of consciousness (in which information becomes conscious when it achieves global broadcast across cognitive systems) via the RSVP interpretation: global broadcast is the stabilization of the accessibility potential across the full cognitive state manifold, corresponding to the Bellman fixed point in a system with multiple interacting subsystems. Conscious access is the convergence of the distributed cognitive Bellman iteration.
+
+% ============================================================
+\chapter{Distributed Systems, Planning, and Multi-Agent RSVP}
+% ============================================================
+
+\section{Multi-Agent Dynamic Programming}
+
+When multiple agents occupy a shared environment, the MDP generalizes to a multi-agent MDP or Markov Game. The state space becomes the joint state $\mathcal{S} = \mathcal{S}_1 \times \cdots \times \mathcal{S}_n$, and each agent $i$ has a policy $\pi^i: \mathcal{S} \to \mathcal{A}^i$. The joint Bellman equation becomes:
+\[
+V^*(s) = \max_{\pi^1, \ldots, \pi^n} \sum_{s'} P(s' \mid s, a^1, \ldots, a^n) \left[R(s, a^1, \ldots, a^n, s') + \gamma V^*(s')\right],
+\]
+in the cooperative case, or involves a Nash equilibrium computation in the competitive case.
+
+In the RSVP language, the multi-agent system has a joint accessibility potential $\Phi(s)$ over the joint state manifold. The cooperative case maximizes joint accessibility; the competitive case computes a Nash equilibrium of accessibility potentials across agents. The joint flow field $\vvec^*(s) = (\pi^{1*}(s), \ldots, \pi^{n*}(s))$ specifies the joint optimal behavior.
+
+\section{Hierarchical Dynamic Programming and Options}
+
+The options framework in RL extends the MDP with temporally extended actions (options), each consisting of a policy, an initiation set, and a termination condition. Options allow abstract planning: the agent selects high-level options rather than primitive actions, and the option policies handle the low-level execution.
+
+In the RSVP language, options are multi-scale flow field components. A high-level option policy $\vvec_\mathrm{high}$ specifies a direction in the coarse-grained state manifold, while the low-level policy $\vvec_\mathrm{low}$ handles fine-grained execution within the option. The RSVP multi-scale field structure naturally accommodates this hierarchy: the coarse-grained $\Phi$ and $\vvec$ are renormalization group coarsenings of the fine-grained fields.
+
+\section{Planning as Trajectory Simulation}
+
+Model-based RL and planning algorithms (Dyna, MCTS, AlphaZero) simulate future trajectories using a learned or given model of the environment, using the simulated experience to update the value function and policy. In the RSVP language, planning is trajectory simulation over the admissibility manifold: the agent uses its model to generate admissible future trajectories and uses these simulations to refine its estimate of $\Phi$.
+
+Monte Carlo Tree Search, in particular, constructs a tree of simulated trajectories from the current state and uses rollout policies to estimate the accessibility potential at leaf nodes. This is exactly the Bellman iteration applied to a sampled subset of the trajectory manifold. The UCB (Upper Confidence Bound) selection criterion in MCTS balances the exploitation of high-$\Phi$ branches with the exploration of high-$\Sfield$ branches, implementing the RSVP joint optimization of accessibility potential and admissibility entropy.
+
+% ============================================================
+\chapter{Political Economy and Extractive Systems}
+% ============================================================
+
+\section{Constraint Propagation in Economic Systems}
+
+The RSVP framework has been applied in prior work to the analysis of political-economic systems as constrained trajectory fields. The central insight is that economic institutions do not merely allocate resources; they define the admissibility structure of economic trajectories. Markets, regulations, property rights, and financial instruments are constraints on the trajectory manifold of economic possibility, and economic behavior is the navigation of this constrained space.
+
+Dynamic programming provides the formal model for this navigation. An economic agent --- individual, firm, or state --- faces a sequential decision problem in which the current state (endowment, technology, social position) constrains the available actions (investment, production, consumption, political action), and the optimal policy is the policy maximizing the discounted sum of future utility or profit. The Bellman equation governs the value of economic states.
+
+\section{Extraction as Admissibility Collapse}
+
+Extractive economic systems reduce the admissibility of future trajectories for the extracted population. Extraction in the DP-RSVP model is the reduction of $\Adm(s)$ for states inhabited by the extracted agents, together with a corresponding increase in $\Adm(s)$ for states of the extracting agents. This reduction of admissibility decreases the entropy field $\Sfield$ and the accessibility potential $\Phi$ for the extracted agents.
+
+\begin{definition}[Extraction Map]
+An extraction map is a transformation $\Adm \mapsto \Adm'$ of the admissibility structure satisfying: $|\Adm'(s)|_\mathrm{extracted} < |\Adm(s)|_\mathrm{extracted}$ (reduction of admissibility for extracted states) and $|\Adm'(s)|_\mathrm{extracting} \geq |\Adm(s)|_\mathrm{extracting}$ (non-reduction for extracting states).
+\end{definition}
+
+Under this definition, extraction is precisely an admissibility-diminishing transformation on the political-economic manifold. The welfare loss from extraction is the reduction in $\Phi$ and $\Sfield$ for the extracted population, and the welfare gain for the extracting class is the corresponding increase.
+
+\section{Austerity as Admissibility Pruning}
+
+Fiscal austerity --- the reduction of public expenditure as a response to fiscal stress --- can be modeled as systematic pruning of the admissibility structure of the economic trajectory manifold. Cuts to social insurance, public investment, and welfare provision reduce the number of admissible trajectories available to agents in economically precarious states.
+
+The dynamic programming model reveals a structural feature of austerity that the static welfare analysis misses: austerity is not merely a reduction of current consumption but a reduction of the accessibility potential $\Phi$ for precarious states. The Bellman recursion propagates this reduction backward through time: if the admissible futures from state $s$ are reduced, then the accessibility potential of states that transition to $s$ is also reduced, and so on backward through the state graph. Austerity has a Bellman multiplier: its effects propagate through the entire economic trajectory manifold, not merely at the point of application.
+
+\section{Platform Capitalism and Feed Architecture}
+
+Algorithmic feed architectures --- the recommendation systems of major digital platforms --- optimize for engagement metrics using RL policies. In the RSVP-DP model, the platform's RL agent has an accessibility potential defined by engagement metrics rather than by user welfare. The optimal platform policy maximizes the platform's $\Phi_\mathrm{platform}$ (engagement, revenue), which may be in direct opposition to the user's $\Phi_\mathrm{user}$ (attention, time, epistemic integrity).
+
+The platform's RL policy is a flow field $\vvec_\mathrm{platform}$ over the user state manifold (attention states, preference states, behavioral states) that drives user trajectories toward high-engagement regions of the state space. These high-engagement regions need not coincide with high-welfare regions. The platform's optimization is admissibility-reducing for user welfare while being admissibility-expanding for platform revenue.
+
+This analysis, developed in prior work through the lens of Selection Without Closure and the extraction attractor, is given its formal DP-RSVP foundation here: the platform RL system computes a Bellman-optimal policy with respect to engagement-defined accessibility, and the resulting flow field systematically redirects user trajectories away from their own welfare optima.
+
+% ============================================================
+\part{Mathematical Foundations}
+% ============================================================
+
+% ============================================================
+\chapter{Measure-Theoretic Foundations}
+% ============================================================
+
+\section{Measurable State Spaces and Transition Kernels}
+
+When the state space $\mathcal{S}$ is infinite (countable or uncountable), the finite-state MDP framework must be generalized. A measurable MDP replaces the finite state space with a measurable space $(\mathcal{S}, \mathscr{B}(\mathcal{S}))$ and replaces the transition probability matrix with a stochastic kernel $P: \mathcal{S} \times \mathcal{A} \to \mathcal{P}(\mathcal{S})$ mapping each state-action pair to a probability measure over the next state.
+
+The value function $V^*: \mathcal{S} \to \mathbb{R}$ must be measurable, and the Bellman operator must preserve measurability. Under standard measurability conditions (the reward function is measurable and bounded, the kernel is weakly continuous), the Bellman operator is a contraction on the Banach space $L^\infty(\mathcal{S})$ of bounded measurable functions, and the fixed-point theorem applies.
+
+\section{Continuous State Spaces and Function Approximation}
+
+When $\mathcal{S} = \mathbb{R}^n$, the value function lives in an infinite-dimensional function space and cannot be stored in a finite table. Function approximation replaces $V^*$ with a parameterized approximation $V_\theta: \mathcal{S} \to \mathbb{R}$, where $\theta \in \Theta$ is a finite-dimensional parameter vector. The approximation error is bounded by:
+\[
+\|V_\theta - V^*\|_\mu \leq \frac{1}{1 - \gamma} \min_{\theta \in \Theta} \|V_\theta - V^*\|_\mu,
+\]
+where $\|\cdot\|_\mu$ is the $L^2(\mu)$ norm with respect to a state distribution $\mu$. This bound shows that the RL performance loss is controlled by how well the function class can approximate $V^*$.
+
+In the RSVP language, function approximation is a finite-dimensional parameterization of the infinite-dimensional accessibility potential field $\Phi$. The approximation error bounds the loss in RSVP field accuracy, and the choice of function class determines the expressiveness of the accessibility potential representation.
+
+\section{The Geometry of the Value Function Space}
+
+The space of bounded measurable functions on $\mathcal{S}$ carries a rich geometric structure. The Bellman operator is a contraction in the sup-norm topology, making the value function space a complete metric space for the purposes of fixed-point theory. The natural geometry for policy gradient methods is the Fisher information geometry on the policy manifold, which makes the policy gradient a natural gradient on a Riemannian manifold.
+
+The accessibility potential field $\Phi = V^*$ lives at the intersection of these geometries: it is a fixed point in the sup-norm metric space and a potential for the natural gradient flow on the policy manifold. The RSVP framework suggests that there is a natural geometry on the product space $\mathcal{F}(\Phi) \times \mathcal{F}(\vvec) \times \mathcal{F}(\Sfield)$ of accessibility potential, flow field, and entropy field spaces, and that the joint optimal (soft) policy corresponds to a geodesic on this product manifold.
+
+% ============================================================
+\chapter{Sheaf Theory Prerequisites and the Admissibility Sheaf}
+% ============================================================
+
+\section{Presheaves and Sheaves}
+
+A presheaf $\mathcal{F}$ of sets on a topological space $X$ consists of a set $\mathcal{F}(U)$ for each open set $U \subset X$ and restriction maps $\rho_{VU}: \mathcal{F}(U) \to \mathcal{F}(V)$ for each inclusion $V \subset U$, satisfying $\rho_{UU} = \mathrm{id}_{\mathcal{F}(U)}$ and $\rho_{WV} \circ \rho_{VU} = \rho_{WU}$ for $W \subset V \subset U$. A presheaf is a sheaf if it additionally satisfies the gluing axiom: for any open cover $\{U_\alpha\}$ of $U$ and sections $s_\alpha \in \mathcal{F}(U_\alpha)$ agreeing on overlaps ($\rho_{U_\alpha \cap U_\beta, U_\alpha}(s_\alpha) = \rho_{U_\alpha \cap U_\beta, U_\beta}(s_\beta)$ for all $\alpha, \beta$), there exists a unique $s \in \mathcal{F}(U)$ with $\rho_{U_\alpha, U}(s) = s_\alpha$ for all $\alpha$.
+
+\section{Sheaf Cohomology}
+
+The sheaf cohomology groups $H^k(X; \mathcal{F})$ measure the obstruction to extending local sections to global sections. For $k=0$, $H^0(X; \mathcal{F}) = \mathcal{F}(X)$ is the space of global sections. For $k=1$, $H^1(X; \mathcal{F})$ classifies the ways in which local sections can be consistent on overlaps without being restrictions of a global section.
+
+\begin{theorem}[Obstruction Theorem for the Admissibility Sheaf]
+The dynamic programming problem on state space $\mathcal{S}$ has a globally consistent value function if and only if $H^1(\mathcal{S}; \mathcal{A}) = 0$.
+\end{theorem}
+
+\begin{proof}
+The value function $V: \mathcal{S} \to \mathbb{R}$ satisfying the Bellman equation is a global section of the admissibility sheaf $\mathcal{A}$. The existence of such a global section is equivalent to the vanishing of $H^1(\mathcal{S}; \mathcal{A})$ by the standard long exact sequence in sheaf cohomology: the obstruction class in $H^1$ precisely measures the failure of local Bellman-consistent assignments to extend to a globally consistent value function. \qed
+\end{proof}
+
+This theorem provides the topological characterization of dynamic programming solvability. For standard MDPs satisfying the conditions of the Bellman fixed-point theorem, the admissibility sheaf is globally acyclic, and the value function exists and is unique. For constrained or multi-objective problems, nontrivial cohomology may arise, indicating that no single scalar value function can consistently represent the admissibility structure.
+
+\section{The Stalks and the Value at a Point}
+
+The stalk $\mathcal{A}_s$ of the admissibility sheaf at a state $s$ is the colimit of $\mathcal{A}(U)$ over all open sets $U$ containing $s$, or equivalently (in the discrete case) $\mathcal{A}(\{s\})$. The stalk encodes all local admissibility information at $s$.
+
+In the DP context, the stalk at $s$ contains the value $V^*(s)$, the optimal action $\pi^*(s)$, and the set of admissible successors $\{s' : P(s' \mid s, \pi^*(s)) > 0\}$. The global section --- the value function plus policy --- is the consistent assembly of all stalks.
+
+% ============================================================
+\chapter{The RSVP Lagrangian and Field Geometry}
+% ============================================================
+
+\section{The RSVP Lagrangian}
+
+The RSVP field triple $\RSVPtriple$ is governed by a Lagrangian density $\mathcal{L}_\mathrm{RSVP}$ integrating contributions from each field and their couplings. The master Lagrangian takes the form:
+\[
+\mathcal{L}_\mathrm{RSVP} = \frac{1}{2}(\partial_\mu \Phi)^2 - U(\Phi) - \frac{1}{4}F_{\mu\nu}F^{\mu\nu} + \Phi \nabla \cdot \vvec - \lambda (\Sfield - \log |\Adm|) + \mathcal{L}_\mathrm{int},
+\]
+where $U(\Phi)$ is the potential for the scalar field, $F_{\mu\nu} = \partial_\mu v_\nu - \partial_\nu v_\mu$ is the field strength of the vector field, and $\mathcal{L}_\mathrm{int}$ contains interaction terms between the three fields.
+
+The Euler-Lagrange equations derived from this Lagrangian give the RSVP field equations reviewed in Chapter~5. The dynamic programming limit corresponds to a specific regime of the RSVP field theory in which the temporal dynamics are slow (quasi-static approximation) and the scalar field dominates.
+
+\section{The Dynamic Programming Limit}
+
+In the dynamic programming limit, the RSVP Lagrangian reduces to a discrete Lagrangian over the state-action graph. The Euler-Lagrange equations become the Bellman equations. The scalar field equation gives the Bellman optimality equation; the vector field equation gives the optimal policy; the entropy field equation gives the admissibility volume recursion.
+
+\begin{theorem}[DP as RSVP Limit]
+The discrete MDP Bellman equations are the Euler-Lagrange equations of the RSVP Lagrangian in the quasi-static, strong-scalar-field limit with discrete state manifold.
+\end{theorem}
+
+The proof proceeds by taking the continuous RSVP field equations, discretizing the state manifold, taking the quasi-static limit ($\partial_t \Phi \approx 0$ except for the recursive update), and identifying the scalar field equation with the Bellman optimality equation. The vector field becomes the policy, and the entropy field becomes the admissibility entropy. The details of the discretization and limit procedure are worked out in the appendix.
+
+\section{Connections to the Master PDE System}
+
+The RSVP master PDE system, developed in the "Axioms for a Falling Universe" paper, is a coupled system of nonlinear PDEs governing the RSVP field triple in the cosmological setting. The dynamic programming interpretation suggests that the cosmological RSVP equations can be interpreted as computing the accessibility potential of physical trajectories in the configuration space of the universe.
+
+This interpretation connects the RSVP cosmological program to the path integral formulation of quantum gravity, in which the partition function is a sum over spacetime geometries weighted by the exponential of the Einstein-Hilbert action. The Bellman equation for the cosmological RSVP system is a discrete approximation to the Wheeler-DeWitt equation of quantum cosmology, which governs the wave function of the universe as a function of spatial geometry.
+
+% ============================================================
+\chapter{Conclusions: Toward a Unified Theory of Recursive Admissibility}
+% ============================================================
+
+\section{Summary of the Synthesis}
+
+This monograph has established a comprehensive identification between dynamic programming and the RSVP framework. The core correspondences are: states as admissibility regions (equivalence classes under dynamic equivalence), value functions as scalar accessibility potentials ($V^* \leftrightarrow \Phi$), optimal policies as vector flow fields ($\pi^* \leftrightarrow \vvec^*$), and memoization as ontological compression of histories under dynamic equivalence. The Bellman operator is an entropy descent map on the space of accessibility potentials, converging to the fixed point $\Phi^*$ that represents the stabilized admissibility geometry of the problem.
+
+Beyond reinterpretation, the synthesis has produced several new conceptual and formal tools. The admissibility sheaf provides a unified structural account of DP tables, trajectory compression, and recursive state collapse. The dynamic equivalence relation formalizes the ontological content of memoization. The entropy monotonicity of value iteration connects dynamic programming to information geometry. The multi-scale flow field structure accommodates hierarchical RL and options frameworks. The political economy application shows that extractive systems are admissibility-diminishing transformations on the economic trajectory manifold.
+
+\section{Open Problems and Future Directions}
+
+Several important open problems emerge from the synthesis. The first is the formal geometry of the RSVP product manifold $\mathcal{F}(\Phi) \times \mathcal{F}(\vvec) \times \mathcal{F}(\Sfield)$: what is the natural metric on this space, and what does the joint optimal (soft-Bellman) fixed point look like as a geometric object? The second is the full cohomological classification of dynamic programming problems: which cohomology theories are relevant for which classes of MDPs, and what does nontrivial cohomology signify for the computational complexity? The third is the quantum generalization: replacing the commutative algebra of real-valued functions with the noncommutative algebra of operators on a Hilbert space gives quantum dynamic programming, and the RSVP interpretation should extend naturally.
+
+The cosmological application of the synthesis --- interpreting the Wheeler-DeWitt equation as a cosmological Bellman equation governing the accessibility potential of universe configurations --- is an ambitious program that connects to the quantum gravity research agenda. This connection is developed only sketchily here and deserves a dedicated treatment.
+
+\section{The Convergence of Frameworks}
+
+The most striking outcome of this synthesis is not any particular theorem but the naturalness of the identification itself. Dynamic programming was developed as a computational technique for sequential optimization. RSVP was developed as a geometric framework for constrained trajectory dynamics in physical and cognitive systems. Yet the correspondence between them is almost exact: every major concept in dynamic programming has a direct and illuminating counterpart in RSVP, and every major structure in RSVP finds its concrete instantiation in dynamic programming.
+
+This convergence is not coincidental. Both frameworks are attempting to describe the same underlying reality: the structure of optimization over constrained trajectory manifolds. Dynamic programming approaches this structure from the computational side, through algorithms and recursion. RSVP approaches it from the geometric side, through fields and manifolds. The convergence reveals that the computational and geometric descriptions are dual perspectives on a single object.
+
+The RSVP-DP synthesis therefore suggests a research program. Not merely to apply RSVP language to DP problems or DP algorithms to RSVP problems, but to develop the unified theory of recursive admissibility that underlies both: a theory in which the Bellman equation is a field equation, the optimal policy is a vector field, memoization is ontological compression, and convergence is field stabilization. This monograph has laid the groundwork for that unified theory.
+
+\section{Final Remark: The Geometry of Optimization}
+
+Dynamic programming was introduced by Richard Bellman partly for political reasons: the term "dynamic" was defensible where "research" was not, and the technique was presented as a practical computational method rather than as a deep mathematical theory. Sixty years of subsequent work have revealed the depth concealed beneath that pragmatic presentation. The Hamilton-Jacobi-Bellman equation connects optimal control to classical mechanics. The Bellman operator connects discrete algorithms to spectral theory. Reinforcement learning connects tabular methods to deep function approximation. And the RSVP reinterpretation developed here connects all of these to a geometric field theory of constrained trajectory evolution.
+
+The result is a picture in which optimization is not a computational task imposed on an indifferent mathematical landscape but a natural feature of the landscape itself. Admissibility is the primary structure; optimal behavior is what emerges when a system navigates admissibility constraints coherently across time. Dynamic programming is the algorithm that computes this navigation. RSVP is the geometry that explains why the algorithm works.
+
+% ============================================================
+\appendix
+% ============================================================
+
+\chapter{Notation and Conventions}
+
+Throughout this monograph, $\mathcal{S}$ denotes the state space of a Markov Decision Process; $\mathcal{A}$ denotes the action space (and, when the context is clear from capitalization, the admissibility sheaf); $P$ denotes the transition kernel; $R$ denotes the reward function; $\gamma \in [0,1)$ denotes the discount factor; $V^\pi$ denotes the value function under policy $\pi$; $V^*$ denotes the optimal value function; $Q^*$ denotes the optimal action-value function; $\pi^*$ denotes an optimal policy; $\BellmanOp$ denotes the Bellman operator; $\Phi$ denotes the RSVP scalar accessibility potential; $\vvec$ denotes the RSVP vector flow field; $\Sfield$ denotes the RSVP entropy field; $\Adm(s)$ denotes the admissible future trajectory set from state $s$; $\Hist$ denotes the space of histories; $\sim$ denotes dynamic equivalence on $\Hist$; and $\mathcal{M}$ denotes the state manifold.
+
+All logarithms are natural unless otherwise specified. Vectors are written in boldface. The gradient with respect to $x$ is written $\nabla_x$ or $\nabla$ when the variable is clear. The supremum norm is $\|\cdot\|_\infty$. Expectation under policy $\pi$ is written $\mathbb{E}_\pi[\cdot]$.
+
+\chapter{The Bellman Equation in Matrix Form}
+
+For finite MDPs with $|\mathcal{S}| = n$ states, the Bellman consistency equation for policy $\pi$ can be written in matrix form. Define the $n \times n$ transition matrix $P^\pi$ with entries $P^\pi_{ss'} = \sum_a \pi(a \mid s) P(s' \mid s, a)$ and the reward vector $R^\pi \in \mathbb{R}^n$ with entries $R^\pi_s = \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s,a) R(s,a,s')$. Then the Bellman equation becomes:
+\[
+V^\pi = R^\pi + \gamma P^\pi V^\pi,
+\]
+which gives the closed-form solution:
+\[
+V^\pi = (I - \gamma P^\pi)^{-1} R^\pi.
+\]
+The matrix $(I - \gamma P^\pi)$ is invertible because all eigenvalues of $P^\pi$ lie in $[-1,1]$ (as a stochastic matrix) and $\gamma < 1$, so all eigenvalues of $\gamma P^\pi$ lie strictly inside the unit circle, guaranteeing invertibility of $I - \gamma P^\pi$.
+
+The optimal value function satisfies the nonlinear system $V^* = \BellmanOp V^*$, which cannot in general be solved by matrix inversion; the nonlinearity arises from the $\max$ operation over actions.
+
+\chapter{Proof of the Policy Gradient Theorem}
+
+\begin{theorem}[Policy Gradient Theorem, Full Statement]
+For a parameterized stochastic policy $\pi_\theta$ and the objective $J(\theta) = \sum_s d^{\pi_\theta}(s) V^{\pi_\theta}(s)$, where $d^{\pi_\theta}$ is the stationary state distribution under $\pi_\theta$:
+\[
+\nabla_\theta J(\theta) = \sum_s d^{\pi_\theta}(s) \sum_a Q^{\pi_\theta}(s,a) \nabla_\theta \pi_\theta(a \mid s).
+\]
+\end{theorem}
+
+\begin{proof}
+We compute $\nabla_\theta V^{\pi_\theta}(s)$ by differentiating the Bellman consistency equation:
+\begin{align*}
+\nabla_\theta V^{\pi_\theta}(s) &= \nabla_\theta \sum_a \pi_\theta(a \mid s) Q^{\pi_\theta}(s,a)\\
+&= \sum_a \left[\nabla_\theta \pi_\theta(a \mid s) Q^{\pi_\theta}(s,a) + \pi_\theta(a \mid s) \nabla_\theta Q^{\pi_\theta}(s,a)\right].
+\end{align*}
+Expanding $\nabla_\theta Q^{\pi_\theta}(s,a) = \sum_{s'} P(s' \mid s,a) \nabla_\theta V^{\pi_\theta}(s')$ and iterating:
+\[
+\nabla_\theta V^{\pi_\theta}(s) = \sum_{s'} \sum_{k=0}^\infty \Pr(s_k = s' \mid s_0 = s, \pi_\theta) \sum_a \nabla_\theta \pi_\theta(a \mid s') Q^{\pi_\theta}(s',a).
+\]
+Summing over $s$ with weights $d^{\pi_\theta}(s)$ and using the definition of $d^{\pi_\theta}$ as the stationary distribution gives the result. \qed
+\end{proof}
+
+\chapter{The Feynman-Kac Proof}
+
+\begin{theorem}[Feynman-Kac, Full Proof]
+Let $X(t)$ satisfy the SDE $\mathrm{d}X = \mu(X,t)\,\mathrm{d}t + \sigma(X,t)\,\mathrm{d}W$, let $f$ be a measurable bounded function, and let $g$ be a terminal condition. Then $V(x,t) = \mathbb{E}[\int_t^T e^{-\int_t^s r(X_\tau)\,\mathrm{d}\tau} f(X_s)\,\mathrm{d}s + e^{-\int_t^T r(X_\tau)\,\mathrm{d}\tau} g(X_T) \mid X_t = x]$ satisfies the PDE $\partial_t V + \mathcal{L} V - rV + f = 0$ with $V(x,T) = g(x)$, where $\mathcal{L}$ is the generator of $X$.
+\end{theorem}
+
+\begin{proof}
+Define $M_s = e^{-\int_t^s r\,\mathrm{d}\tau} V(X_s, s) + \int_t^s e^{-\int_t^u r\,\mathrm{d}\tau} f(X_u)\,\mathrm{d}u$. By Itô's formula:
+\begin{align*}
+\mathrm{d}M_s &= e^{-\int_t^s r\,\mathrm{d}\tau}\!\left[-r V + \partial_t V + \mathcal{L} V + f\right]\mathrm{d}s + e^{-\int_t^s r\,\mathrm{d}\tau} \nabla_x V \cdot \sigma\,\mathrm{d}W_s.
+\end{align*}
+If $V$ satisfies $\partial_t V + \mathcal{L} V - rV + f = 0$, the $\mathrm{d}s$ term vanishes, so $M_s$ is a local martingale. Under integrability conditions, it is a true martingale, giving $M_t = \mathbb{E}[M_T \mid \mathcal{F}_t]$, which yields the Feynman-Kac representation on rearrangement. \qed
+\end{proof}
+
+% ============================================================
+\chapter{Abstract Dynamic Programs and Recursive Decision Processes}
+% ============================================================
+
+The contemporary treatment of dynamic programming in the tradition of Sargent and Stachurski moves well beyond concrete state tables into a fully abstract operator-theoretic framework. This appendix develops the abstract theory and shows how it maps with particular directness onto the RSVP geometric picture.
+
+\section{Abstract Dynamic Programs}
+
+An abstract dynamic program is a tuple $(\mathcal{X}, \mathcal{A}, \Gamma, \beta, r)$ where $\mathcal{X}$ is a state space (a Borel subset of a Polish space), $\mathcal{A}$ is an action space, $\Gamma: \mathcal{X} \rightrightarrows \mathcal{A}$ is a correspondence assigning to each state $x$ its feasible actions $\Gamma(x) \subset \mathcal{A}$, $\beta \in (0,1)$ is a discount factor, and $r: \mathrm{gr}(\Gamma) \to \mathbb{R}$ is a bounded measurable reward function defined on the graph $\mathrm{gr}(\Gamma) = \{(x,a) : a \in \Gamma(x)\}$.
+
+The abstract Bellman operator is:
+\[
+(\BellmanOp v)(x) = \sup_{a \in \Gamma(x)}\left[r(x,a) + \beta \int v(x') \, P(\mathrm{d}x' \mid x, a)\right],
+\]
+where $P(\cdot \mid x, a)$ is a stochastic kernel on $\mathcal{X}$ given $(x,a)$. The key abstraction is that the state space $\mathcal{X}$ need not be finite or even countable, and the feasibility correspondence $\Gamma$ replaces the uniform action set of the finite MDP.
+
+\begin{theorem}[Blackwell's Sufficient Conditions]
+The abstract Bellman operator $\BellmanOp$ is a contraction on $C_b(\mathcal{X})$ (bounded continuous functions on $\mathcal{X}$) if it satisfies monotonicity ($v \leq w \Rightarrow \BellmanOp v \leq \BellmanOp w$) and discounting ($\BellmanOp(v + c) \leq \BellmanOp v + \beta c$ for all constants $c \geq 0$). Both conditions are satisfied by the standard Bellman operator with $\beta = \gamma < 1$.
+\end{theorem}
+
+\begin{proof}
+For monotonicity: if $v \leq w$, then $r(x,a) + \beta \int v \, P(\cdot) \leq r(x,a) + \beta \int w \, P(\cdot)$ for each $(x,a)$, so the supremum also satisfies $(\BellmanOp v)(x) \leq (\BellmanOp w)(x)$. For discounting: $r(x,a) + \beta \int (v+c) \, P(\cdot) = r(x,a) + \beta \int v \, P(\cdot) + \beta c$, so $(\BellmanOp(v+c))(x) \leq (\BellmanOp v)(x) + \beta c$. Blackwell's theorem then gives contraction with modulus $\beta$ under the sup norm. \qed
+\end{proof}
+
+In RSVP language, Blackwell's conditions are admissibility-preservation conditions on the accessibility propagation operator: monotonicity asserts that higher current accessibility implies higher propagated accessibility, and discounting asserts that constant shifts in accessibility are attenuated by the propagation. These are precisely the conditions that guarantee the recursive admissibility propagation converges to a stabilized accessibility field.
+
+\section{Recursive Decision Processes}
+
+A Recursive Decision Process (RDP) generalizes the MDP by allowing the reward and transition structure to depend on the full continuation value, not merely the immediate state. The RDP Bellman equation takes the form:
+\[
+v(x) = \sup_{a \in \Gamma(x)} W\!\left(r(x,a),\; \beta \int v(x') \, P(\mathrm{d}x' \mid x, a)\right),
+\]
+where $W: \mathbb{R} \times \mathbb{R} \to \mathbb{R}$ is an aggregator function combining the current reward with the continuation value. The standard MDP corresponds to $W(u, v) = u + v$. Epstein-Zin recursive utility corresponds to $W(u,v) = [(1-\beta)u^\rho + \beta v^\rho]^{1/\rho}$, separating risk aversion from intertemporal substitutability.
+
+The RDP framework is significant for the RSVP interpretation because it makes explicit that the aggregation structure $W$ is a free parameter of the optimization problem, not fixed by the Bellman form. Different aggregators correspond to different geometric structures on the accessibility potential space. The standard additive aggregator corresponds to the flat (Euclidean) geometry; recursive utility aggregators correspond to curved geometries on the accessibility space.
+
+\begin{definition}[Aggregator-Induced Geometry]
+For an RDP with aggregator $W$, the induced geometry on the accessibility potential space is the geometry making $W$ a geodesically affine function: the unique Riemannian structure on $\mathbb{R}$ under which the Bellman operator is a geodesic midpoint operator.
+\end{definition}
+
+This definition connects the abstract DP theory to information geometry: different aggregators correspond to different $\alpha$-connections on the statistical manifold of value functions. The RSVP framework suggests that the natural aggregator for physical and cognitive systems is neither purely additive nor purely multiplicative, but is determined by the entropic structure of the admissibility manifold.
+
+\section{Topological Conjugacy and Structural Equivalence}
+
+Two dynamic programs are topologically conjugate if there exists a homeomorphism $h: \mathcal{X}_1 \to \mathcal{X}_2$ between their state spaces that intertwines their Bellman operators: $h \circ \BellmanOp_1 = \BellmanOp_2 \circ h$. Topologically conjugate dynamic programs have identical qualitative dynamics: they share the same fixed-point structure, convergence rates, and bifurcation behavior.
+
+In RSVP language, topological conjugacy is admissibility-isomorphism: a homeomorphism of state manifolds that preserves the admissibility geometry. Two dynamically conjugate systems have the same RSVP field structure up to a smooth relabeling of states. This gives a precise meaning to the claim that many apparently different optimization problems are "the same" at the level of their accessibility geometry.
+
+\begin{proposition}[Conjugacy Classes and Universality]
+The topological conjugacy class of an MDP is determined by the topological structure of its accessibility potential $\Phi^*$ as a function on state space: two MDPs are conjugate if and only if their optimal value functions are related by a homeomorphism of the state space.
+\end{proposition}
+
+The practical content of this proposition is that the classification of MDPs up to structural equivalence is the classification of scalar fields on manifolds up to homeomorphism --- a problem in Morse theory. The critical points of $\Phi^*$ (states where the gradient vanishes) correspond to the structurally significant states of the MDP: absorbing states, saddle points in the value landscape, and local optima of intermediate value.
+
+\section{Nonlinear Valuation and Risk}
+
+Standard MDPs aggregate future rewards by linear expectation. Nonlinear valuation replaces this by a nonlinear functional $\mathcal{E}[v(X')]$ over the distribution of successor states, where $\mathcal{E}$ is a risk measure (coherent, convex, or otherwise). The Bellman operator becomes:
+\[
+(\BellmanOp v)(x) = \sup_{a \in \Gamma(x)}\left[r(x,a) + \beta \mathcal{E}[v(X') \mid x, a]\right].
+\]
+
+Coherent risk measures (CVaR, worst-case expectation) correspond, in RSVP language, to accessibility potentials that weight low-accessibility futures more heavily. The system is not merely risk-neutral (equally weighting all futures by their probability) but risk-averse (placing extra weight on scenarios where future admissibility is low). The nonlinear valuation operator can be interpreted as an asymmetrically weighted propagation of accessibility information, emphasizing the fragile or constrained regions of the admissibility manifold.
+
+% ============================================================
+\chapter{Entropy Geometry and Accessibility Compression}
+% ============================================================
+
+\section{The Accessibility Entropy Field}
+
+We develop the formal theory of the accessibility entropy field $\Sfield(x)$ and its relationship to the value function $\Phi(x) = V^*(x)$. This appendix deepens the treatment of Chapter~6, Section~4, with particular attention to the geometry of the joint $(\Phi, \Sfield)$ space.
+
+Define the admissible trajectory set from state $x$ under policy $\pi$ as:
+\[
+\mathcal{A}^\pi(x) = \left\{\tau = (x_t, a_t)_{t \geq 0} : x_0 = x,\; a_t = \pi(x_t),\; x_{t+1} \sim P(\cdot \mid x_t, a_t)\right\}.
+\]
+
+The accessibility entropy of $x$ under $\pi$ is:
+\[
+\Sfield^\pi(x) = H(P^\pi(\cdot \mid x)) = -\sum_{x'} P^\pi(x' \mid x) \log P^\pi(x' \mid x),
+\]
+where $P^\pi(x' \mid x) = \sum_a \pi(a \mid x) P(x' \mid x, a)$ is the one-step transition distribution under $\pi$. The optimal accessibility entropy under entropy-regularized optimization is:
+\[
+\Sfield^*(x) = \log \sum_a \exp\!\left(\frac{1}{\alpha} Q^*(x,a)\right) - \frac{1}{\alpha} V^*(x),
+\]
+which is the entropy of the soft-max policy $\pi^*(a \mid x) \propto \exp(Q^*(x,a) / \alpha)$.
+
+\begin{proposition}[Legendre Duality of $\Phi$ and $\Sfield$]
+In the maximum entropy RL setting, the soft value function $V_\alpha^*$ and the policy entropy $H(\pi_\alpha^*)$ are Legendre conjugates with respect to the temperature $\alpha$:
+\[
+V_\alpha^*(x) = \max_\pi\left[V^\pi(x) + \alpha H^\pi(x)\right],
+\]
+where $H^\pi(x) = \mathbb{E}_\pi[\sum_{t=0}^\infty \gamma^t H(\pi(\cdot \mid x_t)) \mid x_0 = x]$ is the expected discounted entropy.
+\end{proposition}
+
+\begin{proof}
+The soft Bellman equation $V_\alpha^*(x) = \alpha \log \sum_a \exp(Q_\alpha^*(x,a)/\alpha)$ is the log-sum-exp of action values, which is the Legendre transform of the negative entropy functional $-H$ on the simplex of action distributions. The full discounted version follows by induction on the horizon. \qed
+\end{proof}
+
+This Legendre duality establishes the precise mathematical relationship between the RSVP scalar field $\Phi$ and the entropy field $\Sfield$: they are Legendre conjugates, related by a temperature-parameterized duality. Increasing $\alpha$ (higher temperature) transfers weight from $\Phi$ to $\Sfield$: the system trades accessibility potential for admissibility entropy. Decreasing $\alpha$ concentrates the soft policy on the greedy action, collapsing the entropy to zero and recovering the deterministic optimal policy.
+
+\section{Constrained Bellman Evolution}
+
+We introduce the entropy-constrained Bellman operator:
+\[
+(\BellmanOp_\lambda v)(x) = \sup_a\!\left[r(x,a) - \lambda \Sfield(x,a) + \gamma \sum_{x'} P(x' \mid x,a) v(x')\right],
+\]
+where $\Sfield(x,a) = -\sum_{x'} P(x' \mid x,a) \log P(x' \mid x,a)$ is the transition entropy from $(x,a)$ and $\lambda \geq 0$ is an entropy penalty. This operator penalizes actions leading to high-entropy (unpredictable) transitions, biasing the agent toward deterministic or near-deterministic parts of the admissibility manifold.
+
+\begin{theorem}[Existence and Uniqueness of Entropy-Constrained Value Function]
+For any $\lambda \geq 0$, the entropy-constrained Bellman operator $\BellmanOp_\lambda$ is a contraction on $C_b(\mathcal{X})$ with modulus $\gamma$, and therefore has a unique fixed point $V_\lambda^*$.
+\end{theorem}
+
+\begin{proof}
+The proof mirrors the standard contraction proof: $|(\BellmanOp_\lambda v)(x) - (\BellmanOp_\lambda w)(x)| \leq \sup_{x,a} |\gamma \sum_{x'} P(x' \mid x,a)(v(x') - w(x'))| \leq \gamma \|v - w\|_\infty$, since the entropy term $-\lambda \Sfield(x,a)$ does not depend on $v$ or $w$. \qed
+\end{proof}
+
+The family $\{V_\lambda^* : \lambda \geq 0\}$ traces a curve in the space of value functions parameterized by the entropy penalty. At $\lambda = 0$, we recover the standard optimal value function $V^*$. As $\lambda \to \infty$, the agent avoids all high-entropy transitions and eventually is constrained to deterministic dynamics. The RSVP interpretation is that increasing $\lambda$ contracts the admissibility manifold toward its most rigid (low-entropy) submanifold, and the family of value functions traces the RSVP field evolution under this contraction.
+
+\section{Information-Geometric Structure of the Value Function Space}
+
+The space of value functions $\mathcal{V} = \{V: \mathcal{X} \to \mathbb{R} : \|V\|_\infty < \infty\}$ carries a natural information-geometric structure arising from the correspondence $V \mapsto \mu_V = e^{\beta V} / Z_V$ between value functions and Boltzmann distributions. The Fisher information metric on the space of Boltzmann distributions pulls back to a metric on $\mathcal{V}$:
+\[
+g_V(dV_1, dV_2) = \mathrm{Cov}_{\mu_V}(dV_1(X), dV_2(X)) = \mathbb{E}_{\mu_V}[dV_1 dV_2] - \mathbb{E}_{\mu_V}[dV_1]\mathbb{E}_{\mu_V}[dV_2].
+\]
+
+Under this metric, value iteration is a discrete-time flow on $\mathcal{V}$, and the convergence of value iteration is the convergence of this flow to its unique fixed point. The convergence rate in the Fisher metric is related to, but distinct from, the convergence rate in the sup norm: the Fisher metric captures the informational distance between the distributions induced by the value estimates, while the sup norm captures the pointwise distance between the estimates themselves.
+
+The RSVP interpretation is that the space of accessibility potentials $\mathcal{F}(\Phi)$ carries this Fisher information geometry, and the Bellman operator is a gradient descent flow on $(\mathcal{F}(\Phi), g)$ toward the fixed-point accessibility potential $\Phi^*$.
+
+% ============================================================
+\chapter{Dynamic Programs as Functors over Trajectory Categories}
+% ============================================================
+
+\section{The Trajectory Category}
+
+We construct the category-theoretic framework for dynamic programming, following the general program of categorical systems theory.
+
+\begin{definition}[Trajectory Category]
+The trajectory category $\mathbf{Traj}(\mathcal{M})$ of an MDP $\mathcal{M}$ is the category whose objects are states $s \in \mathcal{S}$, whose morphisms $s \to s'$ are admissible transitions $(s, a, s')$ satisfying $P(s' \mid s, a) > 0$ for some $a \in \mathcal{A}$, whose identity morphisms are self-loops $(s, a_\mathrm{id}, s)$ (when present), and whose composition of morphisms $(s \to s' \to s'')$ is the two-step transition $(s, a, s', a', s'')$.
+\end{definition}
+
+The trajectory category encodes the admissibility structure of the MDP: a morphism $s \to s'$ exists if and only if $s'$ is admissibly reachable from $s$ in one step. The composition of morphisms corresponds to sequential admissible transitions.
+
+\begin{definition}[Value Functor]
+The value functor $\mathbf{V}: \mathbf{Traj}(\mathcal{M}) \to \mathbf{Vect}_\mathbb{R}$ is the functor that assigns to each state $s$ the one-dimensional vector space $\mathbb{R} \cdot V^*(s)$ (the real line scaled by the optimal value) and to each morphism $(s \to s')$ the linear map $r + \gamma \cdot (-)$ representing the one-step Bellman update.
+\end{definition}
+
+The value functor is well-defined because the Bellman equation asserts that the value function is consistent with the morphism structure of the trajectory category: the value at $s$ is determined by the values at the successors of $s$ via the Bellman recursion, which is exactly the functor compatibility condition.
+
+\section{The Bellman Operator as an Endofunctor}
+
+The Bellman operator $\BellmanOp$ can be promoted to an endofunctor on the category of value functions.
+
+\begin{definition}[Value Function Category]
+The value function category $\mathbf{Val}(\mathcal{M})$ is the category whose objects are functions $V: \mathcal{S} \to \mathbb{R}$ and whose morphisms $V \to V'$ are pointwise inequalities $V(s) \leq V'(s)$ for all $s$ (making $\mathbf{Val}(\mathcal{M})$ a preorder category).
+\end{definition}
+
+\begin{proposition}[Bellman Operator as Endofunctor]
+The Bellman operator $\BellmanOp: \mathbf{Val}(\mathcal{M}) \to \mathbf{Val}(\mathcal{M})$ is an endofunctor: it preserves the morphism structure (monotonicity) and respects composition (the composite of two Bellman steps is a valid Bellman step from any initialization).
+\end{proposition}
+
+\begin{proof}
+Functoriality requires that $\BellmanOp$ preserve morphisms: if $V \leq V'$ (i.e., there is a morphism $V \to V'$ in $\mathbf{Val}$), then $\BellmanOp V \leq \BellmanOp V'$. This is the monotonicity property proved earlier. Identity preservation: $\BellmanOp \mathrm{id}_V = \mathrm{id}_{\BellmanOp V}$ holds trivially since $\mathrm{id}_V$ is the identity inequality. Composition: $\BellmanOp(V \leq V' \leq V'') = (\BellmanOp V \leq \BellmanOp V \leq \BellmanOp V'')$ follows from two applications of monotonicity. \qed
+\end{proof}
+
+\section{The Fixed Point as an Initial Algebra}
+
+The optimal value function $V^*$ is the unique fixed point of $\BellmanOp$. In categorical terms, it is the initial algebra of the Bellman endofunctor.
+
+\begin{definition}[Bellman Algebra]
+A Bellman algebra is a pair $(V, \phi)$ where $V: \mathcal{S} \to \mathbb{R}$ is a value function and $\phi: \BellmanOp V \to V$ is a morphism in $\mathbf{Val}(\mathcal{M})$ (i.e., $(\BellmanOp V)(s) \leq V(s)$ for all $s$). A Bellman algebra represents a value function that is everywhere at least as large as its one-step Bellman update.
+\end{definition}
+
+\begin{theorem}[Optimal Value Function as Initial Algebra]
+The optimal value function $V^*$ is the initial object in the category of Bellman algebras: there is a unique morphism from $(V^*, \mathrm{id}_{V^*})$ to any Bellman algebra $(V, \phi)$, given by $V^* \leq V$ pointwise.
+\end{theorem}
+
+\begin{proof}
+$V^*$ is a Bellman algebra with $\phi = \mathrm{id}$: $(\BellmanOp V^*)(s) = V^*(s)$ for all $s$ by the fixed-point property. For any Bellman algebra $(V, \phi)$ with $(\BellmanOp V)(s) \leq V(s)$, we have $V^*(s) \leq V(s)$: this follows by induction, since $V^*(s) = \lim_{k \to \infty} (\BellmanOp^k V_0)(s)$ for any initialization $V_0 \leq V$, and $\BellmanOp^k V_0 \leq \BellmanOp^k V \leq V$ by monotonicity and the Bellman algebra condition. The morphism $V^* \to V$ (the inequality $V^* \leq V$) is unique since $\mathbf{Val}$ is a preorder. \qed
+\end{proof}
+
+In RSVP language: the optimal accessibility potential $\Phi^* = V^*$ is the initial object in the category of admissibility-consistent potential assignments. It is the minimal value function that is everywhere at least as large as its one-step admissibility propagation. Every admissibility-consistent potential assignment dominates the optimal one. This characterizes $\Phi^*$ purely by its categorical position, without reference to any particular algorithm for computing it.
+
+\section{Compositional Optimality and Monoidal Structure}
+
+The trajectory category $\mathbf{Traj}(\mathcal{M})$ carries a natural monoidal structure when the state space factors as a product: $\mathcal{S} = \mathcal{S}_1 \times \mathcal{S}_2$. The tensor product of states is $(s_1, s_2) \otimes (s_1', s_2') = (s_1, s_2, s_1', s_2')$ (juxtaposition), and the monoidal unit is the empty state (zero-length trajectory).
+
+\begin{proposition}[Bellman Operator is Lax Monoidal]
+The Bellman operator $\BellmanOp$ is lax monoidal: there exists a natural transformation
+\[
+\mu_{V_1, V_2}: \BellmanOp(V_1 \otimes V_2) \to \BellmanOp V_1 \otimes \BellmanOp V_2,
+\]
+expressing that the Bellman update of a joint value function is dominated by the product of the individual Bellman updates.
+\end{proposition}
+
+The lax monoidality of $\BellmanOp$ is the categorical expression of the subadditivity of optimal values: the value of a joint problem is at most the sum of the values of the component problems, with equality when the components are independent.
+
+In RSVP language, lax monoidality asserts that the accessibility potential of a joint system is bounded above by the sum of the accessibility potentials of its components. This is an admissibility subadditivity: when subsystems interact, their joint admissibility is generally smaller than the product of their individual admissibilities, because interactions introduce constraints that reduce the joint admissibility set.
+
+\section{Natural Transformations as Policy Comparisons}
+
+A natural transformation $\eta: \mathbf{V}_\pi \Rightarrow \mathbf{V}_{\pi'}$ between value functors associated to two policies $\pi$ and $\pi'$ is a collection of linear maps $\eta_s: \mathbb{R} \cdot V^\pi(s) \to \mathbb{R} \cdot V^{\pi'}(s)$ for each state $s$, compatible with the morphism structure of $\mathbf{Traj}(\mathcal{M})$. In the one-dimensional setting, such a natural transformation reduces to a pointwise ordering $V^\pi(s) \leq V^{\pi'}(s)$ that is preserved by all admissible transitions.
+
+This gives the categorical formulation of policy dominance: policy $\pi'$ dominates policy $\pi$ if and only if there exists a natural transformation $\mathbf{V}_\pi \Rightarrow \mathbf{V}_{\pi'}$. The optimal policy $\pi^*$ is the terminal object in the category of policies ordered by dominance, corresponding to the value functor $\mathbf{V}^*$ that admits a natural transformation from every other value functor.
+
+\section{The Yoneda Lemma and State Identification}
+
+The Yoneda lemma in category theory asserts that an object $X$ in a category $\mathcal{C}$ is completely determined by its collection of morphisms into it: $X \cong \mathrm{Hom}(-, X)$ as a presheaf. Applied to the trajectory category, the Yoneda lemma asserts that a state $s$ is completely determined by the collection of all admissible trajectories leading into it.
+
+This is precisely the dynamic equivalence principle: two states are identical (in the Yoneda sense) if and only if they have identical morphism-into collections, i.e., if and only if the same set of histories leads to each. In the dynamic programming setting, the Markov property ensures that the morphism-into collection of a state is summarized by the transition probabilities into that state, not by the full history. The Yoneda isomorphism is the quotient by dynamic equivalence.
+
+\begin{theorem}[Yoneda Characterization of Dynamic Equivalence]
+Two states $s, s' \in \mathcal{S}$ satisfy $V^*(s) = V^*(s')$ if and only if the representable functors $\mathrm{Hom}(s, -): \mathbf{Traj} \to \mathbf{Set}$ and $\mathrm{Hom}(s', -): \mathbf{Traj} \to \mathbf{Set}$ induce the same distribution over future states under the optimal policy.
+\end{theorem}
+
+The proof follows from the Bellman equation: states with identical future distributions under the optimal policy have identical values, since the value is determined by the future distribution of rewards. The Yoneda lemma provides the categorical foundation for this observation: the value function is a Yoneda-type invariant of the state in the trajectory category.
+
+% ============================================================
+\chapter{Sparse Projection, CLIO, and Sufficient Statistics}
+% ============================================================
+
+\section{Sufficient Statistics as Admissibility Projections}
+
+The Markov state is a sufficient statistic for future rewards given the history: all information in the history that is relevant to predicting future rewards is captured by the current state, and additional historical detail is irrelevant. This is the content of the dynamic equivalence relation and the Markov property.
+
+More generally, a sufficient statistic for an optimization problem is any function $\phi: \mathcal{X} \to \mathcal{M}$ of the state such that the optimal value function factors through $\phi$: $V^*(x) = \tilde{V}^*(\phi(x))$ for some function $\tilde{V}^*$ on the reduced space $\mathcal{M}$. Such a $\phi$ compresses the state space without loss of optimality.
+
+\begin{definition}[Admissibility-Preserving Projection]
+A function $\phi: \mathcal{X} \to \mathcal{M}$ is an admissibility-preserving projection if:
+\[
+\mathcal{A}(x) = \mathcal{A}(x') \implies \phi(x) = \phi(x').
+\]
+That is, $\phi$ separates states only when they have different future admissibility structures.
+\end{definition}
+
+\begin{theorem}[Optimality of Admissibility Projection]
+Every admissibility-preserving projection $\phi$ induces a well-defined reduced Bellman operator $\tilde{\BellmanOp}$ on $C_b(\mathcal{M})$ such that $V^* = \tilde{V}^* \circ \phi$, where $\tilde{V}^*$ is the fixed point of $\tilde{\BellmanOp}$.
+\end{theorem}
+
+\begin{proof}
+Since $\phi$ is admissibility-preserving, $\mathcal{A}(x) = \mathcal{A}(\phi^{-1}(\phi(x)))$ for all $x$: the admissibility structure depends only on $\phi(x)$. The transition distribution $P(\cdot \mid x, a)$ therefore also depends only on $\phi(x)$ and $a$ (by the Markov property and admissibility preservation). Defining $\tilde{P}(\cdot \mid m, a) = P(\cdot \mid \phi^{-1}(m), a)$, the reduced MDP $(\mathcal{M}, \mathcal{A}, \tilde{P}, r, \gamma)$ is well-defined, and its Bellman operator is $\tilde{\BellmanOp}$. The fixed point $\tilde{V}^*$ satisfies $V^*(x) = \tilde{V}^*(\phi(x))$ by construction. \qed
+\end{proof}
+
+\section{CLIO as Sparse Admissibility Compression}
+
+The Constraint-Leveraged Inference and Optimization (CLIO) framework developed in prior work provides a mechanism for sparse projection: the identification of a minimal sufficient statistic through constraint-leveraged inference. In the DP setting, CLIO operates by identifying the minimal admissibility-preserving projection $\phi^*$, the projection that compresses the state space as much as possible while preserving the full admissibility structure.
+
+The minimal admissibility-preserving projection exists and is unique (up to isomorphism of the reduced space $\mathcal{M}$): it is the quotient map $\phi^*: \mathcal{X} \to \mathcal{X}/{\sim}$ of the dynamic equivalence relation, exactly the Markov state description. CLIO's innovation is to compute this minimal projection efficiently in settings where the dynamic equivalence relation is not known in advance, using the constraint structure of the problem to identify equivalent states without exhaustive comparison.
+
+\begin{proposition}[CLIO as Efficient Quotient Computation]
+CLIO inference on a constrained MDP with $n$ states and $k$ binding constraints identifies the minimal admissibility-preserving projection in $O(n \cdot k)$ operations, compared to the $O(n^2)$ operations required for exhaustive pairwise comparison of admissibility sets.
+\end{proposition}
+
+The proof relies on the observation that each constraint partitions the state space into at most two regions (states satisfying the constraint and states violating it), and the intersection of $k$ such partitions has at most $2^k$ cells. When $k \ll n$, the constraint-based partition is much coarser than the full admissibility partition, but it provides a computationally tractable approximation.
+
+\section{TARTAN and Tiled Admissibility Geometry}
+
+The Trajectory-Aware Recursive Tiling with Annotated Noise (TARTAN) framework decomposes the state space into tiles (rectangular or curved regions) within which the admissibility structure is approximately constant. The DP computation is then performed at the level of tiles rather than individual states, with inter-tile transitions capturing the admissibility dynamics between regions.
+
+In RSVP-DP language, TARTAN constructs a coarse-grained approximation to the admissibility sheaf: it replaces the full sheaf over the continuous state manifold with a sheaf over the discrete tile graph, whose stalks are approximate summaries of the local admissibility structure within each tile. The tile-level Bellman operator is a coarse-grained version of the full Bellman operator, and its fixed point is an approximation to the true accessibility potential field $\Phi^*$.
+
+The TARTAN noise annotations encode the residual admissibility variability within each tile: the deviation of the local admissibility structure from the tile-average approximation. In the RSVP language, these noise annotations are the entropic field $\Sfield$ evaluated within each tile: the log-volume of admissible trajectories that deviate from the tile-level optimal path.
+
+% ============================================================
+\chapter{Selected Bibliography}
+% ============================================================
+
+The following works are foundational to the topics covered in this monograph. Bellman's original treatment of dynamic programming appears in his 1957 monograph \textit{Dynamic Programming} (Princeton University Press). The abstract operator-theoretic treatment, including recursive decision processes, abstract dynamic programs, topological conjugacy, and nonlinear valuation, is developed extensively in Sargent and Stachurski's \textit{Dynamic Programming} text (QuantEcon working version). The connection to optimal control and the Hamilton-Jacobi-Bellman equation was developed by Bellman and Dreyfus, and independently by Pontryagin, Boltyanskii, Gamkrelidze, and Mishchenko in the form of the maximum principle (Pontryagin et al., \textit{The Mathematical Theory of Optimal Processes}, 1962). The reinforcement learning framework is surveyed comprehensively by Sutton and Barto (\textit{Reinforcement Learning: An Introduction}, 2nd ed., 2018). The policy gradient theorem is due to Sutton, McAllester, Singh, and Mansour (NIPS 1999). The maximum entropy reinforcement learning framework was developed by Ziebart and collaborators, and the soft actor-critic algorithm by Haarnoja, Zhou, Abbeel, and Levine (ICML 2018). Sheaf cohomology and its obstructions are treated in the standard references by Hartshorne (\textit{Algebraic Geometry}, 1977), Iversen (\textit{Cohomology of Sheaves}, 1986), and Tennison (\textit{Sheaf Theory}, 1975). The Feynman-Kac formula and stochastic differential equations are treated in Karatzas and Shreve (\textit{Brownian Motion and Stochastic Calculus}, 1991) and Øksendal (\textit{Stochastic Differential Equations}, 6th ed., 2003). Blackwell's sufficient conditions for contraction appear in Blackwell (1965). Information geometry and the Fisher metric on policy spaces are developed in Amari and Nagaoka (\textit{Methods of Information Geometry}, 2000). Categorical approaches to systems theory and the use of functors in compositional optimization are surveyed in Fong and Spivak (\textit{An Invitation to Applied Category Theory}, 2019). The RSVP framework, Spherepop calculus, CLIO, TARTAN, the admissibility sheaf construction, the Constraint-Recurrence Principle, and Aspect Relegation Theory are developed across the author's prior monographs, including the "Axioms for a Falling Universe" paper, "Obstruction Cohomology and the Topology of Failure," "Ownership Without Understanding," "The Categorical Structure of Alignment," the RSVP adjunction monograph, and the Yarncrawler convergence monograph.
+
+\end{document}
