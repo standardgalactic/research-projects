@@ -35,7 +35,6 @@
     overflow-x: hidden;
   }
 
-  /* Grid noise texture overlay */
   body::before {
     content: '';
     position: fixed;
@@ -95,7 +94,6 @@
     z-index: 1;
   }
 
-  /* ── Controls Panel ── */
   .controls {
     grid-row: 1 / 3;
     background: var(--panel);
@@ -197,7 +195,6 @@
   button.danger { border-color: var(--friction); color: var(--friction); }
   button.danger:hover { background: rgba(255,62,108,0.1); }
 
-  /* ── Rotor Visualizer ── */
   .rotor-panel {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -211,7 +208,6 @@
 
   .rotor-panel canvas { display: block; }
 
-  /* ── Torque Chart ── */
   .chart-panel {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -230,7 +226,6 @@
     text-transform: uppercase;
   }
 
-  /* ── Telemetry Strip ── */
   .telemetry {
     grid-column: 1 / 3;
     display: grid;
@@ -283,7 +278,6 @@
   .legend-item { display: flex; align-items: center; gap: 6px; }
   .legend-dot { width: 10px; height: 2px; border-radius: 1px; }
 
-  /* toggle */
   .toggle-row { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
   .toggle {
     position: relative;
@@ -319,7 +313,6 @@
   <div class="status-dot" id="statusDot"></div>
 </header>
 
-<!-- Telemetry strip -->
 <div class="telemetry">
   <div class="telem-cell">
     <div class="telem-label">ω (rad/s)</div>
@@ -349,7 +342,6 @@
 
 <div class="main-grid">
 
-  <!-- Controls -->
   <div class="controls">
     <div>
       <div class="ctrl-section-title">// Thermal Subsystem</div>
@@ -448,11 +440,11 @@
       EULER INTEGRATION<br>
       dt = 1ms · α = τ_net / I<br>
       ω += α·dt · θ += ω·dt<br>
+      TELEMETRY: 50-step avg<br>
       <span style="color:var(--thermal)">■</span> Thermal  <span style="color:var(--em)">■</span> EM  <span style="color:var(--net)">■</span> Net
     </div>
   </div>
 
-  <!-- Rotor visualizer -->
   <div class="rotor-panel">
     <div class="panel-title">// ROTOR STATE · θ = <span id="theta-display">0.0°</span></div>
     <canvas id="rotorCanvas" width="300" height="300"></canvas>
@@ -461,7 +453,6 @@
     </div>
   </div>
 
-  <!-- Torque chart -->
   <div class="chart-panel">
     <div style="display:flex;justify-content:space-between;align-items:center;">
       <div class="panel-title">// TORQUE WAVEFORM · ONE REVOLUTION</div>
@@ -480,146 +471,135 @@
 </div>
 
 <script>
-// ──────────────────────────────────────────────
-// ENGINE PHYSICS
-// ──────────────────────────────────────────────
-
 const TWO_PI = 2 * Math.PI;
 const DEG = Math.PI / 180;
 
-// Parameters (live-updated from sliders)
 let params = {
-  T_wall: 400,        // °C
-  m_inj: 0.002,       // kg
+  T_wall: 400,
+  m_inj: 0.002,
   N_chambers: 6,
   pulse_width_deg: 40,
   em_enabled: true,
   tau_em_peak: 12,
   em_phase_offset_deg: 15,
-  I: 0.8,             // kg·m²
+  I: 0.8,
   k_drag: 0.04,
   k_bearing: 0.02,
-  R_rotor: 0.15,      // m
-  A_vane: 0.02,       // m² (fixed for now)
+  R_rotor: 0.15,
+  A_vane: 0.02,
 };
 
-// Machine constants
-const h_vap = 2257e3;       // J/kg latent heat of vaporization (water)
-const c_water = 4186;       // J/(kg·K)
-const T_water_in = 20;      // °C injection temperature
-const vol_chamber = 5e-4;   // m³
+const h_vap = 2257e3;
+const c_water = 4186;
+const T_water_in = 20;
+const vol_chamber = 5e-4;
 
-// Pressure from flash-steam expansion (simplified)
-// Q = m * c * ΔT + m * h_vap  → energy deposited
-// P_peak = Q / (vol_chamber) scaled by thermal efficiency factor
 function flashPressure(m_inj_kg, T_wall_C) {
-  const dT = Math.max(0, T_wall_C - 100);
   const Q = m_inj_kg * (c_water * (T_wall_C - T_water_in) + h_vap);
-  const efficiency = 0.25; // real-world losses
+  const efficiency = 0.25;
   const P = (Q * efficiency) / vol_chamber;
-  return Math.min(P, 8e6); // cap at 80 bar
+  return Math.min(P, 8e6);
 }
 
-// Thermal torque at a given angle, for the current parameters
-// Returns torque contribution from all N chambers
-function getThermalTorque(theta, omega) {
+function getThermalTorque(theta) {
   const spacing = TWO_PI / params.N_chambers;
   const pw = params.pulse_width_deg * DEG;
   const P_peak = flashPressure(params.m_inj, params.T_wall);
   let tau = 0;
-
   for (let c = 0; c < params.N_chambers; c++) {
     const inj_angle = c * spacing;
     let delta = ((theta - inj_angle) % TWO_PI + TWO_PI) % TWO_PI;
     if (delta < pw) {
-      // Gamma-like pulse shape: rises fast, decays over pulse width
       const t = delta / pw;
-      const shape = 4 * t * (1 - t) * Math.exp(-2 * t); // smooth hump
-      const pressure = P_peak * shape;
-      tau += pressure * params.A_vane * params.R_rotor;
+      const shape = 4 * t * (1 - t) * Math.exp(-2 * t);
+      tau += P_peak * shape * params.A_vane * params.R_rotor;
     }
   }
   return tau;
 }
 
-// EM switched-reluctance torque
-function getEMTorque(theta, omega) {
+function getEMTorque(theta) {
   if (!params.em_enabled) return 0;
   const spacing = TWO_PI / params.N_chambers;
-  const pw = params.pulse_width_deg * DEG * 0.6; // EM pulse slightly narrower
+  const pw = params.pulse_width_deg * DEG * 0.6;
   const offset = params.em_phase_offset_deg * DEG;
   let tau = 0;
-
   for (let c = 0; c < params.N_chambers; c++) {
     const trigger = c * spacing + offset;
     let delta = ((theta - trigger) % TWO_PI + TWO_PI) % TWO_PI;
     if (delta < pw) {
       const t = delta / pw;
-      const shape = Math.sin(Math.PI * t);
-      tau += params.tau_em_peak * shape;
+      tau += params.tau_em_peak * Math.sin(Math.PI * t);
     }
   }
   return tau;
 }
 
-// Friction (viscous + bearing)
 function getFrictionTorque(omega) {
-  return params.k_drag * omega * omega * Math.sign(omega)
-       + params.k_bearing * omega;
+  return params.k_drag * omega * omega * Math.sign(omega) + params.k_bearing * omega;
 }
 
-// ──────────────────────────────────────────────
-// SIMULATION STATE
-// ──────────────────────────────────────────────
-
+// ── Simulation state ──
 let running = false;
 let animId = null;
 let theta = 0;
-let omega = 0.1; // tiny seed velocity
+let omega = 0.1;
 let simTime = 0;
-let dt = 0.001; // 1ms steps per animation frame chunk
+const dt = 0.001;
 const stepsPerFrame = 10;
 
-// History for omega chart (5s window)
-let omegaHistory = [];
-const MAX_HISTORY = 5000; // 5000 steps = 5s
+// Telemetry: running averages over a smoothing window
+const SMOOTH_N = 50; // steps to average over — covers ~1 sub-step burst at 10 steps/frame × 5 frames
+let smoothBuf = { th: [], em: [], fr: [], net: [] };
 
-let lastThermal = 0, lastEM = 0, lastFric = 0, lastNet = 0;
+function pushSmooth(buf, val) {
+  buf.push(val);
+  if (buf.length > SMOOTH_N) buf.shift();
+}
+function meanSmooth(buf) {
+  if (!buf.length) return 0;
+  return buf.reduce((a, b) => a + b, 0) / buf.length;
+}
+
+let dispThermal = 0, dispEM = 0, dispFric = 0, dispNet = 0;
+
+let omegaHistory = [];
+const MAX_HISTORY = 5000;
 
 function stepSim() {
-  // Integrate multiple steps per frame for speed
   for (let i = 0; i < stepsPerFrame; i++) {
-    const tau_th = getThermalTorque(theta, omega);
-    const tau_em = getEMTorque(theta, omega);
+    const tau_th = getThermalTorque(theta);
+    const tau_em = getEMTorque(theta);
     const tau_fr = getFrictionTorque(omega);
     const tau_net = tau_th + tau_em - tau_fr;
 
+    pushSmooth(smoothBuf.th,  tau_th);
+    pushSmooth(smoothBuf.em,  tau_em);
+    pushSmooth(smoothBuf.fr,  tau_fr);
+    pushSmooth(smoothBuf.net, tau_net);
+
     const alpha = tau_net / params.I;
     omega += alpha * dt;
-    omega = Math.max(omega, 0); // no reversal in this model
+    omega = Math.max(omega, 0);
     theta = (theta + omega * dt) % TWO_PI;
     simTime += dt;
-
-    lastThermal = tau_th;
-    lastEM = tau_em;
-    lastFric = tau_fr;
-    lastNet = tau_net;
 
     omegaHistory.push({ t: simTime, w: omega });
     if (omegaHistory.length > MAX_HISTORY) omegaHistory.shift();
   }
+
+  // Compute smoothed display values once per frame
+  dispThermal = meanSmooth(smoothBuf.th);
+  dispEM      = meanSmooth(smoothBuf.em);
+  dispFric    = meanSmooth(smoothBuf.fr);
+  dispNet     = meanSmooth(smoothBuf.net);
 }
 
-// ──────────────────────────────────────────────
-// RENDERING
-// ──────────────────────────────────────────────
-
+// ── Rendering ──
 const rotorCanvas = document.getElementById('rotorCanvas');
 const rctx = rotorCanvas.getContext('2d');
-
 const chartCanvas = document.getElementById('chartCanvas');
 const cctx = chartCanvas.getContext('2d');
-
 const omegaCanvas = document.getElementById('omegaCanvas');
 const octx = omegaCanvas.getContext('2d');
 
@@ -630,7 +610,6 @@ function drawRotor() {
 
   rctx.clearRect(0, 0, W, H);
 
-  // Glow background
   const grad = rctx.createRadialGradient(cx, cy, 10, cx, cy, 130);
   grad.addColorStop(0, 'rgba(255,107,53,0.08)');
   grad.addColorStop(0.5, 'rgba(0,212,255,0.04)');
@@ -638,22 +617,18 @@ function drawRotor() {
   rctx.fillStyle = grad;
   rctx.fillRect(0, 0, W, H);
 
-  // Outer housing ring
   rctx.beginPath();
   rctx.arc(cx, cy, Rout + 8, 0, TWO_PI);
   rctx.strokeStyle = '#1a3050';
   rctx.lineWidth = 2;
   rctx.stroke();
 
-  // Stator coils (fixed positions)
   const N = params.N_chambers;
   const pw = params.pulse_width_deg * DEG;
   const emOff = params.em_phase_offset_deg * DEG;
 
   for (let c = 0; c < N; c++) {
     const angle = c * (TWO_PI / N);
-
-    // Check if this stator position is currently active
     const thermalDelta = ((theta - angle) % TWO_PI + TWO_PI) % TWO_PI;
     const emTrigger = angle + emOff;
     const emDelta = ((theta - emTrigger) % TWO_PI + TWO_PI) % TWO_PI;
@@ -682,12 +657,10 @@ function drawRotor() {
     rctx.shadowBlur = 0;
   }
 
-  // Rotor disc
   rctx.save();
   rctx.translate(cx, cy);
   rctx.rotate(theta);
 
-  // Main disc
   rctx.beginPath();
   rctx.arc(0, 0, Rin + 20, 0, TWO_PI);
   rctx.fillStyle = '#0d1520';
@@ -696,7 +669,6 @@ function drawRotor() {
   rctx.fill();
   rctx.stroke();
 
-  // Vanes / fins
   for (let c = 0; c < N; c++) {
     const angle = c * (TWO_PI / N);
     const thermalDelta = ((theta - c * (TWO_PI / N)) % TWO_PI + TWO_PI) % TWO_PI;
@@ -705,7 +677,6 @@ function drawRotor() {
     rctx.save();
     rctx.rotate(angle);
 
-    // Vane shape
     rctx.beginPath();
     rctx.moveTo(Rin, -5);
     rctx.lineTo(Rfin, -4);
@@ -728,7 +699,6 @@ function drawRotor() {
     rctx.restore();
   }
 
-  // Central hub
   rctx.beginPath();
   rctx.arc(0, 0, Rin, 0, TWO_PI);
   rctx.fillStyle = '#0a0f18';
@@ -737,7 +707,6 @@ function drawRotor() {
   rctx.lineWidth = 2;
   rctx.stroke();
 
-  // Center dot + indicator line
   rctx.beginPath();
   rctx.moveTo(0, 0);
   rctx.lineTo(Rin - 8, 0);
@@ -752,7 +721,6 @@ function drawRotor() {
 
   rctx.restore();
 
-  // Theta readout
   document.getElementById('theta-display').textContent = (theta * 180 / Math.PI % 360).toFixed(1) + '°';
 }
 
@@ -801,14 +769,12 @@ function drawTorqueChart() {
 
   cctx.clearRect(0, 0, W, H);
 
-  // Grid
   cctx.strokeStyle = '#1a3050';
   cctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = (i / 4) * H;
     cctx.beginPath(); cctx.moveTo(0, y); cctx.lineTo(W, y); cctx.stroke();
   }
-  // Zero line
   cctx.strokeStyle = '#2a4a6a';
   cctx.lineWidth = 1;
   cctx.setLineDash([4,4]);
@@ -833,7 +799,6 @@ function drawTorqueChart() {
   drawLine(emArr, '#00d4ff', 1.5);
   drawLine(netArr, '#a8ff3e', 2.5);
 
-  // Current angle indicator
   const xIndicator = (theta / TWO_PI) * W;
   cctx.strokeStyle = 'rgba(168,255,62,0.5)';
   cctx.lineWidth = 1;
@@ -841,7 +806,6 @@ function drawTorqueChart() {
   cctx.beginPath(); cctx.moveTo(xIndicator, 0); cctx.lineTo(xIndicator, H); cctx.stroke();
   cctx.setLineDash([]);
 
-  // Max label
   cctx.fillStyle = '#5a7a9a';
   cctx.font = '10px Share Tech Mono';
   cctx.fillText(maxTau.toFixed(0) + ' N·m', 4, 14);
@@ -852,7 +816,6 @@ function drawTorqueChart() {
 function drawOmegaChart() {
   const W = omegaCanvas.width, H = omegaCanvas.height;
   octx.clearRect(0, 0, W, H);
-
   if (omegaHistory.length < 2) return;
 
   const maxOmega = Math.max(...omegaHistory.map(p => p.w), 1);
@@ -860,7 +823,6 @@ function drawOmegaChart() {
   const t1 = omegaHistory[omegaHistory.length - 1].t;
   const tRange = Math.max(t1 - t0, 0.01);
 
-  // Grid
   octx.strokeStyle = '#1a3050';
   octx.lineWidth = 1;
   octx.beginPath(); octx.moveTo(0, H/2); octx.lineTo(W, H/2); octx.stroke();
@@ -875,7 +837,6 @@ function drawOmegaChart() {
   }
   octx.stroke();
 
-  // RPM label at end
   const lastRPM = (omega * 60 / (2 * Math.PI)).toFixed(0);
   octx.fillStyle = '#a8ff3e';
   octx.font = '10px Share Tech Mono';
@@ -885,10 +846,10 @@ function drawOmegaChart() {
 function updateTelemetry() {
   document.getElementById('tel-omega').textContent = omega.toFixed(2);
   document.getElementById('tel-rpm').textContent = (omega * 60 / TWO_PI).toFixed(0);
-  document.getElementById('tel-therm').textContent = lastThermal.toFixed(1);
-  document.getElementById('tel-em').textContent = lastEM.toFixed(1);
-  document.getElementById('tel-fric').textContent = lastFric.toFixed(2);
-  document.getElementById('tel-net').textContent = lastNet.toFixed(1);
+  document.getElementById('tel-therm').textContent = dispThermal.toFixed(1);
+  document.getElementById('tel-em').textContent    = dispEM.toFixed(1);
+  document.getElementById('tel-fric').textContent  = dispFric.toFixed(2);
+  document.getElementById('tel-net').textContent   = dispNet.toFixed(1);
 }
 
 function frame() {
@@ -900,10 +861,7 @@ function frame() {
   animId = requestAnimationFrame(frame);
 }
 
-// ──────────────────────────────────────────────
-// CONTROLS
-// ──────────────────────────────────────────────
-
+// ── Controls ──
 function bindSlider(id, key, transform, displayId, displayFn) {
   const el = document.getElementById(id);
   el.addEventListener('input', () => {
@@ -912,15 +870,15 @@ function bindSlider(id, key, transform, displayId, displayFn) {
   });
 }
 
-bindSlider('s-twall', 'T_wall', v => +v, 'v-twall', v => v);
-bindSlider('s-minj', 'm_inj', v => +v / 1000, 'v-minj', v => (+v).toFixed(1));
-bindSlider('s-ncham', 'N_chambers', v => +v, 'v-ncham', v => v);
-bindSlider('s-pwidth', 'pulse_width_deg', v => +v, 'v-pwidth', v => v);
-bindSlider('s-empeak', 'tau_em_peak', v => +v, 'v-empeak', v => (+v).toFixed(1));
-bindSlider('s-emphase', 'em_phase_offset_deg', v => +v, 'v-emphase', v => v);
-bindSlider('s-inertia', 'I', v => +v, 'v-inertia', v => (+v).toFixed(2));
-bindSlider('s-kdrag', 'k_drag', v => +v, 'v-kdrag', v => (+v).toFixed(3));
-bindSlider('s-rrotor', 'R_rotor', v => +v, 'v-rrotor', v => (+v).toFixed(2));
+bindSlider('s-twall',  'T_wall',              v => +v,        'v-twall',   v => v);
+bindSlider('s-minj',   'm_inj',               v => +v / 1000, 'v-minj',   v => (+v).toFixed(1));
+bindSlider('s-ncham',  'N_chambers',          v => +v,        'v-ncham',   v => v);
+bindSlider('s-pwidth', 'pulse_width_deg',     v => +v,        'v-pwidth',  v => v);
+bindSlider('s-empeak', 'tau_em_peak',         v => +v,        'v-empeak',  v => (+v).toFixed(1));
+bindSlider('s-emphase','em_phase_offset_deg', v => +v,        'v-emphase', v => v);
+bindSlider('s-inertia','I',                   v => +v,        'v-inertia', v => (+v).toFixed(2));
+bindSlider('s-kdrag',  'k_drag',              v => +v,        'v-kdrag',   v => (+v).toFixed(3));
+bindSlider('s-rrotor', 'R_rotor',             v => +v,        'v-rrotor',  v => (+v).toFixed(2));
 
 document.getElementById('em-enable').addEventListener('change', e => {
   params.em_enabled = e.target.checked;
@@ -939,12 +897,12 @@ document.getElementById('btnReset').addEventListener('click', () => {
   theta = 0;
   simTime = 0;
   omegaHistory = [];
-  lastThermal = lastEM = lastFric = lastNet = 0;
+  smoothBuf = { th: [], em: [], fr: [], net: [] };
+  dispThermal = dispEM = dispFric = dispNet = 0;
   document.getElementById('btnRun').textContent = '▶ RUN';
   document.getElementById('statusDot').className = 'status-dot stopped';
 });
 
-// Boot
 frame();
 </script>
 </body>

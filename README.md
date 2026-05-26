@@ -4,6 +4,16 @@
 
 * [Why Physical Boundaries Define Intelligence](https://standardgalactic.github.io/research-projects/epistemology/) — *Audio Overview*
 
+[Bayesian Photonics](https://standardgalactic.github.io/research-projects/photonics/bayesian-photonics.pdf)
+
+* [Trajectory Space Physics](https://standardgalactic.github.io/research-projects/photonics/Trajectory_Space_Physics.pdf) — *Notes*
+
+* [Geometric Defense Mechanisms](https://standardgalactic.github.io/research-projects/photonics/) — *Audio Overview*
+
+[Flash Reluctance Engine](https://standardgalactic.github.io/research-projects/paper/flash_reluctance_engine.pdf)
+
+* [Simulator](https://standardgalactic.github.io/research-projects/paper/flash_reluctance_engine_simulator.html)
+
 [Semantic Relaxation Networks](https://standardgalactic.github.io/research-projects/intelligence/semantic-relaxation-networks.pdf)
 
 * [Why Next Token Prediction Is Not Intelligence](https://standardgalactic.github.io/research-projects/intelligence/) — *Audio Overviews*
