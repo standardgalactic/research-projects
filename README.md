@@ -1,5 +1,7 @@
 # Research Projects
 
+[Latent Structures](https://github.com/standardgalactic/research-projects/blob/main/philosophy/README.md)
+
 [Morphology as Computation](https://standardgalactic.github.io/research-projects/epistemology/morphology-as-computation.pdf)
 
 * [Why Physical Boundaries Define Intelligence](https://standardgalactic.github.io/research-projects/epistemology/) — *Audio Overview*
