@@ -1,0 +1,710 @@
+
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+ADM-LAB EXPERIMENT SUITE
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+[1/6] Repair Corridor Discovery
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+======================================================================
+EXPERIMENT 01 — Repair Corridor Discovery
+======================================================================
+
+Question: Does repair route preferentially through hubs?
+
+We run the same damage+repair protocol across four graph types:
+  - random DAG (general case)
+  - hub-and-spoke (extreme hub structure)
+  - bottleneck graph (single narrow passage)
+  - repair corridor test (spine + periphery)
+
+Strategy comparison:
+  - hub_first: prioritize continuations touching high-fan-out states
+  - sink_rescue: prioritize restoring states that became sinks
+  - random_50%: restore a random 50% of damage (control)
+
+
+────────────────────────────────────────────────────────────
+Graph type: random_dag
+────────────────────────────────────────────────────────────
+[1m
+╔══ AdmissibilityGraph: random_dag ══[0m
+  states:           20
+  continuations:    37
+  constraints:      0
+  sinks:            [91m5[0m
+  bottlenecks:      [93m4[0m
+  hubs:             [92m5[0m
+  mean fan-out:     1.85
+  mean reachability:3.90
+[2m╚════════════════════════════════════════[0m
+  frac=20%  strategy=strategy_hub_first                   mean_recovery=62.6%  mean_sink_increase=+0.9
+  frac=20%  strategy=strategy_sink_rescue                 mean_recovery=11.9%  mean_sink_increase=+0.8
+  frac=20%  strategy=strategy_random_partial(50%)         mean_recovery=42.9%  mean_sink_increase=+0.9
+  frac=40%  strategy=strategy_hub_first                   mean_recovery=49.4%  mean_sink_increase=+2.5
+  frac=40%  strategy=strategy_sink_rescue                 mean_recovery=17.5%  mean_sink_increase=+2.4
+  frac=40%  strategy=strategy_random_partial(50%)         mean_recovery=50.0%  mean_sink_increase=+2.4
+  frac=60%  strategy=strategy_hub_first                   mean_recovery=30.6%  mean_sink_increase=+5.0
+  frac=60%  strategy=strategy_sink_rescue                 mean_recovery=22.6%  mean_sink_increase=+5.0
+  frac=60%  strategy=strategy_random_partial(50%)         mean_recovery=50.0%  mean_sink_increase=+5.1
+
+1800 trials completed in 2.1s
+
+────────────────────────────────────────────────────────────
+Graph type: hub_and_spoke
+────────────────────────────────────────────────────────────
+[1m
+╔══ AdmissibilityGraph: hub_spoke ══[0m
+  states:           19
+  continuations:    18
+  constraints:      0
+  sinks:            [91m6[0m
+  bottlenecks:      [93m12[0m
+  hubs:             [92m1[0m
+  mean fan-out:     0.95
+  mean reachability:1.89
+[2m╚════════════════════════════════════════[0m
+  frac=20%  strategy=strategy_hub_first                   mean_recovery=36.2%  mean_sink_increase=+1.9
+  frac=20%  strategy=strategy_sink_rescue                 mean_recovery=66.3%  mean_sink_increase=+2.0
+  frac=20%  strategy=strategy_random_partial(50%)         mean_recovery=33.3%  mean_sink_increase=+2.0
+  frac=40%  strategy=strategy_hub_first                   mean_recovery=32.4%  mean_sink_increase=+4.7
+  frac=40%  strategy=strategy_sink_rescue                 mean_recovery=66.9%  mean_sink_increase=+4.7
+  frac=40%  strategy=strategy_random_partial(50%)         mean_recovery=42.9%  mean_sink_increase=+4.6
+  frac=60%  strategy=strategy_hub_first                   mean_recovery=26.9%  mean_sink_increase=+6.7
+  frac=60%  strategy=strategy_sink_rescue                 mean_recovery=65.5%  mean_sink_increase=+6.5
+  frac=60%  strategy=strategy_random_partial(50%)         mean_recovery=50.0%  mean_sink_increase=+6.6
+
+1800 trials completed in 1.4s
+
+────────────────────────────────────────────────────────────
+Graph type: bottleneck
+────────────────────────────────────────────────────────────
+[1m
+╔══ AdmissibilityGraph: bottleneck ══[0m
+  states:           11
+  continuations:    30
+  constraints:      0
+  sinks:            [91m1[0m
+  bottlenecks:      [93m2[0m
+  hubs:             [92m6[0m
+  mean fan-out:     2.73
+  mean reachability:5.00
+[2m╚════════════════════════════════════════[0m
+  frac=20%  strategy=strategy_hub_first                   mean_recovery=81.6%  mean_sink_increase=+0.6
+  frac=20%  strategy=strategy_sink_rescue                 mean_recovery=9.2%  mean_sink_increase=+0.6
+  frac=20%  strategy=strategy_random_partial(50%)         mean_recovery=50.0%  mean_sink_increase=+0.5
+  frac=40%  strategy=strategy_hub_first                   mean_recovery=70.1%  mean_sink_increase=+1.3
+  frac=40%  strategy=strategy_sink_rescue                 mean_recovery=10.0%  mean_sink_increase=+1.2
+  frac=40%  strategy=strategy_random_partial(50%)         mean_recovery=50.0%  mean_sink_increase=+1.4
+  frac=60%  strategy=strategy_hub_first                   mean_recovery=47.5%  mean_sink_increase=+2.7
+  frac=60%  strategy=strategy_sink_rescue                 mean_recovery=14.3%  mean_sink_increase=+2.6
+  frac=60%  strategy=strategy_random_partial(50%)         mean_recovery=50.0%  mean_sink_increase=+2.5
+
+1800 trials completed in 1.5s
+
+────────────────────────────────────────────────────────────
+Graph type: repair_corridor
+────────────────────────────────────────────────────────────
+[1m
+╔══ AdmissibilityGraph: repair_corridor ══[0m
+  states:           16
+  continuations:    24
+  constraints:      0
+  sinks:            [91m5[0m
+  bottlenecks:      [93m4[0m
+  hubs:             [92m6[0m
+  mean fan-out:     1.50
+  mean reachability:6.81
+[2m╚════════════════════════════════════════[0m
+  frac=20%  strategy=strategy_hub_first                   mean_recovery=74.8%  mean_sink_increase=+0.7
+  frac=20%  strategy=strategy_sink_rescue                 mean_recovery=18.2%  mean_sink_increase=+0.7
+  frac=20%  strategy=strategy_random_partial(50%)         mean_recovery=50.0%  mean_sink_increase=+0.7
+  frac=40%  strategy=strategy_hub_first                   mean_recovery=58.7%  mean_sink_increase=+1.8
+  frac=40%  strategy=strategy_sink_rescue                 mean_recovery=21.4%  mean_sink_increase=+1.9
+  frac=40%  strategy=strategy_random_partial(50%)         mean_recovery=44.4%  mean_sink_increase=+1.9
+  frac=60%  strategy=strategy_hub_first                   mean_recovery=32.6%  mean_sink_increase=+3.8
+  frac=60%  strategy=strategy_sink_rescue                 mean_recovery=26.8%  mean_sink_increase=+3.8
+  frac=60%  strategy=strategy_random_partial(50%)         mean_recovery=50.0%  mean_sink_increase=+3.8
+
+1800 trials completed in 2.0s
+
+======================================================================
+CROSS-GRAPH OBSERVATIONS
+======================================================================
+  random_dag           ✗ HUB ≤ RANDOM  (hub=0.586, rand=0.857)
+  hub_and_spoke        ✗ HUB ≤ RANDOM  (hub=0.208, rand=0.363)
+  bottleneck           ✓ HUB > RANDOM  (hub=1.202, rand=1.039)
+  repair_corridor      ✓ HUB > RANDOM  (hub=1.728, rand=1.697)
+
+Interpretation guide:
+  ✓ HUB > RANDOM across all graph types → "repair corridor" is a real structural feature
+  ✗ HUB ≤ RANDOM on some graph types   → hub-first is graph-topology-dependent;
+                                         the corridor hypothesis needs refinement
+
+
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+[2/6] Sink Formation Under Constraints
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+======================================================================
+EXPERIMENT 02 — Admissibility Sink Formation Under Constraint Accumulation
+======================================================================
+
+We observe how increasing weight constraints progressively eliminate
+admissible continuations, turning navigable states into sinks.
+
+The weight threshold sweeps from permissive (0.1) to strict (2.0).
+At each threshold level we record: how many sinks? How many hubs?
+What is mean reachability?
+
+We are looking for phase transitions — abrupt changes in the sink count.
+
+Baseline graph:
+[1m
+╔══ AdmissibilityGraph: random_dag ══[0m
+  states:           25
+  continuations:    58
+  constraints:      0
+  sinks:            [91m5[0m
+  bottlenecks:      [93m4[0m
+  hubs:             [92m10[0m
+  mean fan-out:     2.32
+  mean reachability:6.32
+[2m╚════════════════════════════════════════[0m
+[1m
+ Fan-out profile (admissibility per state)[0m
+[2m  state              fan-out  bar[0m
+[2m  ──────────────────────────────────────────────────[0m
+  n0                 7        [92m████████████████████████████████████████[0m
+  n3                 5        [92m████████████████████████████[0m
+  n4                 5        [92m████████████████████████████[0m
+  n1                 4        [92m██████████████████████[0m
+  n5                 4        [92m██████████████████████[0m
+  n6                 4        [92m██████████████████████[0m
+  n9                 4        [92m██████████████████████[0m
+  n8                 3        [92m█████████████████[0m
+  n12                3        [92m█████████████████[0m
+  n11                3        [92m█████████████████[0m
+  n2                 2        ███████████
+  n7                 2        ███████████
+  n16                2        ███████████
+  n14                2        ███████████
+  n13                2        ███████████
+  n22                2        ███████████
+  n10                1        [93m█████[0m
+  n19                1        [93m█████[0m
+  n15                1        [93m█████[0m
+  n18                1        [93m█████[0m
+  n21                0        [91m▪ SINK[0m
+  n24                0        [91m▪ SINK[0m
+  n20                0        [91m▪ SINK[0m
+  n23                0        [91m▪ SINK[0m
+  n17                0        [91m▪ SINK[0m
+
+ Weight threshold sweep:
+  threshold    sinks    hubs     mean_fan     mean_reach
+  ────────────────────────────────────────────────────────
+  0.1          5        10       2.320        6.320  ← +5 sinks
+  0.2          5        10       2.320        6.320
+  0.3          5        10       2.320        6.320
+  0.4          5        10       2.320        6.320
+  0.5          5        10       2.320        6.320
+  0.6          5        10       2.280        6.240
+  0.7          6        9        2.080        5.360
+  0.8          7        9        2.000        4.560
+  0.9          7        6        1.720        3.880
+  1.0          7        5        1.520        3.040
+  1.1          8        4        1.400        2.800
+  1.2          9        2        1.160        1.920
+  1.3          9        1        1.040        1.680
+  1.4          9        1        0.960        1.520
+  1.5          9        1        0.880        1.360
+  1.6          11       1        0.800        1.280
+  1.7          14       1        0.600        0.840  ← +3 sinks
+  1.8          16       1        0.480        0.600
+  1.9          20       0        0.240        0.280  ← +4 sinks
+  2.0          24       0        0.040        0.040  ← +4 sinks
+  2.1          25       0        0.000        0.000
+
+ Phase transitions detected (threshold levels where ≥3 new sinks appeared):
+  weight > 0.1 → +5 sinks
+  weight > 1.7 → +3 sinks
+  weight > 1.9 → +4 sinks
+  weight > 2.0 → +4 sinks
+
+Interpretation:
+  Abrupt transitions suggest "weak links" — continuations whose weights
+  cluster near the threshold, creating batch elimination.
+
+  Gradual degradation suggests weight is uniformly distributed,
+  and constraint tightening produces smooth navigability loss.
+
+  The presence or absence of phase transitions is a property of the graph
+  structure, not the constraint type. Discovering when this matters is part
+  of what the laboratory is for.
+
+
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+[3/6] Trajectory Archaeology (basic)
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+======================================================================
+EXPERIMENT 03 — Trajectory Navigability and Bottleneck Archaeology
+======================================================================
+
+We walk trajectories through various graph types and then examine
+the admissibility history to find bottleneck patterns.
+
+For each trajectory we ask:
+  - Where in the trajectory did bottlenecks occur?
+  - What followed a bottleneck? Recovery (fan-out increase) or cascade?
+  - Were bottlenecks structurally predictable from the source state?
+
+
+── Graph type: Random DAG ──
+[1m
+ Trajectory: dag_seed1[0m
+[2m  steps=4[0m
+  [  0] n0                 fan=3    [92m███[0m           [92m◈ hub[0m
+  [  1] n1                 fan=2    [93m██[0m            [93m⬡ bottle[0m
+  [  2] n10                fan=2    ██                     
+  [  3] n14                fan=0    [91m▪[0m             [91m⚑ SINK[0m
+
+  Summary for 'dag_seed1':
+    total steps:     4
+    bottlenecks at:  [1]
+    sinks at:        [3]
+    post-bottleneck recovery: 0/1
+    post-bottleneck cascade:  1/1
+    navigability range:  [2, 3]
+    mean fan-out:        1.75
+
+[1m
+ Trajectory: dag_seed7[0m
+[2m  steps=2[0m
+  [  0] n0                 fan=6    [92m██████[0m        [92m◈ hub[0m
+  [  1] n2                 fan=0    [91m▪[0m             [91m⚑ SINK[0m
+
+  Summary for 'dag_seed7':
+    total steps:     2
+    bottlenecks at:  none
+    sinks at:        [1]
+    navigability range:  [6, 6]
+    mean fan-out:        3.00
+
+[1m
+ Trajectory: dag_seed42[0m
+[2m  steps=6[0m
+  [  0] n0                 fan=4    [92m████[0m          [92m◈ hub[0m
+  [  1] n7                 fan=1    [93m█[0m             [93m⬡ bottle[0m
+  [  2] n10                fan=1    █                      
+  [  3] n11                fan=1    █                      
+  [  4] n13                fan=1    █                      
+  [  5] n14                fan=0    [91m▪[0m             [91m⚑ SINK[0m
+
+  Summary for 'dag_seed42':
+    total steps:     6
+    bottlenecks at:  [1]
+    sinks at:        [5]
+    post-bottleneck recovery: 0/1
+    post-bottleneck cascade:  1/1
+    navigability range:  [1, 4]
+    mean fan-out:        1.33
+
+[1m
+ Trajectory: dag_seed99[0m
+[2m  steps=3[0m
+  [  0] n0                 fan=1    █                      
+  [  1] n3                 fan=4    [92m████[0m          [92m◈ hub[0m
+  [  2] n9                 fan=0    [91m▪[0m             [91m⚑ SINK[0m
+
+  Summary for 'dag_seed99':
+    total steps:     3
+    bottlenecks at:  none
+    sinks at:        [2]
+    navigability range:  [1, 4]
+    mean fan-out:        1.67
+
+
+── Graph type: Repair Corridor (spine walk) ──
+[1m
+ Trajectory: corridor_spine[0m
+[2m  steps=6[0m
+  [  0] sp0                fan=2    ██                     
+  [  1] sp1                fan=3    [92m███[0m           [92m◈ hub[0m
+  [  2] sp5                fan=3    [92m███[0m           [92m◈ hub[0m
+  [  3] sp4                fan=3    [92m███[0m           [92m◈ hub[0m
+  [  4] sp3                fan=3    [92m███[0m           [92m◈ hub[0m
+  [  5] sp4                fan=3    [92m███[0m           [92m◈ hub[0m
+
+  Summary for 'corridor_spine':
+    total steps:     6
+    bottlenecks at:  none
+    sinks at:        none
+    navigability range:  [2, 3]
+    mean fan-out:        2.83
+
+
+Cross-trajectory observations:
+  If post-bottleneck recovery > cascade consistently:
+    Bottlenecks are transient passages — the graph is self-recovering.
+    "Repair corridor" concept gains empirical grounding.
+
+  If post-bottleneck cascade dominates:
+    Bottlenecks tend toward sink formation.
+    The framework needs a concept for "cascade-prone bottlenecks."
+
+  If recovery/cascade ratio varies by graph type:
+    Graph topology determines which regime applies.
+    The distinction between graph types becomes theoretically important.
+
+
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+[4/6] Trajectory Archaeology (fidelity)
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+======================================================================
+EXPERIMENT 04 — Trajectory Archaeology
+======================================================================
+
+Question: how much trajectory residue is required to reconstruct
+the structural features of the original graph?
+
+We test four graph types with different structural profiles.
+For each, we measure how fidelity grows with trajectory count.
+
+This directly addresses the MEM|8 / Phoenix / Replay Invariance cluster:
+what is preserved in the residue when the source is no longer present?
+
+
+────────────────────────────────────────────────────────────
+Graph: random_dag
+────────────────────────────────────────────────────────────
+[1m
+╔══ AdmissibilityGraph: random_dag ══[0m
+  states:           20
+  continuations:    37
+  constraints:      0
+  sinks:            [91m5[0m
+  bottlenecks:      [93m4[0m
+  hubs:             [92m5[0m
+  mean fan-out:     1.85
+  mean reachability:3.90
+[2m╚════════════════════════════════════════[0m
+
+Archaeology experiment: random_dag
+  Ground truth — hubs: 5, sinks: 5, bottlenecks: 4
+   trajs    hub_f1   sink_f1    btn_f1   overall
+  ──────────────────────────────────────────────────
+      20     0.750     0.889     0.000     0.546
+      40     0.889     1.000     0.000     0.630
+      60     1.000     1.000     0.000     0.667
+      80     1.000     1.000     0.000     0.667
+     100     1.000     1.000     0.000     0.667
+     120     1.000     1.000     0.000     0.667
+     140     1.000     1.000     0.000     0.667
+     160     1.000     1.000     0.000     0.667
+     180     1.000     1.000     0.000     0.667
+     200     1.000     1.000     0.000     0.667
+     220     1.000     1.000     0.000     0.667
+     240     1.000     1.000     0.000     0.667
+     260     1.000     1.000     0.000     0.667
+     280     1.000     1.000     0.000     0.667
+     300     1.000     1.000     0.000     0.667
+
+  → Saturation (fidelity ≥ 70%) not reached within 300 trajectories
+
+────────────────────────────────────────────────────────────
+Graph: hub_and_spoke
+────────────────────────────────────────────────────────────
+[1m
+╔══ AdmissibilityGraph: hub_spoke ══[0m
+  states:           16
+  continuations:    15
+  constraints:      0
+  sinks:            [91m5[0m
+  bottlenecks:      [93m10[0m
+  hubs:             [92m1[0m
+  mean fan-out:     0.94
+  mean reachability:1.88
+[2m╚════════════════════════════════════════[0m
+
+Archaeology experiment: hub_spoke
+  Ground truth — hubs: 1, sinks: 5, bottlenecks: 10
+   trajs    hub_f1   sink_f1    btn_f1   overall
+  ──────────────────────────────────────────────────
+      20     0.000     1.000     0.000     0.333
+      40     0.000     1.000     0.000     0.333
+      60     1.000     1.000     0.000     0.667
+      80     1.000     1.000     0.182     0.727
+     100     1.000     1.000     0.000     0.667
+     120     1.000     1.000     0.182     0.727
+     140     1.000     1.000     0.182     0.727
+     160     1.000     1.000     0.182     0.727
+     180     1.000     1.000     0.182     0.727
+     200     1.000     1.000     0.182     0.727
+     220     1.000     1.000     0.182     0.727
+     240     1.000     1.000     0.182     0.727
+     260     1.000     1.000     0.182     0.727
+     280     1.000     1.000     0.182     0.727
+     300     1.000     1.000     0.182     0.727
+
+  → Saturation (fidelity ≥ 70%) reached at 80 trajectories
+
+────────────────────────────────────────────────────────────
+Graph: bottleneck
+────────────────────────────────────────────────────────────
+[1m
+╔══ AdmissibilityGraph: bottleneck ══[0m
+  states:           9
+  continuations:    20
+  constraints:      0
+  sinks:            [91m1[0m
+  bottlenecks:      [93m2[0m
+  hubs:             [92m4[0m
+  mean fan-out:     2.22
+  mean reachability:4.00
+[2m╚════════════════════════════════════════[0m
+
+Archaeology experiment: bottleneck
+  Ground truth — hubs: 4, sinks: 1, bottlenecks: 2
+   trajs    hub_f1   sink_f1    btn_f1   overall
+  ──────────────────────────────────────────────────
+      20     0.857     1.000     0.000     0.619
+      40     1.000     1.000     0.000     0.667
+      60     1.000     1.000     0.000     0.667
+      80     1.000     1.000     0.000     0.667
+     100     1.000     1.000     0.000     0.667
+     120     1.000     1.000     0.000     0.667
+     140     1.000     1.000     0.000     0.667
+     160     1.000     1.000     0.000     0.667
+     180     1.000     1.000     0.000     0.667
+     200     1.000     1.000     0.000     0.667
+     220     1.000     1.000     0.000     0.667
+     240     1.000     1.000     0.000     0.667
+     260     1.000     1.000     0.000     0.667
+     280     1.000     1.000     0.000     0.667
+     300     1.000     1.000     0.000     0.667
+
+  → Saturation (fidelity ≥ 70%) not reached within 300 trajectories
+
+────────────────────────────────────────────────────────────
+Graph: repair_corridor
+────────────────────────────────────────────────────────────
+[1m
+╔══ AdmissibilityGraph: repair_corridor ══[0m
+  states:           15
+  continuations:    20
+  constraints:      0
+  sinks:            [91m4[0m
+  bottlenecks:      [93m4[0m
+  hubs:             [92m2[0m
+  mean fan-out:     1.33
+  mean reachability:6.80
+[2m╚════════════════════════════════════════[0m
+
+Archaeology experiment: repair_corridor
+  Ground truth — hubs: 2, sinks: 4, bottlenecks: 4
+   trajs    hub_f1   sink_f1    btn_f1   overall
+  ──────────────────────────────────────────────────
+      20     1.000     1.000     0.000     0.667
+      40     1.000     1.000     0.000     0.667
+      60     1.000     1.000     0.000     0.667
+      80     1.000     1.000     0.000     0.667
+     100     1.000     1.000     0.000     0.667
+     120     1.000     1.000     0.000     0.667
+     140     1.000     1.000     0.000     0.667
+     160     1.000     1.000     0.000     0.667
+     180     1.000     1.000     0.000     0.667
+     200     1.000     1.000     0.000     0.667
+     220     1.000     1.000     0.000     0.667
+     240     1.000     1.000     0.000     0.667
+     260     1.000     1.000     0.000     0.667
+     280     1.000     1.000     0.000     0.667
+     300     1.000     1.000     0.000     0.667
+
+  → Saturation (fidelity ≥ 70%) not reached within 300 trajectories
+
+======================================================================
+SATURATION SUMMARY
+======================================================================
+
+  graph                  trajectories_to_70%_fidelity
+  ─────────────────────────────────────────────
+  random_dag             not reached
+  hub_and_spoke          80
+  bottleneck             not reached
+  repair_corridor        not reached
+
+Interpretation guide:
+
+  Low saturation count → structure is easily legible from trajectories
+    (information is "surface-level" — visible in short walks)
+
+  High saturation count → structure requires deep exploration
+    (information is "buried" — only revealed by diverse long trajectories)
+
+  Not reached → some structural features may not be trajectory-legible at all
+    (they require direct graph inspection, not walk-based inference)
+
+The difference between feature types (hub vs sink vs bottleneck) is
+particularly interesting: which features appear first in the residue?
+
+
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+[5/6] Generative Compression
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+======================================================================
+EXPERIMENT 05 — Generative Compression Hypothesis
+======================================================================
+
+Two generators produce different reachable volumes even under
+identical constraints. We test this across constraint intensities.
+
+Generators compared:
+  Dense    — all forward edges (maximum inventory)
+  Sparse   — random 20% of forward edges
+  Layered  — edges only between adjacent layers
+  Growth   — preferential attachment (power-law degree distribution)
+
+We apply increasing weight constraints and observe how each generator's
+reachable volume responds. The question: which generation protocol is
+most constraint-resilient?
+
+── Baseline (no constraints) ──
+
+  generator            candidates  reachable_vol  mean_fanout    sinks
+  ────────────────────────────────────────────────────────────────────
+  dense                       105            105        7.000      7%
+  sparse_25%                   30             55        2.000     27%
+  layered_4x4                   0              0        0.000      0%
+  growth_m2                    27             49        1.800      7%
+
+── Constraint intensity sweep (weight threshold) ──
+
+  generator            w≥0.5:vol  w≥0.8:vol  w≥1.0:vol  w≥1.2:vol  w≥1.5:vol
+  ──────────────────────────────────────────────────────────────────────────────────────────
+  dense                        105          105          105            0            0
+  sparse_25%                    55           55           55            0            0
+  layered_4x4                    0            0            0            0            0
+  growth_m2                     49           49           49            0            0
+
+── Compression equivalence test ──
+
+Do any two generators produce identical admissible continuation sets
+but different reachable volumes?
+
+(Checking with a moderate weight constraint...)
+
+  generator            candidates  reachable_vol
+  ────────────────────────────────────────────────
+  dense                       105            105
+  sparse_25%                   30             55
+  growth_m2                    27             49
+  layered_4x4                   0              0
+
+  ✗ No compression equivalence at this constraint level.
+    Generators produce distinct volumes. Try different constraint intensity.
+
+  Volume range: [0, 105]
+  Compression ratio (min/max): 0.00
+  → Generation protocol accounts for 100% of volume variation
+
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+[6/6] Metrics Series
+▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+======================================================================
+EXPERIMENT 06 — Metrics Series Through Damage and Repair
+======================================================================
+
+We track all quantities through the full damage-repair cycle.
+The output is numbers: reachable_volume, mean_fanout, sink_density,
+hub_density at each stage. From these we compute repair_efficiency.
+
+
+Reachable volume: before → after_damage → after_repair
+──────────────────────────────────────────────────────────────────────
+
+  Graph: random_dag
+  strategy               dmg%      pre    damaged   repaired      eff
+  ──────────────────────────────────────────────────────────────────
+  full_restore           20%       84         60         84     3.43
+  hub_first              20%       84         57         73     3.20
+  sink_rescue            20%       84         72         72     0.00
+  random_50%             20%       84         62         77     5.00
+  full_restore           40%       84         40         84     2.93
+  hub_first              40%       84         52         62     1.25
+  sink_rescue            40%       84         33         56     4.60
+  random_50%             40%       84         36         56     2.86
+  full_restore           60%       84         24         84     2.73
+  hub_first              60%       84         26         36     1.67
+  sink_rescue            60%       84         19         36     3.40
+  random_50%             60%       84         21         45     2.18
+
+  Graph: hub_and_spoke
+  strategy               dmg%      pre    damaged   repaired      eff
+  ──────────────────────────────────────────────────────────────────
+  full_restore           20%       30         21         30     3.00
+  hub_first              20%       30         21         24     3.00
+  sink_rescue            20%       30         21         24     3.00
+  random_50%             20%       30         21         23     2.00
+  full_restore           40%       30          9         30     3.50
+  hub_first              40%       30         14         17     1.50
+  sink_rescue            40%       30         14         27     2.60
+  random_50%             40%       30         15         22     2.33
+  full_restore           60%       30          8         30     2.44
+  hub_first              60%       30         10         14     1.33
+  sink_rescue            60%       30          7         21     2.33
+  random_50%             60%       30          9         19     2.50
+
+  Graph: repair_corridor
+  strategy               dmg%      pre    damaged   repaired      eff
+  ──────────────────────────────────────────────────────────────────
+  full_restore           20%      102         60        102    10.50
+  hub_first              20%      102         60         82    11.00
+  sink_rescue            20%      102         53         61     8.00
+  random_50%             20%      102         50         74    12.00
+  full_restore           40%      102         24        102     9.75
+  hub_first              40%      102         22         40     4.50
+  sink_rescue            40%      102         25         35     5.00
+  random_50%             40%      102         36         56     5.00
+  full_restore           60%      102         11        102     7.58
+  hub_first              60%      102         11         19     2.67
+  sink_rescue            60%      102         12         25     2.60
+  random_50%             60%      102         12         39     4.50
+
+======================================================================
+EFFICIENCY RANKING (by mean repair_efficiency across damage levels)
+======================================================================
+
+  strategy                mean_efficiency   n_trials
+  ────────────────────────────────────────────────────
+  full_restore                      5.096          9
+  random_50%                        4.264          9
+  sink_rescue                       3.504          9
+  hub_first                         3.346          9
+
+repair_efficiency = recovered_reachable_volume / repair_operations
+
+A high value means each restoration operation recovered a lot of
+reachable space. This is the quantity repair corridors are designed
+to maximize: a corridor-aware strategy should recover more volume
+per operation than a random one.
+
+If full_restore has highest efficiency, it means the recovered operations
+all contributed to reachability — every restored edge mattered.
+If hub_first beats random_50%, it means hub-awareness is genuinely
+routing repair through high-leverage positions.
+
+======================================================================
+SAMPLE: Full MetricsSeries for hub_and_spoke, 40% damage, hub_first
+======================================================================
+
+MetricsSeries: sample_hub_spoke
+  event                             vol   fanout    sinks     hubs
+  ────────────────────────────────────────────────────────────
+  baseline                           30     0.94     31%      6%
+  after_40%_damage                   14     0.56     56%      6%
+  after_hub_repair(2ops)             19     0.69     56%      6%
+  Inflection points: ['after_40%_damage']
+
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+All experiments complete.
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓

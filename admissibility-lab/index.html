@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motor Field</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;width:100%;height:100%;overflow:hidden;
+  background:#000;color:#7cff7c;font-family:monospace;
+  touch-action:manipulation;
+}
+
+body{
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;cursor:pointer;
+}
+
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:500;
+  background:repeating-linear-gradient(to bottom,
+    rgba(255,255,255,.025) 0px,
+    rgba(255,255,255,.025) 1px,
+    transparent 2px,
+    transparent 6px);
+  opacity:.10;
+}
+
+.title{
+  position:fixed;top:16px;width:94vw;text-align:center;
+  font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+  color:#88ddaa;text-shadow:0 0 8px #00aa55;z-index:100;
+}
+
+.selector{
+  position:fixed;top:46px;display:flex;gap:8px;flex-wrap:wrap;
+  justify-content:center;width:96vw;z-index:120;cursor:default;
+}
+
+.selector button{
+  background:#000a04;border:1px solid rgba(0,200,80,.38);
+  color:#55cc88;padding:6px 10px;font-family:monospace;
+  font-size:9px;letter-spacing:.08em;cursor:pointer;
+  transition:background .2s,color .2s;
+}
+
+.selector button.active{
+  background:#001f0d;color:#ccffdd;
+  box-shadow:0 0 6px #00aa44 inset;
+}
+
+.status{
+  position:fixed;top:88px;opacity:.32;font-size:9px;
+  letter-spacing:.16em;color:#55aa77;z-index:120;
+}
+
+canvas{
+  width:min(420px,80vw);height:min(420px,80vw);
+  border-radius:50%;border:1px solid rgba(0,200,80,.22);
+  background:#000;
+  box-shadow:0 0 40px rgba(0,180,80,.06) inset,
+             0 0 12px rgba(0,160,60,.22);
+  z-index:40;
+}
+
+.subs{
+  position:fixed;bottom:24px;width:min(660px,90vw);
+  min-height:2.4em;padding:8px 14px;text-align:center;
+  font-size:13px;line-height:1.5;color:#88ccaa;
+  text-shadow:0 0 5px #005533;background:rgba(0,12,6,.42);
+  border:1px solid rgba(0,180,80,.15);border-radius:4px;
+  pointer-events:none;z-index:80;
+  font-style:italic;letter-spacing:.02em;
+}
+
+@media(max-width:700px){
+  .title{top:12px;font-size:10px}
+  .selector{top:40px}
+  .selector button{font-size:8px;padding:5px 7px}
+  .status{top:88px;font-size:8px}
+  .subs{bottom:16px;font-size:12px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="title" id="title">Motor Field</div>
+<div class="selector" id="selector"></div>
+<div class="status">touch · click to play or pause</div>
+<canvas id="viz"></canvas>
+<div id="subs" class="subs"></div>
+
+<audio id="audio" preload="auto"></audio>
+
+<script>
+const tracks = [
+  {
+    file:"How_motor_gestures_reconstruct_our_reality.mp3",
+    vtt:"How_motor_gestures_reconstruct_our_reality.vtt",
+    label:"Gestures",
+    title:"How Motor Gestures Reconstruct Our Reality",
+    mode:"gestures"
+  },
+  {
+    file:"Your_Keyboard_Is_a_Civilizational_Ark.mp3",
+    vtt:"Your_Keyboard_Is_a_Civilizational_Ark.vtt",
+    label:"Keyboard",
+    title:"Your Keyboard Is a Civilizational Ark",
+    mode:"keyboard"
+  },
+  {
+    file:"The_hidden_motor_grammar_of_your_hands.mp3",
+    vtt:"The_hidden_motor_grammar_of_your_hands.vtt",
+    label:"Grammar",
+    title:"The Hidden Motor Grammar of Your Hands",
+    mode:"grammar"
+  },
+  {
+    file:"Why_Reachability_Matters_More_Than_Prediction.mp3",
+    vtt:"Why_Reachability_Matters_More_Than_Prediction.vtt",
+    label:"Reach",
+    title:"Why Reachability Matters More Than Prediction",
+    mode:"reach"
+  }
+];
+
+let trackIndex = 0;
+let mode = tracks[0].mode;
+
+const audio    = document.getElementById("audio");
+const subs     = document.getElementById("subs");
+const titleEl  = document.getElementById("title");
+const selector = document.getElementById("selector");
+
+let audioCtx, analyser, freqData, timeData;
+
+function initAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = .90;
+  freqData = new Uint8Array(analyser.frequencyBinCount);
+  timeData = new Uint8Array(analyser.fftSize);
+  const src = audioCtx.createMediaElementSource(audio);
+  src.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+function buildSelector(){
+  selector.innerHTML = "";
+  tracks.forEach((t,i)=>{
+    const btn = document.createElement("button");
+    btn.textContent = t.label;
+    btn.onclick = async e=>{
+      e.stopPropagation();
+      initAudio();
+      if(audioCtx.state==="suspended") await audioCtx.resume();
+      await loadTrack(i,true);
+    };
+    selector.appendChild(btn);
+  });
+}
+
+function updateButtons(){
+  [...selector.querySelectorAll("button")]
+    .forEach((b,i)=>b.classList.toggle("active",i===trackIndex));
+}
+
+async function loadTrack(i,autoplay=true){
+  trackIndex = ((i%tracks.length)+tracks.length)%tracks.length;
+  const t = tracks[trackIndex];
+  mode = t.mode;
+  titleEl.textContent = t.title;
+  audio.src = t.file;
+  audio.load();
+  updateButtons();
+  await loadVTT(t.vtt);
+  if(autoplay){ try{ await audio.play(); }catch(e){} }
+}
+
+audio.addEventListener("ended",()=>loadTrack(trackIndex+1,true));
+
+document.body.onclick = async ()=>{
+  initAudio();
+  if(audioCtx.state==="suspended") await audioCtx.resume();
+  if(audio.paused) await audio.play();
+  else audio.pause();
+};
+
+/* subtitles */
+
+let cues = [];
+
+async function loadVTT(url){
+  cues = [];
+  subs.textContent = "";
+  try{
+    const res = await fetch(url);
+    if(!res.ok){ console.warn("Missing VTT:",url); return; }
+    cues = parseVTT(await res.text());
+  }catch(e){ console.warn("VTT:",e); }
+}
+
+function parseVTT(text){
+  const out = [];
+  for(const block of text.replace(/\r/g,"").split(/\n{2,}/)){
+    const lines = block.trim().split("\n");
+    const ts = lines.find(l=>l.includes("-->"));
+    if(!ts) continue;
+    const ti = lines.indexOf(ts);
+    const [s,e] = ts.split("-->").map(x=>x.trim());
+    out.push({start:parseTime(s),end:parseTime(e),text:lines.slice(ti+1).join(" ")});
+  }
+  return out;
+}
+
+function parseTime(t){
+  t = t.split(" ")[0].replace(",",".");
+  const p = t.split(":");
+  if(p.length===3) return (+p[0])*3600+(+p[1])*60+parseFloat(p[2]);
+  return (+p[0])*60+parseFloat(p[1]);
+}
+
+audio.ontimeupdate = ()=>{
+  const t = audio.currentTime;
+  const c = cues.find(c=>t>=c.start&&t<c.end+.2);
+  subs.textContent = c ? c.text : "";
+};
+
+/* canvas */
+
+const canvas = document.getElementById("viz");
+const ctx    = canvas.getContext("2d");
+const W=480, H=480, cx=W/2, cy=H/2, R=W*.39;
+canvas.width=W; canvas.height=H;
+
+let frame=0, bass=0, mid=0, high=0;
+
+function updateEnergy(){
+  if(!analyser) return;
+  analyser.getByteFrequencyData(freqData);
+  let b=0,m=0,h=0;
+  for(let i=0;i<40;i++) b+=freqData[i];
+  for(let i=40;i<180;i++) m+=freqData[i];
+  for(let i=180;i<freqData.length;i++) h+=freqData[i];
+  bass+=(b/(40*255)-bass)*.07;
+  mid +=(m/(140*255)-mid )*.05;
+  high+=(h/((freqData.length-180)*255)-high)*.04;
+}
+
+function clearPortal(){
+  ctx.fillStyle="rgba(0,3,1,.11)";
+  ctx.fillRect(0,0,W,H);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.clip();
+
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+  g.addColorStop(0,"rgba(0,18,8,.32)");
+  g.addColorStop(.65,"rgba(0,6,2,.52)");
+  g.addColorStop(1,"rgba(0,0,0,.98)");
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,W,H);
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.strokeStyle="rgba(80,200,120,.18)";
+  ctx.lineWidth=1.5;
+  ctx.shadowBlur=8;
+  ctx.shadowColor="#004422";
+  ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+/* ── shared substrate: motor field texture ──
+   A resistance field — space that pushes back.
+   Not stars, not particles: grain. */
+
+function drawMotorField(){
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.clip();
+
+  // flow lines suggesting a vector field with grain
+  for(let i=0;i<32;i++){
+    const a  = i/32*Math.PI*2;
+    const r0 = R*.12;
+    const r1 = R*.82;
+    const wobble = Math.sin(frame*.003 + i*.41) * R*.06;
+
+    ctx.beginPath();
+    ctx.moveTo(
+      cx + Math.cos(a)*r0,
+      cy + Math.sin(a)*r0
+    );
+    ctx.quadraticCurveTo(
+      cx + Math.cos(a + .3)*(r0+r1)*.5 + wobble,
+      cy + Math.sin(a + .3)*(r0+r1)*.5 - wobble*.5,
+      cx + Math.cos(a)*r1,
+      cy + Math.sin(a)*r1
+    );
+    ctx.strokeStyle=`rgba(80,160,100,${.025 + high*.02})`;
+    ctx.lineWidth=1;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+/* ── gesture trails ── persistent arc buffer */
+
+const GESTURE_MAX = 180;
+const gesturePts  = [];
+
+function recordGesture(){
+  // two independent hands tracing lissajous paths
+  for(let h=0;h<2;h++){
+    const phase = frame*.018 + h*Math.PI;
+    const x = cx + Math.sin(phase * (h===0?1.3:0.9)) * R*.52;
+    const y = cy + Math.sin(phase * (h===0?0.7:1.1) + h) * R*.44;
+    gesturePts.push({x, y, hand:h, age:0});
+  }
+  while(gesturePts.length > GESTURE_MAX) gesturePts.shift();
+  gesturePts.forEach(p=>p.age++);
+}
+
+/* ── mode 1: Motor Gestures ──
+   Two hand-paths sweep through the field,
+   leaving gesture traces that reshape as they move. */
+
+function drawGestures(){
+  drawMotorField();
+  recordGesture();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.clip();
+
+  const maxAge = GESTURE_MAX / 2;
+
+  // ghost trails
+  gesturePts.forEach(p=>{
+    const t = p.age / maxAge;
+    const alpha = Math.max(0, (1-t) * .55);
+    const size  = t < .08 ? 4 : 1.5;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, size, 0, Math.PI*2);
+    if(p.hand===0){
+      ctx.fillStyle=`rgba(180,255,210,${alpha})`;
+    } else {
+      ctx.fillStyle=`rgba(220,255,180,${alpha*.7})`;
+    }
+    if(t < .05){
+      ctx.shadowBlur=10;
+      ctx.shadowColor = p.hand===0 ? "#00ff88" : "#aaff44";
+    }
+    ctx.fill();
+    ctx.shadowBlur=0;
+  });
+
+  // live fingertip positions
+  for(let h=0;h<2;h++){
+    const phase = frame*.018 + h*Math.PI;
+    const x = cx + Math.sin(phase*(h===0?1.3:.9))*R*.52;
+    const y = cy + Math.sin(phase*(h===0?.7:1.1)+h)*R*.44;
+
+    ctx.beginPath();
+    ctx.arc(x, y, 7+bass*6, 0, Math.PI*2);
+    ctx.fillStyle = h===0
+      ? "rgba(200,255,215,.90)"
+      : "rgba(230,255,180,.80)";
+    ctx.shadowBlur=14;
+    ctx.shadowColor = h===0 ? "#00ff88" : "#aaff44";
+    ctx.fill();
+    ctx.shadowBlur=0;
+  }
+
+  ctx.restore();
+  drawWaveTrace(.15);
+}
+
+/* ── mode 2: Keyboard as Civilizational Ark ──
+   A grid of keys — each a stored gesture, a frozen act.
+   Keys pulse with audio as if being struck. */
+
+function drawKeyboard(){
+  drawMotorField();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.clip();
+
+  const cols = 8, rows = 5;
+  const kw   = R*.18, kh = R*.13;
+  const gx   = (cols-1)*kw, gy = (rows-1)*kh;
+
+  for(let r=0;r<rows;r++){
+    // each row offset slightly like a real keyboard
+    const rowOffset = (r - (rows-1)/2) * .4 * kw;
+    for(let c=0;c<cols;c++){
+      const x  = cx - gx/2 + c*kw + rowOffset;
+      const y  = cy - gy/2 + r*kh;
+      const dx = x-cx, dy = y-cy;
+      if(dx*dx+dy*dy > R*R*.72) continue;
+
+      // each key has its own phase — not all active at once
+      const keyPhase = Math.sin(frame*.04 + r*1.7 + c*2.3);
+      const press    = Math.max(0, keyPhase) * bass * 1.4;
+      const alpha    = .18 + press*.55;
+
+      // key body
+      ctx.beginPath();
+      ctx.roundRect(x-kw*.38, y-kh*.38, kw*.76, kh*.76, 2);
+      ctx.strokeStyle=`rgba(160,255,190,${alpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.shadowBlur = press*12;
+      ctx.shadowColor="#00ff88";
+      ctx.stroke();
+      ctx.shadowBlur=0;
+
+      // pressed key glow
+      if(press > .3){
+        ctx.fillStyle=`rgba(180,255,200,${press*.22})`;
+        ctx.fill();
+      }
+    }
+  }
+
+  // archive ring — the ark boundary
+  ctx.beginPath();
+  ctx.arc(cx,cy,R*.80,0,Math.PI*2);
+  ctx.strokeStyle=`rgba(124,255,196,${.08+mid*.06})`;
+  ctx.lineWidth=1;
+  ctx.stroke();
+
+  ctx.restore();
+  drawWaveTrace(.12);
+}
+
+/* ── mode 3: Hidden Motor Grammar ──
+   Grammatical structure of hand motions:
+   nodes = phonemes of gesture, arcs = rules of combination.
+   The grammar runs invisibly beneath every action. */
+
+// fixed grammar nodes — positions in gesture-phoneme space
+const GRAMMAR_NODES = [
+  // proximal (near body)
+  {r:.18, a:0},    {r:.18, a:1.05}, {r:.18, a:2.09},
+  {r:.18, a:3.14}, {r:.18, a:4.19}, {r:.18, a:5.24},
+  // medial
+  {r:.36, a:.52},  {r:.36, a:1.57}, {r:.36, a:2.62},
+  {r:.36, a:3.67}, {r:.36, a:4.71}, {r:.36, a:5.76},
+  // distal (fingertips)
+  {r:.56, a:.26},  {r:.56, a:1.31}, {r:.56, a:2.36},
+  {r:.56, a:3.40}, {r:.56, a:4.45}, {r:.56, a:5.50},
+].map(n=>({
+  x: cx + Math.cos(n.a)*R*n.r,
+  y: cy + Math.sin(n.a)*R*n.r,
+  r: n.r
+}));
+
+// grammar rules — which nodes can follow which
+const GRAMMAR_EDGES = GRAMMAR_NODES.flatMap((a,i)=>
+  GRAMMAR_NODES
+    .map((b,j)=>({i,j,b}))
+    .filter(({j,b})=> j>i && Math.hypot(a.x-b.x,a.y-b.y) < R*.38)
+);
+
+// active rule: one rule fires at a time, cycling
+let activeEdge = 0;
+
+function drawGrammar(){
+  drawMotorField();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.clip();
+
+  // cycle through active rule
+  if(frame%18===0) activeEdge=(activeEdge+1)%GRAMMAR_EDGES.length;
+
+  // all edges — the latent grammar
+  GRAMMAR_EDGES.forEach((e,ei)=>{
+    const a = GRAMMAR_NODES[e.i];
+    const b = GRAMMAR_NODES[e.j];
+    const isActive = ei===activeEdge;
+
+    ctx.beginPath();
+    ctx.moveTo(a.x,a.y);
+    ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle = isActive
+      ? `rgba(220,255,200,${.45+mid*.2})`
+      : `rgba(100,180,130,${.04+high*.03})`;
+    ctx.lineWidth = isActive ? 2.5 : 1;
+    if(isActive){
+      ctx.shadowBlur=10;
+      ctx.shadowColor="#00ff88";
+    }
+    ctx.stroke();
+    ctx.shadowBlur=0;
+  });
+
+  // nodes — gesture phonemes
+  GRAMMAR_NODES.forEach((n,i)=>{
+    const isActiveNode =
+      i===GRAMMAR_EDGES[activeEdge]?.i ||
+      i===GRAMMAR_EDGES[activeEdge]?.j;
+
+    const size = isActiveNode
+      ? 7 + bass*5
+      : 3 + (n.r > .4 ? 1 : 0);
+
+    ctx.beginPath();
+    ctx.arc(n.x,n.y,size,0,Math.PI*2);
+    ctx.fillStyle = isActiveNode
+      ? "rgba(220,255,210,.90)"
+      : `rgba(140,220,170,${.30 + n.r*.3})`;
+    if(isActiveNode){
+      ctx.shadowBlur=12;
+      ctx.shadowColor="#00ff88";
+    }
+    ctx.fill();
+    ctx.shadowBlur=0;
+  });
+
+  ctx.restore();
+  drawWaveTrace(.17);
+}
+
+/* ── mode 4: Reachability > Prediction ──
+   The body extends into space through reach envelopes.
+   Reachability is shown as a dynamic field of extensions —
+   not where you predict you'll go but where you *can* go.
+   Prediction is the bright line; reachability is the volume. */
+
+function drawReach(){
+  drawMotorField();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,0,Math.PI*2);
+  ctx.clip();
+
+  // reachability volume — the full envelope of possible arm positions
+  // shown as concentric deformed rings at different extension lengths
+  for(let k=0;k<8;k++){
+    const ext = .20 + k*.09;   // extension ratio
+    ctx.beginPath();
+    for(let a=0;a<=Math.PI*2+.04;a+=.04){
+      // the envelope is not a perfect circle —
+      // it bulges where the arm has more freedom
+      const freedom =
+        1 + .18*Math.sin(a*3 + frame*.004 + k*.8)
+          + .08*Math.sin(a*7 - frame*.003);
+      const r = R * ext * freedom;
+      const x = cx + Math.cos(a)*r;
+      const y = cy + Math.sin(a)*r;
+      if(a===0) ctx.moveTo(x,y);
+      else ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=`rgba(100,210,150,${.025+k*.014+mid*.03})`;
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+  }
+
+  // prediction line — the single most likely path
+  // bright but narrow; the reachability volume dwarfs it
+  const predPhase = frame*.012;
+  ctx.beginPath();
+  for(let t=0;t<60;t++){
+    const p = predPhase + t*.04;
+    const x = cx + Math.sin(p*1.2)*R*.60;
+    const y = cy + Math.sin(p*.8)*R*.50;
+    if(t===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  }
+  ctx.strokeStyle=`rgba(240,255,220,${.55+mid*.2})`;
+  ctx.lineWidth=3;
+  ctx.lineCap="round";
+  ctx.shadowBlur=10;
+  ctx.shadowColor="#ffffaa";
+  ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // body origin — the reaching agent
+  ctx.beginPath();
+  ctx.arc(cx, cy, 8+bass*6, 0, Math.PI*2);
+  const bg = ctx.createRadialGradient(cx,cy,0,cx,cy,12);
+  bg.addColorStop(0,"rgba(255,255,235,.95)");
+  bg.addColorStop(1,"rgba(180,255,200,.10)");
+  ctx.fillStyle=bg;
+  ctx.shadowBlur=14;
+  ctx.shadowColor="#ffffaa";
+  ctx.fill();
+  ctx.shadowBlur=0;
+
+  ctx.restore();
+  drawWaveTrace(.14);
+}
+
+/* ── lissajous wave trace ── */
+
+function drawWaveTrace(lagBase){
+  if(!analyser) return;
+  analyser.getByteTimeDomainData(timeData);
+  const lag = Math.floor(timeData.length*(lagBase+mid*.06));
+
+  ctx.beginPath();
+  for(let i=0;i<timeData.length;i+=3){
+    const a = (timeData[i]-128)/128;
+    const b = (timeData[(i+lag)%timeData.length]-128)/128;
+    const x = cx + a*R*.50 + Math.sin(frame*.007)*8;
+    const y = cy + b*R*.42 + Math.cos(frame*.005)*6;
+    if(i===0) ctx.moveTo(x,y);
+    else ctx.lineTo(x,y);
+  }
+  ctx.strokeStyle="rgba(100,220,160,.48)";
+  ctx.lineWidth=3;
+  ctx.lineCap="round";
+  ctx.shadowBlur=8;
+  ctx.shadowColor="#00aa55";
+  ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+/* ── main loop ── */
+
+function draw(){
+  frame++;
+  updateEnergy();
+  clearPortal();
+
+  if(mode==="gestures") drawGestures();
+  if(mode==="keyboard") drawKeyboard();
+  if(mode==="grammar")  drawGrammar();
+  if(mode==="reach")    drawReach();
+
+  requestAnimationFrame(draw);
+}
+
+buildSelector();
+loadTrack(0,false);
+draw();
+</script>
+
+</body>
+</html>

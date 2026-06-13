@@ -1,5 +1,7 @@
 # Research Projects
 
+[Admissibility Lab](https://github.com/standardgalactic/research-projects/blob/main/admissibility-lab/README.md)
+
 [Latent Structures](https://github.com/standardgalactic/research-projects/blob/main/philosophy/README.md)
 
 [Morphology as Computation](https://standardgalactic.github.io/research-projects/epistemology/morphology-as-computation.pdf)
