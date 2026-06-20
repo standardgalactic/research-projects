@@ -1,5 +1,7 @@
 # Research Projects
 
+[The Ecology of Distinctions](https://github.com/standardgalactic/research-projects/blob/main/textbook/README.md)
+
 [Admissibility Lab](https://github.com/standardgalactic/research-projects/blob/main/admissibility-lab/README.md)
 
 [Latent Structures](https://github.com/standardgalactic/research-projects/blob/main/philosophy/README.md)

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audioscope</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:#000;font-family:monospace;
+  touch-action:manipulation;
+  color:#00ff41;
+  text-shadow:0 0 5px #00ff41;
+}
+
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:900;
+  background:radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.6) 100%);
+}
+
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:901;
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,.20) 0px,rgba(0,0,0,.20) 1px,
+    transparent 1px,transparent 3px
+  );
+}
+
+#screen{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  will-change:transform;
+}
+
+#title{
+  position:fixed;top:18px;left:0;right:0;
+  text-align:center;
+  font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  opacity:.72;z-index:100;
+}
+
+#tracks{
+  position:fixed;top:44px;left:0;right:0;
+  display:flex;justify-content:center;gap:14px;
+  z-index:100;
+}
+
+#tracks button{
+  background:none;
+  border:none;border-bottom:1px solid rgba(0,255,65,.22);
+  color:rgba(0,255,65,.42);
+  font-family:monospace;font-size:8px;
+  letter-spacing:.14em;padding:3px 6px;
+  cursor:pointer;transition:all .2s;
+}
+
+#tracks button.active{
+  color:#00ff41;
+  border-bottom-color:#00ff41;
+  text-shadow:0 0 8px #00ff41;
+}
+
+#clock{
+  position:fixed;top:18px;right:14px;
+  font-size:8px;letter-spacing:.1em;
+  opacity:.30;z-index:100;
+}
+
+canvas{
+  display:block;
+  width:min(360px,80vw);
+  height:min(360px,80vw);
+  image-rendering:pixelated;
+}
+
+#status{
+  position:fixed;bottom:48px;left:0;right:0;
+  text-align:center;font-size:7px;letter-spacing:.18em;
+  opacity:.22;z-index:100;
+}
+
+#subs{
+  position:fixed;bottom:14px;
+  left:50%;transform:translateX(-50%);
+  width:min(560px,86vw);
+  min-height:2em;
+  text-align:center;
+  font-size:11px;line-height:1.5;
+  letter-spacing:.03em;
+  opacity:.68;z-index:100;
+  font-style:italic;
+}
+
+#glitch-band{
+  position:fixed;left:0;right:0;height:2px;
+  background:rgba(0,255,65,.55);
+  pointer-events:none;z-index:902;
+  display:none;box-shadow:0 0 6px #00ff41;
+}
+
+#debug{
+  position:fixed;bottom:6px;left:8px;
+  font-size:6px;opacity:.10;z-index:100;
+  letter-spacing:.06em;
+}
+</style>
+</head>
+<body>
+
+<div id="screen">
+  <div id="title">—</div>
+  <div id="tracks"></div>
+  <span id="clock">00:00</span>
+  <canvas id="viz"></canvas>
+  <div id="status">[ click or touch · play / pause ]</div>
+  <div id="subs"></div>
+</div>
+
+<div id="glitch-band"></div>
+<div id="debug"></div>
+
+<audio id="audio" preload="auto"></audio>
+
+<script>
+const tracks = [
+  {
+    file:"Reality_is_built_on_refusal.mp3",
+    vtt:"Reality_is_built_on_refusal.vtt",
+    label:"REFUSAL",
+    title:"REALITY IS BUILT ON REFUSAL",
+    mode:"refusal"
+  },
+  {
+    file:"Why_objects_are_just_stable_boundaries.mp3",
+    vtt:"Why_objects_are_just_stable_boundaries.vtt",
+    label:"BOUNDARIES",
+    title:"WHY OBJECTS ARE JUST STABLE BOUNDARIES",
+    mode:"boundaries"
+  },
+  {
+    file:"Solid_objects_are_a_biological_illusion.mp3",
+    vtt:"Solid_objects_are_a_biological_illusion.vtt",
+    label:"ILLUSION",
+    title:"SOLID OBJECTS ARE A BIOLOGICAL ILLUSION",
+    mode:"illusion"
+  }
+];
+
+let trackIndex = 0;
+let mode       = tracks[0].mode;
+
+const audio     = document.getElementById("audio");
+const subsEl    = document.getElementById("subs");
+const titleEl   = document.getElementById("title");
+const trackBtns = document.getElementById("tracks");
+const clockEl   = document.getElementById("clock");
+const screen    = document.getElementById("screen");
+const glitchBand= document.getElementById("glitch-band");
+const debugEl   = document.getElementById("debug");
+
+/* ── audio ── */
+
+let audioCtx, analyser, freqData, timeData;
+
+function initAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = .84;
+  freqData = new Uint8Array(analyser.frequencyBinCount);
+  timeData = new Uint8Array(analyser.fftSize);
+  const src = audioCtx.createMediaElementSource(audio);
+  src.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+function buildButtons(){
+  tracks.forEach((t,i)=>{
+    const btn = document.createElement("button");
+    btn.textContent = t.label;
+    btn.onclick = async e=>{
+      e.stopPropagation();
+      initAudio();
+      if(audioCtx.state==="suspended") await audioCtx.resume();
+      await loadTrack(i,true);
+    };
+    trackBtns.appendChild(btn);
+  });
+}
+
+function updateButtons(){
+  [...trackBtns.querySelectorAll("button")]
+    .forEach((b,i)=>b.classList.toggle("active",i===trackIndex));
+}
+
+async function loadTrack(i,autoplay=true){
+  trackIndex = ((i%tracks.length)+tracks.length)%tracks.length;
+  const t = tracks[trackIndex];
+  mode = t.mode;
+  titleEl.textContent = t.title;
+  audio.src = t.file;
+  audio.load();
+  updateButtons();
+  if(mode==="boundaries") resetBoundaries();
+  if(mode==="illusion")   resetIllusion();
+  await loadVTT(t.vtt);
+  if(autoplay){ try{ await audio.play(); }catch(e){} }
+}
+
+audio.addEventListener("ended",()=>loadTrack(trackIndex+1,true));
+
+document.body.addEventListener("click",async ()=>{
+  initAudio();
+  if(audioCtx.state==="suspended") await audioCtx.resume();
+  if(audio.paused) await audio.play();
+  else audio.pause();
+});
+
+audio.ontimeupdate = ()=>{
+  const t = audio.currentTime|0;
+  clockEl.textContent =
+    `${String(t/60|0).padStart(2,"0")}:${String(t%60).padStart(2,"0")}`;
+  const c = cues.find(c=>audio.currentTime>=c.start&&audio.currentTime<c.end+.2);
+  subsEl.textContent = c ? c.text : "";
+};
+
+/* ── subtitles ── */
+
+let cues = [];
+
+async function loadVTT(url){
+  cues=[]; subsEl.textContent="";
+  try{
+    const r = await fetch(url);
+    if(!r.ok) return;
+    cues = parseVTT(await r.text());
+  }catch(e){}
+}
+
+function parseVTT(text){
+  const out=[];
+  for(const block of text.replace(/\r/g,"").split(/\n{2,}/)){
+    const lines=block.trim().split("\n");
+    const ts=lines.find(l=>l.includes("-->"));
+    if(!ts) continue;
+    const ti=lines.indexOf(ts);
+    const [s,e]=ts.split("-->").map(x=>x.trim());
+    out.push({start:parseTime(s),end:parseTime(e),
+              text:lines.slice(ti+1).join(" ")});
+  }
+  return out;
+}
+
+function parseTime(t){
+  t=t.split(" ")[0].replace(",",".");
+  const p=t.split(":");
+  if(p.length===3) return +p[0]*3600 + +p[1]*60 + parseFloat(p[2]);
+  return +p[0]*60 + parseFloat(p[1]);
+}
+
+/* ── canvas ── */
+
+const canvas = document.getElementById("viz");
+const ctx    = canvas.getContext("2d");
+const W=512, H=512, cx=W/2, cy=H/2;
+canvas.width=W; canvas.height=H;
+
+let frame=0, bass=0, mid=0, high=0, vol=0, entropy=0;
+
+function updateEnergy(){
+  if(!analyser) return;
+  analyser.getByteFrequencyData(freqData);
+  analyser.getByteTimeDomainData(timeData);
+  let b=0,m=0,h=0,v=0;
+  for(let i=0;i<40;i++) b+=freqData[i];
+  for(let i=40;i<180;i++) m+=freqData[i];
+  for(let i=180;i<freqData.length;i++) h+=freqData[i];
+  for(let i=0;i<freqData.length;i++) v+=freqData[i];
+  bass+=(b/(40*255)   -bass)*.08;
+  mid +=(m/(140*255)  -mid )*.06;
+  high+=(h/((freqData.length-180)*255)-high)*.05;
+  vol +=(v/(freqData.length*255)-vol)*.07;
+
+  let sum=0,ent=0;
+  for(let i=0;i<freqData.length;i++) sum+=freqData[i];
+  if(sum>0){
+    for(let i=0;i<freqData.length;i++){
+      const p=freqData[i]/sum;
+      if(p>0) ent-=p*Math.log2(p);
+    }
+    ent/=Math.log2(freqData.length);
+  }
+  entropy+=(ent-entropy)*.04;
+}
+
+/* ── glitch ── */
+
+let glitchActive=false, glitchTimer=0, glitchType=0, lastGlitch=0;
+
+function maybeGlitch(){
+  if(glitchActive) return;
+  if(entropy<.70&&vol<.50) return;
+  if(frame-lastGlitch<100) return;
+  if(Math.random()>.015) return;
+  glitchActive=true; glitchTimer=0;
+  glitchType=Math.random()<.55 ? 0 : 1;
+  lastGlitch=frame;
+}
+
+function applyGlitch(){
+  if(!glitchActive){
+    screen.style.transform="";
+    glitchBand.style.display="none";
+    return;
+  }
+  glitchTimer++;
+  const dur = glitchType===0 ? 20 : 9;
+
+  if(glitchType===0){
+    const decay=1-glitchTimer/dur;
+    const jx=(Math.random()-.5)*7*decay;
+    const jy=(Math.random()-.5)*2*decay;
+    screen.style.transform=`translate(${jx}px,${jy}px)`;
+    glitchBand.style.display="none";
+  } else {
+    const pct=(glitchTimer/dur)*110-5;
+    glitchBand.style.display="block";
+    glitchBand.style.top=`${pct}%`;
+    glitchBand.style.opacity=`${1-glitchTimer/dur}`;
+    screen.style.transform="";
+  }
+
+  if(glitchTimer>=dur){
+    glitchActive=false;
+    screen.style.transform="";
+    glitchBand.style.display="none";
+  }
+}
+
+/* ── shared ── */
+
+function clearScreen(){
+  ctx.fillStyle="rgba(0,0,0,.16)";
+  ctx.fillRect(0,0,W,H);
+}
+
+function lis(ox,oy,rx,ry,lagFrac,alpha,lw){
+  if(!analyser) return;
+  const N=timeData.length;
+  const lag=Math.floor(N*lagFrac)&~1;
+  ctx.beginPath();
+  for(let i=0;i<N;i+=2){
+    const a=(timeData[i]-128)/128;
+    const b=(timeData[(i+lag)%N]-128)/128;
+    if(i===0) ctx.moveTo(ox+a*rx, oy+b*ry);
+    else      ctx.lineTo(ox+a*rx, oy+b*ry);
+  }
+  ctx.strokeStyle=`rgba(0,255,65,${alpha})`;
+  ctx.lineWidth=lw||1;
+  ctx.lineCap="round";
+  ctx.shadowBlur=alpha>.35?8:2;
+  ctx.shadowColor="#00ff41";
+  ctx.stroke();
+  ctx.shadowBlur=0;
+}
+
+/* ═══════════════════════════════════════════════════
+   MODE 1 — REALITY IS BUILT ON REFUSAL
+   ───────────────────────────────────────────────────
+   Stability isn't passive — it's an active refusal of
+   most possible transitions. The lissajous tries to
+   wander freely, but at intervals a refusal event fires:
+   a hard, sudden constraint snaps it back onto an
+   admissible path. Reality is the residue of what
+   wasn't allowed to happen.
+═══════════════════════════════════════════════════ */
+
+let refusalWander = 0;      // accumulated wander offset
+let refusalEvents = [];     // active refusal snap marks
+const REFUSAL_MAX_WANDER = 38;
+
+function maybeRefuse(){
+  // refusal fires when wander gets large, or stochastically on bass hits
+  const forced = Math.abs(refusalWander) > REFUSAL_MAX_WANDER;
+  const triggered = bass > .22 && Math.random() < .05;
+  if(forced || triggered){
+    refusalEvents.push({ t:0, mag: Math.abs(refusalWander)+8 });
+    refusalWander *= -0.15; // snapped back, hard
+  }
+}
+
+function drawRefusal(){
+  // wander accumulates — the "free" exploration
+  refusalWander += (Math.random()-.5)*2.2 + high*1.4;
+  maybeRefuse();
+
+  // age refusal events
+  refusalEvents.forEach(e=>e.t++);
+  refusalEvents = refusalEvents.filter(e=>e.t<26);
+
+  // base lissajous — offset by current wander (the unconstrained drift)
+  const wob = refusalWander * 1.4;
+  lis(cx+wob*.3, cy-wob*.18, W*.27, W*.27, .25+refusalWander*.0008,
+      .42+mid*.2, 1.3);
+
+  // admissible boundary — a faint ring marking what refusal protects
+  ctx.beginPath();
+  ctx.arc(cx,cy,W*.30,0,Math.PI*2);
+  ctx.strokeStyle="rgba(0,255,65,.05)";
+  ctx.lineWidth=1;
+  ctx.setLineDash([1,9]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // refusal snap marks — hard radial strikes, not smooth decay
+  refusalEvents.forEach(e=>{
+    const t = e.t/26;
+    const alpha = (1-t)*.7;
+    const len = W*(.08+e.mag*.003)*(1-t*.3);
+    const spokes = 6;
+    for(let s=0;s<spokes;s++){
+      const a = s/spokes*Math.PI*2 + e.t*.02;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(a)*W*.06, cy+Math.sin(a)*W*.06);
+      ctx.lineTo(cx+Math.cos(a)*(W*.06+len), cy+Math.sin(a)*(W*.06+len));
+      ctx.strokeStyle=`rgba(0,255,65,${alpha})`;
+      ctx.lineWidth=1.4*(1-t);
+      ctx.shadowBlur=8*(1-t);
+      ctx.shadowColor="#00ff41";
+      ctx.stroke();
+      ctx.shadowBlur=0;
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   MODE 2 — WHY OBJECTS ARE JUST STABLE BOUNDARIES
+   ───────────────────────────────────────────────────
+   No interior is drawn — only a boundary contour.
+   The contour is a lissajous-warped closed curve,
+   stable as long as the underlying signal is coherent.
+   "Object" = the boundary persisting through change,
+   nothing more. The contour is recomputed every frame
+   from the live signal but its shape stays recognisable.
+═══════════════════════════════════════════════════ */
+
+let boundaryHistory = [];
+const BOUND_TRAIL = 5;
+
+function resetBoundaries(){
+  boundaryHistory = [];
+}
+
+function drawBoundaries(){
+  if(!analyser) return;
+
+  // sample the waveform around a circle to build a closed contour
+  const N = timeData.length;
+  const pts = 64;
+  const contour = [];
+  for(let i=0;i<pts;i++){
+    const a = i/pts*Math.PI*2;
+    const idx = Math.floor(i/pts*N)&~1;
+    const sample = (timeData[idx]-128)/128;
+    const r = W*(.20 + sample*.10 + bass*.05);
+    contour.push({
+      x: cx+Math.cos(a)*r,
+      y: cy+Math.sin(a)*r
+    });
+  }
+
+  boundaryHistory.push(contour);
+  if(boundaryHistory.length>BOUND_TRAIL) boundaryHistory.shift();
+
+  // draw trail — older contours fainter, only the boundary line, no fill
+  boundaryHistory.forEach((c,hi)=>{
+    const age = hi/(BOUND_TRAIL-1||1);
+    ctx.beginPath();
+    c.forEach((p,i)=>{
+      if(i===0) ctx.moveTo(p.x,p.y);
+      else ctx.lineTo(p.x,p.y);
+    });
+    ctx.closePath();
+    ctx.strokeStyle=`rgba(0,255,65,${.06+age*.42})`;
+    ctx.lineWidth=age<.5?.8:1.6;
+    ctx.shadowBlur=age>.75?8:0;
+    ctx.shadowColor="#00ff41";
+    ctx.stroke();
+    ctx.shadowBlur=0;
+  });
+
+  // boundary vertices — small marks at sample points on the newest contour,
+  // emphasising that the boundary is made of discrete distinctions
+  const newest = boundaryHistory[boundaryHistory.length-1];
+  if(newest){
+    for(let i=0;i<newest.length;i+=8){
+      const p=newest[i];
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,1.3,0,Math.PI*2);
+      ctx.fillStyle="rgba(0,255,65,.35)";
+      ctx.fill();
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   MODE 3 — SOLID OBJECTS ARE A BIOLOGICAL ILLUSION
+   ───────────────────────────────────────────────────
+   A dense cloud of independent points — the actual
+   substrate — is always present, dim and chaotic.
+   A perceptual lissajous "object" is overlaid on top,
+   bright and clean, perfectly stable. The two never
+   touch. The bright trace is what the eye constructs;
+   the dim chaos underneath is what's actually there.
+═══════════════════════════════════════════════════ */
+
+let illusionParticles = [];
+const ILLUSION_N = 90;
+
+function resetIllusion(){
+  illusionParticles = Array.from({length:ILLUSION_N},()=>({
+    a: Math.random()*Math.PI*2,
+    r: W*(.10+Math.random()*.34),
+    speed: (Math.random()-.5)*.012,
+    wobble: Math.random()*Math.PI*2
+  }));
+}
+
+function drawIllusion(){
+  if(illusionParticles.length===0) resetIllusion();
+
+  // substrate — chaotic, dim, always moving independently
+  illusionParticles.forEach(p=>{
+    p.a += p.speed + (Math.random()-.5)*.01;
+    p.wobble += .03;
+    const rr = p.r + Math.sin(p.wobble)*6 + high*10;
+    const x = cx+Math.cos(p.a)*rr;
+    const y = cy+Math.sin(p.a)*rr;
+    ctx.beginPath();
+    ctx.arc(x,y,1,0,Math.PI*2);
+    ctx.fillStyle="rgba(0,255,65,.10)";
+    ctx.fill();
+  });
+
+  // perceptual object — clean, bright, stable lissajous
+  // perfectly smooth regardless of the chaos beneath it
+  lis(cx, cy, W*.24, W*.24, .25, .62+mid*.2, 1.8);
+
+  // a second, fainter harmonic trace — the "edge" of perception
+  lis(cx, cy, W*.20, W*.20, .31, .18+high*.1, .9);
+
+  // occasional perceptual snap — the illusion re-stabilising
+  // a brief bright pulse on the object outline when bass hits
+  if(bass>.20){
+    ctx.beginPath();
+    ctx.arc(cx,cy,W*.24,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(0,255,65,${(bass-.20)*.6})`;
+    ctx.lineWidth=2.4;
+    ctx.shadowBlur=10;
+    ctx.shadowColor="#00ff41";
+    ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+}
+
+/* ── main loop ── */
+
+function draw(){
+  frame++;
+  updateEnergy();
+  maybeGlitch();
+  applyGlitch();
+  clearScreen();
+
+  ctx.save();
+  if(mode==="refusal")    drawRefusal();
+  if(mode==="boundaries") drawBoundaries();
+  if(mode==="illusion")   drawIllusion();
+  ctx.restore();
+
+  debugEl.textContent=`F:${frame} E:${entropy.toFixed(2)} V:${vol.toFixed(2)} B:${bass.toFixed(2)}`;
+
+  requestAnimationFrame(draw);
+}
+
+resetBoundaries();
+resetIllusion();
+buildButtons();
+loadTrack(0,false);
+draw();
+</script>
+</body>
+</html>
