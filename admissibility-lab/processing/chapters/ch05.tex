@@ -1,0 +1,95 @@
+\chapter{Fidelity: What Gives an Elimination Authority}
+\label{ch:fidelity}
+
+\begin{plainlanguage}
+\textbf{In plain terms:} Not all evidence deserves equal trust, and this chapter is the one the rest of the book depends on. It breaks "how much should I trust this piece of evidence" into four checkable questions and combines them into one number, \emph{fidelity}. The central claim: people and cultures fail not by reasoning badly in general, but specifically by treating low-quality evidence as if it were high-quality.
+\end{plainlanguage}
+
+A graded belief measure solves the irreversibility problem, but it immediately raises a harder one. If every constraint moves $\mu_t(\theta)$ by some amount, what determines that amount? Treating every perspective as equally authoritative is no more defensible than treating every perspective as infallible --- a single offhand, biased, or rhetorically-constructed claim should not move belief by the same amount as a rigorously demonstrated counterexample. The naive model's flaw was irreversibility. Its less obvious but equally serious flaw, inherited by any careless graded replacement, is treating all eliminating evidence as if it carried the same weight. This chapter builds the machinery to stop doing that.
+
+\section{Four components of fidelity}
+
+Call the authority a given eliminating constraint deserves its \emph{fidelity}, $w_i$. The claim of this chapter is that fidelity is not a single intuitive quantity but decomposes into four independently checkable components, each addressing a distinct way a piece of eliminating evidence can be untrustworthy even while looking, on its surface, exactly like a hard fact.
+
+\textbf{Causal directness ($d_i$).} Does the eliminated possibility fail because of an intrinsic property of the thing itself, or because of an extended, contingent, multiply-mediated causal chain? A mathematical counterexample has maximal directness --- the failure is definitional, with zero intervening contingent steps. A claim like ``laziness leads to poverty'' has low directness --- it routes through labor markets, family circumstance, health, and luck, none of which the claim acknowledges.
+
+\textbf{Severity calibration ($s_i$).} Does the outcome a constraint depicts match the outcome reality actually produces, or is the depiction amplified beyond what the evidence supports? Formally, $s_i$ is the ratio of actual conditional outcome probability to depicted outcome probability --- close to $1$ for a hazard that reliably produces what it threatens, far below $1$ for a dramatized worst case presented as a near-certainty it is not.
+
+\textbf{Closure ($c_i$).} Is the eliminated trajectory actually a closed door, or does the constraint silently omit real recovery paths that exist in the world but would weaken its rhetorical force if shown? High closure --- meaning genuinely few or no real escape routes exist --- should increase a constraint's fidelity, since the eliminated outcome really is as final as depicted. Low closure --- many hidden recovery paths the constraint omits --- should reduce fidelity, since the constraint overstates how final its eliminated outcome actually is.
+
+\textbf{Source independence ($q_i$).} Would the elimination retain its force if asserted by a stranger with no social standing, or does its authority depend entirely on who is making the claim? A claim checkable by anyone, regardless of the speaker's status, has high source independence. A claim that only feels compelling because an elder, an institution, or a culture says so has low source independence.
+
+\begin{definition}[Fidelity Functional]
+Combine the four components multiplicatively, each scaled to $[0,1]$:
+\[
+w_i = d_i \cdot s_i \cdot c_i \cdot q_i.
+\]
+\end{definition}
+
+With this naming, every factor now points the same direction --- larger is always better, larger always increases fidelity, and a reader need not mentally invert any single component to follow the formula. The multiplicative form is deliberate rather than incidental: it ensures that any single component collapsing toward zero drags the overall fidelity toward zero as well, rather than being averaged away by the other three. A constraint that is indirect, exaggerated, low-closure (full of hidden escape routes it doesn't show you), and dependent entirely on the speaker's authority should not score moderately on fidelity merely because it is, say, vivid. It should score close to zero, because every independent check it could pass, it fails.
+
+\subsection*{Why the fidelity functional is multiplicative}
+
+This choice is worth justifying rather than leaving as a stylistic preference, because an additive functional was the more obvious first guess and was rejected for a specific reason. Consider the alternative,
+\[
+w_i^{\text{additive}} = \tfrac{1}{4}(d_i + s_i + c_i + q_i).
+\]
+Under this form, a constraint that is catastrophically authority-dependent ($q_i \approx 0$) but happens to score well on the other three components can still average out to a moderate, even respectable, fidelity score. That is exactly the wrong behavior for what fidelity is meant to represent. A constraint with zero source independence --- one that is compelling only because of who is asserting it --- should not be rescued by being otherwise well-calibrated and direct, because the entire question of whether it deserves authority \emph{at all} turns on whether it would survive being asserted by no one in particular. An additive form allows components to compensate for one another; a multiplicative form enforces a bottleneck, where the weakest link determines the overall strength of the chain rather than being smoothed over by an average. Since the four components were each motivated as addressing a distinct way a constraint can fail entirely independently of the others, a single catastrophic failure on any one of them should be allowed to be catastrophic for the whole, which is precisely what multiplication, and not addition, enforces.
+
+\section{The corrected update rule}
+
+With fidelity in hand, the belief measure can be updated by an amount proportional to how strongly a given constraint argues against a candidate, scaled by how much authority that argument deserves.
+
+\begin{definition}[Soft Elimination, corrected]
+Let $e_t(\theta) \in [0,1]$ measure how strongly the constraint encountered at time $t$ argues against candidate $\theta$. A first, naive version of the update would be
+\[
+\tilde\mu_{t+1}(\theta) = \mu_t(\theta)\bigl(1 - w_t\, e_t(\theta)\bigr).
+\]
+\end{definition}
+
+This expression is not yet adequate as stated, because repeated multiplicative shrinkage of this kind destroys probability mass without redistributing it --- if $\mu$ is meant to remain a genuine probability distribution over $\Theta$, summing to $1$ at every step, this update will generally cause that sum to drift below $1$ as $t$ grows, since mass is removed at each step but never returned anywhere. The corrected version renormalizes:
+\[
+Z_t = \sum_{\theta \in \Theta} \mu_t(\theta)\bigl(1 - w_t\, e_t(\theta)\bigr), \qquad
+\mu_{t+1}(\theta) = \frac{\mu_t(\theta)\bigl(1 - w_t\, e_t(\theta)\bigr)}{Z_t}.
+\]
+
+This is the update rule the rest of the book assumes whenever $\mu_t$ is invoked. It is worth pausing on why the correction matters beyond mathematical tidiness: every later argument in this book that reasons about $\mu_t$ in probabilistic terms --- comparing likelihoods, talking about expected error, treating $\mu_t(\theta)$ as something like a degree of belief that should behave the way degrees of belief behave --- silently depends on $\mu_t$ actually being a probability distribution at every step. The uncorrected version is not one. The corrected version is, and the next result confirms it stays one under repeated application.
+
+\begin{theorem}[Fidelity Stability]
+\label{thm:stability}
+If $0 \leq w_t e_t(\theta) \leq 1$ for every $\theta$ and every $t$, and $Z_t > 0$ at every step, then $\mu_t(\theta) \geq 0$ and $\sum_\theta \mu_t(\theta) = 1$ for all $t$ --- that is, $\mu_t$ remains a valid probability distribution throughout the process.
+\end{theorem}
+
+\begin{proofsketch}
+By induction on $t$. Base case: $\mu_0$ is given as a valid probability distribution by construction. Inductive step: suppose $\mu_t$ is a valid probability distribution. Since $0 \leq w_t e_t(\theta) \leq 1$ for every $\theta$, each factor $(1 - w_t e_t(\theta))$ lies in $[0,1]$, so the product $\mu_t(\theta)(1 - w_t e_t(\theta))$ is non-negative for every $\theta$. Dividing by $Z_t > 0$ preserves non-negativity. For the sum:
+\[
+\sum_\theta \mu_{t+1}(\theta) = \sum_\theta \frac{\mu_t(\theta)(1 - w_t e_t(\theta))}{Z_t} = \frac{1}{Z_t}\sum_\theta \mu_t(\theta)(1 - w_t e_t(\theta)) = \frac{Z_t}{Z_t} = 1.
+\]
+So $\mu_{t+1}$ is non-negative and sums to $1$: a valid probability distribution. By induction, this holds for all $t$. \qedhere
+\end{proofsketch}
+
+This is a modest theorem --- it confirms that a corrected, sensible-looking update rule behaves the way a sensible update rule should --- but it is not vacuous. The original, uncorrected version of the same idea did not have this property, and a great deal of downstream reasoning in this book implicitly requires that it does.
+
+\section{Fidelity is not correctness}
+
+A misunderstanding worth heading off before the rest of this book builds further on this chapter: fidelity and correctness are not the same thing, and nothing in the apparatus above guarantees they coincide.
+
+Fidelity measures how much authority a constraint deserves \emph{if} it is taken seriously as evidence. It does not measure whether the constraint's content is actually true. A high-fidelity elimination can still be wrong: a carefully designed experiment can be confounded in a way no one yet detects; a mathematical proof can contain a subtle, undiscovered error; a witness with every mark of reliability can misremember a crucial detail. None of these possibilities are excluded by $w_i$ being close to $1$. Symmetrically, a low-fidelity elimination can accidentally be correct: a rumor can happen to predict a true outcome; a caricature can, despite its distortion, point at a genuine weakness; an authority-dependent claim asserted for bad reasons can still describe the world accurately. Low $w_i$ does not entail falsehood any more than high $w_i$ entails truth.
+
+This distinction matters because a great deal of ordinary epistemic failure consists precisely in conflating the two. To treat a constraint's fidelity as though it settled the constraint's truth is to skip a step that this chapter's entire apparatus was built to keep visible. What the fidelity functional governs is a narrower and more tractable question: given that perfect, oracle-level knowledge of truth is not available to any real elimination process, how should authority be \emph{apportioned} across constraints of varying reliability, so that belief revision tracks truth on average even though it cannot track it with certainty case by case? The goal of the machinery in this chapter is therefore not certainty but error management: high-fidelity constraints should, in the aggregate and over repeated use, produce fewer mistaken eliminations than low-fidelity ones. Whether they reliably do so for any particular candidate, on any particular occasion, remains an open and separate question --- and is exactly the content of the Misweighted Elimination conjecture below.
+
+\section{What fidelity weighting is actually for}
+
+The deepest sentence in this book, the one that will recur in nearly every subsequent chapter under different names and in different domains, can now be stated precisely rather than informally: \emph{intelligence-as-self-description fails when low-fidelity counterfoils are mistaken for hard eliminations.} A culture, an institution, or an individual reasoner that treats a rhetorically amplified, low-directness, low-closure, authority-dependent constraint as if it carried the weight of a mathematical counterexample is not reasoning poorly in some vague sense. It is making a specific, namable, structurally identical error every time, regardless of the domain in which it occurs --- and this book's later chapters on institutions, on developmental pedagogy, on creativity, and on borrowed authority in ideology and moral panic are, formally, the same mistake examined in five different costumes.
+
+What remains genuinely open, and is worth stating plainly rather than implying it has been settled: this chapter has built the machinery to \emph{assign} fidelity once its four components are known, but it has not yet shown that doing so reliably reduces error in the resulting belief state --- only that it is the principled way to try.
+
+\begin{conjecture}[Misweighted Elimination]
+Let $L = \mathbb{E}[(\hat\mu - \mu^*)^2]$ denote the expected squared error between the model's belief state and the (unknown) true plausibility assignment. For constraints whose fidelity weights are correctly calibrated to their actual reliability,
+\[
+\frac{\partial L}{\partial w} < 0
+\]
+--- increasing the authority given to a high-fidelity constraint reduces expected error, while doing the same for a low-fidelity constraint increases it.
+\end{conjecture}
+
+This is precisely stated and, in principle, falsifiable --- but it is not derived here. Deriving it would require an explicit model relating $e_t(\theta)$ to the unknown $\mu^*$, which this book has not constructed. It is offered as the chapter's central open target rather than a result already in hand: the formal proof, should it exist, that calibrating elimination authority correctly is not merely intuitively appealing but provably error-reducing. Closing this gap is, of everything left open in this book, probably the single most valuable piece of further work available --- and it is flagged here, rather than smuggled past as already accomplished, because a book whose subject is the difference between earned and borrowed authority cannot afford to borrow any of its own.

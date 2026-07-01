@@ -1,0 +1,31 @@
+\chapter{Non-Monotonic Revision}
+\label{ch:nonmonotonic}
+
+\begin{plainlanguage}
+\textbf{In plain terms:} The previous chapter's model has a provable fatal flaw: if you only ever narrow your options and never let anything back in, a single bad piece of evidence permanently destroys your chances of reaching the right answer, no matter how much good evidence follows. This chapter proves that, then begins building a model that can recover from its own mistakes.
+\end{plainlanguage}
+
+Monotonicity sounds, on first encounter, like a virtue --- a guarantee that the elimination process never goes backward, never re-admits something already ruled out, always tightens. It is in fact the naive model's fatal flaw, and the flaw is provable rather than merely suspected.
+
+\begin{theorem}[Irreversible Elimination]
+\label{thm:irreversible}
+If a sequence of updates is strictly monotonic and shrinking --- $\Theta_{t+1} \subseteq \Theta_t$ for all $t$ --- then mistaken elimination of the true candidate $\theta^*$ can never be repaired by any subsequent update in the sequence.
+\end{theorem}
+
+\begin{proofsketch}
+Suppose $\theta^* \in \Theta_t$ for some $t$, but a mistaken constraint causes $\theta^* \notin \Theta_{t+1}$. By monotonicity, $\Theta_{t+k} \subseteq \Theta_{t+1}$ for every $k \geq 0$. Since $\theta^* \notin \Theta_{t+1}$, and every later set is a subset of $\Theta_{t+1}$, it follows that $\theta^* \notin \Theta_\tau$ for every $\tau \geq t+1$. No future state of the sequence contains $\theta^*$. If the process is meant to eventually converge to a state containing the true candidate --- which is the entire point of running it --- this is a direct contradiction. The process cannot recover from a single mistaken elimination, ever, no matter how much further evidence accumulates. \qedhere
+\end{proofsketch}
+
+This is, among the formal results in this book, the one that does the most work with the least apparatus. It does not depend on anything specific to intelligence, or to any particular domain --- it is a structural fact about any process built on pure, monotonic intersection. And it has an immediate and uncomfortable consequence: every real elimination process is going to make mistakes. Constraints are sometimes wrong, sometimes based on incomplete information, sometimes the product of a biased or unrepresentative perspective. A model that can never recover from a single such mistake is not a model of how concepts should be revised. It is a model of how they get permanently corrupted by the first bad piece of evidence anyone happens to introduce.
+
+The naive model must therefore be replaced --- not patched, replaced --- with something that allows re-entry: a process in which a previously down-weighted candidate can regain plausibility if later evidence supports it. This requires moving from sets to something with graded membership.
+
+\begin{repairbox}[, begun here]
+\begin{definition}[Belief Measure]
+Let $\mu_t : \Theta \to [0,\infty)$ be a plausibility assignment over candidate definitions at time $t$, updated by some rule $\mu_{t+1} = U(\mu_t, C_t)$ in place of set intersection.
+\end{definition}
+
+The naive model is the special case where $U$ sends $\mu_t(\theta)$ to $0$ whenever $\theta$ violates $C_t$, and leaves it unchanged otherwise --- which is exactly what reproduces the monotonic, irreversible behavior just proven fatal. Any update rule that allows a previously-reduced $\mu_t(\theta)$ to subsequently rise again escapes Theorem~\ref{thm:irreversible}, because the theorem's proof depends essentially on the impossibility of re-entry once excluded.
+
+What such an update rule should actually look like --- specifically, how much a given constraint should be allowed to move $\mu_t(\theta)$, and on what basis --- is the question Chapter~\ref{ch:fidelity} exists to answer, where this repair is completed.
+\end{repairbox}

@@ -1,5 +1,7 @@
 # adm-lab
 
+[Intelligence as Perspectival Convergence](https://github.com/standardgalactic/research-projects/blob/main/admissibility-lab/processing/README.md)
+
 [The Eight-Letter Keyboard](https://standardgalactic.github.io/research-projects/admissibility-lab/eight_letter_keyboard.pdf)
 
 * [The Eight-Letter Motor Phonology](https://standardgalactic.github.io/research-projects/admissibility-lab/The_Eight_Letter_Motor_Phonology.pdf)
