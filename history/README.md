@@ -1,5 +1,15 @@
 # History Computation Visualizations
 
+[Terminal and Traversal Dependent Texts](https://standardgalactic.github.io/research-projects/history/terminal-and-traversal.pdf)
+
+[Repair Categories](https://standardgalactic.github.io/research-projects/history/repair-categories.pdf)
+
+<!--
+![](generating-futures.png)
+
+![](terminal-and-traversal.png)
+-->
+
 [Complex Systems](https://standardgalactic.github.io/research-projects/history/overview/) — *Audio Overview*
 
 This repository contains scripts used to generate visualizations for research into **history-based models of computation**.
@@ -113,3 +123,4 @@ These visualizations support research exploring a computational framework where:
 
 The generated figures provide visual intuition for these structures.
 
+![](history-00.png)
