@@ -7,7 +7,7 @@ CANDIDATE_FILE="$(mktemp)"
 VIM_SCRIPT="$(mktemp)"
 MATCH_FILE="$(mktemp)"
 
-PATTERN='FLECTION|FLICTION|Felican|Felician|Felictian|Felixian|Flaccion|Flagellian|Flakirin|Flakiron|Flaxian|Flixnian|Flaxion|Flaxon|Flaxson|Fleckession|Fleckstown|Flection|Flectional|Fleekshin|Fleishness|Fleishon|Flixenian|Fluxinian|Fleixing|Fleksheen|Flekshun|Fleksian|Fleksion|Flekzion|Fletchen|Fletcher|Fletchian|Fletchion|Fletian|Fletuchin|Flexian|Flexion|Flexition|Flexiton|Flexivision|Flextion|Flexumian|Fliccine|Flickditschian|Flickenden|Flickening|Flickession|Flickian|Flickiewen|Flickishin|Flicklian|Flickpnam|Flickrinnian|Flickshahn|Flicksham|Flickshan|Flickshane|Flickshank|Flickshanth|Flicksheen|Flicksheens|Flickshen|Flickshenman|Flickshian|Flickshin|Flickshion|Flickshon|Flicksion|Flickson|Flickshorn|Flickstahn|Flickstein|Flickxion|Flickzion|Fliction|Flictionon|Flijnen|Flikshun|Flikstian|Flikxion|Flikzion|Flinchin|Flipchin|Flippshen|Flipschen|Flischin|Flisham|Flishan|Flishen|Flitchian|Flitchin|Flitchinan|Flitian|Flitschen|Flixton|Flixieman|Flicksheim|Flickshinen|Flieckshien|Flixioon|Flickshim|Flitscheon|Flitschernard|Flitschian|Flixam|Flixan|Flixbyan|Flixchan|Flixchen|Flixen|Flixgen|Flixheen|Flixia|Flixian|Flickin|Flixidan|Flixie|Flixien|Flixim|Flixing|Flixingen|Flixion|Flixionne|Flixium|Flixjan|Flixman|Flixon|Flixson|Flixten|Flixtion|Flixuen|Flixxion|Flixxon|Flixyon|Floodioxin|Fluxian|Fluxin|Fluxion|Fluxium|Fluxunian|Flykem|Flykshion|Flykshun|Flyxen|Flyxian|Flyxionn|Flyxionne|Flyxionu|Flyzion|Folicurian|Fouiches|Fuchin|Fugchin|Liction|Slikin|Flick Sheenan|Flick Sheehan|Flick Sheenum|Flick Sheen'
+PATTERN='FLECTION|FLICTION|Felican|Felician|Felictian|Felixian|Flaccion|Flagellian|Flakirin|Flakiron|Flaxian|Flixnian|Flaxion|Flaxon|Flaxson|Fleckession|Fleckstown|Flection|Flectional|Fleekshin|Fleishness|Fleishon|Flixenian|Fluxinian|Fleixing|Fleksheen|Flekshun|Fleksian|Fleksion|Flekzion|Fletchen|Fletcher|Fletchian|Fletchion|Fletian|Fletuchin|Flexian|Flexion|Flexition|Flexiton|Flexivision|Flextion|Flexumian|Fliccine|Flickditschian|Flickenden|Flickening|Flictioning|Flickession|Flickian|Flickiewen|Flickishin|Flicklian|Flickpnam|Flickrinnian|Flickshahn|Flicksham|Flickshan|Flickshane|Flickshank|Flickshanth|Flicksheen|Flicksheens|Flickshen|Flickshenman|Flickshian|Flickshin|Flickshion|Flickshon|Flicksion|Flickson|Flickshorn|Flickstahn|Flickstein|Flickxion|Flickzion|Fliction|Flictionon|Flijnen|Flikshun|Flikstian|Flikxion|Flikzion|Flinchin|Flipchin|Flipchian|Flippshen|Flipschen|Flischin|Flisham|Flishan|Flishen|Flitchian|Flitchin|Flitchinan|Flitian|Flitschen|Flixton|Flixieman|Flicksheim|Flickshinen|Flieckshien|Flixioon|Flickshim|Flitscheon|Flitschernard|Flitschian|Flixam|Flixan|Flixbyan|Flixchan|Flixchen|Flixen|Flixgen|Flixheen|Flixia|Flixian|Flickin|Flixidan|Flixie|Flixien|Flixim|Flixing|Flixingen|Flickliction|Flixion|Flixionne|Flixium|Flixjan|Flixman|Flixon|Flixson|Flixten|Flixtion|Flixuen|Flixxion|Flixxon|Flixyon|Floodioxin|Fluxian|Fluxin|Fluxion|Fluxium|Fluxunian|Flykem|Flykshion|Flykshun|Flyxen|Flyxian|Flyxionn|Flyxionne|Flyxionu|Flyzion|Folicurian|Fouiches|Fuchin|Fugchin|Frixion|Flickjino|Flucraction|Liction|Slikin|Flisker|Flick Sheenan|Flick Sheehan|Flick Sheenum|Flick Sheen'
 
 cleanup() {
   rm -f "$CANDIDATE_FILE" "$VIM_SCRIPT" "$MATCH_FILE"
@@ -56,18 +56,24 @@ echo "Backup complete."
 
 ############################################
 # Interactive affliction/infliction disambiguation
+#
+# Scanning happens on .txt only (the source transcripts). When a match
+# is confirmed as the name ("n"), the same word swap is propagated by
+# context match into any sibling .vtt/.srt/.json files that share the
+# same basename, since those were generated together from the same text.
 ############################################
 
-echo "---- Interactive disambiguation: affliction / infliction (txt only) ----"
+echo "---- Interactive disambiguation: affliction / infliction (txt only, propagated to vtt/srt/json) ----"
 
 while IFS= read -r -d '' file; do
   python3 - "$file" "$LOG_FILE" <<'PY'
 import sys
 import re
+import os
 
 filename = sys.argv[1]
 log_file = sys.argv[2]
-pattern = re.compile(r'\b([Aa]ffliction|[Ii]nfliction)\b')
+pattern = re.compile(r'\b([Aa]ffliction|[Ii]nfliction|[Ff]iction)\b')
 
 try:
     tty = open("/dev/tty")
@@ -88,6 +94,47 @@ modified = False
 log_entries = []
 quit_requested = False
 
+base, _ = os.path.splitext(filename)
+sibling_exts = (".vtt", ".srt", ".json")
+sibling_files = [base + ext for ext in sibling_exts if os.path.exists(base + ext)]
+
+# Tracks how far into each sibling file we've already consumed, so that
+# repeated identical context phrases don't all collapse onto the first hit.
+sibling_cursor = {}
+
+def propagate(matched_word, context_words, replacement_word):
+    if not sibling_files or not context_words:
+        return
+    ctx_pattern = re.compile(r'\s+'.join(re.escape(w) for w in context_words), re.IGNORECASE)
+    word_pattern = re.compile(re.escape(matched_word), re.IGNORECASE)
+
+    for sib in sibling_files:
+        try:
+            with open(sib, "r", encoding="utf-8", errors="ignore") as sf:
+                content = sf.read()
+        except Exception:
+            continue
+
+        start = sibling_cursor.get(sib, 0)
+        m = ctx_pattern.search(content, start)
+        if not m:
+            m = ctx_pattern.search(content)  # fall back to a full-file search
+        if not m:
+            log_entries.append(f"  [propagate] no match in {sib} for context: {' '.join(context_words)}")
+            continue
+
+        span_text = m.group(0)
+        new_span = word_pattern.sub(replacement_word, span_text, count=1)
+        if new_span == span_text:
+            continue
+
+        new_content = content[:m.start()] + new_span + content[m.end():]
+        sibling_cursor[sib] = m.start() + len(new_span)
+
+        with open(sib, "w", encoding="utf-8") as sf:
+            sf.write(new_content)
+        log_entries.append(f"  [propagate] {sib}: \"{span_text}\" -> \"{new_span}\"")
+
 for i, line in enumerate(lines):
     if pattern.search(line):
         print("\n---")
@@ -105,14 +152,32 @@ for i, line in enumerate(lines):
 
         if resp == "n":
             original = line.strip()
+            match = pattern.search(line)
+            matched_word = match.group(0)
+
+            words = line.split()
+            target_idx = None
+            for idx, w in enumerate(words):
+                if matched_word.lower() in w.lower():
+                    target_idx = idx
+                    break
+
+            if target_idx is not None:
+                context_before = words[max(0, target_idx - 3):target_idx]
+                context_after = words[target_idx + 1:target_idx + 4]
+                context_words = context_before + [words[target_idx]] + context_after
+            else:
+                context_words = [matched_word]
+
             lines[i] = pattern.sub("Flyxion", line)
             modified = True
             log_entries.append(f"  L{i+1}: {original}")
             log_entries.append(f"        -> {lines[i].strip()}")
+
+            propagate(matched_word, context_words, "Flyxion")
         else:
             log_entries.append(f"  L{i+1}: kept as-is [{resp}]: {line.strip()}")
 
-# Save any progress made before a quit, rather than discarding it.
 if modified:
     with open(filename, "w", encoding="utf-8") as f:
         f.writelines(lines)
@@ -135,10 +200,21 @@ done < <(find . -type f -name "*.txt" ! -path "./backup_*/*" -print0)
 cat > "$VIM_SCRIPT" <<EOF
 let g:flyxion_matches = []
 g/\\v\\c(^|[^A-Za-z])(${PATTERN})([^A-Za-z]|$)/call add(g:flyxion_matches, line('.') . "\\x01" . getline('.'))
+g/\\v\\cMediaCoins/call add(g:flyxion_matches, line('.') . "\\x01" . getline('.'))
+g/\\v\\coblocosm/call add(g:flyxion_matches, line('.') . "\\x01" . getline('.'))
 call writefile(g:flyxion_matches, '${MATCH_FILE}')
 %s/\\v\\c(^|[^A-Za-z])(${PATTERN})([^A-Za-z]|$)/\\1${REPLACEMENT}\\3/g
 %s/\\v\\c(in|of|af|am|an|at|to)(flyxion)/\\1 Flyxion/g
 %s/\\v\\coblocosm/oblicosm/g
+%s/\\v\\cMediaCoins/Media Quines/g
+%s/\\v\\bsphere[ ]+pop\\b/spherepop/g
+g/\v\c<amplit[- ]?wist>/call add(g:flyxion_matches, line('.') . "\x01" . getline('.'))
+g/\v\c<amplitwist>/call add(g:flyxion_matches, line('.') . "\x01" . getline('.'))
+%s/\v\c<amplit[- ]?wist>/amplitwist/g
+%s/\v\c<amplitwist>/amplitwist/g
+%s/\v\c<Zeem's scaled>/zoom-scaled/g
+%s/\v\c<Happo Praxis>/Haplopraxis/g
+%s/\v\c<haphopraxis>/Haplopraxis/g
 wq!
 EOF
 
@@ -171,15 +247,7 @@ while IFS= read -r -d '' file; do
         if [ -s "$MATCH_FILE" ]; then
           while IFS=$'\x01' read -r lineno before_text; do
             [ -z "$lineno" ] && continue
-            if [[ "$lineno" =~ ^[0-9]+$ ]]; then
-              after_text="$(sed -n "${lineno}p" "$file" 2>/dev/null || true)"
-            else
-              after_text="(unparsed match record, skipped)"
-            fi
-            {
-              printf '  L%s: %s\n' "$lineno" "$before_text"
-              printf '        -> %s\n' "$after_text"
-            } >> "$LOG_FILE"
+            printf '  L%s: %s\n' "$lineno" "$before_text" >> "$LOG_FILE"
             match_count=$((match_count + 1))
           done < "$MATCH_FILE"
         fi

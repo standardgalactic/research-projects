@@ -1,5 +1,9 @@
 # History Computation Visualizations
 
+[From Wave Dynamics to Continuation Dynamics](https://standardgalactic.github.io/research-projects/history/wave_to_continuation_dynamics.pdf)
+
+* [Retro Comic Infographic Summary](https://standardgalactic.github.io/research-projects/history/continuation-dynamics-comic.pdf)
+
 [Terminal and Traversal Dependent Texts](https://standardgalactic.github.io/research-projects/history/terminal-and-traversal.pdf)
 
 [Repair Categories](https://standardgalactic.github.io/research-projects/history/repair-categories.pdf)
