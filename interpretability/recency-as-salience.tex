@@ -1,0 +1,151 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Pagella}
+\usepackage{amsmath,amssymb}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\usepackage{titlesec}
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+\title{Recency as Salience: Observable Distance as a Proxy for Relational Distance}
+\author{Flyxion \\ Independent Researcher}
+\date{August 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Recency and salience are routinely treated as the same axis, yet they differ in kind. Recency is observable: a system can determine, at negligible cost, that one event occurred after another. Salience is relational: determining whether one thing matters more than another to the present state requires some model of dependency, similarity, or purpose that connects them. Because the relational quantity is expensive and the observable quantity is nearly free, recency becomes an attractive proxy for salience wherever such a model is unavailable or too costly to compute. This substitution is not a design flaw; across shell histories, autocomplete, caches, and ordinary conversation, temporal locality is often genuine, and the proxy is close to free. The substitution becomes a pathology only under a further, distinct move: not the use of recency as a proxy, but the delegation of visibility itself to that proxy, so that an object's practical existence to a community of users comes to depend on how recently it or something attached to it occurred. The essay develops a formal skeleton distinguishing temporal distance from relational distance, argues that retrieval failure under such a delegation can masquerade as absence even when nothing has been deleted, and closes by arguing that the deeper error is not the choice of recency in particular but the general willingness to let any cheap proxy harden into salience's ontology.
+\end{abstract}
+
+\section{Two Kinds of Distance}
+
+A system can always answer the question of which of two events happened more recently. This requires nothing beyond a clock and a comparison operator, and the answer does not depend on any model of what either event means. A system cannot, in general, answer the question of which of two things matters more to the present state without some model of how they relate to it -- a dependency graph, a similarity metric, a causal history, a notion of purpose. The first question concerns an observable property of events: their position on a timeline. The second concerns a relational property between things: how each one constrains or is constrained by the others.
+
+Recency is cheap because it is observable. Salience is expensive because it is relational. Wherever a system needs to rank, retain, or surface information and cannot afford to compute the relational quantity directly, it has an obvious, nearly free substitute available: rank by the observable quantity instead. This essay is about what happens when that substitution is made, used well, and eventually delegated authority it was never suited to hold.
+
+\section{Documentary Order and Retrieval Order}
+
+It is worth separating two claims that are easy to run together. The first is that events occur in a genuine temporal sequence: for a history $e_1, e_2, \ldots, e_n$,
+\[
+e_1 <_t e_2 <_t \cdots <_t e_n.
+\]
+Nothing in this essay disputes that, or proposes discarding it. History is temporal, and a record that preserved no temporal ordering at all would have thrown away real information. The second, quite different claim is that retrieval should inherit that same ordering -- that the rank at which an item is surfaced should track its position in the sequence:
+\[
+\operatorname{rank}(e_n) > \operatorname{rank}(e_{n-1}) > \cdots > \operatorname{rank}(e_1).
+\]
+The first claim is a fact about the world. The second is a design choice about a retrieval system, and the two are logically independent: a system can preserve the full temporal ordering of its documentary record while using an entirely different ordering, keyed to relational distance, to decide what a user or process encounters. Relevance need not be temporal even where history is.
+
+\section{A Formal Skeleton}
+
+The distinction can be stated compactly. Let a present state be $q$, and let a historical item $x$ carry two distances from $q$. The first is temporal distance,
+\[
+d_T(x,q) = t_q - t_x,
+\]
+requiring nothing more than timestamps. The second is relational distance, $d_R(x,q)$, some measure -- dependency, semantic similarity, causal contribution, stated purpose -- of how strongly $x$ constrains or is constrained by $q$. A recency-based retrieval rule selects
+\[
+x_T^* = \arg\min_x\, d_T(x,q),
+\]
+while an ideal salience-based retrieval rule selects
+\[
+x_R^* = \arg\min_x\, d_R(x,q).
+\]
+Recency is a good proxy for salience precisely over regimes in which the rankings induced by $d_T$ and $d_R$ are highly correlated, so that $x_T^*$ and $x_R^*$ tend to coincide or lie close together. The counterexample that motivates this essay -- the observation that the last thing similar to $q$ can be considerably older than the last thing, full stop -- is simply the statement that
+\[
+x_T^* \neq x_R^*.
+\]
+Proxy failure, on this formulation, need not be defined by appeal to some absolute notion of salience; it can be defined operationally as disagreement between the two induced rankings, which is measurable even when $d_R$ itself is only partially specified.
+
+The same move sharpens the earlier admissibility framing. A time-indexed structure $R_t$ specifies, at time $t$, which continuations remain admissible, and the informal claim that recency works when $R_t$ is "quasi-static" is better stated without treating $R_t$ as an ordinary differentiable object. Since $R_t$ is a relation rather than a scalar or vector quantity, define instead a structural change measure
+\[
+\Delta_R(t_1,t_2) = d_{\mathcal R}(R_{t_1}, R_{t_2}),
+\]
+where $d_{\mathcal R}$ measures how much the admissibility relation itself has changed between two times. Recency approximates salience when
+\[
+\frac{\Delta_R(t,t+\Delta t)}{N(t,t+\Delta t)} \ll 1,
+\]
+where $N(t,t+\Delta t)$ is the number of new candidates arriving in that interval: the admissibility structure is changing slowly relative to the rate at which new, temporally proximate items are being generated. This preserves the conceptual content of the earlier shorthand $dR_t/dt$ without asserting that a relation admits an ordinary derivative.
+
+\section{Retrieval Failure as a Form of Amnesia}
+
+The formal separation of $d_T$ from $d_R$ has a further consequence that goes beyond ranking quality. An item can be retained in an archive without ever being retrieved by the mechanism a user or process actually relies on:
+\[
+\text{retained}(x) \;\not\Rightarrow\; \text{retrievable}(x,q).
+\]
+And an item can be retrievable in principle -- addressable, technically reachable -- without being surfaced by the ranking that governs ordinary encounter, so that retrievability itself does not imply salience:
+\[
+\text{retrievable}(x,q) \;\not\Rightarrow\; \text{salient}(x,q).
+\]
+Taken together, these two failures mean that a system can be perfectly immutable at the storage layer and still exhibit something functionally indistinguishable from forgetting. The failure need not occur where anything is deleted; it can occur entirely in the mapping from a preserved history to the candidates a retrieval or attention mechanism is willing to present. Preservation guarantees that the past has not been destroyed. It does not guarantee that the past remains findable, and it says nothing at all about whether, once found, it would be recognized as mattering.
+
+\section{Recency as an Interface Primitive}
+
+One of the simplest interfaces in computing already contains the entire argument of this essay. At a shell prompt, pressing the up arrow retrieves the previous command; pressing it again walks one step further back through history, in strict reverse temporal order. The shell does not claim that the previous command is the most important command a user has ever entered, or that it bears any semantic relation to whatever the user presently intends to type. It makes a far smaller bet: that if a user wants to recover an earlier command, the probability the desired command was issued recently is high enough that reverse-chronological order minimizes expected retrieval effort.
+
+If $r_T(x)$ is the temporal rank of a historical command $x$, the interaction cost of recovering it through repeated history traversal is approximately monotonic in that rank,
+\[
+C(x) \propto r_T(x),
+\]
+and the interface implicitly assumes a probability model
+\[
+P(\text{desired}=x) \approx f(r_T(x)), \qquad f'(r) < 0.
+\]
+For shell history this is an excellent approximation, because command use exhibits strong temporal locality: a long, specific command just executed is disproportionately likely to be wanted again, perhaps with one argument changed, and recency places a useful candidate one keystroke away without needing to understand what the command does.
+
+Autocomplete adds a second stage without abandoning the first. Once a user has typed a prefix, the system restricts attention to a compatible candidate set, and only within that reduced set does recency (or frequency, or some other cheap signal) act as a ranking rule:
+\[
+X \xrightarrow{\text{prefix}} X' \xrightarrow{\text{cheap ranking}} X'' \xrightarrow{\text{selection}} x.
+\]
+Neither the prefix nor the recency ranking identifies the desired object on its own; each successively narrows the space the other has to resolve. This is the interface-level version of the essay's central claim: recency's legitimate role is candidate reduction, not semantic judgment, and it performs that role well precisely when, as in shell history, a poor guess costs almost nothing -- one more keystroke, one more press of the arrow key, the old object still fully available.
+
+\section{From Retrieval Order to Visibility}
+
+A social feed applies the identical heuristic under radically different consequences. In a history interface, recency determines how cheaply an already-known object can be found. In a feed, recency helps determine whether an object is encountered at all. As an item's temporal rank increases, the probability it is seen by ordinary browsing falls,
+\[
+r(x)\uparrow \quad\Longrightarrow\quad P(\operatorname{seen}(x))\downarrow,
+\]
+and past some practical depth,
+\[
+P(\operatorname{seen}(x)) \approx 0.
+\]
+The item has not been deleted. It remains stored, and may remain perfectly addressable by direct link. For a user who does not already know to look for it, it has nonetheless undergone something close to functional disappearance -- exactly the retrieval-as-amnesia failure described above, now occurring at the scale of an entire community's attention rather than a single query.
+
+Interaction complicates the picture further by allowing an old object to become temporally young again without becoming informationally new. An item $x$ has an original creation time $t_c(x)$, but a feed that ranks by activity effectively uses
+\[
+t_a(x) = \max\{\,t_c(x), t_1, t_2, \ldots, t_n\,\},
+\]
+where the later $t_i$ are comments, replies, or other qualifying interactions. A feed ordered by $t_a$ is not really ordering objects by age; it is ordering them by the age of their most recent associated event. This produces the familiar lifecycle of discussion threads: a post accumulates interaction and remains visible while that interaction continues, then, once the rate of new activity drops, its effective temporal position deteriorates monotonically against newly arriving material, with nothing about its informational content having changed. What changed was only $t_{\text{now}} - t_a(x)$ -- an attention half-life imposed by the arrival of competitors rather than by any decay of the content itself.
+
+The contrast with shell history is exact and clarifying. A history interface uses recency to order retrieval; a bad guess costs one more keystroke, and the object remains fully reachable. A feed can use recency to govern visibility; a bad rank can place an object beyond the practical horizon of ordinary browsing altogether, recoverable in principle only by a search the user would need some independent reason to perform -- which defeats the feed's purpose as a discovery mechanism in the first place. The heuristic did not change between these two cases. What changed was the authority delegated to it: the difference between recency deciding which candidate costs one keystroke rather than two, and recency deciding which parts of a community's retained history remain practically visible.
+
+\section{Cheap Signals and the Reduction of Search Space}
+
+A narrower version of an analogy is useful here. In signed languages, an initial handshape can cheaply narrow the space of plausible referents before any further articulation specifies which member of that narrowed class is meant; the handshape functions as an inexpensive early feature that reduces a candidate space rather than as the semantic identification itself. Autocomplete's use of a typed prefix performs the same structural function computationally: the first few characters are not the intended command, but they eliminate the great majority of candidates cheaply, leaving a smaller set for recency, frequency, or other signals to rank. Recency belongs in this same category generally -- an index that narrows a candidate set inexpensively -- rather than in the category of evidence that settles relevance on its own.
+
+\section{Novelty as an Evolved Heuristic: The Orienting Response and the Mythology of Progress}
+
+The bias toward recency documented in engineered systems has an older precedent, visible in ordinary language and institutional practice, where newness is treated as if it were self-evidently a mark of importance rather than merely a position in time. What is called news is a body of text selected for having occurred recently rather than for anything intrinsic to its content. A scientific journal's premium on a novel result treats novelty, alongside soundness, as an admission criterion in its own right, so that an old but still unrefuted finding competes at a structural disadvantage against a new one of lesser consequence. Popular narratives of intellectual and technological progress go further still, treating each successive development as an advance over what preceded it largely by virtue of coming later, so that "newer" and "better" are read as nearly synonymous.
+
+Edgerton's \emph{The Shock of the Old} documents the resulting mismatch in the domain of technology without needing the vocabulary developed here \cite{edgerton2006}. Edgerton distinguishes an innovation-centric history, which measures significance by the moment of first invention, from a use-centric history, which measures significance by what people actually continue to rely on, and shows the two rankings diverging sharply: corrugated iron and the bicycle receive a small fraction of the attention given to the V-2 rocket or Concorde, despite having shaped vastly more lives, because historical attention tracks the moment an object was new rather than the extent to which it remains load-bearing. This is precisely the proxy failure formalized above, $x_T^* \neq x_R^*$, occurring in the writing of history itself: the ranking induced by date of first appearance and the ranking induced by continued relational importance come apart, and the mythology of progress is what results from mistaking the former for the latter as a matter of course.
+
+The underlying bias plausibly runs deeper than institutional habit, into a mechanism nervous systems use to distinguish genuine change in the environment from noise generated by the perceiver's own apparatus. Habituation attenuates response to a stimulus that keeps recurring without consequence, while the orienting response preferentially allocates attention to whatever deviates from what was expected. The adaptive logic is straightforward: an unchanging environment has already been registered, and re-processing it yields little; a changed environment may signal threat or opportunity the organism's existing model does not yet account for, and the payoff to noticing it is correspondingly higher. Read through the formalism developed earlier, novelty-detection of this kind is an evolved, embodied analogue of monitoring $\Delta_R(t,t+\Delta t)$ directly: attention is triggered not by elapsed time as such but by a change in the organism's model of what is admissible, and elapsed time is used only insofar as recent stimuli are the ones most likely to carry a change not yet incorporated into that model. The same mechanism does double duty epistemically, helping to separate a real external event from an internally generated artifact: a genuine change in the environment tends to be corroborated by further evidence as attention lingers on it, where a hallucinated one does not, so novelty-orientation functions simultaneously as a change detector and as a rough test of whether the perceived change belongs to the world or to the perceiver.
+
+The difficulty is that this heuristic evolved for a domain in which apparent novelty and genuine $\Delta_R$ were tightly coupled, and it has since been exported wholesale into domains where that coupling no longer holds. A journal needs a supply of novel results every issue; a newspaper needs news every day; a culture invested in the idea of progress needs each generation's achievements to read as an advance on the last. Each of these institutions manufactures a steady rate of apparent novelty that is decoupled from the actual rate of underlying change, for the same structural reason a feed decouples visibility from documentary order: the selection pressure operating on what gets published, reported, or celebrated is a pressure toward appearing new, not a pressure toward tracking how much the admissible structure has actually moved. An heuristic that was, in its original evolutionary context, a reasonably efficient estimator of where attention would pay off becomes, once institutionalized at the scale of journals and newspapers and historical narrative, the same kind of proxy examined throughout this essay: successful enough, in its home domain, to be built into a retrieval rule, and durable enough, once built in, to be mistaken for the thing it was only ever estimating.
+
+\section{Conclusion: Any Proxy Can Become an Ontology}
+
+Recency is valuable not because the newest thing is the most important thing, but because temporal distance is often a computationally inexpensive estimator of relational distance, and because a poor guess is frequently cheap to recover from. The natural conclusion to draw from the argument so far is not that recency should be replaced by some better, truer proxy such as semantic similarity. Semantic similarity is itself only another proxy, no more entitled to stand in for salience than recency was; dependency can matter more than similarity, provenance can matter more than dependency, and an explicit instruction can matter despite being unlike the present state in every superficial respect. There is no privileged distance metric waiting to replace $d_T$ once $d_T$ is retired.
+
+The error this essay has been tracing, then, is not the choice of the wrong proxy for salience. It is the willingness to let any proxy -- recency first among them, because it is the cheapest, the most successful under ordinary conditions, and therefore the one most thoroughly forgotten as a substitution -- harden into salience's ontology: into the assumption that whatever the proxy fails to surface has thereby ceased to matter, or, in systems where visibility is delegated to it wholesale, has functionally ceased to exist at all.
+
+\begin{thebibliography}{9}
+
+\bibitem{edgerton2006}
+David Edgerton, \emph{The Shock of the Old: Technology and Global History since 1900} (London: Profile Books, 2006).
+
+\end{thebibliography}
+
+\end{document}
+

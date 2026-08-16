@@ -1,5 +1,7 @@
 # Event-Historical Causal Interpretability
 
+[Recency as Salience](https://standardgalactic.github.io/research-projects/interpretability/recency-as-salience.pdf)
+
 This repository presents a unified framework for understanding intelligence, AI systems, and complex knowledge structures through **event-history**, **irreversibility**, and **constraint**, rather than purely state-based or functional descriptions.
 
 At its core, the framework argues that understanding a system requires reconstructing the **irreversible commitments** that shaped it — not just inspecting its current internal values.
