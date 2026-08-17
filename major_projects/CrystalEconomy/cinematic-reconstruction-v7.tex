@@ -1,0 +1,2049 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Pagella}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{microtype}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+\usepackage[shortlabels]{enumitem}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.8em}
+
+\onehalfspacing
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{notation}[theorem]{Notation}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{hypothesis}[theorem]{Empirical Hypothesis}
+\newtheorem{proposal}[theorem]{Architectural Proposal}
+
+\DeclareMathOperator{\Disp}{Disp}
+\DeclareMathOperator{\Obs}{Obs}
+\DeclareMathOperator{\Adm}{Adm}
+
+\title{\textbf{Cinematic Reconstruction}\\[4pt]
+\large A Framework for Video Generation, Compression, and Diagnosis\\
+via Persistent World State}
+\author{Flyxion\\[2pt]
+\small Independent Researcher}
+\date{2026}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+We develop a formal framework treating video not as a sequence of independently synthesized images but as a sequence of camera observations of a persistent, evolving world state. A movie is then fundamentally a family of partial observations of a latent system whose full structure exceeds what any single frame can reveal. This perspective reorganizes several problems that resist solution in frame-local approaches: occlusion and reappearance, temporal consistency, style transfer as realization rather than regeneration, camera movement as observation-operator change, generative quality control, and compression artifact localization. The framework incorporates a heterogeneous algorithm repertoire in which multiple independent procedures propose and evaluate candidate continuations, and a formal witness and disagreement mechanism that converts model disagreement from an inconvenience into diagnostic information. Glitches are defined as violations of preserved or recoverable structural invariants rather than as merely unattractive pixel configurations, enabling them to serve as evidence about which representation or algorithm failed and where. A structure-aware rate-distortion objective distinguishes degradation by type rather than treating all distortion as equivalent. An appendix treats the residual underdetermination of the rendering process as a selectable information channel, subordinate to admissibility, permitting embedding of signals in otherwise unconstrained scene and material choices. The framework draws on established results in multi-view geometry, SLAM, Gaussian splatting, neural radiance fields, video compression, rate-distortion theory, partial observability, ensemble uncertainty, and steganography, while proposing a particular architectural organization that places persistent world state at the center of all stages from generation through compression through diagnosis.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+%% ============================================================
+\section{Introduction}
+%% ============================================================
+
+Contemporary video generation systems and video codecs share a common implicit assumption: the fundamental unit of video is a frame. A generative model learns to synthesize plausible images and, by various forms of temporal conditioning, to synthesize plausible sequences. A video codec decomposes each frame into blocks, transforms and quantizes those blocks, and optionally exploits inter-frame redundancy through motion compensation and prediction. In both cases the frame remains primary and temporal structure is secondary.
+
+This monograph argues that the assumption is architecturally limiting in a precise sense. A frame is a projection of a scene. It discards information that was available in the scene in order to form a two-dimensional image: depth, material identity behind occluded surfaces, the continuation of objects outside the frame boundary, the state of characters whose faces are not currently visible, the trajectory of a moving object at the moment it passes behind a tree. This information does not disappear from the world when it disappears from the frame. It should not disappear from a system attempting to model, generate, reconstruct, or compress the video.
+
+The central proposal is: treat a movie as a sequence of camera observations of a persistent, evolving world state rather than as a sequence of independently synthesized or compressed images. This distinction carries formal consequences for every stage of video production and consumption, which the sections below develop.
+
+The framework is not entirely novel in its components. Persistent world representations appear in SLAM \cite{davison2007monoslam}, in 3D scene reconstruction, in game engines, in simulation environments, and in recent neural radiance and Gaussian splatting approaches to novel-view synthesis \cite{mildenhall2020nerf,kerbl2023gaussians}. Ensemble disagreement as an uncertainty signal appears throughout machine learning. Multi-component rate-distortion objectives have been explored in perceptual image and video compression \cite{wang2004ssim}. Steganographic embedding in images is a mature field \cite{fridrich2009steganography}. The contribution of the present framework is not any single technique but their organization under a common admissible reconstruction architecture, in which persistent world state is primary, rendered video is a partial observation of that state, heterogeneous algorithms propose and witness candidate continuations, structural disagreement drives diagnosis, and residual admissible freedom in the rendering process can optionally be exploited as an information channel.
+
+Section~\ref{sec:motivation} examines checkpoint permeability and the institutional failure mode of premature commitment, motivating the architecture's generality. Section~\ref{sec:worldstate} formalizes the world state and observation map. Section~\ref{sec:admissible} develops admissible reconstruction and the probate mechanism. Section~\ref{sec:repertoire} describes the heterogeneous algorithm repertoire. Section~\ref{sec:witnesses} develops the witness and disagreement formalism. Section~\ref{sec:glitches} defines structural glitches and their diagnostic role. Section~\ref{sec:affect} develops a dynamical model of constructed character affect, establishing a non-identifiability result for character state and a formal account of character development as hysteresis. Section~\ref{sec:grammars} develops process grammars, grammar residuals, relational anomaly detection, repair burden as policy evidence, and the event-typing mechanism that prevents normalization of pathology. Section~\ref{sec:ratedistortion} compares conventional and structure-aware rate-distortion objectives. Sections~\ref{sec:style} through \ref{sec:camera} address style, narrative, and cinematography. Sections~\ref{sec:scene} and \ref{sec:provenance} specify scene architecture and provenance. Section~\ref{sec:architecture} provides the modular system specification. Section~\ref{sec:diffusion} develops latent diffusion as a general proposal operator across representational levels and extends it to computational policy space. Section~\ref{sec:operators} formalizes an operator algebra for interactive cinema. Section~\ref{sec:experiments} proposes concrete experiments. Section~\ref{sec:implementation} outlines a staged implementation plan. Section~\ref{sec:limitations} discusses limitations, and Section~\ref{sec:conclusion} concludes. Appendix~\ref{app:steg} treats hyperpleonastic steganography.
+
+A persistent question for any framework of this generality is what it is primarily built for. The three core capacities the architecture develops are generation of admissible world-state continuations, structural diagnosis via witness disagreement and process grammars, and persistent-world compression. Each is valuable in isolation: a diagnostic engine could be applied to existing video pipelines without any generative component; a world-state compressor could operate over conventionally captured footage without the operator language. The most instructive application domain, however, is one that demands all three simultaneously. Interactive cinema is that domain: the operator language requires generation of admissible continuations from a committed world state; the diagnostic machinery is required because generative errors in a persistent world will be observed from multiple subsequent camera angles and cannot be silently committed; and compression is critical because a persistent world maintained across an extended interactive session must be represented in a form far more compact than its frame-sequence renderings. This does not restrict the framework to interactive cinema. The architecture is designed for high checkpoint permeability in the sense of Section~\ref{sec:motivation}: it remains revisable as applications clarify and as different representational choices prove better suited to specific domains. Interactive cinema is the clearest simultaneous instantiation of all three capacities; the formal framework generalizes beyond it.
+
+
+%% ============================================================
+%% ============================================================
+\section{Checkpoint Permeability: A Structural Motivation}
+\label{sec:motivation}
+%% ============================================================
+
+\subsection{The Contingency of Current Conventions}
+
+Any sufficiently complex engineering undertaking requires intermediate concretizations. A representation is chosen, a benchmark is defined, a training protocol is fixed, a workflow crystallizes around a particular interface. These are not failures; they are conditions for progress. Computation must become concrete somewhere, and a configuration that works well enough to support further development is genuinely valuable.
+
+The problem addressed in this section is not concretization itself but a failure mode that follows it: \textbf{epistemic promotion}, in which an arbitrary stopping point is treated as though the search that produced it had established its privileged status. A configuration that was one proposal among many becomes the configuration; what was a checkpoint becomes infrastructure; what was infrastructure begins to be mistaken for the problem itself. Later work then optimizes the parameters of the configuration rather than questioning the configuration, because questioning it has become expensive.
+
+This pattern is not unique to generative video or to machine learning. It occurs in any domain where infrastructure accumulates around an early technical choice: programming language paradigms, database storage formats, communication protocols, scientific instrumentation standards, and statistical methodologies all exhibit it. The relevant question is not whether any given configuration was a good choice at the time of its adoption, but whether the system in which it is embedded retains the capacity to replace it when evidence warrants.
+
+\subsection{Proposal, Checkpoint, Standard, Optimum}
+
+\begin{definition}[Computational Configuration]
+A \textbf{computational configuration} $K$ is a tuple specifying a representation, an objective, an algorithm or algorithm family, an observation model, and a decomposition of the problem into sub-problems. Configurations are not atomic; they may be partially replaced or modified.
+\end{definition}
+
+\begin{definition}[Checkpoint]
+A \textbf{checkpoint} $K_t$ is a configuration that has been concretized at time $t$: it is implemented, it has accumulated training data or optimization history, it has been used to define benchmarks, and it has attracted tooling, community conventions, and dependent workflows. A checkpoint need not be optimal, but its replacement carries costs beyond the technical merits of the alternative.
+\end{definition}
+
+A chain of implications that does not hold in general, but is often implicitly assumed, is:
+
+\[
+\text{proposal} \not\Rightarrow \text{checkpoint} \not\Rightarrow \text{standard} \not\Rightarrow \text{optimum}.
+\]
+
+Each arrow is a transition that can occur for reasons other than the superiority of the configuration. A proposal becomes a checkpoint because it was early enough to accumulate investment. A checkpoint becomes a standard because coordination requires a single choice. A standard becomes the apparent optimum because subsequent work, measured against criteria defined within the standard, does not escape the standard's framing. The possibility that a completely different configuration would outperform the standard at the original task is difficult to assess once the task itself is defined in terms of the standard.
+
+\begin{example}
+In generative video, the configuration ``video equals a predicted sequence of frames, generated by a single large neural model conditioned on a text prompt, evaluated by a benchmark measuring FID or human preference scores'' is a checkpoint. It reflects choices that were reasonable at the time of their introduction. Its status as a checkpoint does not entail that frame-based prediction is the correct fundamental representation, that a single model is the appropriate architectural choice, that text conditioning is the correct control interface, or that the benchmark correctly measures the properties that matter. These are contingent choices that have accumulated infrastructure.
+\end{example}
+
+\subsection{Checkpoint Permeability as a Design Property}
+
+\begin{definition}[Replacement Operator]
+Let $K_t$ denote the currently committed computational configuration and $E_{t+1}$ denote new evidence (experimental results, theoretical arguments, discovered failure modes, or available alternatives). Define a \textbf{replacement operator}
+\[
+\rho : K_t \times E_{t+1} \to K_{t+1},
+\]
+where $K_{t+1}$ may equal $K_t$ (no replacement) or differ from $K_t$ in one or more components.
+\end{definition}
+
+\begin{definition}[Checkpoint Permeability]
+The \textbf{checkpoint permeability} of a system at configuration $K_t$ with respect to evidence class $\mathcal{E}$ is
+\[
+\kappa(K_t, \mathcal{E}) = P(K_{t+1} \neq K_t \mid E_{t+1} \in \mathcal{E}).
+\]
+A system has \textbf{low checkpoint permeability} when $\kappa(K_t, \mathcal{E})$ is small even for evidence that, evaluated independently of the infrastructure cost of replacement, would strongly favor an alternative configuration. A system has \textbf{high checkpoint permeability} when $K_{t+1}$ is frequently updated in response to evidence, at the cost of stability and accumulated optimization.
+\end{definition}
+
+Neither extreme is desirable in general. A system with zero permeability is incapable of revision and will persist in configurations known to be wrong. A system with maximal permeability abandons configurations before they have been adequately explored and fails to accumulate the infrastructure that makes configurations useful. The design question is not to maximize or minimize permeability but to calibrate it: high permeability in response to evidence of structural failure, lower permeability in response to superficial performance fluctuations.
+
+\begin{remark}
+This is a generalization of the standard exploration-exploitation tradeoff, but applied to the configuration itself rather than to the parameters of a fixed configuration. It is also related to the distinction between first-order and second-order optimization: first-order optimization adjusts parameters within a configuration; second-order optimization adjusts the configuration. Most current practice allocates enormous resources to first-order optimization and very little to second-order reconfiguration, in part because the infrastructure cost of reconfiguration is not represented in the objective function.
+\end{remark}
+
+\subsection{Generative Amplification of Downstream Selection}
+
+Checkpoint permeability interacts badly with high-throughput generative systems. A system capable of producing very large numbers of outputs amplifies whatever selection mechanism sits downstream of generation. If that selection mechanism rewards superficial plausibility, engagement metrics, benchmark conformity, or sheer production volume, then increasing generative capacity increases the amount of material optimized for those criteria, regardless of whether those criteria track the properties that matter.
+
+\begin{proposition}[Generative Amplification]
+\label{prop:amplification}
+Let $G$ be a generative system with proposal distribution $p_G(\cdot)$ over outputs, and let $\sigma: \mathcal{O} \to [0,1]$ be a selection function. The expected quality of the selected output under metric $q: \mathcal{O} \to \mathbb{R}$ increases with the number of proposals $n$ only if $\sigma$ and $q$ are sufficiently aligned: that is, if $\mathbb{E}[\sigma(x)]$ is positively correlated with $\mathbb{E}[q(x)]$ over the proposal distribution. When $\sigma$ and $q$ are weakly correlated or misaligned, increasing $n$ increases the expected value of $\sigma$ among selected outputs while $q$ remains approximately constant or degrades.
+\end{proposition}
+
+This proposition is elementary, but its implications for generative systems are frequently underappreciated. The abundance of low-quality generated material is, on this analysis, not primarily a failure of generative capacity but a symptom of misaligned selection: systems capable of generating enormous numbers of proposals operating downstream of selection mechanisms that reward criteria only loosely related to structural quality.
+
+The deeper architectural problem is that current generative video systems tend to conflate two operations that the present framework treats as distinct: proposal and commitment. A generated frame, or a generated video, exits the model as an output rather than as a candidate for examination. There is no probate step at which structural properties are evaluated, at which witnesses are consulted, or at which inadmissible outputs are rejected in favor of alternatives. The transition from proposal to output is immediate:
+
+\[
+P \;\longrightarrow\; \text{output}.
+\]
+
+The proposed architecture interposes multiple stages:
+
+\[
+P \;\longrightarrow\; D \;\longrightarrow\; W \;\longrightarrow\; A \;\longrightarrow\; C,
+\]
+
+where $D$ is diagnosis, $W$ is witness consultation, $A$ is admissibility evaluation, and $C$ is commitment to persistent world state. This makes commitment harder without making proposal harder. The appropriate response to inexpensive generation is not less generation; it is stronger discrimination between proposal, evidence, admissibility, and commitment.
+
+\subsection{Premature Commitment as an Architectural Pattern}
+
+The connection between the institutional-level checkpoint problem and the architectural probate mechanism is direct. In both cases, the failure mode is premature commitment: a candidate is allowed to become authoritative before it has been adequately examined.
+
+\begin{definition}[Premature Commitment]
+A commitment is \textbf{premature} if it is made before the candidate has been evaluated against the structural constraints and evidence that would, if evaluated, have either supported or overturned it. Premature commitment does not require that the committed state is wrong; it requires only that the decision was made without the examination that would have revealed whether it was wrong.
+\end{definition}
+
+At the institutional level, a checkpoint is a premature commitment when the evidence for its superiority over alternatives was not adequately assembled before its infrastructure costs made replacement impractical. At the architectural level, a frame generated by a diffusion model is a premature commitment when it is written to the output stream without examination of whether it violates object identity, depth ordering, temporal consistency, or causal structure.
+
+The two scales are not independent. An institutional commitment to the configuration ``video equals generated frames, quality equals benchmark score'' makes it harder to build systems that evaluate structural properties, because structural evaluation is not represented in the benchmark and therefore does not register as a performance improvement. The institutional checkpoint suppresses the architectural innovations that would address the underlying problem.
+
+\subsection{The Heterogeneous Repertoire as a Permeability Mechanism}
+
+The heterogeneous algorithm repertoire described in Section~\ref{sec:repertoire} is, among other things, a mechanism for maintaining checkpoint permeability at the architectural level. Because no algorithm has permanent jurisdiction over any region of the world state, every algorithm's continued use is conditional on its continued adequacy. A neural renderer can lose jurisdiction to geometry reconstruction; geometry can lose jurisdiction to a procedural model; a diffusion-based proposal can be overturned by a classical tracker; a committed reconstruction can be reopened by persistent witness disagreement.
+
+\begin{definition}[Algorithmic Permeability]
+The \textbf{algorithmic permeability} of the system with respect to process $P_i$ at query $q$ is
+\[
+\kappa_i(q, t) = P(P_j(q) \text{ is selected at } t+1 \text{ for some } j \neq i \mid P_i(q) \text{ was selected at } t).
+\]
+High algorithmic permeability means that failure of $P_i$ on query $q$ results in replacement; low permeability means that $P_i$ continues to receive jurisdiction regardless of its performance.
+\end{definition}
+
+The Witness Scheduler (Section~\ref{sec:witnesses}) and the Selector (Section~\ref{sec:diffusion}, Proposal~\ref{prop:recursive}) are mechanisms for maintaining high algorithmic permeability in response to structural failures and high dispersion, while maintaining lower permeability in stable regions where the current process is performing adequately.
+
+\subsection{Refusing to Freeze the Object}
+
+The final motivation for the architecture's generality is its refusal to accept the current definition of what a movie is as a checkpoint.
+
+If a movie is a sequence of predicted frames, then the architecture is a frame predictor with temporal conditioning. If a movie is observations of a persistent world, it is a world model with an observation operator. If a movie is the trace of a policy operating over a narrative state space under operator control, it is an interactive system with a formal control algebra. These are not the same thing, and which of them a system implements determines what kinds of movies it can make, what kinds of failures it can detect, and what kinds of user interaction it supports.
+
+The architecture developed in this monograph declines to commit to the frame-prediction framing at the foundational level. This is not a claim that frame prediction is wrong; it is a claim that the foundational representation should not be the one that makes frame prediction cheap at the cost of making world-state persistence, structural diagnosis, operator control, and multi-algorithm witness consultation difficult or impossible. Making those things difficult is a choice with consequences, and the consequences are worth examining before the infrastructure cost of reconsidering the choice becomes prohibitive.
+
+\begin{remark}
+The reader may reasonably ask whether the present framework has itself committed prematurely, by choosing the persistent world state as its fundamental object. This is a legitimate question. The answer is that the framework is explicitly designed for high permeability: no component of $\mathcal{W}_t$ is frozen, no algorithm has permanent jurisdiction, and the probate mechanism applies to the world state's own evolution. If evidence accumulates that a different fundamental representation handles some class of problems better, the architecture provides a mechanism for that evidence to be incorporated. Whether that mechanism is adequate is, like most claims about the architecture, an empirical hypothesis.
+\end{remark}
+
+\section{World State and Frame Observation}
+\label{sec:worldstate}
+%% ============================================================
+
+\subsection{The World State Tuple}
+
+\begin{definition}[World State]
+A \textbf{world state} at time $t$ is a tuple
+\[
+\mathcal{W}_t = (G_t,\; O_t,\; M_t,\; L_t,\; C_t,\; S_t,\; H_t)
+\]
+where the components are:
+\begin{itemize}[leftmargin=2em,itemsep=0pt]
+\item $G_t$: geometry and spatial structure (meshes, volumes, implicit fields, skeletal rigs, and any hybrid representations);
+\item $O_t$: persistent object identities, their bounding regions, semantic types, and inter-object relationships;
+\item $M_t$: material and appearance properties for each geometric region, including reflectance, subsurface parameters, and procedural specifications;
+\item $L_t$: illumination, including light source positions, intensities, spectra, and environment maps;
+\item $C_t$: camera and observation parameters, including intrinsics, extrinsics, lens models, and motion blur exposure intervals;
+\item $S_t$: semantic, narrative, and causal state, covering character knowledge, relationships, event history, physical state, and story-level facts;
+\item $H_t$: the provenance history of the current state, recording which processes proposed each committed update and what evidence supported the commitment.
+\end{itemize}
+\end{definition}
+
+This definition is intentionally broad. The components $G_t$, $M_t$, and $L_t$ correspond roughly to the scene description in physically based rendering \cite{pharr2023pbr}. The component $O_t$ adds object identity in a representation-independent sense: an object remains the same object whether it is currently represented as a mesh, a Gaussian splat, a neural radiance field, or a voxel grid. The components $S_t$ and $H_t$ extend the scope beyond geometry to include semantic and causal structure and the evidentiary record of how the world reached its current state.
+
+\begin{remark}
+Not all components need be present simultaneously in every application. A system focused on geometric consistency may omit $S_t$; a system focused on narrative generation may treat $G_t$ as a compressed sketch. The tuple defines the full scope; implementations instantiate what is needed.
+\end{remark}
+
+\subsection{The Observation Map}
+
+\begin{definition}[Observation Map]
+Given a world state $\mathcal{W}_t$, camera parameters $C_t$, and rendering parameters $\theta_t$, the \textbf{rendered frame} is
+\[
+I_t = R(\mathcal{W}_t,\; C_t,\; \theta_t).
+\]
+When the camera is treated as part of the world state, we write simply
+\[
+I_t = \Obs_{C_t}(\mathcal{W}_t).
+\]
+A video sequence of length $n$ is then a sequence of observations
+\[
+(I_1, I_2, \ldots, I_n) = (\Obs_{C_1}(\mathcal{W}_1),\; \Obs_{C_2}(\mathcal{W}_2),\; \ldots,\; \Obs_{C_n}(\mathcal{W}_n)).
+\]
+\end{definition}
+
+The rendering function $R$ may be a physical light transport simulator, a real-time rasterizer, a neural renderer, a style-conditioned diffusion model, or any composition of such procedures, provided it maps world state and camera to a frame. Its precise form is not fixed by the framework but is instead a parameter of each application.
+
+\subsection{The Frame as Projection}
+
+\begin{proposition}[Non-injectivity of Observation]
+For any fixed camera configuration $C$ and rendering parameters $\theta$, the observation map $\Obs_C$ is generically non-injective: there exist distinct world states $\mathcal{W} \neq \mathcal{W}'$ such that $\Obs_C(\mathcal{W}) = \Obs_C(\mathcal{W}')$.
+\end{proposition}
+
+\begin{proof}[Justification]
+This follows from simple dimensionality arguments. A rendered frame $I \in \mathbb{R}^{H \times W \times 3}$ has at most $3HW$ real degrees of freedom. The world state $\mathcal{W}$, containing geometry, object identities, materials, illumination, and semantic content, has far more degrees of freedom than any finite-resolution image can represent. Distinct world states related by occlusion, by out-of-frame content, or by perceptually equivalent material configurations will render to the same image.
+\end{proof}
+
+\begin{definition}[Observational Equivalence Class]
+The \textbf{observational equivalence class} of a world state $\mathcal{W}$ under camera sequence $(C_1, \ldots, C_n)$ is
+\[
+[\mathcal{W}]_{C_{1:n}} = \left\{ \mathcal{W}' \;:\; \Obs_{C_t}(\mathcal{W}') = \Obs_{C_t}(\mathcal{W}) \text{ for all } t \in \{1, \ldots, n\} \right\}.
+\]
+\end{definition}
+
+The observational equivalence class is generally non-trivial and shrinks as more camera observations are accumulated. This is the core information-theoretic fact underlying all reconstruction problems: observations constrain but generally do not determine the latent world.
+
+\subsection{Occlusion as Observation Loss}
+
+\begin{proposition}[Occlusion Does Not Delete]
+If an object $o \in O_t$ is occluded by another object at time $t$ under camera $C_t$, the observation $I_t = \Obs_{C_t}(\mathcal{W}_t)$ contains no pixels from $o$, but $o$ remains a component of $O_t$ and of $\mathcal{W}_t$ with all its geometric, material, positional, and identity information intact.
+\end{proposition}
+
+This proposition is trivial given the definitions but has substantial architectural consequences. A system that maintains $\mathcal{W}_t$ explicitly can continue tracking object $o$ through occlusion, maintain its velocity and trajectory, and produce a geometrically consistent rendering when the camera moves to reveal the object again. A frame-local system that discards $\mathcal{W}_t$ and retains only $I_t$ loses this information.
+
+\begin{hypothesis}
+\label{hyp:occlusion}
+A system maintaining a persistent world state $\mathcal{W}_t$ through occlusion events produces geometrically and photometrically more consistent object reappearance than a frame-local system conditioned only on recent frames, when measured on controlled scenes with known ground truth.
+\end{hypothesis}
+
+This is an empirical hypothesis to be tested; its experimental design is specified in Section~\ref{sec:experiments}.
+
+\subsection{Camera Motion as Observation Operator Change}
+
+Under the framework, camera motion changes the observation operator rather than recreating or regenerating the world. A pan, zoom, cut, rack focus, or crane shot corresponds to a change in $C_t$ within the world trajectory $(\mathcal{W}_t)_{t \geq 0}$. The world itself may or may not change simultaneously. When only the camera changes, the world state component $G_t, O_t, M_t, L_t$ may remain constant while the rendered image changes substantially. This is both the ordinary situation in cinematography and a point of significant difficulty for frame-local generative models, which must implicitly infer object permanence from a limited temporal context window rather than from an explicit world model.
+
+%% ============================================================
+\section{Admissible Reconstruction}
+\label{sec:admissible}
+%% ============================================================
+
+\subsection{Reconstruction as Constrained Inference}
+
+The inverse problem of video is: given an observation sequence $(I_1, \ldots, I_t)$, what can be recovered about the latent world trajectory $(\mathcal{W}_s)_{s \leq t}$? In general, this is ill-posed; the previous section established that the observation map is non-injective. The appropriate response is not to select one world hypothesis arbitrarily but to characterize the set of hypotheses consistent with the observations.
+
+\begin{definition}[Admissible Reconstruction Set]
+Given an observation sequence $(I_1, \ldots, I_t)$, a constraint system $\mathcal{C}$ (encoding physical laws, object permanence, causal constraints, semantic consistency, and user-specified facts), and a history $H_t$, the \textbf{admissible reconstruction set} is
+\[
+\mathcal{R}(I_{1:t},\; \mathcal{C},\; H_t) = \left\{ \mathcal{W} \;:\; \Obs_{C_s}(\mathcal{W}) = I_s \text{ for all } s \leq t,\; \mathcal{W} \models \mathcal{C},\; \mathcal{W} \text{ is consistent with } H_t \right\}.
+\]
+\end{definition}
+
+The constraint system $\mathcal{C}$ plays an essential role. Without it, $\mathcal{R}$ is excessively large: any world that happens to render to the correct pixel values at all observed times is technically admissible. Physical laws, object permanence, and causal structure eliminate vast subsets of technically pixel-consistent hypotheses.
+
+\begin{remark}
+In practice, the constraint system $\mathcal{C}$ will be heterogeneous and only partially formal. Some constraints are physical (rigid bodies do not interpenetrate), some are perceptual (human faces have specific proportions), some are causal (a door that was closed at time $s$ cannot be open at time $s+\epsilon$ without an intervening opening event), and some are user-specified (a specific character has been declared to be wearing a red coat). The framework treats these uniformly as constraints on the admissible set, regardless of their origin.
+\end{remark}
+
+\subsection{Admissible Continuations}
+
+The forward problem, equally important for generation, is: given the current state $\mathcal{W}_t$ and its history $H_t$, what future states are admissible?
+
+\begin{definition}[Admissible Continuation Set]
+The \textbf{admissible continuation set} at time $t$ is
+\[
+\mathcal{A}(H_t) = \left\{ \mathcal{W}_{t+1} \;:\; \mathcal{W}_{t+1} \text{ is reachable from } \mathcal{W}_t \text{ by a physically and causally consistent transition, compatible with } \mathcal{C} \text{ and } H_t \right\}.
+\]
+\end{definition}
+
+The continuation set $\mathcal{A}(H_t)$ is the generative system's operating space. Rather than sampling unconditionally from a learned distribution, a well-formed generative step selects an element of $\mathcal{A}(H_t)$. The admissibility condition enforces coherence.
+
+\begin{remark}
+$\mathcal{A}(H_t)$ will typically be very large. A movie frame at time $t$ is consistent with countless physically possible next frames. The narrowing of $\mathcal{A}(H_t)$ by genre, character psychology, dramatic pacing, user instructions, and narrative convention is the subject of Section~\ref{sec:narrative}. The point here is only that $\mathcal{A}(H_t)$ is always a proper subset of all possible world states, bounded by the physical and causal structure committed thus far.
+\end{remark}
+
+\subsection{The Probate Mechanism}
+
+A central architectural commitment is that a generated or inferred candidate continuation must not become authoritative merely because a generative model proposed it. This is captured by a probate step, formalized as follows.
+
+\begin{definition}[Probate]
+A candidate continuation $\hat{\mathcal{W}}_{t+1}$ proposed by process $P_i$ is said to \textbf{pass probate} if
+\[
+\hat{\mathcal{W}}_{t+1} \in \mathcal{A}(H_t) \quad \text{and} \quad \Adm(\hat{\mathcal{W}}_{t+1},\; H_t,\; \mathcal{C}) = \textsc{true}.
+\]
+A candidate that fails probate is not committed to the world state. It may trigger additional witness queries, may be modified by a repair process, or may be rejected in favor of an alternative proposal.
+\end{definition}
+
+The sequence proposal $\to$ diagnosis $\to$ admissibility check $\to$ commitment is the governing rhythm of the reconstruction loop. Algorithm~\ref{alg:probate} gives the pseudocode.
+
+\begin{algorithm}[h]
+\caption{Probate Loop for World State Continuation}
+\label{alg:probate}
+\begin{algorithmic}[1]
+\Require Current world state $\mathcal{W}_t$, history $H_t$, constraint system $\mathcal{C}$, algorithm registry $\Pi$
+\Ensure Updated world state $\mathcal{W}_{t+1}$ and history $H_{t+1}$
+
+\State $\hat{\mathcal{W}} \gets \emptyset$; $\;k \gets 0$
+\While{$\hat{\mathcal{W}} \notin \mathcal{A}(H_t)$ \textbf{and} $k < k_{\max}$}
+    \State Select proposal process $P_i \in \Pi$ according to scheduler
+    \State $\hat{\mathcal{W}} \gets P_i(\mathcal{W}_t,\; H_t)$ \Comment{Proposal}
+    \State $D \gets \textsc{Diagnose}(\hat{\mathcal{W}},\; \mathcal{W}_t,\; H_t)$ \Comment{Structural diagnosis}
+    \If{$D$ contains critical violations}
+        \State Invoke additional witnesses for flagged regions \Comment{See Algorithm~\ref{alg:witness}}
+        \State $\hat{\mathcal{W}} \gets \textsc{Repair}(\hat{\mathcal{W}},\; D,\; H_t)$ \Comment{Attempt repair}
+    \EndIf
+    \State $a \gets \Adm(\hat{\mathcal{W}},\; H_t,\; \mathcal{C})$ \Comment{Admissibility check}
+    \State $k \gets k + 1$
+\EndWhile
+\If{$\hat{\mathcal{W}} \in \mathcal{A}(H_t)$}
+    \State $\mathcal{W}_{t+1} \gets \hat{\mathcal{W}}$
+    \State $H_{t+1} \gets H_t \cup \{(\hat{\mathcal{W}},\; P_i,\; D,\; a,\; \text{committed})\}$ \Comment{Append provenance}
+\Else
+    \State $\mathcal{W}_{t+1} \gets \mathcal{W}_t$ \Comment{Hold state; flag for review}
+    \State $H_{t+1} \gets H_t \cup \{(\hat{\mathcal{W}},\; P_i,\; D,\; a,\; \text{rejected})\}$
+\EndIf
+\State \Return $\mathcal{W}_{t+1},\; H_{t+1}$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{remark}
+The repair step in Algorithm~\ref{alg:probate} is intentionally left abstract. A repair may involve invoking a specialized correction model for the failing subregion, reverting to a prior committed state for that region, interpolating from adjacent frames, or substituting an alternative proposal. The framework specifies that repair is attempted before rejection, and that all attempted repairs are recorded in $H_{t+1}$. Specific repair procedures are architectural choices that fall outside the formal framework proper.
+\end{remark}
+
+%% ============================================================
+\section{Heterogeneous Algorithm Repertoire}
+\label{sec:repertoire}
+%% ============================================================
+
+\subsection{No Privileged Algorithm}
+
+A significant feature of this framework is the explicit denial of algorithmic privilege. No single algorithm, and in particular no neural generative model, is treated as the authoritative source of world state updates. Instead, the system maintains a \textbf{registry} of procedures, each capable of proposing updates to some component of $\mathcal{W}_t$, and a \textbf{scheduler} that selects and combines those proposals.
+
+This is not merely a design preference but follows from the reconstruction argument. If the goal is admissible reconstruction of a world state consistent with accumulated evidence, then the appropriate procedure is the one best suited to the evidence at hand. Classical multi-view geometry algorithms \cite{hartley2003multiple} may be more reliable than a neural model for estimating depth from stereo pairs with well-characterized cameras. Rigid-body physics simulation is more reliable than a temporal diffusion model for predicting the trajectory of a thrown object under known gravity. A face-tracking system with a calibrated skeleton may be more reliable than a generative model for maintaining identity through rapid head motion.
+
+\begin{proposal}[Algorithm Registry]
+\label{prop:registry}
+The system maintains a registry $\Pi = \{P_1, P_2, \ldots, P_K\}$ of procedures. Each procedure $P_i$ is characterized by:
+\begin{enumerate}[leftmargin=2em,itemsep=0pt]
+\item its \textbf{input signature}: which components of $\mathcal{W}_t$ and $H_t$ it reads;
+\item its \textbf{output signature}: which components of $\mathcal{W}_t$ it proposes to update;
+\item a \textbf{confidence estimator} $\kappa_i : \mathcal{W}_t \times H_t \to [0,1]$ that estimates its expected reliability given the current state;
+\item a \textbf{computational cost estimate} $c_i$;
+\item an \textbf{applicability predicate} $\alpha_i : \mathcal{W}_t \to \{0,1\}$ indicating whether the procedure's preconditions are met.
+\end{enumerate}
+\end{proposal}
+
+The registry may include, without any commitment to exhaustiveness: rasterization pipelines, ray and path tracers, voxel-based renderers, Gaussian splatting renderers \cite{kerbl2023gaussians}, neural radiance representations \cite{mildenhall2020nerf}, procedural generation systems, diffusion models, flow-matching models, optical flow estimators \cite{horn1981optical,lucas1981optical}, object trackers, depth estimators, SLAM-like reconstruction pipelines \cite{davison2007monoslam}, inverse kinematics solvers, rigid- and soft-body physics simulators, particle systems, spline and trajectory interpolators, classical signal processing filters, conventional video codecs (used as temporal predictors), deterministic rules and hard constraints, and hand-authored procedural specifications.
+
+\subsection{Scheduling and Selective Invocation}
+
+The governing principle of scheduling is not exhaustive invocation but selective invocation: invoke additional witnesses where uncertainty, disagreement, structural importance, or failure warrants the additional computation. Running every procedure on every frame region at every timestep is not the design goal and is computationally infeasible. The design goal is to use a cheap primary process (potentially a neural temporal model) for the bulk of routine continuations, and to escalate to additional witnesses precisely when and where the primary process shows signs of structural failure.
+
+\begin{proposal}[Witness Scheduler]
+The witness scheduler operates in two passes per timestep. In the \textbf{first pass}, a cheap confidence estimator $\kappa_{\text{fast}}$ scans the candidate continuation $\hat{\mathcal{W}}$ and produces a suspicion field $\Sigma : \mathcal{W} \to [0,1]$, where $\Sigma(q)$ is large wherever the fast estimator is uncertain, wherever structural invariants appear to have been violated, or wherever the candidate continuation is far from the prior. In the \textbf{second pass}, for each region $q$ with $\Sigma(q) > \tau$ (where $\tau$ is a configurable threshold), the scheduler selects witnesses from $\Pi$ based on their applicability predicates, confidence estimators, and cost estimates, and invokes them to produce an extended witness set $W(q)$.
+\end{proposal}
+
+This hierarchical approach ensures that computational resources scale with difficulty rather than with frame size.
+
+%% ============================================================
+\section{Witnesses and Disagreement}
+\label{sec:witnesses}
+%% ============================================================
+
+\subsection{The Witness Set}
+
+\begin{definition}[Witness Set]
+For a query $q$ (which may be a region, an object, a transition, a geometric relationship, or any testable aspect of the world state candidate $\hat{\mathcal{W}}$), let $\mathcal{P}_q \subseteq \Pi$ be the set of applicable procedures at $q$. The \textbf{witness set} is
+\[
+W(q) = \left\{ P_i(q) \;:\; i \in \mathcal{P}_q \right\}.
+\]
+Elements of $W(q)$ are candidate values or assessments of the query $q$ produced by independent procedures.
+\end{definition}
+
+\begin{remark}
+The independence in ``independent procedures'' is meaningful. When optical flow, object tracking, and 3D projection independently predict where a surface point should appear in the next frame, their agreement provides evidence for the prediction while their disagreement provides evidence that something is structurally wrong. This is structurally analogous to ensemble methods in machine learning \cite{lakshminarayanan2017deep}, but applied specifically to world-state properties rather than classification or regression targets.
+\end{remark}
+
+\subsection{Dispersion and Disagreement}
+
+\begin{definition}[Dispersion Functional]
+The \textbf{dispersion} of the witness set $W(q)$ is a functional
+\[
+\Gamma(q) = \Disp(W(q)) \in [0, \infty)
+\]
+quantifying the spread or inconsistency of witness predictions. High $\Gamma(q)$ indicates that independent procedures disagree about the state or behavior of $q$.
+\end{definition}
+
+The appropriate choice of dispersion functional depends on the type of $q$:
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item \textbf{Continuous position or depth predictions.} Let $W(q) = \{v_1, \ldots, v_m\} \subset \mathbb{R}^d$. Then $\Gamma(q) = \frac{1}{m}\sum_{i=1}^m \|v_i - \bar{v}\|^2$ (mean squared deviation from the ensemble mean) or a more robust alternative such as the mean absolute deviation from the median.
+
+\item \textbf{Object identity (categorical).} Let $W(q) = \{c_1, \ldots, c_m\}$ where each $c_i$ is a categorical identity assignment. Then $\Gamma(q) = 1 - \max_c \frac{|\{i : c_i = c\}|}{m}$ (one minus the plurality fraction).
+
+\item \textbf{Optical flow vectors.} Let $W(q) = \{f_1, \ldots, f_m\} \subset \mathbb{R}^2$. Then $\Gamma(q) = \max_{i,j} \|f_i - f_j\|$ (maximum pairwise deviation), which is sensitive to single catastrophically wrong estimates.
+
+\item \textbf{Depth maps.} Disagreement between stereo estimation, monocular estimation, and SLAM-derived depth at pixel $(u,v)$ can be measured as $\Gamma(u,v) = \mathrm{std}(d_{\text{stereo}}(u,v),\; d_{\text{mono}}(u,v),\; d_{\text{SLAM}}(u,v))$.
+
+\item \textbf{Occlusion boundaries.} Binary edge maps from different processes can be compared via a boundary F-measure or a Hausdorff distance between estimated boundary locations.
+\end{itemize}
+
+\begin{hypothesis}
+\label{hyp:gamma}
+The dispersion field $\Gamma$ localizes deliberately introduced structural errors (object identity swaps, impossible geometry, occlusion boundary violations, unphysical motion fields) more reliably than frame-local pixel-domain error metrics computed between consecutive frames.
+\end{hypothesis}
+
+\subsection{Disagreement as Diagnostic Information}
+
+The key reframing is: disagreement is information, not merely variance to be minimized or averaged away.
+
+When $\Gamma(q)$ is high, the appropriate response is not to average the witnesses (which can produce a physically impossible composite) but to ask \textit{which witness is more likely to be correct given the available evidence}, and further, \textit{what assumption, representation, or model is responsible for the disagreement}. If optical flow predicts a surface point at position $p_1$, rigid-body projection predicts $p_2$, and object tracking predicts $p_3$, the disagreement is evidence that at least one of the underlying models is failing at this point. Identifying which one fails is the purpose of the diagnostic engine.
+
+\begin{proposal}[Disagreement Response Protocol]
+When $\Gamma(q) > \tau_{\text{high}}$, the system should:
+\begin{enumerate}[leftmargin=2em,itemsep=0pt]
+\item Log $q$ and $W(q)$ to the provenance record $H_t$ with full witness attribution.
+\item Attempt to identify the likely outlier witness by checking each $P_i(q)$ against priors, physical constraints, and consistency with neighboring regions.
+\item If an outlier is identified, exclude it and recompute the consensus.
+\item If no consensus is reachable, flag $q$ as a region of unresolved structural uncertainty, hold the prior state for $q$, and request additional computation or user input.
+\item Never silently commit a high-dispersion region as if it were a well-supported update.
+\end{enumerate}
+\end{proposal}
+
+Algorithm~\ref{alg:witness} gives the pseudocode for witness-based structural diagnosis.
+
+\begin{algorithm}[h]
+\caption{Witness-Based Structural Diagnosis}
+\label{alg:witness}
+\begin{algorithmic}[1]
+\Require Candidate continuation $\hat{\mathcal{W}}$, prior state $\mathcal{W}_t$, history $H_t$, registry $\Pi$, thresholds $\tau_{\text{fast}}, \tau_{\text{high}}$
+\Ensure Diagnosis record $D$, updated candidate $\hat{\mathcal{W}}'$
+
+\State $\Sigma \gets \kappa_{\text{fast}}(\hat{\mathcal{W}},\; \mathcal{W}_t)$ \Comment{Fast suspicion field over all queries}
+\State $D \gets \emptyset$
+\For{each query $q$ with $\Sigma(q) > \tau_{\text{fast}}$}
+    \State $\mathcal{P}_q \gets \{ P_i \in \Pi : \alpha_i(\mathcal{W}_t) = 1,\; P_i \text{ is applicable to query type of } q\}$
+    \State $W(q) \gets \{ P_i(q) : i \in \mathcal{P}_q \}$
+    \State $\Gamma(q) \gets \Disp(W(q))$
+    \If{$\Gamma(q) > \tau_{\text{high}}$}
+        \State Identify likely outlier witnesses in $W(q)$
+        \State $D \gets D \cup \{(q,\; W(q),\; \Gamma(q),\; \text{outlier estimate})\}$
+        \State Mark $q$ as structurally suspect in $\hat{\mathcal{W}}$
+    \ElsIf{$\Gamma(q) > \tau_{\text{fast}}$}
+        \State $D \gets D \cup \{(q,\; W(q),\; \Gamma(q),\; \text{minor uncertainty})\}$
+    \EndIf
+\EndFor
+\State $\hat{\mathcal{W}}' \gets \hat{\mathcal{W}}$ with suspect regions flagged or held from prior $\mathcal{W}_t$
+\State \Return $D,\; \hat{\mathcal{W}}'$
+\end{algorithmic}
+\end{algorithm}
+
+%% ============================================================
+\section{Structural Glitches as Diagnostic Evidence}
+\label{sec:glitches}
+%% ============================================================
+
+\subsection{Redefining the Glitch}
+
+Conventional usage treats a visual artifact or glitch as primarily an aesthetic failure: something the viewer can see that should not be visible. This definition conflates the detectability of the artifact with its cause and with the kind of information whose loss produced it. We propose a more informative definition.
+
+\begin{definition}[Structural Glitch]
+\label{def:glitch}
+A \textbf{structural glitch} at query $q$ and time $t$ is a configuration of $\hat{\mathcal{W}}_{t+1}$ that violates a structural relation that was both true in $\mathcal{W}_t$ (or recoverable from $H_t$) and was, in principle, preservable by the transition process given the information available to it. More precisely, let $\phi$ be a structural predicate (such as ``object $o$ and region $r$ are on the same surface'', ``depth increases monotonically across boundary $b$'', ``face identity is consistent with identity $\text{id}$''). A structural glitch occurs when $\phi(\hat{\mathcal{W}}_{t+1}) = \text{false}$ but $\phi(\mathcal{W}_t) = \text{true}$ and the transition process had sufficient information to preserve $\phi$.
+\end{definition}
+
+The phrase ``had sufficient information to preserve $\phi$'' is essential and distinguishes this definition from a simple continuity requirement. A compression artifact that violates a boundary relation is not a structural glitch if the bitrate was genuinely too low to represent that boundary. It is a structural glitch if the codec had access to object segmentation and chose to disregard it.
+
+\subsection{A Taxonomy of Structural Glitches}
+
+The following categories organize structurally meaningful failure modes. Each category corresponds to a class of predicates $\phi$ in Definition~\ref{def:glitch}.
+
+\textit{Object identity violations.} The system assigns a different identity to the same physical object between frames, or merges two distinct objects into one, or splits one object into two, without a causally supported reason. This includes the ``extra finger'' problem in generative models and identity drift in tracking.
+
+\textit{Impossible topology.} The geometry of a proposed update is not homeomorphic to any physically realizable surface: a surface self-intersects, a closed surface suddenly opens, limbs detach and reattach.
+
+\textit{Temporal discontinuity.} A state variable changes discontinuously between adjacent frames by more than can be explained by frame rate, motion blur, or committed causal events.
+
+\textit{Motion field inconsistency.} The optical flow predicted from the 3D geometry and camera motion is inconsistent with the actual pixel displacement field in the rendered output.
+
+\textit{Depth inconsistency.} A foreground object appears at a depth that places it behind a background object at the same image location.
+
+\textit{Occlusion errors.} A surface that should be occluded is rendered as visible, or vice versa, in a way inconsistent with the geometry.
+
+\textit{Foreground/background texture leakage.} Texture from one depth layer bleeds into another, the canonical codec glitch at low bitrates and the canonical generative failure at inpainting boundaries.
+
+\textit{Boundary-crossing artifacts.} A compression or generative block boundary crosses a scene object boundary, producing artifacts that do not respect the separation between surfaces.
+
+\textit{Material inconsistency.} The material of an object changes in a way not supported by lighting changes, causing a surface to appear to change its reflectance or color for no physical reason.
+
+\textit{Lighting inconsistency.} A shadow, specular highlight, or ambient contribution does not match the committed illumination model $L_t$.
+
+\textit{Causal inconsistency.} An event recorded in $S_t$ or $H_t$ has consequences that are violated in the proposed continuation.
+
+\textit{Narrative-state inconsistency.} A semantic fact committed to $S_t$ (a character's physical injury, the location of an object, a relationship between characters) is violated without an intervening causal event.
+
+\begin{proposition}
+Each category of structural glitch in the taxonomy corresponds to a structural predicate $\phi$ that is checkable, at least in principle, from the world state $\mathcal{W}_t$ and history $H_t$. Therefore, each category defines a class of diagnostic tests that can be applied to candidate continuations without reference to pixel-level appearance alone.
+\end{proposition}
+
+\subsection{Glitches as Evidence}
+
+A structural glitch, once detected, is not merely something to suppress. It is evidence about the failure of a particular representation or process. If a foreground/background texture leak occurs at the boundary between a foreground character and the background wall, it is evidence that whichever process produced that region did not have access to, or did not correctly use, the depth and segmentation information that would have distinguished the two surfaces. The appropriate response is to route subsequent updates for that region to a process with better access to that information, or to invoke the depth estimator and object segmenter as additional witnesses.
+
+\begin{remark}
+This is a strictly stronger claim than the claim that glitches indicate ``a bad model was used.'' The diagnostic value of a glitch lies in identifying \textit{which structural relation was violated} and thereby identifying \textit{which representation or module failed to preserve it}. Different glitch categories implicate different modules: texture leakage implicates the depth/segmentation pipeline; identity drift implicates the tracking module; shadow inconsistency implicates the lighting model. This specificity is what makes glitches diagnostically useful rather than merely undesirable.
+\end{remark}
+
+%% ============================================================
+\section{Process Grammars, Residuals, and Relational Anomaly Detection}
+\label{sec:grammars}
+%% ============================================================
+
+\subsection{The Relational Structure of Cinematic Errors}
+
+The structural glitch taxonomy of Section~\ref{sec:glitches} characterizes failures in terms of violated predicates evaluated primarily at a single timestep or across a short window. Many cinematically significant errors, however, are not visible in isolation. They become identifiable only in relation to a repeated process: not because a single frame is implausible, but because the frame's relationship to the surrounding sequence is inconsistent with the process that produced the rest of the sequence. The section develops a formal mechanism for this relational mode of diagnosis.
+
+\begin{example}
+A hand may appear anatomically plausible in a given frame while having exchanged identity with another person's hand since the previous frame. A reflection may look photorealistic while corresponding to the wrong source geometry. A shadow may have plausible texture and soft boundary while being geometrically inconsistent with the committed light-source position. A character may disappear correctly behind an occluder at time $t$ but fail to reappear when the camera subsequently exposes the corresponding region of the persistent world, even though each frame individually appears well-rendered. In each case the diagnostic signal lies in the relationship between observations rather than in any single observation.
+\end{example}
+
+These failures share a common structure: they are \textbf{locally plausible} and \textbf{relationally inconsistent}. This motivates a formal distinction between two diagnostic modes.
+
+\subsection{Local and Relational Distortion}
+
+\begin{definition}[Local Distortion]
+The \textbf{local distortion} of a reconstruction $x_t$ at time $t$ is
+\[
+D_{\mathrm{local}}(x_t) = d_{\mathrm{local}}(x_t,\; \mathcal{W}_t,\; \text{reference models}),
+\]
+measuring departure from the expected appearance, geometry, or identity of $x_t$ in isolation, without reference to the temporal context.
+\end{definition}
+
+\begin{definition}[Relational Distortion]
+The \textbf{relational distortion} of a reconstruction sequence $x_{t-k:t+k}$ is
+\[
+D_{\mathrm{rel}}(x_{t-k:t+k}) = d_{\mathrm{rel}}(x_{t-k:t+k},\; G(H_{t-1})),
+\]
+measuring departure from the continuation family expected from the process grammar $G$ given the committed history $H_{t-1}$.
+\end{definition}
+
+A reconstruction system that monitors only $D_{\mathrm{local}}$ is blind to relational failures. The central diagnostic claim of this section is:
+
+\begin{proposition}[Relational-Local Gap]
+\label{prop:rellocal}
+For any local distortion threshold $\epsilon > 0$, there exist cinematically significant error patterns such that $D_{\mathrm{local}}(x_t) \leq \epsilon$ while $D_{\mathrm{rel}}(x_{t-k:t+k}) \gg \epsilon$. That is, locally plausible reconstructions can be relationally inadmissible.
+\end{proposition}
+
+\begin{proof}[Justification]
+By construction: the examples above (identity exchange, incorrect reflection geometry, occluder-reappearance failure) all satisfy $D_{\mathrm{local}} \approx 0$ (each frame is well-rendered in isolation) while violating committed structural relations established over the temporal sequence.
+\end{proof}
+
+\subsection{Process Grammars}
+
+\begin{definition}[Process Episode]
+A \textbf{process episode} at time $t$ is a tuple
+\[
+e_t = (x_{t,1}, x_{t,2}, \ldots, x_{t,n})
+\]
+of observations or world-state elements produced by a single operational cycle of some algorithm or subsystem.
+\end{definition}
+
+\begin{definition}[Process Grammar]
+A \textbf{process grammar} is a function
+\[
+G : \mathcal{H} \to \mathcal{P}(\mathcal{E}),
+\]
+where $\mathcal{H}$ is the space of committed histories and $\mathcal{P}(\mathcal{E})$ is the power set of the episode space. $G(H_t)$ denotes the family of process episodes considered admissible continuations given history $H_t$.
+\end{definition}
+
+The process grammar need not be symbolic or explicitly hand-authored. It may be represented as a finite-state machine, a probabilistic context-free grammar, a learned transition model, a temporal logic specification, a causal graph, a dynamical system, or an ensemble of witnesses. What is essential is that $G(H_t)$ defines a family of expected continuations against which observed episodes can be compared.
+
+\begin{remark}
+Process grammars operate at multiple temporal scales simultaneously. At the physical scale, the sequence $\text{foot raised} \to \text{foot advances} \to \text{contact} \to \text{weight transfer}$ constitutes a walking grammar: each step is expected only in the context of the preceding steps, and any isolated observation of weight transfer without a prior foot raise is a relational anomaly. At the shot scale, the sequence $\text{establish} \to \text{approach} \to \text{interaction} \to \text{reaction}$ constitutes a cinematic grammar familiar from classical editing theory. At the narrative scale, $\text{evidence discovered} \to \text{suspicion changes} \to \text{investigation} \to \text{revelation}$ constitutes a plot grammar. The residual $r_t$ defined below is computed at whichever scale is appropriate to the query.
+\end{remark}
+
+\subsection{The Grammar Residual}
+
+\begin{definition}[Grammar Residual]
+The \textbf{grammar residual} at time $t$ is
+\[
+r_t = d(e_t,\; G(H_{t-1})),
+\]
+where $d$ is a distance or divergence measure between the observed episode $e_t$ and the continuation family $G(H_{t-1})$ predicted by the process grammar given the committed history. A suitable choice of $d$ is the minimum distance from $e_t$ to any episode in $G(H_{t-1})$:
+\[
+r_t = \min_{e' \in G(H_{t-1})} d(e_t,\; e').
+\]
+\end{definition}
+
+A large residual $r_t > \epsilon$ triggers diagnosis rather than immediate rejection. The diagnostic question is not "is this episode implausible in isolation?" but "is this episode inconsistent with the process that has governed the sequence so far?" This is a fundamentally different question, and it can be answered only by consulting the committed history $H_{t-1}$ and the process grammar $G$ derived from it.
+
+\begin{proposal}
+The Diagnostic Engine (Section~\ref{sec:architecture}) should maintain a grammar residual field $\{r_t\}$ alongside the witness dispersion field $\{\Gamma(q)\}$. High residual at query $q$ triggers the same escalation protocol as high dispersion: additional witnesses are invoked, the candidate is flagged, and the flagged region is not committed silently.
+\end{proposal}
+
+\subsection{Genre Operators and Grammar Transformation}
+
+The process grammar $G$ is not fixed. Genre operators (Section~\ref{sec:operators}) transform the grammar:
+
+\begin{definition}[Grammar Transformation by Genre Operator]
+If $\Omega_g$ is a genre operator, then
+\[
+G_{t+1} = \Omega_g(G_t).
+\]
+The new grammar $G_{t+1}$ changes expectations about admissible continuations while preserving those facts committed to $H_t$ that the operator does not explicitly modify.
+\end{definition}
+
+This provides a precise semantics for genre change in interactive cinema: switching from detective fiction to comedy changes the process grammar governing future admissible trajectories (different expected shot sequences, pacing patterns, resolution structures) without altering the committed world facts (who is alive, where the hotel is, what evidence was discovered). The grammar is an admissibility filter on continuations; the history is the accumulated commitment that continuations must respect.
+
+\begin{proposition}
+Interactive cinema can be formally characterized as continuous manipulation of the process grammar $G_t$ governing future admissible trajectories, by operator application, subject to the constraint that committed history $H_t$ is not modified by grammar operators.
+\end{proposition}
+
+\subsection{Paired and Compensating Events}
+
+Some relational anomalies are not detectable at the time they occur but become identifiable when subsequent events expose them.
+
+\begin{definition}[Repair Relation]
+A \textbf{repair relation} $R(e_i, e_j)$ holds when episode $e_j$ exists primarily to compensate for consequences introduced by episode $e_i$. Formally, $e_j$ is a repair of $e_i$ if removing $e_i$ from the history would remove the necessity of $e_j$.
+\end{definition}
+
+\begin{definition}[Compensating Pair]
+A \textbf{compensating pair} $(\delta_t, \delta_{t+k})$ consists of a deviation $\delta_t$ introduced by episode $e_t$ and a subsequent compensation $\delta_{t+k} \approx -\delta_t$ introduced by a repair episode $e_{t+k}$ with $R(e_t, e_{t+k})$. The pair is more diagnostic than either event separately, because the relationship between them identifies $e_t$ as an avoidable error rather than a necessary operation.
+\end{definition}
+
+The append-only provenance structure of $H_t$ makes compensating pairs detectable. Because prior committed states are never overwritten, the diagnostic engine can compare the pre-repair state, the errored state, and the repaired state, and record the relationship explicitly in the provenance entry for $e_{t+k}$.
+
+\begin{proposal}
+When a repair episode $e_{t+k}$ is committed with $R(e_t, e_{t+k})$ attributed to process $P_i$, the provenance entry for $e_t$ should be retroactively annotated with a forward reference to $e_{t+k}$ and its type $\tau(e_{t+k}) = \mathrm{repair}$. This enables the system to recover compensating pairs from the provenance log without replaying the full history.
+\end{proposal}
+
+\subsection{Repair Burden as Policy Evidence}
+
+\begin{definition}[Repair Cost]
+The \textbf{repair cost} $C_R(e)$ of episode $e$ is the total downstream computational cost attributable to repairing consequences introduced by $e$: geometry reconstruction, temporal consistency correction, identity repair, re-rendering, and any human intervention required because $e$ introduced a structural failure that automated repair could not resolve.
+\end{definition}
+
+Proposal quality should not be measured solely by immediate rendering quality or by the local distortion $D_{\mathrm{local}}$. The full cost of a proposal includes its downstream repair burden.
+
+\begin{definition}[Effective Episode Cost]
+The \textbf{effective cost} of episode $e$ is
+\[
+J_{\mathrm{eff}}(e) = J_{\mathrm{initial}}(e) + \lambda\, \mathbb{E}[C_R(e)],
+\]
+where $J_{\mathrm{initial}}(e)$ is the immediate generation cost, $C_R(e)$ is the random variable representing downstream repair cost, and $\lambda > 0$ is a weighting parameter.
+\end{definition}
+
+A fast generative policy that frequently requires downstream geometry reconstruction, temporal repair, identity correction, or re-rendering may therefore be globally more expensive than a slower initial policy with lower repair burden. The comparison is:
+
+\[
+J_{\mathrm{eff}}(\pi_1) = J_{\mathrm{initial}}(\pi_1) + \lambda\,\mathbb{E}[C_R(\pi_1)]
+\quad \gtrless \quad
+J_{\mathrm{initial}}(\pi_2) + \lambda\,\mathbb{E}[C_R(\pi_2)] = J_{\mathrm{eff}}(\pi_2).
+\]
+
+The apparently cheaper policy $\pi_1$ (lower $J_{\mathrm{initial}}$) may be globally more expensive if its repair burden dominates. This provides a mechanism for policy selection that is invisible to benchmarks measuring only $J_{\mathrm{initial}}$ or immediate output quality.
+
+\subsection{Empirical Repair Rates and Policy Revision}
+
+The repair cost of a policy is not only a cost to be minimized; it is evidence about whether the policy is correctly matched to the class of inputs it is handling.
+
+\begin{definition}[Empirical Repair Rate and Burden]
+Let $N_R(\pi, T)$ be the number of repairs attributable to policy $\pi$ over interval $T$, and let
+\[
+M_R(\pi, T) = \sum_{r \in R_{\pi,T}} C_R(r)
+\]
+be their total repair magnitude. The \textbf{empirical repair rate} and \textbf{repair burden} of $\pi$ are
+\[
+\rho_\pi = \limsup_{T \to \infty} \frac{N_R(\pi, T)}{N_\pi(T)}, \qquad \beta_\pi = \limsup_{T \to \infty} \frac{M_R(\pi, T)}{N_\pi(T)},
+\]
+where $N_\pi(T)$ is the number of episodes generated by $\pi$ in interval $T$.
+\end{definition}
+
+High $\rho_\pi$ or $\beta_\pi$ is evidence that policy $\pi$ is systematically mismatched to the class of queries over which it has received jurisdiction. The system's response should not be limited to parameter adjustment within $\pi$ but should include reconsideration of the policy's jurisdiction.
+
+\begin{proposal}[Repair-Ledger-Driven Policy Revision]
+The system maintains a \textbf{repair ledger} for each registered process $P_i \in \Pi$:
+\[
+P_i \;\mapsto\; (\mathrm{jurisdiction},\; N_R,\; M_R,\; \rho_{P_i},\; \beta_{P_i},\; \text{residual uncertainty}).
+\]
+When $\rho_{P_i}$ or $\beta_{P_i}$ exceeds a configured threshold for a class of queries, the Witness Scheduler triggers a jurisdiction review: additional witnesses are invoked, and the Selector $\Sigma$ is updated to reduce the probability of assigning $P_i$ to future queries of the same class. Specific revision policies include:
+\begin{enumerate}[leftmargin=2em,itemsep=0pt]
+\item \textit{Recurrent diffusion failure} (high $\rho$, high $\beta$ for geometry-type queries): transfer jurisdiction to an explicit mesh reconstruction procedure.
+\item \textit{Recurrent optical-flow failure} (high $\rho$ for fast motion): invoke an object tracker with longer temporal memory.
+\item \textit{Repeated physics repair} (high $\beta$ for rigid-body episodes): construct the relevant scene using a physics simulator as primary process before rendering.
+\end{enumerate}
+\end{proposal}
+
+The feedback loop is therefore:
+\[
+\text{anomaly} \to \text{diagnosis} \to \text{repair} \to \text{attribution} \to \text{policy revision}.
+\]
+
+Repair is not housekeeping. It is training evidence about which algorithms are correctly matched to which scene conditions, and it should directly inform the policy-diffusion system (Section~\ref{sec:diffusion}). The repair ledger $P_i \mapsto (\rho_{P_i}, \beta_{P_i})$ provides a principled conditioning signal: the policy proposal distribution $p_\theta(\pi \mid H_t)$ should be conditioned on the accumulated repair histories of the registered processes, not only on the current scene state.
+
+\subsection{The Normalization Problem and Event Typing}
+
+The repair-as-evidence mechanism creates a critical requirement on the learning system: it must not normalize pathology.
+
+\begin{definition}[Normalization of Pathology]
+\textbf{Normalization of pathology} occurs when a learning system, observing a repeated sequence $A \to E \to R \to B$ (where $E$ is an avoidable failure and $R$ is a compensatory repair), infers that the sequence is normal and represents both $E$ and $R$ as expected events, rather than inferring that the desired process is $A \to B$ and that $E$ and $R$ are avoidable overhead.
+\end{definition}
+
+If a generative system makes the same structural defect on a given class of inputs and downstream processing repairs it on the same class, statistical learning from the aggregate sequence will eventually represent the full defective sequence as the expected continuation for that input class. The error and the repair both become predicted events; their status as avoidable overhead is invisible to a system that learns only from observed frequencies.
+
+The append-only provenance structure guards against this in two ways. First, every episode is labeled with its event type:
+
+\begin{definition}[Event Type]
+The \textbf{event type} of episode $e$ is
+\[
+\tau(e) \in \{\mathrm{proposal},\; \mathrm{commitment},\; \mathrm{observation},\; \mathrm{anomaly},\; \mathrm{repair},\; \mathrm{verification}\}.
+\]
+\end{definition}
+
+Second, the repair relation $R(e_i, e_j)$ is recorded explicitly in the provenance entries for both $e_i$ and $e_j$. A learning system that conditions on event type can therefore distinguish productive operations ($\tau = \mathrm{proposal}, \mathrm{commitment}, \mathrm{observation}, \mathrm{verification}$) from compensatory operations ($\tau = \mathrm{anomaly}, \mathrm{repair}$) and can maintain separate statistics for each. Statistical frequency is prevented from being confused with structural necessity: what happens frequently is not necessarily what ought to happen.
+
+\begin{hypothesis}
+\label{hyp:normalization}
+A system that maintains event-typed provenance and repair attribution will, after sufficient operational experience, exhibit lower empirical repair rates $\rho_\pi$ on the classes of queries where repair attribution has driven jurisdiction revision, compared to a system that learns only from aggregate episode sequences without event-type annotation.
+\end{hypothesis}
+
+\subsection{Anomaly as Information}
+
+The grammar residual framework suggests a final principle: anomalies should not automatically be suppressed. An observation that departs from the predicted continuation family can mean at least three distinct things:
+
+\[
+H_{\mathrm{artifact}}: \quad r_t > \epsilon \text{ because the rendering or reconstruction process failed},
+\]
+\[
+H_{\mathrm{model}}: \quad r_t > \epsilon \text{ because the process grammar is wrong about what this scene requires},
+\]
+\[
+H_{\mathrm{world}}: \quad r_t > \epsilon \text{ because a genuinely novel event occurred in the world that the grammar did not anticipate}.
+\]
+
+A reconstruction system that forces every observation back into its expected grammar cannot distinguish among these three possibilities. It will either suppress genuine novelty (treating $H_{\mathrm{world}}$ events as $H_{\mathrm{artifact}}$) or proliferate unnecessary repairs (treating $H_{\mathrm{world}}$ events as $H_{\mathrm{model}}$ failures).
+
+\begin{proposal}[Competing Hypothesis Protocol]
+When $r_t > \epsilon$, the system should initiate a structured competition among the three hypotheses, using independent witnesses:
+\begin{enumerate}[leftmargin=2em,itemsep=0pt]
+\item \textit{Test $H_{\mathrm{artifact}}$}: Can a different rendering or reconstruction algorithm produce the same episode $e_t$ with lower cost and the same admissibility status? If so, $H_{\mathrm{artifact}}$ is favored.
+\item \textit{Test $H_{\mathrm{model}}$}: Does the grammar $G$ predict the episode incorrectly on this input class across multiple independent witnesses? If so, $H_{\mathrm{model}}$ is favored and the grammar should be updated.
+\item \textit{Test $H_{\mathrm{world}}$}: Is there an admissible world-state update (consistent with $\mathcal{C}$ and $H_t$) that would make $e_t$ an expected continuation? If so, $H_{\mathrm{world}}$ is favored and the novel event should be committed.
+\end{enumerate}
+\end{proposal}
+
+The deeper purpose of relational anomaly detection in cinematic reconstruction is not to guarantee that nothing surprising occurs, but to determine \textit{where the surprise belongs}: in the rendering pipeline, in the model's expectations, or in the world itself.
+
+
+%% ============================================================
+\section{Structure-Aware Rate-Distortion}
+\label{sec:ratedistortion}
+%% ============================================================
+
+\subsection{Conventional Rate-Distortion}
+
+Classical rate-distortion theory \cite{berger1971,coverandthomas2006} frames compression as a tradeoff between the number of bits used to represent a signal and a distortion measure between the original and the reconstruction. In video compression, the standard objective is approximately
+
+\[
+J_{\mathrm{RD}} = R + \lambda D_{\mathrm{pixel}},
+\]
+
+where $R$ is the bit rate and $D_{\mathrm{pixel}}$ is a frame-level distortion measure such as mean squared error or a variant.
+
+Modern video codecs (H.264/AVC \cite{wiegand2003}, H.265/HEVC \cite{sullivan2012}) incorporate significant structure-sensitivity beyond pixel-domain distortion: motion estimation and compensation exploit inter-frame coherence, intra-frame prediction exploits spatial correlation, perceptual quantization adapts quantization to the local masking properties of the visual system, and loop filters smooth block-boundary ringing. These are meaningful structural features, and characterizing existing codecs as purely pixel-domain systems would be inaccurate.
+
+\subsection{The Proposed Extension}
+
+The claim of the present framework is more specific than ``codecs should be more perceptual.'' It is that a persistent world representation exposes semantic and geometric invariants that are not available to a codec operating on compressed frame-level features. A codec processing $H \times W$ blocks of pixels has no stable representation of object identity, scene depth, occlusion relationships, or causal state. When it fails under bitrate pressure, its failures have no reason to respect boundaries between foreground and background objects, because those boundaries are not represented in the form the codec operates on.
+
+We propose a structure-aware rate-distortion objective:
+
+\[
+J_{\mathrm{struct}} = R + \lambda_1 D_{\mathrm{appearance}} + \lambda_2 D_{\mathrm{boundary}} + \lambda_3 D_{\mathrm{motion}} + \lambda_4 D_{\mathrm{identity}} + \lambda_5 D_{\mathrm{depth}} + \lambda_6 D_{\mathrm{temporal}},
+\]
+
+where each $D_{\mathrm{(\cdot)}}$ is a distortion measure specific to a structural category:
+
+\begin{itemize}[leftmargin=2em,itemsep=2pt]
+\item $D_{\mathrm{appearance}}$: a perceptually weighted pixel-level distortion (SSIM \cite{wang2004ssim} or LPIPS), treating appearance as only one component rather than the sole component;
+\item $D_{\mathrm{boundary}}$: a boundary-fidelity term measuring how well object and depth boundaries are preserved, computed from the object segmentation and depth map available in $\mathcal{W}_t$;
+\item $D_{\mathrm{motion}}$: distortion in the motion field, measured between the 3D-geometry-derived flow and the decoded-frame flow;
+\item $D_{\mathrm{identity}}$: a term penalizing object-identity violations, computed from object-level feature embeddings rather than raw pixels;
+\item $D_{\mathrm{depth}}$: distortion in the decoded depth map relative to the world-model depth;
+\item $D_{\mathrm{temporal}}$: a temporal consistency term penalizing frame-to-frame oscillations in low-frequency regions that should be stable.
+\end{itemize}
+
+\begin{remark}
+The $\lambda_i$ weights are hyperparameters that depend on application requirements. A system compressing action cinema at very low bitrates may prioritize $\lambda_3$ (motion) and $\lambda_2$ (boundary); a system compressing talking-head video may prioritize $\lambda_4$ (identity). The framework does not specify universal weights but makes explicit the structure of the objective.
+\end{remark}
+
+\subsection{The Informational Claim}
+
+The deeper claim motivating the structural objective is informational. A representation that discards distinctions about object identity, depth, and boundaries at an early stage cannot reliably preserve those distinctions at later stages, regardless of the distortion measure used in optimization. This is not a criticism of any specific codec design but a statement about information flow: structure that is not represented cannot be preserved.
+
+\begin{proposition}
+\label{prop:infoclaim}
+Let $\phi$ be a structural predicate (e.g., ``pixels at positions $p_1$ and $p_2$ belong to different objects''). If the compressed representation $\hat{I}$ does not contain sufficient information to evaluate $\phi$, then $\phi$ cannot be guaranteed to hold in $\hat{I}$ regardless of the decoding procedure used.
+\end{proposition}
+
+\begin{proof}[Justification]
+This is a direct consequence of the data processing inequality: post-decoding processing cannot recover information that was not retained in the compressed stream. If the encoder discarded the segmentation boundary between two objects, the decoder cannot reconstruct it from pixel data alone in any representation-independent sense.
+\end{proof}
+
+\begin{hypothesis}
+\label{hyp:structure-ratedistortion}
+Under aggressive bitrate constraints, a system encoding video with access to world-state structure (depth, segmentation, object identity) will produce artifacts that are qualitatively different from those produced by a structure-unaware codec: the structured system's artifacts will tend to remain within individual objects or regions rather than crossing object boundaries, even when comparable total distortion is measured by $D_{\mathrm{appearance}}$ alone.
+\end{hypothesis}
+
+
+\subsection{World-State Descriptions and the Compression Class}
+
+The world-state tuple $\mathcal{W}_t$ is, from the perspective of compression theory, a structured description of a physical scene. The rendering function $I_t = R(\mathcal{W}_t, C_t, \theta_t)$ is a generative operator mapping that description to an observed frame. This places the architecture within a class of compression systems in which the description and the generative model together replace the transmitted signal.
+
+The compression gain available to such a system follows from a structural principle. Let $K_\epsilon(I_{0:T})$ denote the minimum description length of a frame sequence at perceptual tolerance $\epsilon$, and let $K_\epsilon(I_{0:T} \mid \mathcal{G})$ denote the minimum description length of the world-state trajectory sufficient to regenerate the sequence to the same tolerance using the rendering function $\mathcal{G}$. Because $\mathcal{G}$ encodes physical laws, geometric constraints, material properties, and causal structure that hold across all frames, it captures regularities that the frame sequence itself repeats implicitly in every rendered pixel. The model-relative description length satisfies
+\[
+K_\epsilon(I_{0:T} \mid \mathcal{G}) \leq K_\epsilon(I_{0:T}) - K(\mathcal{G}) + O(1),
+\]
+with the gap increasing as $\mathcal{G}$ becomes more expressive. When $\mathcal{G}$ is shared between encoder and decoder and its description cost is amortized across transmissions, only $K_\epsilon(I_{0:T} \mid \mathcal{G})$ must be transmitted per session.
+
+\begin{remark}
+This identifies what compression class the architecture belongs to, not what ratio any specific implementation achieves. The compression ratio grows with the expressiveness of the rendering model: more accurate physics simulation, richer material models, and finer geometric representation all reduce the residual that must be transmitted. A world state at the level of an explicit scene graph, with geometry, physics parameters, material specifications, and camera trajectories, is orders of magnitude smaller than the frame sequence it generates. The relevant comparison is not against current codec implementations, which have no access to world-level structure, but against the theoretical lower bound $K_\epsilon(I_{0:T})$, from which the present architecture achieves a reduction proportional to the information about the scene already encoded in the shared rendering model.
+\end{remark}
+
+\begin{remark}
+The history $H_t$ in $\mathcal{W}_t$ extends this argument to narrative content. Story facts, character states, and causal events that determine the world's trajectory contribute to the shared model rather than to the per-session description, once committed. A scene whose visual complexity is entirely determined by previously committed physics and character dynamics requires only the delta from the prior committed state, not a re-specification of the full world.
+\end{remark}
+
+\begin{remark}[Historical Instantiation and Practical Frame Selection]
+Two pre-digital publishing formats from the era before home video independently discovered the two ends of the compression spectrum described above. Richard Anobile's Film Classics Library reproduced films as sequences of more than a thousand sequential frame enlargements with the dialogue printed below each image: temporal resolution was maximized and semantic reduction was minimal, at the cost of very large physical size. The film storybook tie-ins of the same period --- Amy Ehrlich's \textit{Annie: The Storybook Based on the Movie} (Random House, 1982) being a representative example --- performed the inverse: salient frames were selected at semantically significant moments, with continuous prose replacing the discarded continuations. The Anobile method approximates $K_\epsilon(I_{0:T} \mid \mathcal{G})$ with a weak $\mathcal{G}$ (little prior structure assumed); the storybook method uses a richer $\mathcal{G}$ (narrative conventions, character consistency) and a correspondingly sparse frame set. Both formats existed because temporal re-viewing was not yet cheap, and both became inviable once the constraint changed. They are an instance of the checkpoint permeability argument of Section~\ref{sec:motivation}: each format was well-matched to a particular constraint regime and did not survive the regime's removal.
+
+A practical consequence of this distinction arises whenever a world-state representation must be constructed from existing video rather than from a ground-truth scene database. The subtitle track of a film is a pre-existing process grammar annotation: subtitle timestamps mark dialogue events, which in dialogue-dense content correlate reliably with narrative turning points and changes in scene state. Selecting frames at subtitle timestamps approximates the storybook method at negligible cost. For visually-driven content --- animated action sequences, extended wordless passages, fight choreography, spatial reconfigurations that carry narrative weight --- this selector is insufficient, because significant world-state changes occur in intervals where nothing is being said. A two-signal selector combining subtitle timestamps with a visual change detector (optical flow magnitude peaks, frame-difference thresholds, or scene-cut detection) spans both regimes. This is a primitive instantiation of the hierarchical witness scheduling of Section~\ref{sec:witnesses}: the subtitle signal and the visual change signal are two cheap witnesses that together route dense sampling to high-residual regions while permitting sparse sampling where both signals are quiet.
+\end{remark}
+
+%% ============================================================
+\section{Style as a Realization Operator}
+\label{sec:style}
+%% ============================================================
+
+\subsection{Separating World Identity from Visual Realization}
+
+Style, in the broad sense employed here, denotes the family of choices that determine the visual character of a rendered output without determining the identity of what is depicted. Two animations of the same scene, one rendered as photorealistic cinema and one rendered in a charcoal-drawing style, depict the same world. The same dog is behind the same table, the same moon is at the same position in the sky, and the same character has the same number of arms.
+
+\begin{definition}[Style Realization Operator]
+A \textbf{style realization operator} is a function
+\[
+S: \mathcal{W} \times \Theta \to V,
+\]
+where $\mathcal{W}$ is the world state, $\Theta$ is a style parameter space, and $V$ is the space of rendered outputs (images, videos, or other visual formats). Two operators $S_1 = S(\cdot, \theta_1)$ and $S_2 = S(\cdot, \theta_2)$ define the same \textbf{world realization} if $S_1(\mathcal{W}) \neq S_2(\mathcal{W})$ for some $\mathcal{W}$, but they share the same underlying world.
+\end{definition}
+
+The same world state thus admits multiple realizations:
+\[
+\mathcal{W} \;\xrightarrow{S_1}\; V_1, \qquad \mathcal{W} \;\xrightarrow{S_2}\; V_2.
+\]
+
+Photorealistic rendering, VHS-era video, charcoal animation, cel animation, pixel art, stop-motion clay aesthetic, abstract motion graphics, blueprint-style line drawing, and typewriter ASCII video are different style realization operators applied to the same world. Their outputs may look radically different while preserving selected geometric, causal, and narrative properties.
+
+\subsection{Distinguishing Invariants from Style Dimensions}
+
+Not every visual property is a style dimension. Some properties are invariants that a style realization must preserve; others are dimensions that style is permitted to transform.
+
+\begin{definition}[Style Invariant]
+A property $\phi$ of $\mathcal{W}$ is a \textbf{style invariant} for a family of style operators $\{S_\theta : \theta \in \Theta\}$ if, for all $\theta \in \Theta$ and all $\mathcal{W}$, the property $\phi$ can be recovered from $S_\theta(\mathcal{W})$.
+\end{definition}
+
+Style invariants include, at minimum: object count and approximate spatial layout, depth ordering between foreground and background objects, motion direction (an object moving left continues to move left across style variants), occlusion relationships, and narrative-level facts recorded in $S_t$ (a character who has been wounded is wounded in every style variant of the same world state).
+
+Style dimensions, by contrast, include: color palette, spatial resolution and pixelation, edge rendering (sharp, soft, sketched, nonexistent), texture fidelity and material appearance, lighting softness and color temperature, temporal frame rate and motion blur character, and grain or noise character.
+
+\begin{proposition}
+If a style realization operator $S_\theta$ is applied to a world state $\mathcal{W}$ and a subsequent style realization operator $S_{\theta'}$ is applied to the same $\mathcal{W}$, the difference $S_\theta(\mathcal{W}) - S_{\theta'}(\mathcal{W})$ (in any appropriate metric) should contain no information about world-level properties that are style invariants.
+\end{proposition}
+
+This proposition defines a consistency requirement on the style system: changing style should not change the world. It provides a testable condition for style-transfer systems that operate on the world state rather than on frames.
+
+\begin{remark}
+Existing style-transfer systems that operate on frames or on latent frame representations do not generally satisfy this condition, because frame-level stylization can alter structural properties as a side effect. The world-state approach provides an architectural guarantee: because style is applied after world-state update, style choices cannot retroactively alter the world's geometric or causal structure.
+\end{remark}
+
+%% ============================================================
+\section{Narrative Continuation and Story State}
+\label{sec:narrative}
+%% ============================================================
+
+\subsection{Extending Persistence to Semantic Facts}
+
+The world state $\mathcal{W}_t$ includes a semantic and narrative component $S_t$. This component is responsible for the persistence of facts that are not directly recoverable from geometry alone: a character's knowledge of another character's secret, the unfired gun introduced in the first act, the promise made between two characters, the physical injury a character sustained three scenes earlier.
+
+\begin{definition}[Story State]
+The \textbf{story state} $S_t \subseteq \mathcal{F}$ is a set of semantic facts indexed by time, where $\mathcal{F}$ is a universe of representable story facts. A fact $f \in S_t$ may be geometrically grounded (``character $A$ is in room $R$''), relational (``character $A$ knows that character $B$ is the murderer''), causal (``the bridge was destroyed at time $s < t$''), possessive (``character $A$ holds object $O$''), or evaluative (``the dramatic tension of the scene is high'').
+\end{definition}
+
+The story state is cumulative: unless a fact is explicitly negated by a committed causal event, it persists. A character who is injured at time $s$ is injured at all subsequent times $t > s$ unless a healing event has been committed to $H_t$. This persistence is what distinguishes the narrative engine from a frame-local language model prompted with a summary of previous events.
+
+\subsection{Admissible Narrative Continuation}
+
+\begin{definition}[Narrative Admissibility]
+A proposed story-state transition $S_{t+1}$ is \textbf{narratively admissible} from $S_t$ if it is obtainable from $S_t$ by: (a) committing facts that follow from physical causality given committed geometric events, (b) committing facts that follow from causal events explicitly authored or proposed, or (c) leaving facts unchanged. It is \textbf{narratively inadmissible} if it negates a persistent fact without a committed causal explanation, or if it introduces a fact that contradicts a committed fact without explicit override.
+\end{definition}
+
+\begin{proposal}
+Plot generation operates as constraint-narrowing over the admissible narrative continuation set $\mathcal{A}(H_t) \cap \mathcal{A}_{\mathrm{narrative}}(S_t)$. Genre, character psychology, physical law, pacing, dramatic structure, and user instructions are each formalized as constraints that progressively reduce this set. A detective story and an absurdist comedy can share the same world engine and the same geometry while possessing radically different continuation operators, because their genre constraints narrow $\mathcal{A}$ in different directions.
+\end{proposal}
+
+\begin{remark}
+Intentional violations of narrative admissibility (surrealist discontinuity, unreliable narration, dream sequences with impossible geometry, fourth-wall breaks) should be represented as changes to the governing constraint system $\mathcal{C}$ rather than as accidental failures of the narrative engine. A dream sequence is not a narrative glitch; it is the activation of a different constraint regime. The system should mark such transitions explicitly in $H_t$.
+\end{remark}
+
+%% ============================================================
+\section{Constructed Affect and the Dynamics of Character State}
+\label{sec:affect}
+%% ============================================================
+
+\subsection{The Pneumatic Model}
+
+A common implicit treatment of character emotion in generative systems represents affect as a scalar quantity or categorical label, $e_t \in \{\text{happy},\allowbreak \text{angry},\allowbreak \text{sad},\allowbreak \ldots\}$, and treats expression as a function of that quantity:
+\[
+y_t = G(e_t).
+\]
+The underlying metaphor is pneumatic. Affective pressure accumulates, is released through the valve of expression, and the system returns toward equilibrium:
+\[
+\text{accumulation} \;\to\; \text{pressure} \;\to\; \text{expression} \;\to\; \text{discharge}.
+\]
+Under this representation, expression is principally an output. The character contains a reservoir; the animator or generative model reads the reservoir's current level and renders accordingly.
+
+The pneumatic model has convenient properties for implementation and inconvenient properties for characterization. Affect is discrete and recoverable: once expressed, the internal quantity returns toward its baseline, and the character is available for the next emotional assignment. Expression is independent of the construction of subsequent internal state: behavior reveals or reduces something already present rather than participating in what comes next. And the observation map $G$ is assumed to be approximately injective: crying implies sadness; smiling implies happiness. The resulting characters are readable but static in a specific sense, a sense the three propositions below formalize precisely.
+
+\subsection{The Coupled Character State and Closed Loop}
+
+\begin{definition}[Coupled Character State]
+For a character $c$, define the \textbf{coupled character state} at time $t$ as the tuple
+\[
+X_t = (B_t,\; A_t,\; M_t,\; Q_t,\; R_t,\; K_t),
+\]
+where $B_t$ is bodily configuration (posture, muscular tension, facial configuration, respiration); $A_t$ is the set of currently activated associations and attentional foci; $M_t$ is the subset of memory currently accessible given cue-compatibility with $B_t$, $A_t$, and $Q_t$; $Q_t$ is appraisal and contextual interpretation (threat attribution, relevance, agency assignment); $R_t$ is relational and social state (current responses of other agents, standing relationships); and $K_t$ is the set of persistent character constraints and established history accumulated in $H_t$.
+\end{definition}
+
+No component of $X_t$ is labeled as an emotion. Each component is a dimension of a character's current configuration that participates in producing subsequent states.
+
+\begin{definition}[Character Dynamics and Action Policy]
+The character state evolves under
+\[
+X_{t+1} = F(X_t,\; \mathcal{W}_t,\; a_t,\; o_t),
+\]
+where $a_t$ is the expressive action taken by the character at time $t$, generated by an action policy
+\[
+a_t = \pi(X_t,\; \mathcal{W}_t,\; o_t),
+\]
+and $o_t$ is the observation of social and environmental responses at time $t$. The character's action enters the persistent world as
+\[
+\mathcal{W}_{t+1} = T(\mathcal{W}_t,\; a_t,\; \ldots),
+\]
+so that the world carries the consequences of the character's expression into the next step.
+\end{definition}
+
+This creates the closed loop that is absent in the pneumatic model:
+\[
+X_t \;\to\; a_t \;\to\; \mathcal{W}_{t+1} \;\to\; o_{t+1} \;\to\; X_{t+1}.
+\]
+Expression modifies the world and the social environment, which generate new observations, which enter the subsequent character state. The character's behavior is both caused by and a cause of subsequent internal configuration.
+
+\begin{hypothesis}[Constitutive-Expression Hypothesis]
+An expressive act need not merely report a pre-existing affective state. Because the act modifies bodily, social, mnemonic, and environmental conditions that enter the transition function $F$, it can partly constitute the affective state that follows it. This is a modeling principle and an empirical hypothesis, not a consequence of the architecture alone. Whether $F$ as implemented exhibits this property is an empirical question about the specific realization.
+\end{hypothesis}
+
+\subsection{Proposition 1: Non-Identifiability of Character State}
+
+\begin{proposition}[Character State Non-Identifiability]
+\label{prop:nonid}
+Let $O_X : \mathcal{X} \to \mathcal{Y}$ map latent character states to observable behavior. If there exist $x_1, x_2 \in \mathcal{X}$ with $x_1 \neq x_2$ and $O_X(x_1) = O_X(x_2)$, then no reconstruction function $R : \mathcal{Y} \to \mathcal{X}$ recovers both states correctly from observation alone.
+\end{proposition}
+
+\begin{proof}
+Let $y = O_X(x_1) = O_X(x_2)$. Since $R$ is single-valued, $R(y)$ is a single element of $\mathcal{X}$. It therefore cannot equal both $x_1$ and $x_2$. At least one reconstruction is incorrect.
+\end{proof}
+
+\begin{corollary}
+It follows that:
+\[
+\text{crying} \not\Rightarrow \text{sadness}, \qquad \text{smiling} \not\Rightarrow \text{happiness}, \qquad O_X(x) = y \not\Rightarrow x = O_X^{-1}(y),
+\]
+unless $O_X$ is injective on the relevant domain.
+\end{corollary}
+
+Define the \textbf{character state equivalence class} of $x$ under $O_X$ as
+\[
+[x]_{O_X} = \{x' \in \mathcal{X} : O_X(x') = O_X(x)\}.
+\]
+A grief expression constrains $[x]_{O_X}$ to states compatible with that expression: genuine grief, deliberate performance, pain misread by observers as grief, social convention, or exhaustion producing grief-like motor patterns. Later evidence narrows the class; a single behavioral observation does not determine which element it contains.
+
+The consequence for the world model is architectural. The character's internal state should be represented as a distribution over $[x]_{O_X}$ constrained by history $H_t$, not as a committed discrete label. This is the admissible-reconstruction problem applied to characterization: observation constrains but does not identify the latent state.
+
+The audience, another character in the scene, and the persistent world model can each possess different admissible character-state sets for the same character, because they possess different evidence. That asymmetry is available to the narrative engine.
+
+\subsection{Proposition 2: History-Dependent Character State}
+
+\begin{proposition}[Character History Dependence]
+\label{prop:history}
+If character evolution depends on accumulated internal state, then restoring the external world to a prior configuration does not in general restore the prior character state. Formally: for dynamics $X_{t+1} = F(X_t, \mathcal{W}_t, a_t, o_t)$, the condition $\mathcal{W}_t = \mathcal{W}_{t'}$ does not imply $X_t = X_{t'}$ when the trajectories reaching times $t$ and $t'$ differ.
+\end{proposition}
+
+\begin{proof}
+By counterexample. Let one component $m_t \in M_t$ represent accumulated memory, updated as $m_{t+1} = m_t + \phi(o_t)$ for some integrating function $\phi$. The world state $\mathcal{W}$ may return to its original configuration while $m_{t+k} = m_t + \sum_{s=t}^{t+k-1} \phi(o_s) \neq m_t$ whenever the summation is non-zero. Therefore $M_{t+k} \neq M_t$ and so $X_{t+k} \neq X_t$.
+\end{proof}
+
+This is the mathematical basis of character development. An argument, a loss, a discovery, or a repeated humiliation changes the character's state in ways that persist even after the immediate external cause is removed, because the event has been processed through $\phi$ into the accumulated memory component and committed to $H_t$.
+
+The result also provides a precise contrast with the frame-synthesis view. Two cinematically identical frames need not represent the same cinematic state:
+\[
+O_C(\mathcal{W}_t) = O_C(\mathcal{W}_{t'})
+\quad\text{while}\quad
+(X_t, H_t) \neq (X_{t'}, H_{t'}).
+\]
+The pixels can recur while their significance has completely changed. The same scene photographed before and after an event carries different weight in the persistent world, because $H$ carries the intervening history.
+
+\subsection{Proposition 3: Expression as Causal Intervention}
+
+\begin{proposition}[Expression as Causal Argument]
+\label{prop:causal}
+Suppose there exist expressive actions $a, a' \in \mathcal{A}$ such that
+\[
+F(X_t,\; \mathcal{W}_t,\; a,\; o_t) \neq F(X_t,\; \mathcal{W}_t,\; a',\; o_t).
+\]
+Then expressive action is a causal argument of the subsequent-state function, not merely an observable output of it.
+\end{proposition}
+
+\begin{proof}
+The states produced by the two actions differ. Therefore the function $F$ is not constant in its third argument, and $a_t$ participates causally in determining $X_{t+1}$.
+\end{proof}
+
+This proposition is elementary. Its purpose is to separate two architectures clearly. In the first,
+\[
+X_t \;\to\; a_t,
+\]
+action is a function of state; state is not modified by action. In the second,
+\[
+X_t \;\rightleftarrows\; a_t,
+\]
+the interaction is bidirectional: state generates action, and action enters the production of subsequent state. The proposition establishes that the dynamics $F$ as defined here instantiate the second architecture whenever $F$ is non-constant in $a_t$.
+
+What Proposition~\ref{prop:causal} does not prove is that every act of expression necessarily constitutes or intensifies the expressed state. That stronger claim is the Constitutive-Expression Hypothesis stated earlier, and it is empirical. The proposition proves only the weaker structural point: expression is in the right position to have causal consequences, and systems that treat it as mere output will mis-specify the dynamics.
+
+\subsection{State Operators and Dynamical Operators}
+
+The operator language of Section~\ref{sec:operators} interacts with the character dynamics in two distinct modes:
+
+\begin{definition}[State Operator vs.\ Dynamical Operator]
+A \textbf{state operator} $\Omega_s$ acts directly on $X_t$ or $\mathcal{W}_t$:
+\[
+\Omega_s : (X_t, \mathcal{W}_t) \;\mapsto\; (X_t', \mathcal{W}_t').
+\]
+A \textbf{dynamical operator} $\Omega_d$ acts on the transition function $F$ itself:
+\[
+\Omega_d : (F, X_t, \mathcal{W}_t) \;\mapsto\; (F', X_t, \mathcal{W}_t).
+\]
+\end{definition}
+
+\begin{center}
+\boxed{\text{State operators} \neq \text{Dynamical operators.}}
+\end{center}
+
+The distinction has consequences for the interactive operator language. \textsc{PROVOKE} introduces a committed world event, making it a state operator acting on $\mathcal{W}_t$. \textsc{SUSPICIOUS} modifies the appraisal weighting in $Q_t$, making it a state operator acting on $X_t$. \textsc{RESTRAINED} modifies the action-selection policy $\pi$, making it a dynamical operator that changes how the character generates $a_t$ given the same state. \textsc{DRY} modifies the response characteristics of $F$ without asserting any underlying emotional label, also a dynamical operator. \textsc{NOIR} modifies the genre-conditioned grammar and realization operator, acting on the broader system dynamics.
+
+Treating these as the same kind of operator would collapse a meaningful architectural distinction. Some instructions change what a character currently is; others change how a character subsequently evolves.
+
+\subsection{Dry Response as Basin Switching}
+
+Suppose an interaction possesses an escalating attractor region $\mathcal{B}_E$ in character-state space, within which reciprocal responses tend to keep trajectories:
+\[
+X_t \in \mathcal{B}_E \;\Rightarrow\; P(X_{t+1} \in \mathcal{B}_E) \text{ is high.}
+\]
+A conventional reciprocal response operates within this basin:
+\[
+\text{provocation} \;\to\; \text{hostile expression} \;\to\; \text{hostile response} \;\to\; \text{stronger hostile expression} \;\to\; \cdots
+\]
+
+A dry or incongruous response $a_D$ can perturb the dynamics so that
+\[
+F(X_t, \mathcal{W}_t, a_D, o_t) \notin \mathcal{B}_E,
+\]
+placing the subsequent state outside the escalating attractor. The expression does not calm the character; it changes the world-state and social observation $o_{t+1}$ in a way that shifts the trajectory into a different basin.
+
+The important qualification is that this is not a universal claim. A dry response can also escalate: sarcasm directed at a character with a hair-trigger appraisal ($Q_t$ strongly weighted toward disrespect attribution) may be read as contempt and intensify the feedback loop. The theory predicts neither calming nor aggravation. It makes the transition topology the object of interest: incongruous responses can alter basin membership, and whether they do depends on the current state configuration and the response dynamics of other agents.
+
+As a dynamical operator, \textsc{DRY} modifies $F$ to reduce feedback gain in the escalating direction, making the high-tension attractor less stable and adjacent basins more accessible. Whether the trajectory actually crosses to another basin is a function of $X_t$ at the time of application.
+
+\subsection{Character Interpretation as Admissible Reconstruction}
+
+Character state is therefore neither a label attached to a rendered figure nor a hidden quantity transparently revealed by expression. It is a history-dependent dynamical state that participates in producing behavior and is itself modified by the consequences of that behavior. An expression observed at a given frame constrains the character state equivalence class $[x]_{O_X}$ relative to the accumulated history $H_t$, narrowing the admissible set without necessarily resolving it.
+
+Cinematography observes only projections of this process. The camera sees what the observation operator $O_C$ applied to the current world state $\mathcal{W}_t$ reveals, and $\mathcal{W}_t$ contains the character's behavior and its visible consequences but not the full coupled state $X_t$. The problem of interpreting a character on screen is therefore another instance of admissible reconstruction: determining which latent states are consistent with the behavioral observations accumulated so far, subject to the constraints of physics, narrative history, and known character dispositions.
+
+
+%% ============================================================
+\section{Camera as Epistemic Operator}
+\label{sec:camera}
+%% ============================================================
+
+\subsection{The Camera Does Not Create the World}
+
+The observation map $\Obs_C : \mathcal{W} \to I$ reveals a partial projection of the world rather than creating it. Moving the camera changes $\Obs_C$ but does not, in general, change $\mathcal{W}$. This is the formal counterpart of the cinematographer's intuition: framing is selection, not invention.
+
+\begin{definition}[Cinematographic Operations as Observation Changes]
+The following operations modify the observation operator without modifying the underlying world state:
+\begin{enumerate}[leftmargin=2em,itemsep=0pt]
+\item \textbf{Pan}: rotation of the camera about a vertical or horizontal axis, changing the visible frustum;
+\item \textbf{Tilt}: rotation about the camera's lateral axis;
+\item \textbf{Zoom}: change in field of view (focal length), equivalent to a change in the projection parameters of $C_t$;
+\item \textbf{Dolly/track}: translation of the camera in the world, changing the center of projection;
+\item \textbf{Rack focus}: change in focus depth, altering the depth-of-field parameters of the rendering;
+\item \textbf{Cut}: discontinuous jump to a new camera configuration $C'$, equivalent to switching observation operators between frames;
+\item \textbf{POV shot}: assigning $C_t$ to a camera position and orientation coinciding with a character's viewpoint, as specified in $O_t$.
+\end{enumerate}
+\end{definition}
+
+\begin{remark}
+This formalization connects cinematography to the theory of partially observable systems. A cut is a discontinuous observation operator change. A POV shot defines an observation operator that is a function of a character's state. A surveillance-camera shot is an observation operator fixed in world coordinates regardless of character positions. Each of these is formally distinct, and their distinctness can be exploited for editing: the same world state $\mathcal{W}_t$ yields different frames under each, without requiring re-generation of the world itself.
+\end{remark}
+
+\subsection{Hidden State and Off-Screen Persistence}
+
+Because the world state $\mathcal{W}_t$ is maintained independently of what is currently observed, the framework naturally represents hidden state: objects, characters, and events that are present in the world but not currently visible through any active camera.
+
+This has several practical consequences. First, objects off-screen are not removed from $O_t$ but simply not projected by the current $\Obs_{C_t}$. Their dynamics continue: a character off-screen continues to age, move, act, and accrue causal consequences. Second, when the camera returns to observe a previously off-screen region, the world state at that region is determined by its committed continuation, not by a fresh generative sample. Third, the distinction between world-level facts and camera-established facts (facts that exist only because a particular camera observed them at a particular time) becomes formally representable in $H_t$.
+
+\begin{hypothesis}
+\label{hyp:offscreen}
+A world-state-persistent system maintains more consistent spatial and causal relationships in regions that leave and re-enter frame during a scene than a frame-local temporal model conditioned on a fixed context window, when measured on scripted scenes with known ground truth.
+\end{hypothesis}
+
+\subsection{Viewer Inference as Admissible Reconstruction}
+
+The observation map $\Obs_C : \mathcal{W} \to I$ formalizes what the camera reveals about the world. But a filmed sequence also has a receiver. The viewer observes the sequence $(I_1, \ldots, I_t)$ and must infer the latent world that produced it. This inference problem is another instance of the admissible reconstruction problem of Section~\ref{sec:admissible}.
+
+\begin{definition}[Viewer's Admissible World Set]
+The \textbf{viewer's admissible world set} at time $t$ is
+\[
+\mathcal{R}_v(I_{0:t},\; C_{0:t}) = \left\{ w \;:\; \Obs_{C_s}(w) = I_s \;\text{ for all }\; s \leq t,\; w \models \mathcal{C} \right\}.
+\]
+\end{definition}
+
+This set is a function of the camera sequence $C_{0:t}$ as well as the observed frames. A different camera trajectory through the same world would reveal different regions of $\mathcal{W}_t$ and produce a different admissible set for the viewer. Cinematographic choice is therefore a choice of which facts about the world to expose to the viewer's reconstruction, and which to hold in the viewer's latent space.
+
+\begin{proposition}
+The director's selection of camera trajectory $C_{0:t}$ is an operator on the viewer's admissible world set: different camera sequences applied to the same underlying world $\mathcal{W}$ produce different sets $\mathcal{R}_v$.
+\end{proposition}
+
+This connects the camera section to the operator algebra of Section~\ref{sec:operators}. A camera operator does not only change what is rendered; it changes what the viewer can infer. Revealing a concealed weapon in frame three narrows the viewer's admissible set to worlds containing that weapon, regardless of whether any character in the scene has observed it. Cutting away before a character's face is shown keeps identity in the viewer's latent space. A POV shot temporarily aligns the viewer's observation operator with a character's viewpoint, making the viewer's admissible set a function of that character's position rather than the director's independent camera.
+
+The character affect non-identifiability of Section~\ref{sec:affect} is compounded by camera selection. The viewer observes not $X_t$ directly but $O_C(O_X(X_t))$: the behavioral expression $O_X(X_t)$ further projected through the camera's observation operator $O_C$. A camera that frames a character from behind during an emotionally significant moment leaves the viewer with a larger admissible character-state class than a tight close-up would, even when the character's internal state is identical in both cases.
+
+\begin{definition}[Dramatic Irony as Asymmetric Admissible Sets]
+\textbf{Dramatic irony} arises when the viewer's admissible world set $\mathcal{R}_v$ excludes worlds in which fact $\phi$ is false, while a character's admissible set $\mathcal{R}_c$ does not: the viewer knows $\phi$ holds, but the character has not received observations sufficient to establish it.
+\end{definition}
+
+Suspense, dramatic irony, and unreliable narration are all structured manipulations of the gap between $\mathcal{R}_v$ and $\mathcal{R}_c$. They are available to the director precisely because the camera chooses which projections of $\mathcal{W}$ to deliver to each party. The distinction between facts about the world and facts established for the viewer is then formally captured by the difference between the committed world state $\mathcal{W}_t$ and the viewer's admissible set $\mathcal{R}_v(I_{0:t}, C_{0:t})$: the world may contain facts the viewer cannot infer, and the viewer may infer constraints that no character can establish. Narrative structure exploits both directions of this asymmetry.
+
+%% ============================================================
+\section{Scene Architecture}
+\label{sec:scene}
+%% ============================================================
+
+\subsection{Heterogeneous Scene Representation}
+
+The persistent world state $\mathcal{W}_t$ must be representable in a form that supports heterogeneous geometric representations simultaneously, rather than committing to a single universal format such as polygon meshes.
+
+\begin{proposal}[Heterogeneous Scene Graph]
+The scene is organized as a directed acyclic graph (the scene graph) where each node $n$ carries:
+\begin{enumerate}[leftmargin=2em,itemsep=0pt]
+\item An \textbf{object identity} $\mathrm{id}(n)$: a stable unique identifier that persists regardless of changes to the node's geometric representation;
+\item A \textbf{geometric representation} $\mathrm{geo}(n)$, which may be a polygon mesh, a voxel grid, a signed-distance field, a Gaussian splat cluster, a neural radiance cache, a procedural generator, a skeletal rig with attached mesh, a particle system, a volumetric medium, a curve or spline, or a purely semantic placeholder with no geometric realization;
+\item A \textbf{material specification} $\mathrm{mat}(n)$, which may be a BSDF, a procedural material, a neural material representation, or a style annotation;
+\item A \textbf{transform} $T(n) \in SE(3)$: the object's pose in world coordinates;
+\item A \textbf{provenance record} $\mathrm{prov}(n)$: which process proposed this node, when, and with what supporting evidence;
+\item An \textbf{uncertainty distribution} $\mathrm{unc}(n)$: a distribution over poses, shapes, or identities, representing unresolved ambiguity about this node;
+\item A set of \textbf{semantic annotations} $\mathrm{sem}(n)$: category labels, character names, story-state references, and other structured metadata.
+\end{enumerate}
+Edges in the scene graph encode parent-child relationships (for hierarchical objects), occlusion relationships (from committed depth estimates), attachment relationships (one object held by another), and reference relationships (a character's line-of-sight pointing to an object in $O_t$).
+\end{proposal}
+
+\subsection{Object Identity Independent of Representation}
+
+Object identity $\mathrm{id}(n)$ is explicitly decoupled from representation $\mathrm{geo}(n)$. The same object may be represented as a Gaussian splat at one timestep, as a mesh at another (if a reconstruction process produces a mesh from new views), and as a neural radiance field at a third. The object identity and its accumulated causal and narrative history persist across these representation changes.
+
+This independence is crucial for the witness mechanism: two different geometric representations of the same object are two witnesses to the same ground truth, not two different objects.
+
+\subsection{Proposed Data Schema}
+
+Table~\ref{tab:schema} provides a simplified data schema for a scene graph node. Serialization is proposed in a format that supports append-only provenance records, heterogeneous geometric payloads, and streaming updates from multiple concurrent processes.
+
+\begin{table}[h]
+\centering
+\caption{Simplified scene graph node schema.}
+\label{tab:schema}
+\begin{tabular}{lll}
+\toprule
+Field & Type & Description \\
+\midrule
+\texttt{id} & UUID & Stable object identity \\
+\texttt{geo\_type} & enum & Representation type (mesh, splat, SDF, neural, ...) \\
+\texttt{geo\_payload} & bytes & Serialized geometric data \\
+\texttt{mat\_id} & UUID & Reference to material record \\
+\texttt{transform} & float[16] & World-to-object transform (row-major $4\times4$) \\
+\texttt{uncertainty} & blob & Distribution over pose/shape, format-dependent \\
+\texttt{sem\_labels} & string[] & Semantic annotations \\
+\texttt{prov\_entries} & record[] & Append-only provenance log (see Section~\ref{sec:provenance}) \\
+\texttt{parent\_id} & UUID? & Parent node in scene graph, if any \\
+\texttt{created\_at} & int & Logical timestep of creation \\
+\texttt{updated\_at} & int & Logical timestep of last update \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%% ============================================================
+\section{Provenance and Evidentiary History}
+\label{sec:provenance}
+%% ============================================================
+
+\subsection{The Evidentiary Requirement}
+
+Every committed state transition in the world state should retain sufficient provenance to answer, at any later time:
+
+\begin{enumerate}[leftmargin=2em,itemsep=0pt]
+\item What process proposed this state or transition?
+\item What observations or evidence supported the proposal?
+\item Which constraints were checked, and did they pass?
+\item Which witnesses were consulted, and did they agree?
+\item What was uncertain at the time of commitment?
+\item Was any repair applied before commitment, and if so, by what process?
+\item Has this committed state been subsequently revised, and if so, why?
+\end{enumerate}
+
+This is an evidentiary structure, not merely a version log. The distinction matters: a version log records what changed, while an evidentiary structure records why a particular state was believed to be correct at the time it was committed.
+
+\subsection{Append-Oriented History}
+
+\begin{proposal}[Provenance Record]
+Each committed update to a scene graph node $n$ appends a provenance entry of the form:
+\[
+\mathrm{prov\_entry} = (\mathrm{timestep},\; \mathrm{proposer},\; \mathrm{evidence},\; \mathrm{witnesses},\; \Gamma,\; \mathrm{constraints\_checked},\; \mathrm{repair\_applied},\; \mathrm{outcome}).
+\]
+Here $\mathrm{proposer}$ is the identifier of the process $P_i$ that proposed the update; $\mathrm{evidence}$ is a reference to the observations and world-state elements used; $\mathrm{witnesses}$ is the set of witness processes consulted and their outputs; $\Gamma$ is the measured dispersion; $\mathrm{constraints\_checked}$ lists the structural predicates evaluated; $\mathrm{repair\_applied}$ records any correction applied; and $\mathrm{outcome}$ is one of \textsc{committed}, \textsc{repaired\_and\_committed}, or \textsc{rejected}.
+\end{proposal}
+
+History is append-oriented: entries are added but previous entries are never overwritten. A revision does not delete the prior committed state; it appends a new entry with $\mathrm{outcome} = \textsc{revised}$ and a reference to the revising entry. This structure supports retrospective analysis of failure chains: if a glitch is detected at time $t$, the provenance record can be traversed to identify the earliest entry in the chain that should have been rejected.
+
+\begin{remark}
+Three distinct histories are maintained. The \textbf{world history} records committed updates to $\mathcal{W}_t$. The \textbf{observation history} records the sequence of frames $(I_t)$ that have been rendered from $\mathcal{W}_t$, along with the observation operators used. The \textbf{edit history} records user-initiated interventions: explicit changes to world state, style switches, narrative overrides, and corrections to detected glitches. The three histories are linked but distinct.
+\end{remark}
+
+
+%% ============================================================
+\section{Modular System Architecture}
+\label{sec:architecture}
+%% ============================================================
+
+\subsection{Module Overview}
+
+The architecture is organized as a set of modules with defined contracts. The central invariant is that \textbf{only the Commitment Engine may write to the World State Store}; all other modules produce proposals, observations, or assessments that are routed through the Commitment Engine via the Admissibility Engine. This invariant prevents any single module from unilaterally altering the persistent world state.
+
+\begin{description}[leftmargin=2em,itemsep=6pt]
+
+\item[\textbf{World State Store (WSS).}] The authoritative persistent representation of $\mathcal{W}_t$. Provides read access to all modules; accepts writes exclusively from the Commitment Engine. Maintains the scene graph, material library, illumination state, camera state, story state, and history. Supports queries by object identity, spatial region, temporal range, and semantic category.
+
+\item[\textbf{History/Provenance Store (HPS).}] Append-only log of all provenance entries. Never overwritten; new entries may reference prior entries as superseded. Exposes query APIs for retrieving the full provenance chain of any current world state element.
+
+\item[\textbf{Algorithm Registry (AR).}] Catalog of available procedures $\Pi = \{P_i\}$ with their input/output signatures, confidence estimators $\kappa_i$, cost estimates $c_i$, and applicability predicates $\alpha_i$. The registry is read by the Witness Scheduler to select appropriate witnesses.
+
+\item[\textbf{Proposal Engine (PE).}] Queries the Algorithm Registry and current world state to select a primary proposal process for each timestep. Invokes $P_{\mathrm{primary}}(\mathcal{W}_t, H_t)$ and forwards the candidate $\hat{\mathcal{W}}$ to the Diagnostic Engine. Does not write to the World State Store.
+
+\item[\textbf{Witness Scheduler (WS).}] Receives the suspicion field $\Sigma$ from the Diagnostic Engine and selects additional witnesses from the Algorithm Registry for regions with $\Sigma(q) > \tau_{\mathrm{fast}}$. Schedules witness invocations subject to cost constraints. Forwards witness outputs to the Diagnostic Engine.
+
+\item[\textbf{Diagnostic Engine (DE).}] Computes the fast suspicion field $\Sigma$ over the candidate $\hat{\mathcal{W}}$, incorporates witness outputs to compute dispersion $\Gamma$, checks structural predicates $\phi$ for each flagged region, and produces a diagnosis record $D$. Forwards $D$ and the flagged candidate to the Admissibility Engine.
+
+\item[\textbf{Admissibility Engine (AE).}] Evaluates $\Adm(\hat{\mathcal{W}}, H_t, \mathcal{C})$ for the candidate continuation. Identifies which constraints in $\mathcal{C}$ are violated, if any. Forwards the admissibility verdict to the Commitment Engine. Does not attempt repair; does not write to the World State Store.
+
+\item[\textbf{Commitment Engine (CE).}] The sole authority for writing to the World State Store. Accepts candidates that pass admissibility, applies any final adjustments authorized by the repair protocol, writes the new world state, and appends provenance entries to the History Store. Rejects inadmissible candidates and triggers re-proposal or state hold.
+
+\item[\textbf{Physics/Constraint Engine (PCE).}] Maintains and applies physical laws and hard constraints (collision, gravity, fluid dynamics, rigid-body contact, joint limits) as components of $\mathcal{C}$. Provides constraint-checking services to the Admissibility Engine and simulation services to the Algorithm Registry as one of its registered processes.
+
+\item[\textbf{Narrative State Engine (NSE).}] Maintains $S_t$, evaluates narrative admissibility for proposed $S_{t+1}$, and provides the story-level constraints on $\mathcal{A}(H_t)$. Accepts genre specifications, character behavior profiles, dramatic pacing constraints, and user-authored facts.
+
+\item[\textbf{Camera/Observation Engine (COE).}] Manages $C_t$ and computes the observation map $\Obs_{C_t}$ for rendering. Supports scripted camera paths, procedurally generated camera motion, user-controlled camera, and character-viewpoint cameras. Provides frame-to-world unprojection services used by depth and reconstruction processes.
+
+\item[\textbf{Style/Realization Engine (SRE).}] Applies the style operator $S_\theta$ to produce the rendered output $V_t = S_\theta(\mathcal{W}_t)$ from the committed world state. May delegate to the Algorithm Registry for specific rendering algorithms. Does not modify the World State Store; operates on a read-only copy of $\mathcal{W}_t$.
+
+\item[\textbf{Structural Analyzer (SA).}] Post-render analysis module that applies structural predicates to the rendered output $V_t$ and the world state $\mathcal{W}_t$ simultaneously, detecting glitches that survive rendering. Feeds back to the Diagnostic Engine. This module enables the diagnostic feedback loop: the rendered video is treated as another observation and subjected to structural analysis.
+
+\item[\textbf{Encoder/Codec Interface (ECI).}] Wraps conventional video encoders and exposes structural metadata (depth maps, segmentation, motion fields, object identities) as auxiliary streams that can inform structure-aware rate-distortion optimization. Accepts $\lambda_i$ weights for the structural distortion objective.
+
+\item[\textbf{Steganographic Selector Layer (SSL).}] Optional module, active only when hyperpleonastic embedding is enabled. Intercepts rendering decisions with admissible alternatives and selects among them according to payload bits. Operates strictly within the admissibility envelope. Described further in Appendix~\ref{app:steg}.
+
+\item[\textbf{Evaluation Harness (EH).}] Manages ground-truth scene databases, applies frame-local and structural metrics, computes dispersion localizations, and generates experiment reports. Used for development and validation only; not active in production pipelines.
+
+\end{description}
+
+\subsection{Module Contracts}
+
+The contract between modules is expressed in terms of reads and writes to the shared World State Store:
+
+\begin{enumerate}[leftmargin=2em,itemsep=0pt]
+\item A module may read from the WSS at any time.
+\item A module may write to the WSS only if it is the Commitment Engine, or if it is explicitly delegated by the Commitment Engine for an authorized repair operation.
+\item A module that produces a proposal or assessment must not cache it as ground truth; all proposals are provisional until committed.
+\item A module that fails (crashes, times out, or returns an inadmissible result) must not leave a partial write in the WSS; all writes are transactional.
+\item No module may delete from the HPS; the provenance record is immutable once written.
+\end{enumerate}
+
+%% ============================================================
+%% ============================================================
+\section{Latent Diffusion as a General Proposal Operator}
+\label{sec:diffusion}
+%% ============================================================
+
+\subsection{Beyond Image Synthesis}
+
+Within the persistent-world architecture, diffusion models \cite{sohl2015,ho2020ddpm,song2021score} occupy a specific, limited role: they are proposal mechanisms. The architectural commitment of the present framework is that diffusion models, like all other processes in the Algorithm Registry, produce proposals that must pass through diagnosis and admissibility before commitment to the world state. What changes in this section is the recognition that diffusion can operate at many representational levels, not merely at the level of final rendered frames.
+
+Conventional use of latent diffusion in video generation conditions a denoising process on temporal context and produces a sequence of RGB frames, treating the problem of generation as the problem of image synthesis in a temporally coherent way \cite{ho2022videodiffusion,rombach2022ldm}. This conflates generation of the visual observation with generation of the underlying world state. The claim of the present section is that the two should be separated, and that diffusion can participate in the construction of world state at earlier and more abstract representational levels.
+
+A diffusion process over geometry latents can propose a plausible scene geometry without committing to a particular rendering. A diffusion process over motion latents can propose object trajectories. A diffusion process over narrative latents can propose story continuations. Each of these is a proposal; each must be evaluated for admissibility before the proposed state enters $\mathcal{W}_t$.
+
+\subsection{Representation-Specific Encoder-Decoder Pairs}
+
+\begin{definition}[Representation-Specific Encoder-Decoder]
+For each representational domain $r$ in the world state, let
+\[
+E_r : \mathcal{X}_r \to \mathcal{Z}_r \quad \text{and} \quad D_r : \mathcal{Z}_r \to \mathcal{X}_r
+\]
+be a domain-specific encoder and decoder, where $\mathcal{X}_r$ is the space of concrete representations in domain $r$ and $\mathcal{Z}_r$ is a corresponding latent space over which diffusion operates.
+\end{definition}
+
+The representational domains may include any of the components of $\mathcal{W}_t$:
+\[
+z_{\mathrm{image}}, \quad
+z_{\mathrm{geometry}}, \quad
+z_{\mathrm{material}}, \quad
+z_{\mathrm{motion}}, \quad
+z_{\mathrm{camera}}, \quad
+z_{\mathrm{lighting}}, \quad
+z_{\mathrm{style}}, \quad
+z_{\mathrm{scene}}, \quad
+z_{\mathrm{narrative}}.
+\]
+
+A diffusion process may therefore operate over any of these latent spaces independently. The output $z_0$ from denoising need not decode to an RGB image; it may decode to a geometry proposal, a material assignment, a camera trajectory, or a narrative state increment.
+
+\begin{remark}
+The encoder-decoder pairs $E_r, D_r$ are not specified by the framework. They are architectural choices that depend on the representational modality. For geometry, a variational encoder over Gaussian splat parameters or signed-distance field coefficients might be used. For narrative, a sentence-level or event-level embedding. The framework specifies only the interface: each domain has an encoder, a latent space, and a decoder, and diffusion operates in the latent space.
+\end{remark}
+
+\subsection{The Proposal Distribution}
+
+\begin{definition}[Diffusion Proposal Distribution]
+A conditional diffusion model in domain $r$ defines a proposal distribution
+\[
+p_\theta(z_0 \mid c, H_t),
+\]
+where $c$ encodes current constraints (user instructions, style specifications, narrative genre, physical parameters) and $H_t$ is the committed history. Sampling via reverse diffusion
+\[
+z_T \to z_{T-1} \to \cdots \to z_0
+\]
+produces candidate latents, which decode to candidate world-state components $x_i = D_r(z_0^{(i)})$.
+\end{definition}
+
+\begin{proposal}
+\label{prop:diffusion-proposal}
+Each decoded candidate $x_i$ is a proposal, not a commitment. It enters the probate pipeline:
+\[
+x_i \;\to\; W(x_i) \;\to\; \Gamma(x_i) \;\to\; \Adm(x_i \mid H_t).
+\]
+Diffusion answers the question: what continuations are plausible under this learned distribution? Admissibility answers: which of those continuations may enter the persistent world? These are distinct questions and must not be collapsed.
+\end{proposal}
+
+The architectural consequence is that a diffusion model that produces high-probability samples can nonetheless have all of them rejected by the admissibility engine, if the distribution has been trained on data that permits configurations incompatible with the current committed world state. This is not a failure mode to be corrected by fine-tuning alone; it reflects the fundamental distinction between what a learned distribution considers likely and what the current world state permits.
+
+\subsection{Diffusion as Reconstruction}
+
+Diffusion has a natural inverse use in the reconstruction direction. Rather than proposing a novel continuation, diffusion can be used to sample from the observational equivalence class of a given observation.
+
+Suppose observation $y$ is received and the latent world state that produced it is underdetermined. Instead of selecting a single deterministic reconstruction, a conditional diffusion model can be used to sample multiple hypotheses:
+\[
+w^{(1)}, \ldots, w^{(n)} \sim p_\theta(w \mid y).
+\]
+These samples populate the learned posterior over world states consistent with the observation. They approximate alternative latent explanations.
+
+\begin{definition}[Admissible Reconstruction Set vs.\ Learned Posterior]
+The \textbf{admissible reconstruction set} $\mathcal{A}(y)$ is defined by the constraints:
+\[
+\mathcal{A}(y) = \left\{ w \;:\; \Obs_{C}(w) = y,\; w \models \mathcal{C},\; w \text{ is consistent with } H_t \right\}.
+\]
+The \textbf{learned posterior} $p_\theta(w \mid y)$ is a distribution over world states approximated from training data. The two are related but not identical: a learned model may assign positive probability to inadmissible worlds, and admissible worlds may receive low probability from the learned model.
+\end{definition}
+
+This distinction has practical consequences for diagnostic diagnosis. If diffusion sampling concentrates on a region of world-state space that the admissibility engine consistently rejects, this is evidence not just of a bad sample but of a mismatch between the training distribution and the current constraint regime.
+
+\begin{definition}[Admissibility-Weighted Posterior]
+The \textbf{admissibility-weighted posterior} combines the learned distribution and the constraint-defined set:
+\[
+p_{\mathrm{adm}}(w \mid y) \propto p_\theta(w \mid y) \cdot \mathbf{1}_{\mathcal{A}(y)}(w).
+\]
+For soft constraints, replace the indicator by an \textbf{admissibility potential} $\phi_A(w) \in [0,1]$:
+\[
+p_{\mathrm{adm}}(w \mid y) \propto p_\theta(w \mid y) \cdot \phi_A(w).
+\]
+\end{definition}
+
+Several existing techniques can be interpreted as approximating sampling from $p_{\mathrm{adm}}$: classifier guidance \cite{dhariwal2021diffusion}, classifier-free guidance, energy-based diffusion, posterior sampling methods, and constrained reverse diffusion. None of these is identified with the full framework here; they are implementation mechanisms that may be appropriate for specific domains.
+
+\subsection{Multiscale Latent Hierarchy}
+
+\begin{proposal}
+The representational domains are organized in a multiscale hierarchy:
+\[
+z^{\mathrm{story}} \to z^{\mathrm{scene}} \to z^{\mathrm{shot}} \to z^{\mathrm{motion}} \to z^{\mathrm{geometry}} \to z^{\mathrm{appearance}} \to z^{\mathrm{frame}}.
+\]
+Constraints propagate \textbf{downward}: a committed story arc constrains which scenes are admissible; a committed scene layout constrains which shots are admissible; a committed shot composition constrains motion trajectories, and so on. Diagnostic failures propagate \textbf{upward}: a hand-topology failure does not require regeneration of the shot; an impossible shot composition does not require revision of the story arc, unless repeated local failures constitute evidence that the higher-level hypothesis is incorrect.
+\end{proposal}
+
+\begin{definition}[Diagnostic Localization Across Scales]
+A failure at level $\ell$ is \textbf{locally repairable} if there exists an admissible alternative at level $\ell$ that corrects the failure without modifying any committed state at level $\ell' > \ell$ (coarser scale). A failure is \textbf{non-locally repairable} if no such admissible alternative exists at level $\ell$ or below, in which case it constitutes evidence against the committed state at some coarser level $\ell^* > \ell$.
+\end{definition}
+
+\begin{hypothesis}
+\label{hyp:localrepair}
+For the large majority of structural glitch categories in Definition~\ref{def:glitch}, locally repairable alternatives exist: a topology error in a hand can be corrected at the geometry level without revision of scene layout or story arc. Repeated non-local failures (the same object failing to produce admissible geometry across many proposals) constitute evidence that the object's committed properties at the $z^{\mathrm{scene}}$ level are incorrect.
+\end{hypothesis}
+
+The practical consequence of the hierarchy is that generative repair does not require monolithic regeneration. A six-fingered hand can be corrected by invoking a geometry-level diffusion model conditioned on the committed hand identity and pose, without re-running story or scene generation.
+
+\subsection{Diffusion and Persistent Identity}
+
+A notable failure mode of frame-by-frame image diffusion is identity drift: the same object gradually changes appearance, acquires different features, or loses its connection to its earlier rendering across frames, because each frame is generated with some degree of independence.
+
+The persistent world architecture addresses this at the architectural level rather than by training for identity consistency. Because object identity $\mathrm{id}(n)$ is a stable field in the scene graph, diffusion processes that render or modify object $o$ should be conditioned on the committed identity state $\iota(o)$:
+
+\begin{proposal}
+For an object $o$ with persistent identity state $\iota(o)$, all diffusion proposals concerning $o$ are conditioned on $\iota(o)$:
+\[
+p_\theta(z_0^{(o)} \mid c, H_t, \iota(o)).
+\]
+The desired invariant is $\iota(o_t) = \iota(o_{t+1})$ unless an explicit world transition committed to $H_t$ modifies identity. Appearance may legitimately vary: $A(o_t) \neq A(o_{t+1})$ is permitted (the object changes illumination, moves, ages). What must not change without explicit commitment is the stable identity and its associated persistent properties.
+\end{proposal}
+
+This gives the diffusion model freedom over visual realization without granting it authority over the object's existence in the world. Diffusion determines how the object looks in a given frame; the world state determines that it continues to exist, where it is, and what its causal history has been.
+
+\subsection{Diffusion Over Policy Space}
+
+The most unusual extension of latent diffusion in this framework is its application not to world content but to computational policy. The system must at every timestep decide which algorithms to invoke, in what order, over which regions, with what parameters. This selection is itself a problem that admits a generative formulation.
+
+\begin{definition}[Policy Latent Space]
+Let $\Pi = \{P_1, \ldots, P_m\}$ be the algorithm registry. Define an embedding
+\[
+e : \Pi \to \mathcal{Z}_\pi
+\]
+mapping each registered procedure to a point in a continuous latent policy space $\mathcal{Z}_\pi$.
+\end{definition}
+
+A conditional diffusion model over $\mathcal{Z}_\pi$ can then generate candidate policy latents given the current world state, history, diagnostic evidence, and computational budget:
+
+\begin{definition}[Policy Proposal Distribution]
+\[
+p_\theta(z_\pi \mid s_t, H_t, d_t, \Gamma_t, B_t),
+\]
+where $s_t$ is a summary of the current world state, $d_t$ is the current diagnosis record, $\Gamma_t$ is the measured dispersion field, and $B_t$ is the remaining computational budget. Reverse diffusion generates candidate policy latents $z_{\pi,0}^{(i)}$, which decode to candidate policies $\pi^{(i)} = D_\pi(z_{\pi,0}^{(i)})$.
+\end{definition}
+
+The diffusion model is therefore answering not ``what should this image look like?'' but ``what kind of process should be attempted next?'' It is generating proposals over the space of computational strategies, not over the space of world content.
+
+\begin{proposal}
+Policy proposals are subject to the same probate mechanism as world-state proposals. Define the \textbf{admissible policy set}:
+\[
+\Pi_{\mathrm{adm}}(H_t) = \left\{ \pi \in \Pi \;:\; \pi \text{ satisfies current safety, structural, causal, resource, and user constraints} \right\}.
+\]
+A diffusion proposal $\pi \sim p_\theta(\pi \mid H_t)$ is committed only if $\pi \in \Pi_{\mathrm{adm}}(H_t)$. The operative distribution becomes:
+\[
+p_{\mathrm{adm}}(\pi \mid H_t) \propto p_\theta(\pi \mid H_t) \cdot \mathbf{1}_{\Pi_{\mathrm{adm}}(H_t)}(\pi).
+\]
+This creates a direct mathematical parallel between world reconstruction and policy selection: the same proposal-probate-commit architecture governs both.
+\end{proposal}
+
+\subsection{Policy Trajectory Diffusion}
+
+\begin{definition}[Policy Trajectory]
+A \textbf{policy trajectory} is a proposed sequence of computational operations
+\[
+\tau = (a_t, a_{t+1}, \ldots, a_{t+H})
+\]
+to be applied over a finite horizon $H$. A diffusion model may learn the joint distribution over trajectories conditioned on current state:
+\[
+p_\theta(\tau \mid s_t, H_t).
+\]
+\end{definition}
+
+The latent object being denoised is then an entire possible continuation of the computation, not a single next action. This permits coherent multi-step proposals such as:
+\[
+\text{reconstruct depth} \to \text{repair geometry} \to \text{rerender} \to \text{verify optical flow} \to \text{commit},
+\]
+rather than selecting each operation independently without knowledge of what will be needed next.
+
+\begin{remark}
+The connection to trajectory diffusion \cite{janner2022diffuser} and model-predictive control \cite{garcia1989mpc} is clear. The present framework applies these ideas to the problem of selecting computational procedures over the world state, rather than to the problem of selecting actions in a physical environment. Whether the latent policy representation is sufficiently structured to support meaningful trajectory interpolation is an empirical question; it depends on the training procedure and the quality of the embedding $e$.
+\end{remark}
+
+\subsection{Utility-Guided Policy Diffusion}
+
+\begin{definition}[Policy Objective]
+Define a multi-objective functional over admissible policies:
+\[
+J(\pi \mid H_t) =
+\alpha\, E_{\mathrm{struct}}(\pi)
++ \beta\, C_{\mathrm{compute}}(\pi)
++ \gamma\, C_{\mathrm{latency}}(\pi)
++ \delta\, U_{\mathrm{uncertainty}}(\pi)
++ \eta\, R_{\mathrm{revision}}(\pi),
+\]
+where $E_{\mathrm{struct}}$ is expected structural error if policy $\pi$ is followed, $C_{\mathrm{compute}}$ is computational cost, $C_{\mathrm{latency}}$ is latency, $U_{\mathrm{uncertainty}}$ is residual structural uncertainty after $\pi$ completes, and $R_{\mathrm{revision}}$ is the expected cost of later repairs that $\pi$ makes necessary.
+\end{definition}
+
+Optimal policy selection under this objective is
+\[
+\pi^* = \arg\min_{\pi \in \Pi_{\mathrm{adm}}(H_t)} J(\pi \mid H_t).
+\]
+
+A diffusion model need not compute this argmin directly. Its role may be to generate promising regions of the policy space, concentrating probability on policies with low expected $J$, from which explicit evaluation selects the best candidate. The diffusion model acts as an amortized approximate prior over useful policies; the evaluator retains final selection authority.
+
+\subsection{Recursive Selection and Algorithms as Selectable Objects}
+
+The final generalization is the recognition that algorithms occupy two roles in the present framework: as operators applied to world content, and as selectable objects in the policy space.
+
+\begin{definition}[Selector]
+Define a \textbf{selector}
+\[
+\Sigma : (H_t, q, B_t) \to 2^{\mathcal{P}}
+\]
+that maps the current history, a query $q$, and a computational budget $B_t$ to a subset of the algorithm registry: the set of procedures granted jurisdiction over the current query. A policy-diffusion model may implement or contribute to $\Sigma$, but $\Sigma$ itself remains subject to resource and admissibility constraints.
+\end{definition}
+
+The recursive structure this creates is the following. A diffusion model may generate an image. Another diffusion model may propose whether image diffusion should be used for a given query. Another policy process may decide whether the disagreement between those two diffusion models warrants a third witness. The system therefore supports a hierarchy in which generative models generate not only world content but also the computational strategies by which content is generated, evaluated, and repaired.
+
+\begin{proposal}
+\label{prop:recursive}
+The extended thesis of the present framework is:
+\begin{quote}
+\itshape
+Generative models need not merely generate artifacts. They can generate candidate methods for generating, reconstructing, testing, or repairing those artifacts.
+\end{quote}
+The persistent world state remains primary. Diffusion is a reusable stochastic proposal mechanism that may operate over images, geometry, scenes, trajectories, stories, and the computational policies that decide what the system should do next. In each role, it is subject to the same probate architecture.
+\end{proposal}
+
+\begin{hypothesis}
+\label{hyp:policy-diffusion}
+A policy-diffusion model trained on a corpus of successful world-state reconstruction episodes will, at inference time, produce policy proposals that are admissible and reduce structural error more frequently than a fixed deterministic policy dispatcher, in particular in novel scene configurations not encountered during training.
+\end{hypothesis}
+
+%% ============================================================
+\section{Operator Algebra for Interactive Cinema}
+\label{sec:operators}
+%% ============================================================
+
+\subsection{Operators as the Control Layer}
+
+The persistent-world architecture admits a natural extension to interactive use. Because the world state $\mathcal{W}_t$ and history $H_t$ are explicit and persistent, a user or external system can intervene in the world's continuation by applying operations that modify the admissible continuation set, the camera trajectory, the genre constraints, the narrative state, or the computational policies in use. These interventions are not prompts to an independent generative model; they are typed operators applied to specific components of the system's state.
+
+\begin{definition}[Operator]
+An \textbf{operator} $\Omega$ is a function from one component of the system state to another, written as a typed expression:
+\[
+\Omega_k : X \to Y,
+\]
+where $X$ and $Y$ are system state spaces (world, camera, style, genre, narrative, policy). The application of $\Omega_k$ modifies $Y$ while leaving all system state not in the domain of $\Omega_k$ unchanged.
+\end{definition}
+
+The full interactive state transition becomes, in place of the bare game-state transition $s_t \to a_t \to s_{t+1}$:
+\[
+(\mathcal{W}_t,\; H_t,\; \Gamma_t)
+\;\xrightarrow{\;\Omega_t\;}
+\;(\mathcal{W}_{t+1},\; H_{t+1},\; \Gamma_{t+1}),
+\]
+where $\Omega_t$ is an expression in the operator language and $\Gamma_t$ represents the currently governing genre, narrative, cinematic, and physical constraints.
+
+\subsection{Typed Operator Domains}
+
+Keywords or user commands are formalized as operators acting on specific state spaces:
+
+\begin{definition}[Operator Domains]
+The operator language distinguishes at minimum the following domains:
+\begin{enumerate}[leftmargin=2em,itemsep=0pt]
+\item $\Omega_{\mathrm{world}} : \mathcal{W} \to \mathcal{W}$: direct modification of world-state geometry, object properties, or semantic facts. Example: \textsc{DESTROY(bridge)} commits a new event to $H_t$ and removes the bridge object's structural integrity from $G_t$.
+\item $\Omega_{\mathrm{camera}} : \mathcal{C} \to \mathcal{C}$: modification of the camera trajectory, type, or parameters. Example: \textsc{FOLLOW}$(x)$ sets the camera policy to maintain $x$ within frame.
+\item $\Omega_{\mathrm{style}} : \mathcal{S} \to \mathcal{S}$: modification of the style realization operator. Example: \textsc{CHARCOAL} replaces the photorealistic style operator with a sketch-rendering operator.
+\item $\Omega_{\mathrm{genre}} : \mathcal{G} \to \mathcal{G}$: modification of the genre constraint vector. Example: \textsc{NOIR} shifts the distribution of admissible lighting, dialogue, camera movement, and music.
+\item $\Omega_{\mathrm{plot}} : \mathcal{H} \to \mathcal{H}$: modification of the narrative history and story state. Example: \textsc{REVEAL}$(x)$ makes a previously hidden fact about $x$ available to the viewer without asserting that it was previously unknown in the world.
+\item $\Omega_{\mathrm{policy}} : \Pi \to \Pi$: modification of the algorithm registry or selector. Example: \textsc{SLOW} increases the temporal resolution of physics simulation and motion estimation.
+\end{enumerate}
+\end{definition}
+
+Operators of different types act on different components of the state and do not interact unless their domains overlap by design. A camera operator does not change who is alive; a genre operator does not change the position of the hotel; a style operator does not change what the detective knows. This separation enforces the architectural invariant that persistent world-state facts are not alterable by operators that are not explicitly typed to $\Omega_{\mathrm{world}}$ or $\Omega_{\mathrm{plot}}$.
+
+\begin{remark}
+Not every user command maps to a single domain. \textsc{NIGHT} may affect both $\Omega_{\mathrm{world}}$ (time advance, astronomical state) and $\Omega_{\mathrm{style}}$ (illumination palette) and $\Omega_{\mathrm{genre}}$ (narrative tension prior). A compound operator decomposes into a sequence of typed sub-operators, each acting on its own domain, so the overall effect is well-typed and analyzable.
+\end{remark}
+
+\subsection{Composition and Non-Commutativity}
+
+\begin{definition}[Operator Composition]
+Given operators $\Omega_1, \Omega_2, \ldots, \Omega_n$, their \textbf{composition} is
+\[
+\Omega = \Omega_n \circ \cdots \circ \Omega_2 \circ \Omega_1,
+\]
+applied sequentially: $\Omega_1$ is applied first, producing an intermediate state that $\Omega_2$ then acts on, and so forth.
+\end{definition}
+
+Operator composition is not generally commutative:
+
+\begin{proposition}[Non-Commutativity]
+For genre operators $\Omega_{\mathrm{NOIR}}$ and $\Omega_{\mathrm{RAIN}}$, it is generally the case that
+\[
+\Omega_{\mathrm{NOIR}} \circ \Omega_{\mathrm{RAIN}} \neq \Omega_{\mathrm{RAIN}} \circ \Omega_{\mathrm{NOIR}}.
+\]
+\end{proposition}
+
+\begin{proof}[Justification]
+When \textsc{RAIN} is applied first, it modifies the physical world state (precipitation, wet surfaces, pooling) and potentially the illumination (overcast sky, diffuse light). When \textsc{NOIR} is subsequently applied, it interprets the already-rainy scene according to noir conventions: the rain is incorporated as existing world content into the noir genre prior. Applied in reverse, \textsc{NOIR} first conditions the continuation distribution on noir conventions, and the subsequent \textsc{RAIN} operator may generate rain that the style engine renders according to those noir priors. The intermediate and final states differ because the realization choices available to later operators depend on what the earlier operators committed to the world state.
+\end{proof}
+
+Non-commutativity is a feature rather than a design problem. It means that the ordering of user inputs carries meaning. A system that flattens all inputs to the same timestep, averaging their effects, would lose this semantic structure.
+
+\subsection{Algebraic Structure}
+
+Beyond composition, the operator algebra admits several algebraic properties that are useful for both semantic design and implementation:
+
+\begin{definition}[Idempotent Operator]
+An operator $\Omega$ is \textbf{idempotent} if $\Omega \circ \Omega = \Omega$. A genre operator such as \textsc{NOIR} should be idempotent: applying it to a scene already fully in the noir genre should produce no further change.
+\end{definition}
+
+\begin{definition}[Involution]
+An operator $\Omega$ is an \textbf{involution} if $\Omega \circ \Omega = \mathrm{Id}$, where $\mathrm{Id}$ is the identity operator. Toggle operators (on/off switches for cinematic effects) should satisfy this property.
+\end{definition}
+
+\begin{definition}[Operator Inverse]
+An operator $\Omega$ has an \textbf{inverse} $\Omega^{-1}$ if $\Omega \circ \Omega^{-1} = \Omega^{-1} \circ \Omega = \mathrm{Id}$. Inverses are meaningful for reversible world modifications: \textsc{OPEN}$(d)$ and \textsc{CLOSE}$(d)$ for a door $d$ are mutual inverses when the door's state is the only thing modified.
+\end{definition}
+
+\begin{remark}
+Not all operators admit inverses. Once a committed world event has occurred (a character has been killed, a building destroyed, a secret revealed), there is no inverse operator that restores the prior state without overriding the committed history. The append-only provenance structure of $H_t$ reflects this: world history is not reversible by user operators unless the operator is explicitly typed as a retcon (a history override, which requires special authorization and records the override in the provenance). This asymmetry between reversible and irreversible operators is semantically important for narrative coherence.
+\end{remark}
+
+\subsection{Genre as a Continuous State}
+
+Rather than treating genre as a discrete category, the framework proposes a continuous genre state:
+
+\begin{definition}[Genre Vector]
+The \textbf{genre state} is a vector $g_t \in \mathcal{G}$, where $\mathcal{G}$ is a genre space that may be represented as a probability simplex over named genre attractors (noir, horror, comedy, romance, science fiction, surrealism) or as a learned continuous embedding. Genre operators modify $g_t$ via:
+\[
+g_{t+1} = \Omega_{\mathrm{genre}}(g_t, \alpha),
+\]
+where $\alpha \in [0,1]$ is an operator strength parameter.
+\end{definition}
+
+A film may therefore migrate gradually from romantic comedy into paranoia, from realism into surrealism, without a hard boundary. The genre vector $g_t$ participates in the admissible continuation set by biasing the distributions over narrative events, camera movements, and stylistic realizations toward configurations consistent with the current genre.
+
+\begin{hypothesis}
+\label{hyp:genre-continuous}
+A system using a continuous genre vector $g_t$ will produce cinematically more coherent genre transitions than a system switching between discrete genre labels, as measured by agreement between human viewer genre attributions at consecutive timesteps.
+\end{hypothesis}
+
+\subsection{Operators Modifying Policy Distributions}
+
+The connection between the operator language and the policy-diffusion section (Section~\ref{sec:diffusion}) is through the modification of policy distributions. An operator need not directly specify the resulting scene; it can shift the distribution over computational strategies that will produce the scene.
+
+\begin{proposal}
+A keyword operator $\Omega_k$ applied to history $H_t$ modifies the policy proposal distribution:
+\[
+p(\pi \mid H_t) \;\xrightarrow{\;\Omega_k\;}\; p(\pi \mid H_t, k).
+\]
+The operator thereby constrains what kinds of continuations the system will generate without specifying any particular continuation. A \textsc{CHASE} operator increases probability mass on policies producing pursuit-compatible trajectories, rapid camera movement, shorter shots, and obstacle-interception dynamics, while leaving the system free to determine an admissible realization compatible with the committed world state.
+\end{proposal}
+
+This separation is architecturally important: the operator specifies an intention, not an outcome. The system generates candidate continuations under the modified distribution, and probate selects from among the admissible ones. The user does not directly author frames; the user modulates the space of possibilities from which admissible continuations are drawn.
+
+\subsection{The Interactive Loop}
+
+The full interactive loop integrates operator application, policy-distribution modification, candidate generation, probate, commitment, and rendering:
+
+\[
+\text{observe} \to \text{operator} \to \text{policy distribution} \to \text{candidate scenes} \to \text{probate} \to \text{commit} \to \text{render} \to \text{observe}.
+\]
+
+This loop supports continuous intervention: the user may apply operators at any point while the movie is running. The effect of each operator is governed by its type; its persistence in the world state depends on whether it modifies $\mathcal{W}_t$ directly (permanent, unless overridden) or modifies only the continuation distribution $p(\pi \mid H_t, k)$ (affecting only subsequent generations).
+
+A key property of the loop is that genre change does not imply history erasure. If a character lost an arm twenty minutes earlier and the user applies a \textsc{COMEDY} genre operator, the committed arm-loss persists in $H_t$ and continues to constrain admissible continuations. The genre operator shifts the style and tone of those continuations; it does not modify their physical preconditions. Only a world operator $\Omega_{\mathrm{world}}$ with appropriate authorization (and appropriate provenance recording) could modify the committed physical facts.
+
+\begin{definition}[Genre-Restricted Admissible Set]
+For genre state $g_t \in \mathcal{G}$, the \textbf{genre-restricted admissible continuation set} is
+\[
+\mathcal{A}_G(H_t) = \mathcal{A}(H_t) \cap \left\{ w \;:\; w \text{ is cinematically consistent with } g_t \right\}.
+\]
+A genre operator $\Omega_G$ acts on the admissible set as:
+\[
+\Omega_G : \mathcal{A}(H_t) \to \mathcal{A}_G(H_t).
+\]
+It narrows the set of admissible continuations without altering the committed history $H_t$.
+\end{definition}
+
+\subsection{Toward a Compositional Operator Basis}
+
+Rather than maintaining a flat list of thousands of named commands, the operator language may acquire a small compositional basis from which complex cinematic intentions are constructed:
+
+\begin{proposal}
+\label{prop:basis}
+Define a \textbf{minimal operator basis} $\mathcal{B} = \{\Omega_1, \ldots, \Omega_b\}$ such that any expressible cinematic intention can be approximated as a composition $\Omega_{i_n} \circ \cdots \circ \Omega_{i_1}$ with $i_j \in \{1, \ldots, b\}$. The construction of such a basis is analogous to finding a universal function basis in lambda calculus or a complete instruction set in programming, where a small number of primitives generates an expressive language under composition.
+\end{proposal}
+
+The minimal operator basis problem is a mathematical problem in its own right. Its solution would determine the minimum set of cinematic primitives needed to specify any admissible direction from any world state. Whether such a basis is finite for a given genre domain, and what its cardinality is, are open questions that connect the operator algebra to results in group theory, formal language theory, and the combinatorics of constraint systems.
+
+\begin{hypothesis}
+\label{hyp:basis}
+For a restricted genre domain (for example, classical detective fiction with fixed physical laws and a bounded character set), a finite compositional operator basis of manageable size exists such that any narratively coherent cinematic direction from any world state in the domain is expressible as a composition of at most $k$ basis operators, where $k$ is small relative to the narrative horizon.
+\end{hypothesis}
+
+\begin{remark}
+The full operator algebra for interactive cinema connects to a range of established formal structures. The genre vector $g_t$ and its continuous evolution under operators relate to the geometry of Lie groups and their infinitesimal generators. The composition of typed operators acting on different state spaces relates to monoidal category theory. The admissibility constraints on operator application relate to typed lambda calculi with refinement types. The framework does not require these connections to be formalized before implementation begins, but they suggest avenues for principled mathematical development once the empirical foundations of the system are established.
+\end{remark}
+
+\section{Experimental Program}
+\label{sec:experiments}
+%% ============================================================
+
+\subsection{Design Principles}
+
+All experiments begin with controlled synthetic scenes for which the complete latent world state $\mathcal{W}_t$ is known. This ground-truth availability is what separates the proposed experiments from evaluations of generative video quality, which typically rely on human preference ratings or reference-based metrics without knowledge of the true scene. Starting from known ground truth allows the measurement of structural errors directly, not merely their downstream visual consequences.
+
+\subsection{Experiment 1: Dispersion Localization of Structural Errors}
+
+\textit{Goal}: Test Hypothesis~\ref{hyp:gamma}, that $\Gamma$ localizes structural errors more reliably than frame-local metrics.
+
+\textit{Setup}: Render a synthetic scene (a room with several objects of known geometry, depth ordering, and identity) from a moving camera. Introduce deliberate structural perturbations: an object identity swap (two objects exchange identity labels at a specified frame), an impossible depth inversion (a foreground object is rendered with the depth of a background object), and a boundary-crossing artifact (a texture block from object $A$ is substituted into a region of object $B$). Each perturbation is introduced at a known time and location.
+
+\textit{Metrics}: For each perturbation, compute (a) the frame-level SSIM and LPIPS between perturbed and unperturbed renderings, (b) the dispersion $\Gamma(q)$ at the perturbation location using at least three witness processes (optical flow, object tracker, depth estimator), and (c) the precision and recall of the dispersion field $\Gamma$ in localizing the perturbation region versus a thresholded SSIM map.
+
+\textit{Success criterion}: $\Gamma$ achieves higher precision and recall at lower thresholds than the SSIM-based detector for each perturbation category.
+
+\subsection{Experiment 2: Object Persistence Through Occlusion}
+
+\textit{Goal}: Test Hypothesis~\ref{hyp:occlusion}.
+
+\textit{Setup}: Render a scene in which a moving object (with known identity, trajectory, and geometry) passes behind a large occluder and reappears on the other side. Compare (a) a world-state-persistent system that maintains the object in $O_t$ through occlusion with (b) a frame-local baseline (a recent-context video diffusion model) conditioned on the last $k$ observed frames. Measure the photometric, geometric, and identity consistency of the reappearing object.
+
+\textit{Metrics}: Identity consistency (whether a face or texture recognition system assigns the same identity before and after occlusion), geometric consistency (whether the 3D bounding box on reappearance is consistent with the pre-occlusion trajectory), and photometric consistency (L2 distance in feature space between the object's appearance before and after occlusion).
+
+\textit{Success criterion}: The world-state-persistent system outperforms the frame-local baseline on all three metrics when the occlusion duration exceeds one second of video at 24fps.
+
+\subsection{Experiment 3: Hierarchical Witness Scheduling Efficiency}
+
+\textit{Goal}: Measure whether selective witness invocation achieves comparable diagnostic coverage to exhaustive invocation at substantially lower computational cost.
+
+\textit{Setup}: Use the synthetic perturbed scenes from Experiment 1. Run (a) exhaustive invocation of all applicable witnesses for all queries at all frames, and (b) hierarchical scheduling using the fast suspicion field $\Sigma$ as a router with threshold $\tau_{\mathrm{fast}}$.
+
+\textit{Metrics}: Total compute time, precision and recall of perturbation localization for both strategies, and the fraction of the total frame area that triggers full witness invocation under the hierarchical strategy.
+
+\textit{Success criterion}: The hierarchical strategy achieves at least 90\% of the precision and recall of exhaustive invocation while invoking full witnesses on at most 20\% of the frame area per timestep.
+
+\subsection{Experiment 4: Structure-Aware Compression}
+
+\textit{Goal}: Test Hypothesis~\ref{hyp:structure-ratedistortion}.
+
+\textit{Setup}: Encode synthetic scenes at varying bitrates using (a) a standard codec (H.265 with default settings) and (b) the proposed Encoder/Codec Interface with structural metadata (depth map, segmentation, object identities) provided as auxiliary streams and structural distortion terms $D_{\mathrm{boundary}}$, $D_{\mathrm{motion}}$, $D_{\mathrm{identity}}$ included in the optimization objective.
+
+\textit{Metrics}: At each bitrate: SSIM and LPIPS (appearance metrics), boundary-crossing artifact rate (fraction of compression block boundaries that cross a known scene object boundary), object identity fidelity (fraction of frames in which the top-1 identity assignment is correct), and the depth consistency error between the decoded video and the ground-truth depth map.
+
+\textit{Success criterion}: At the same SSIM, the structured codec produces fewer boundary-crossing artifacts and higher object identity fidelity than the standard codec.
+
+\subsection{Experiment 5: Style Invariant Preservation}
+
+\textit{Goal}: Test the style realization proposal; specifically, that world-level structural invariants are preserved across style changes.
+
+\textit{Setup}: Render the same world state $\mathcal{W}$ under four style operators: photorealistic, cel animation, charcoal sketch, and pixel art. For each pair of style renderings, evaluate (a) object count and approximate spatial layout consistency, (b) depth ordering consistency, and (c) motion direction consistency for a moving object.
+
+\textit{Metrics}: For each property category, a binary consistency score per frame pair, and an average consistency score across the full scene.
+
+\textit{Success criterion}: Consistency scores exceed 95\% for object count and spatial layout, 90\% for depth ordering, and 95\% for motion direction across all style pairs.
+
+%% ============================================================
+\section{Implementation Roadmap}
+\label{sec:implementation}
+%% ============================================================
+
+\subsection{Staging Principle}
+
+The implementation is staged so that each stage tests a narrow, falsifiable proposition before the next is built. The stages are cumulative: each adds a module or property to the system, using the preceding stages as the tested foundation.
+
+\textit{Stage 0: Baseline Scene and Rendering Infrastructure.} Construct a small controllable 3D scene in Blender \cite{blender2024}. The scene has between five and ten objects of known geometry, depth ordering, identity, and material. Implement a camera trajectory with at least one occlusion event. Render using standard Blender tools and export frames as PNG sequences. Export ground-truth depth maps, segmentation masks, and optical flow fields as reference data. This stage establishes the evaluation harness (corresponding to the Evaluation Harness module) and the Camera/Observation Engine in minimal form.
+
+\textit{Stage 1: World State Representation and Persistent Object Identity.} Implement the World State Store and History/Provenance Store in minimal form, using a flat database of scene graph nodes (Python with SQLite or similar). Manually author the ground-truth world state for the Stage 0 scene. Verify that object identity, depth ordering, and occlusion relationships can be queried correctly at each timestep. This stage tests the data model and establishes the scene architecture independently of any generative or reconstruction process.
+
+\textit{Stage 2: Single-Process Proposal and Admissibility.} Add the Proposal Engine with a single proposal process (a temporal interpolation of object poses between authored keyframes). Add the Admissibility Engine with a single hard constraint (depth ordering: foreground objects may not appear behind background objects). Introduce deliberate pose perturbations that violate depth ordering and verify that the Admissibility Engine rejects them. This stage tests the probate loop (Algorithm~\ref{alg:probate}) in a minimal form.
+
+\textit{Stage 3: Multi-Witness Structural Diagnosis.} Add the Algorithm Registry, Witness Scheduler, and Diagnostic Engine. Register at minimum three witnesses: an optical flow estimator (using OpenCV's Farneback flow \cite{farneback2003}), a depth estimator (MiDaS or similar single-image estimator \cite{ranftl2020}), and the ground-truth depth from the scene. Compute $\Gamma$ over the perturbed scenes from Experiment 1 and verify localization. This is the core of Experiment 1.
+
+\textit{Stage 4: Occlusion Persistence.} Extend the World State Store to maintain object state through occlusion intervals. Implement Experiment 2 and measure reappearance consistency. Compare to the frame-local baseline (any off-the-shelf video temporal model or interpolation).
+
+\textit{Stage 5: Style Realization.} Add the Style/Realization Engine. Implement at least two style operators: the existing Blender rendering (photorealistic) and a post-processing edge-detection and palette-reduction pipeline approximating a sketch style. Implement Experiment 5 and verify invariant preservation.
+
+\textit{Stage 6: Structural Analysis Feedback.} Add the Structural Analyzer as a post-render module. Route its output back to the Diagnostic Engine and trigger re-rendering of flagged regions under alternative style or algorithm choices. This stage completes the diagnostic feedback loop.
+
+\textit{Stage 7: Codec Interface and Compression Experiments.} Wrap FFmpeg \cite{ffmpeg2024} as the Encoder/Codec Interface. Inject depth and segmentation maps as metadata. Implement the structural distortion terms $D_{\mathrm{boundary}}$ and $D_{\mathrm{identity}}$ and run Experiment 4.
+
+The full system is achievable with Python, Blender, FFmpeg, OpenCV, and any off-the-shelf depth estimation and optical flow library. No proprietary or neural-generative components are required through Stage 4. Neural components can be added to the Algorithm Registry in any stage as additional witnesses without disrupting the architecture.
+
+%% ============================================================
+\section{Limitations}
+\label{sec:limitations}
+%% ============================================================
+
+Several limitations of the present framework should be stated clearly, as they determine where further work is required before the framework's empirical hypotheses can be evaluated.
+
+\textit{Computational cost of world state maintenance.} Maintaining a full persistent world state $\mathcal{W}_t$ is substantially more expensive than maintaining a frame buffer. Storing the geometry, materials, object identities, story state, and full provenance history of a complex dynamic scene is a significant memory and compute burden. The hierarchical witness scheduling proposal (Proposal~\ref{prop:registry}) is designed to mitigate this, but the base cost of world-state maintenance has not been empirically characterized for any realistic scene complexity. Whether the diagnostic benefits justify this cost depends on application requirements.
+
+\textit{World state completeness.} The world state $\mathcal{W}_t$ is a model, not reality. For video captured from the real world (rather than synthetically generated), the world state must be estimated from observations, which returns the system to the reconstruction problem. The quality of all downstream processing depends on the quality of this initial reconstruction, and reconstruction from monocular video remains an open research problem.
+
+\textit{Semantic ambiguity in story state.} The formalization of $S_t$ as a set of semantic facts leaves open the question of how to represent graded or uncertain facts (``character $A$ may know character $B$'s secret''), temporally extended facts (ongoing events), and facts that resist propositional encoding (mood, dramatic irony, aesthetic tone). A complete implementation of the Narrative State Engine would require choices about the knowledge representation formalism that the present framework deliberately leaves open.
+
+\textit{Constraint specification burden.} The admissibility framework is only as good as the constraint system $\mathcal{C}$. Specifying complete and consistent physical, causal, and narrative constraints for an arbitrary story in an arbitrary world is a substantial authoring burden. The framework assumes this constraint specification is available but does not address its construction.
+
+\textit{Algorithm repertoire coverage.} The heterogeneous repertoire is only as useful as its coverage of the failure modes that arise in practice. A structural failure that no registered witness is capable of detecting will be committed without diagnosis. Characterizing the coverage of a given registry requires empirical evaluation on a wide range of scene types.
+
+\textit{Distinction between structural and perceptual tolerability.} Not every structural glitch, as defined in Definition~\ref{def:glitch}, is visually perceptible, and not every perceptible artifact corresponds to a structural violation in the sense of the definition. The relationship between the structural and perceptual concepts requires empirical study, likely with human evaluation studies comparing structural error rates to viewer-perceived quality.
+
+%% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+%% ============================================================
+
+We have developed a formal framework for video generation, reconstruction, rendering, compression, and diagnosis organized around persistent world state rather than independent frame synthesis. The central commitment is that a rendered frame is an observation of a world, not the world itself. This commitment resolves several structural problems in frame-local approaches: occluded objects persist in the world state, camera motion is an observation operator change rather than a generative challenge, style is a realization operator that leaves world identity invariant, and narrative facts accumulate in a persistent story state that constrains all future continuations.
+
+The framework introduces a heterogeneous algorithm repertoire without algorithmic privilege, a formal witness and disagreement mechanism that converts model disagreement into diagnostic information, and a probate protocol ensuring that candidate continuations must pass structural admissibility checking before commitment to persistent world state. Structural glitches are defined as violations of preserved or recoverable relations, enabling them to serve as diagnostic evidence about which process or representation failed.
+
+A structure-aware rate-distortion objective is proposed that decomposes distortion into semantically meaningful components (appearance, boundary, motion, identity, depth, temporal), extending the informational claim that representations discarding structural distinctions cannot reliably preserve them downstream.
+
+The proposed modular architecture isolates all world-state writes in a single Commitment Engine, routes all proposals through a diagnosis and admissibility pipeline, and maintains an append-only evidentiary history. The architecture is implementable with standard tools from Stage 0 through Stage 4 without any generative neural components, preserving the testability of each stage independently.
+
+The framework's relationship to existing work is one of organization rather than invention of components. Persistent world representations, ensemble disagreement, multi-component distortion objectives, and steganographic embedding are each individually established. The distinctive contribution is their integration under a single admissible reconstruction architecture in which world state is primary, video is observation, and every transformation is assessed against structural invariants that the available information was sufficient to preserve.
+
+%% ============================================================
+%% APPENDIX
+%% ============================================================
+
+\appendix
+
+\section{Hyperpleonastic Steganography}
+\label{app:steg}
+
+\subsection{Overview and Motivation}
+
+The rendering pipeline must make countless decisions that are not fully determined by the semantic and geometric content of $\mathcal{W}_t$. Given a surface that must be rendered as ``rough concrete,'' there may be dozens of procedurally generated microgeometry realizations that are perceptually indistinguishable at the relevant viewing conditions. Given a tree canopy, the precise placement of individual leaves within their admissible spatial envelope may have no effect on the perceived appearance of the canopy. Given a particle system for smoke, the specific initial positions of particles within a volume may produce perceptually equivalent smoke.
+
+Each such decision point is an instance of underdetermination: the rendering constraints do not select a unique realization, and the choice among realizations is in practice arbitrary, random, or driven by aesthetic convenience. The observation is that this freedom is not meaningless; it is a selectable capacity.
+
+\begin{definition}[Admissibility Envelope]
+For a scene element $x$ and a set of rendering constraints $\mathcal{C}_x$, the \textbf{admissibility envelope} is the set of realizations consistent with all constraints:
+\[
+\mathcal{A}(x) = \{ r \;:\; r \text{ satisfies } \mathcal{C}_x \}.
+\]
+An admissibly equivalent realization is any $r' \in \mathcal{A}(x)$ with $r' \neq r$.
+\end{definition}
+
+\subsection{The Steganographic Selector}
+
+\begin{definition}[Hyperpleonastic Steganographic Encoder]
+\label{def:steg}
+Given a scene element $x$, a payload bit string $b \in \{0,1\}^*$, and an admissibility envelope $\mathcal{A}(x)$ containing $N$ selectable realizations $\{r_0, r_1, \ldots, r_{N-1}\}$, the \textbf{hyperpleonastic steganographic encoder} selects
+\[
+E(x, b, \mathcal{A}) = r_{f(b)},
+\]
+where $f : \{0,1\}^{\lfloor \log_2 N \rfloor} \to \{0, 1, \ldots, N-1\}$ is a bijection and $b$ supplies the $\lfloor \log_2 N \rfloor$ bits needed to index the selection. The encoder satisfies the admissibility constraint $E(x, b, \mathcal{A}) \in \mathcal{A}(x)$ for every $b$ by construction, since every $r_i \in \mathcal{A}(x)$.
+\end{definition}
+
+The idealized capacity at decision point $x$ is $\lfloor \log_2 N \rfloor$ bits. This is a selection capacity, not a channel capacity in the Shannon sense: it assumes perfect extraction and no transmission noise. Robust recoverable capacity under transcoding, resizing, re-rendering, noise, and color transformation will be substantially lower and requires separate empirical characterization.
+
+\subsection{Binary Selectors and Generalization}
+
+The simplest case is a binary selector: a rendering parameter $p \in [p_{\min}, p_{\max}]$ that is perceptually negligible within the interval is partitioned into a lower basin $B_0 = [p_{\min}, p_{\mathrm{mid}})$ and an upper basin $B_1 = [p_{\mathrm{mid}}, p_{\max}]$. The selector chooses $p \in B_0$ to encode a $0$ bit and $p \in B_1$ to encode a $1$ bit. The rendering decision is indistinguishable at the viewing conditions regardless of which basin is used, but the choice is recoverable by a reader with knowledge of the encoding scheme and access to $\mathcal{A}(x)$.
+
+More generally, for an $n$-ary selector with $n$ admissibly equivalent realizations, the selection capacity is $\lfloor \log_2 n \rfloor$ bits per decision point. Summing over all decision points in a frame, and then over all frames in a video, the aggregate selectable capacity can be large, though robust recoverable capacity will be a small fraction of this theoretical bound.
+
+\subsection{Global Embedding and the Self-Carrying Film}
+
+The most interesting application of hyperpleonastic steganography is global embedding, in which the payload is not a small secret file but structured information about the film itself. Several forms of global embedding are possible.
+
+\textit{Soundtrack embedding.} For a normalized audio signal $a(t)$, the quantized audio amplitude can be mapped to an integer index $i = Q(a_t)$, which selects a realization $r_i \in \mathcal{A}(x)$ at each decision point $x$ that is temporally associated with $a(t)$. The film's material and procedural choices then carry its soundtrack throughout every frame.
+
+\textit{Scene description embedding.} A compressed representation of the world state $\mathcal{W}_t$ (a serialized scene graph excerpt, a procedural seed, or a compressed semantic annotation) is distributed as payload across the admissible differentials of the rendering pipeline. A reader with the decoding scheme can reconstruct the scene description from the rendered video without access to the original world state files.
+
+\textit{Reconstruction information embedding.} The film carries, in its own admissible differentials, sufficient information to reconstruct an alternative representation of itself. This is the strongest form: the film is simultaneously a presentation and a carrier for its own alternative reconstruction.
+
+\subsection{Formal Unification}
+
+The hyperpleonastic steganography extension connects to the broader framework through the following unification:
+
+\[
+\text{underdetermination} = \text{creative freedom} = \text{compression opportunity} = \text{steganographic capacity},
+\]
+
+subject to the admissibility boundary in all cases. The rendering system that searches for admissible equivalences is simultaneously: identifying degrees of freedom for creative stylistic choices, identifying dimensions that can be aggressively quantized without perceptible loss, and identifying channels through which payload information can be embedded without distorting the visible output.
+
+The admissibility condition is the shared constraint. In all three roles, the selection must remain within $\mathcal{A}(x)$; no realization may be chosen that violates the visible semantic and geometric content of the scene merely to accommodate a creative choice, a compression saving, or a steganographic bit. The penalty for violating admissibility is the same in all three cases: a structural glitch that is detectable as a violation of a recoverable structural invariant.
+
+\subsection{Robustness Note}
+
+A full treatment of robustness, which is the central practical challenge in steganography, is beyond the scope of this appendix. We note only that robustness under re-rendering is qualitatively different from robustness under image processing: a re-rendered film from the same world state $\mathcal{W}_t$ with the same payload will produce the same realization selections, because the encoding scheme is deterministic given $\mathcal{W}_t$ and the payload. Robustness under transcoding by a codec that lacks access to $\mathcal{W}_t$ is a harder problem, since the codec may alter the admissible differentials in ways that corrupt the selection. This is an empirical question to be characterized in the experimental program.
+
+%% ============================================================
+\begin{thebibliography}{99}
+
+\bibitem{berger1971}
+T.~Berger, \textit{Rate Distortion Theory: A Mathematical Basis for Data Compression}. Prentice-Hall, 1971.
+
+\bibitem{blender2024}
+Blender Foundation, \textit{Blender}, version 4.x. \url{https://www.blender.org}, 2024.
+
+\bibitem{coverandthomas2006}
+T.~M. Cover and J.~A. Thomas, \textit{Elements of Information Theory}, 2nd ed. Wiley-Interscience, 2006.
+
+\bibitem{davison2007monoslam}
+A.~J. Davison, I.~D. Reid, N.~D. Molton, and O.~Stasse, ``MonoSLAM: Real-time single camera SLAM,'' \textit{IEEE Transactions on Pattern Analysis and Machine Intelligence}, vol.~29, no.~6, pp.~1052--1067, 2007.
+
+\bibitem{farneback2003}
+G.~Farneb{\"a}ck, ``Two-frame motion estimation based on polynomial expansion,'' in \textit{Scandinavian Conference on Image Analysis}, pp.~363--370, 2003.
+
+\bibitem{ffmpeg2024}
+FFmpeg Developers, \textit{FFmpeg}. \url{https://ffmpeg.org}, 2024.
+
+\bibitem{fridrich2009steganography}
+J.~Fridrich, \textit{Steganography in Digital Media: Principles, Algorithms, and Applications}. Cambridge University Press, 2009.
+
+\bibitem{hartley2003multiple}
+R.~Hartley and A.~Zisserman, \textit{Multiple View Geometry in Computer Vision}, 2nd ed. Cambridge University Press, 2003.
+
+\bibitem{horn1981optical}
+B.~K.~P. Horn and B.~G. Schunck, ``Determining optical flow,'' \textit{Artificial Intelligence}, vol.~17, no.~1--3, pp.~185--203, 1981.
+
+\bibitem{kerbl2023gaussians}
+B.~Kerbl, G.~Kopanas, T.~Leimk{\"u}hler, and G.~Drettakis, ``3D Gaussian splatting for real-time radiance field rendering,'' \textit{ACM Transactions on Graphics}, vol.~42, no.~4, 2023.
+
+\bibitem{lakshminarayanan2017deep}
+B.~Lakshminarayanan, A.~Pritzel, and C.~Blundell, ``Simple and scalable predictive uncertainty estimation using deep ensembles,'' in \textit{Advances in Neural Information Processing Systems}, 2017.
+
+\bibitem{lucas1981optical}
+B.~D. Lucas and T.~Kanade, ``An iterative image registration technique with an application to stereo vision,'' in \textit{Proceedings of IJCAI}, pp.~674--679, 1981.
+
+\bibitem{mildenhall2020nerf}
+B.~Mildenhall, P.~P. Srinivasan, M.~Tancik, J.~T. Barron, R.~Ramamoorthi, and R.~Ng, ``NeRF: Representing scenes as neural radiance fields for view synthesis,'' in \textit{European Conference on Computer Vision}, 2020.
+
+\bibitem{pharr2023pbr}
+M.~Pharr, W.~Jakob, and G.~Humphreys, \textit{Physically Based Rendering: From Theory to Implementation}, 4th ed. MIT Press, 2023.
+
+\bibitem{ranftl2020}
+R.~Ranftl, K.~Lasinger, D.~Hafner, K.~Schindler, and V.~Koltun, ``Towards robust monocular depth estimation: Mixing datasets for zero-shot cross-dataset transfer,'' \textit{IEEE Transactions on Pattern Analysis and Machine Intelligence}, vol.~44, no.~3, pp.~1623--1637, 2022.
+
+\bibitem{shannon1948}
+C.~E. Shannon, ``A mathematical theory of communication,'' \textit{Bell System Technical Journal}, vol.~27, pp.~379--423 and 623--656, 1948.
+
+\bibitem{sullivan2012}
+G.~J. Sullivan, J.-R. Ohm, W.-J. Han, and T.~Wiegand, ``Overview of the High Efficiency Video Coding (HEVC) standard,'' \textit{IEEE Transactions on Circuits and Systems for Video Technology}, vol.~22, no.~12, pp.~1649--1668, 2012.
+
+\bibitem{wang2004ssim}
+Z.~Wang, A.~C. Bovik, H.~R. Sheikh, and E.~P. Simoncelli, ``Image quality assessment: From error visibility to structural similarity,'' \textit{IEEE Transactions on Image Processing}, vol.~13, no.~4, pp.~600--612, 2004.
+
+\bibitem{wiegand2003}
+T.~Wiegand, G.~J. Sullivan, G.~Bjontegaard, and A.~Luthra, ``Overview of the H.264/AVC video coding standard,'' \textit{IEEE Transactions on Circuits and Systems for Video Technology}, vol.~13, no.~7, pp.~560--576, 2003.
+
+
+\bibitem{dhariwal2021diffusion}
+P.~Dhariwal and A.~Nichol, ``Diffusion models beat GANs on image synthesis,'' in \textit{Advances in Neural Information Processing Systems}, 2021.
+
+\bibitem{ho2020ddpm}
+J.~Ho, A.~Jain, and P.~Abbeel, ``Denoising diffusion probabilistic models,'' in \textit{Advances in Neural Information Processing Systems}, 2020.
+
+\bibitem{ho2022videodiffusion}
+J.~Ho, T.~Salimans, A.~Gritsenko, W.~Chan, M.~Norouzi, and D.~J. Fleet, ``Video diffusion models,'' in \textit{NeurIPS Workshop on Score-Based Methods}, 2022.
+
+\bibitem{janner2022diffuser}
+M.~Janner, Y.~Du, J.~Tenenbaum, and S.~Levine, ``Planning with diffusion,'' in \textit{International Conference on Machine Learning}, 2022.
+
+\bibitem{garcia1989mpc}
+C.~E. Garcia, D.~M. Prett, and M.~Morari, ``Model predictive control: Theory and practice, a survey,'' \textit{Automatica}, vol.~25, no.~3, pp.~335--348, 1989.
+
+\bibitem{rombach2022ldm}
+R.~Rombach, A.~Blattmann, D.~Lorenz, P.~Esser, and B.~Ommer, ``High-resolution image synthesis with latent diffusion models,'' in \textit{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition}, 2022.
+
+\bibitem{sohl2015}
+J.~Sohl-Dickstein, E.~A. Weiss, N.~Maheswaranathan, and S.~Ganguli, ``Deep unsupervised learning using nonequilibrium thermodynamics,'' in \textit{Proceedings of the International Conference on Machine Learning}, 2015.
+
+\bibitem{song2021score}
+Y.~Song, J.~Sohl-Dickstein, D.~P. Kingma, A.~Kumar, S.~Ermon, and B.~Poole, ``Score-based generative modeling through stochastic differential equations,'' in \textit{International Conference on Learning Representations}, 2021.
+
+\end{thebibliography}
+
+\end{document}
