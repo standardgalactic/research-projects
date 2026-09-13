@@ -1,5 +1,7 @@
 # Repair Theory: Falsifiable Conformance Slice
 
+[The Vocabulary of Acceleration](https://github.com/standardgalactic/research-projects/blob/main/rhetoric/variants/README.md)
+
 This package turns the qualitative distinction among repair, smoothing, erasure, and state restoration into an exact finite benchmark.
 
 Run it with Python 3.10 or later:

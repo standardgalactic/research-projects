@@ -1,5 +1,7 @@
 # Research Projects
 
+[The Vocabulary of Acceleration](https://github.com/standardgalactic/research-projects/blob/main/rhetoric/variants/README.md)
+
 [The Ecology of Distinctions](https://github.com/standardgalactic/research-projects/blob/main/textbook/README.md)
 
 [Admissibility Lab](https://github.com/standardgalactic/research-projects/blob/main/admissibility-lab/README.md)
