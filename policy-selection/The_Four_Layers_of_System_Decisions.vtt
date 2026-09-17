@@ -1,0 +1,1523 @@
+WEBVTT
+
+00:00.000 --> 00:07.400
+So back in 2022, there was this massive flash loan exploit in decentralized finance that just
+
+00:07.400 --> 00:12.000
+it really shook the whole industry. Oh, yeah. Millions of dollars drained in
+
+00:12.000 --> 00:17.380
+literally seconds. Right. Exactly. Millions in seconds. And the craziest part about it,
+
+00:17.400 --> 00:22.300
+when you really look at the postmortem, is that the algorithm executed a series of trades that
+
+00:22.300 --> 00:27.580
+were, you know, perfectly valid, like physically valid. Right. Under the exact physical parameters
+
+00:27.580 --> 00:32.940
+of that smart contract. Yeah. The code compiled perfectly. Yeah. The network had the bandwidth.
+
+00:33.440 --> 00:38.600
+The state transitioned exactly the way it was programmed to. But those trades completely
+
+00:38.600 --> 00:42.980
+violated the structural rules of the liquidity pool. They absolutely did. And when the engineers
+
+00:42.980 --> 00:48.080
+rushed in to diagnose the failure, the system didn't flag an error. I mean, according to the
+
+00:48.080 --> 00:54.560
+contract's decision making logic, it just mapped an input state to a highly profitable output action.
+
+00:54.560 --> 00:59.000
+It did exactly what it was told to do. Exactly. The algorithm didn't know the difference between
+
+00:59.000 --> 01:04.800
+a legitimate user executing a brilliant trade and a malicious actor exploiting this
+
+01:04.800 --> 01:12.180
+irreducibly relational rule. Yeah. And that blind spot, that complete inability to distinguish between
+
+01:12.180 --> 01:18.380
+what a system can physically do and what it's relationally authorized to do that is exactly what
+
+01:18.380 --> 01:23.560
+we're dismantling today. Welcome to the deep dive, everyone. We are taking you straight into the
+
+01:23.560 --> 01:30.220
+architecture of how complex systems actually make decisions and really why the models we've relied
+
+01:30.220 --> 01:35.540
+on for decades are just fundamentally broken. It really is a crucial failure point. I mean,
+
+01:35.580 --> 01:40.160
+that flash loan example perfectly illustrates the danger of what we call the state to action model.
+
+01:40.420 --> 01:46.560
+Yeah. So today we are pulling apart this singular, highly technical monograph. It was published
+
+01:46.560 --> 01:51.660
+recently in September 2026 by an independent systems researcher named Fliction. Right.
+
+01:51.660 --> 01:56.440
+The paper is titled, let me get this right, Layers of Decision, Feasibility, Relational Validity,
+
+01:56.700 --> 02:00.160
+Establishability, and Commitment in History-Dependent Decision Systems.
+
+02:00.520 --> 02:05.440
+It's a mouthful, but it is, without exaggeration, a complete paradigm shift for anyone working in
+
+02:05.440 --> 02:08.580
+systems engineering or observability or autonomous agents.
+
+02:09.540 --> 02:14.060
+Oh, for sure. And the mission for you, the listener, is to walk away from this discussion
+
+02:14.060 --> 02:19.160
+with a totally new diagnostic framework. Because whether you're architecting a distributed
+
+02:19.160 --> 02:25.640
+microservice backend or designing an autonomous robotics controller or even just auditing an AI
+
+02:25.640 --> 02:29.980
+lending platform, we want to shortcut your understanding of why these systems fail.
+
+02:30.360 --> 02:31.620
+And how to build better ones. Yeah.
+
+02:31.760 --> 02:37.060
+Exactly. We're moving entirely away from this simplistic, almost vending machine model of decisions.
+
+02:37.300 --> 02:40.900
+Yeah. The whole idea where you just put it in input and get a binary output.
+
+02:40.900 --> 02:45.780
+Right. We're moving into a heavily audited, four-dimensional, history-dependent architecture.
+
+02:46.360 --> 02:48.960
+So let's just get right into the mathematics of the problem.
+
+02:49.300 --> 02:52.580
+Fliction attacks this thing they call the single decision fallacy.
+
+02:52.660 --> 02:53.860
+It's a single decision fallacy, yeah.
+
+02:54.160 --> 02:58.340
+Mathematically, they denote it as a function mapping X to U, right?
+
+02:58.340 --> 03:00.640
+Where X is the state and U is the action.
+
+03:00.760 --> 03:01.140
+Correct.
+
+03:01.140 --> 03:08.400
+So why has the engineering world been so universally obsessed with using this single-scalar score,
+
+03:08.600 --> 03:14.080
+like a neural net outputting a 92% confidence interval to make a decision?
+
+03:14.080 --> 03:17.440
+Well, honestly, it comes down to computational efficiency.
+
+03:18.080 --> 03:22.100
+And really, the whole legacy of optimization algorithms.
+
+03:22.480 --> 03:23.640
+Like reinforcement learning and stuff.
+
+03:23.700 --> 03:29.520
+Exactly. If you look at standard Markov decision processes, or really any reinforcement learning model
+
+03:29.520 --> 03:34.800
+out there, the entire architecture is built around maximizing a single reward function.
+
+03:34.880 --> 03:35.080
+Right.
+
+03:35.400 --> 03:39.820
+Engineers love scalar scores because they make gradient descent possible.
+
+03:39.960 --> 03:43.820
+You just tell the machine, you know, here's the loss function, minimize it.
+
+03:43.840 --> 03:45.000
+Or maximize the reward, yeah.
+
+03:45.040 --> 03:45.260
+Right.
+
+03:45.260 --> 03:49.740
+So the model ingests this massive high-dimensional state vector.
+
+03:50.000 --> 03:54.000
+It crunches it through a hidden layer, and it spits out a probability matrix.
+
+03:54.000 --> 04:00.080
+If the confidence for action A is 0.92, you execute action A.
+
+04:00.140 --> 04:01.660
+Which is mathematically elegant, I guess.
+
+04:01.880 --> 04:03.720
+It is. It has highly elegant.
+
+04:03.900 --> 04:07.140
+But Fliction argues that this elegance is a massive trap.
+
+04:07.540 --> 04:12.740
+Mapping X directly to you completely obscures the ontological differences between why an action
+
+04:12.740 --> 04:13.980
+might actually be constrained.
+
+04:14.080 --> 04:15.080
+Okay, let's unpack this.
+
+04:15.080 --> 04:21.140
+Because if the confidence score drops to, say, 0.15, and the system aborts the action,
+
+04:21.420 --> 04:26.580
+that single scalar tells the observability platform absolutely nothing about the nature
+
+04:26.580 --> 04:27.080
+of the constraint.
+
+04:27.140 --> 04:28.000
+Nothing at all.
+
+04:28.180 --> 04:29.180
+You just know it failed.
+
+04:29.440 --> 04:29.600
+Yeah.
+
+04:30.060 --> 04:33.180
+And this is where Flitchian introduces what they call the layered fix.
+
+04:33.720 --> 04:40.140
+The paper replaces this single decision function with four nested actor-relative history-dependent
+
+04:40.140 --> 04:40.460
+sets.
+
+04:40.660 --> 04:40.960
+Yes.
+
+04:41.300 --> 04:43.920
+We really need to look at how these are mathematically structured.
+
+04:43.920 --> 04:48.480
+So we have F, C, K, and A. Let's start with F, which is feasibility.
+
+04:48.940 --> 04:54.620
+Okay, so feasibility, the F set, represents the universe of actions that an actor is physically,
+
+04:54.820 --> 04:58.620
+mechanically, or computationally capable of executing in a given state.
+
+04:58.740 --> 04:59.000
+Okay.
+
+04:59.140 --> 05:02.620
+It has absolutely nothing to do with rules or ethics or authorization.
+
+05:03.060 --> 05:04.320
+It's just physics.
+
+05:04.500 --> 05:08.620
+Right, like if you're a robotic arm, the question is just, is the joint motor functioning?
+
+05:08.920 --> 05:11.500
+Do you have the physical reach to grab the object?
+
+05:11.820 --> 05:12.220
+Exactly.
+
+05:12.220 --> 05:15.860
+Or if you're a software microservice, is the database connection open?
+
+05:16.300 --> 05:19.880
+Can you physically execute the SQL query over the network?
+
+05:20.400 --> 05:22.900
+And if the answer is yes, the action is in the F set.
+
+05:23.040 --> 05:23.280
+Right.
+
+05:23.380 --> 05:28.040
+Which is just a subset of U, the total universal space of all conceivable actions.
+
+05:28.540 --> 05:28.780
+Okay.
+
+05:28.840 --> 05:31.720
+So you establish physical capability with F.
+
+05:31.720 --> 05:36.960
+Then we move inward, right, to the C set, which is relational validity.
+
+05:37.140 --> 05:38.440
+Yes, relational validity.
+
+05:38.620 --> 05:40.460
+This is where the governing relations come in.
+
+05:40.580 --> 05:46.080
+It asks, out of the actions that are physically feasible, which ones actually satisfy the governing
+
+05:46.080 --> 05:48.280
+roles or the safety protocol?
+
+05:48.400 --> 05:50.020
+Or the relational roles assigned to the actor.
+
+05:50.380 --> 05:50.900
+Precisely.
+
+05:50.900 --> 05:53.560
+I think we need a relatable analogy here for the listener.
+
+05:54.000 --> 05:59.000
+Because it's so easy to confuse F and C, especially in software.
+
+05:59.140 --> 06:00.100
+It happens all the time.
+
+06:00.260 --> 06:02.980
+So imagine you're trying to get into an exclusive VIP club.
+
+06:03.820 --> 06:08.980
+F, feasibility, is just your physical ability to walk up to the front door of the club.
+
+06:09.060 --> 06:09.240
+Right.
+
+06:09.300 --> 06:09.900
+Your legs work.
+
+06:10.000 --> 06:10.680
+You can walk there.
+
+06:10.680 --> 06:11.160
+Exactly.
+
+06:11.760 --> 06:17.160
+But C, relational validity, is whether your name is actually on the VIP list that the
+
+06:17.160 --> 06:18.080
+venue management approved.
+
+06:18.380 --> 06:20.400
+That is a highly accurate way to frame it.
+
+06:20.460 --> 06:22.700
+You might be physically capable of walking through the door.
+
+06:22.800 --> 06:26.120
+So F is established but relationally invalid because you aren't on the list.
+
+06:26.320 --> 06:26.440
+Right.
+
+06:26.840 --> 06:31.740
+But fliction adds a critical third layer here, which is where traditional systems usually
+
+06:31.740 --> 06:32.800
+fall completely apart.
+
+06:33.040 --> 06:33.280
+The case set.
+
+06:33.560 --> 06:34.240
+The case set.
+
+06:35.460 --> 06:35.940
+Establishability.
+
+06:35.940 --> 06:41.920
+It rends one thing for an action to be objectively valid under the rules, like maybe your name
+
+06:41.920 --> 06:47.380
+really is on the VIP list, but it is another thing entirely for you to actually be able
+
+06:47.380 --> 06:51.080
+to certify that validity from your own local information state.
+
+06:51.260 --> 06:51.700
+Oh, wow.
+
+06:51.820 --> 06:52.020
+Okay.
+
+06:52.100 --> 06:55.100
+So establishability requires, like, proof.
+
+06:55.340 --> 06:55.680
+Yes.
+
+06:56.060 --> 06:59.080
+Cryptographic proof, local telemetry, verified evidence.
+
+06:59.520 --> 07:05.240
+Going back to your club analogy, K is whether you actually have your ID in your pocket to prove
+
+07:05.240 --> 07:06.640
+your identity to the bouncer.
+
+07:07.080 --> 07:08.160
+Oh, that makes so much sense.
+
+07:08.260 --> 07:08.420
+Right.
+
+07:08.540 --> 07:10.480
+Your name is on the list, so C is satisfied.
+
+07:10.960 --> 07:13.500
+But if you left your ID at home, you cannot establish it.
+
+07:13.580 --> 07:14.440
+The case set is empty.
+
+07:14.840 --> 07:15.160
+Wow.
+
+07:15.320 --> 07:15.620
+Okay.
+
+07:16.060 --> 07:18.760
+And that brings us to the final innermost layer.
+
+07:19.240 --> 07:19.540
+A.
+
+07:20.300 --> 07:20.740
+Commitment.
+
+07:21.140 --> 07:21.540
+Yes.
+
+07:22.040 --> 07:27.460
+Out of all the actions that are physically feasible, relationally valid, and cryptographically
+
+07:27.460 --> 07:30.940
+establishable, what should the actor actually choose to do?
+
+07:31.080 --> 07:32.540
+Based on their policy and goals, exactly.
+
+07:32.540 --> 07:36.740
+So in the VIP club analogy, A is deciding you actually want to walk inside and get a drink
+
+07:36.740 --> 07:38.640
+instead of just turning around and going home because you're tired.
+
+07:38.820 --> 07:39.420
+That's perfect.
+
+07:39.800 --> 07:42.240
+And this is where the nesting is mathematically rigorous.
+
+07:43.140 --> 07:44.620
+A is a subset of K.
+
+07:44.780 --> 07:46.060
+K is a subset of C.
+
+07:46.440 --> 07:48.340
+And C is a subset of F.
+
+07:48.340 --> 07:51.080
+So A is inside K, inside C, inside F.
+
+07:51.240 --> 07:51.480
+Yes.
+
+07:51.820 --> 07:56.600
+Affliction's whole point is that a system should only ever apply that single scalar score,
+
+07:56.740 --> 08:01.100
+that optimization algorithm we talked about earlier, to the actions that have successfully
+
+08:01.100 --> 08:03.080
+filtered all the way down into the case set.
+
+08:03.100 --> 08:03.260
+Right.
+
+08:03.340 --> 08:04.420
+The certifiable ones.
+
+08:04.500 --> 08:04.880
+Exactly.
+
+08:05.600 --> 08:08.540
+Scalarization is fine for choosing among eligible options.
+
+08:08.540 --> 08:13.520
+But it is a terrible, catastrophic tool for determining eligibility in the first place.
+
+08:13.680 --> 08:16.440
+You can't say an action is, you know, 60% valid.
+
+08:16.660 --> 08:18.460
+It either breaks a rule or it doesn't.
+
+08:18.600 --> 08:18.720
+Right.
+
+08:19.200 --> 08:21.620
+But mathematically, let me push back a bit here.
+
+08:22.260 --> 08:26.860
+Does this nesting actually change how a computer program or a bureaucracy operates?
+
+08:26.860 --> 08:32.320
+Like, if I'm architecting a high-frequency trading algorithm or a self-driving car's collision
+
+08:32.320 --> 08:35.440
+avoidance system, latency is measured in microseconds.
+
+08:35.560 --> 08:36.440
+Oh, the latency argument.
+
+08:36.580 --> 08:36.740
+Yeah.
+
+08:37.000 --> 08:37.220
+Yeah.
+
+08:37.420 --> 08:42.720
+If my self-driving car takes an extra 10 milliseconds to evaluate a distinct C-layer safety rule
+
+08:42.720 --> 08:47.900
+and then compute a cryptographic K-layer proof before it hits the brakes, I am dead.
+
+08:48.520 --> 08:49.280
+The car crashes.
+
+08:49.520 --> 08:49.820
+Right.
+
+08:50.000 --> 08:54.320
+The reason engineers flatten everything into a single neural network is because it's instantaneous.
+
+08:54.320 --> 09:00.660
+Isn't this four-layer separation just completely unfeasible in latency-critical environments?
+
+09:00.820 --> 09:02.080
+I hear that constantly.
+
+09:02.740 --> 09:06.940
+But that argument assumes that collapsing the layers actually prevents system failure.
+
+09:07.620 --> 09:11.000
+Fliccion would argue that flattening the architecture for the sake of 10 milliseconds
+
+09:11.000 --> 09:14.720
+is exactly what causes cascading, unrecoverable system crashes.
+
+09:14.980 --> 09:15.480
+Wait, really?
+
+09:15.860 --> 09:16.120
+How?
+
+09:16.460 --> 09:17.080
+Think about it.
+
+09:17.340 --> 09:22.920
+If your autonomous vehicle relies on a flattened neural net and it encounters a weird edge case,
+
+09:22.920 --> 09:28.300
+say, a visual artifact that drops its confidence score for the braking action down to 30%,
+
+09:28.300 --> 09:30.100
+the system just aborts the brake.
+
+09:30.860 --> 09:31.340
+It fails.
+
+09:31.460 --> 09:31.600
+Right.
+
+09:31.660 --> 09:32.220
+It doesn't brake.
+
+09:32.580 --> 09:37.860
+And more importantly, the centralized controller has zero diagnostic data on why it failed.
+
+09:38.440 --> 09:39.840
+Did the mechanical actuator fail?
+
+09:40.220 --> 09:41.920
+Was there a safety constraint conflict?
+
+09:42.100 --> 09:43.580
+Did the sensor just lack resolution?
+
+09:43.580 --> 09:44.600
+Oh, wow.
+
+09:44.760 --> 09:45.720
+You literally don't know.
+
+09:45.880 --> 09:46.280
+Exactly.
+
+09:46.980 --> 09:49.680
+By flattening the architecture, sure, you gain speed.
+
+09:50.160 --> 09:55.840
+But you completely sacrifice the ability of the system to dynamically recover or reroute its logic.
+
+09:56.180 --> 10:00.560
+To really see why these specific boundaries literally save lives in systems,
+
+10:00.980 --> 10:04.080
+we need to dive into Fliccion's taxonomy of failure.
+
+10:04.460 --> 10:05.180
+Okay, yeah.
+
+10:05.420 --> 10:06.580
+Let's ground this.
+
+10:07.060 --> 10:10.800
+Let's use the specific high-stakes scenario from Appendix F of the text,
+
+10:11.220 --> 10:12.300
+the industrial technician.
+
+10:12.300 --> 10:13.200
+Perfect example.
+
+10:13.380 --> 10:13.440
+Right.
+
+10:13.520 --> 10:16.100
+So we have a technician, or let's say an automated controller,
+
+10:16.500 --> 10:19.360
+managing a complex piece of equipment like a chemical reactor.
+
+10:20.180 --> 10:23.280
+The universe of actions, the USET, has five operations.
+
+10:24.040 --> 10:27.360
+They can replace a part, recalibrate the valve, restart the process,
+
+10:27.920 --> 10:30.720
+vent the pressure, or execute a hard emergency shutdown.
+
+10:31.000 --> 10:31.240
+Right.
+
+10:31.320 --> 10:32.140
+Those are the five choices.
+
+10:32.580 --> 10:36.220
+Now, let's say the technician is physically capable of executing the first four actions,
+
+10:36.600 --> 10:41.360
+but the hard shutdown requires a supervisor's physical key, which they don't have.
+
+10:41.360 --> 10:46.500
+So immediately, feasibility, the F-set, is established for four actions, but not the shutdown.
+
+10:46.840 --> 10:47.360
+Exactly.
+
+10:47.880 --> 10:53.080
+And if the technician attempts that hard shutdown, it results in what Fliccion calls a Type I failure,
+
+10:53.640 --> 10:54.800
+an execution failure.
+
+10:55.320 --> 10:59.400
+No matter what the internal rules say, the physical environment rejects the action.
+
+10:59.400 --> 10:59.880
+Okay.
+
+11:00.080 --> 11:00.940
+So that's Type I.
+
+11:01.360 --> 11:04.300
+But now, later layer in the C-set, the governing relations.
+
+11:05.440 --> 11:08.640
+Let's say the reactor is currently running dangerously over pressure.
+
+11:09.180 --> 11:11.440
+The safety protocols hard-code a relation.
+
+11:12.300 --> 11:16.420
+If it's over pressure, the only valid action is to vent the system.
+
+11:16.640 --> 11:17.880
+This is where we see the divergence.
+
+11:18.880 --> 11:22.400
+Restarting the process is perfectly physically feasible for the technician.
+
+11:22.580 --> 11:23.460
+They can reach the button.
+
+11:23.600 --> 11:24.580
+It sits in the F-set.
+
+11:24.580 --> 11:27.860
+But it is strictly invalid under the governing relation.
+
+11:28.000 --> 11:28.060
+Right.
+
+11:28.140 --> 11:29.380
+It violates the safety rules.
+
+11:29.560 --> 11:29.680
+Right.
+
+11:29.900 --> 11:34.680
+So if the technician attempts to restart it, it triggers a Type II failure, a relational failure.
+
+11:35.140 --> 11:36.500
+Feasible but invalid.
+
+11:36.780 --> 11:41.560
+And this highlights exactly why your standard, like, Python try-except-block
+
+11:41.560 --> 11:45.840
+or returning a generic action-rejected message is entirely inadequate.
+
+11:46.060 --> 11:46.980
+It's worse than inadequate.
+
+11:47.120 --> 11:47.640
+It's misleading.
+
+11:48.100 --> 11:48.380
+Yeah.
+
+11:48.380 --> 11:54.460
+Because if the system just logs action-rejected, the observability dashboard is totally blind.
+
+11:55.280 --> 12:02.460
+An operations manager doesn't know if the physical restart button broke, which is a Type I execution failure requiring a new part,
+
+12:02.660 --> 12:09.740
+or if the safety rule actively blocked it, which is a Type II relational failure requiring them to wait for the pressure to drop.
+
+12:09.920 --> 12:10.400
+Exactly.
+
+12:11.020 --> 12:13.780
+The remedy for a Type I failure is more resources.
+
+12:14.340 --> 12:14.940
+Fix the button.
+
+12:14.940 --> 12:19.940
+The remedy for a Type II failure is changing the rules or waiting for the right conditions.
+
+12:20.580 --> 12:24.120
+If you collapse F and C, you get uninformative failures.
+
+12:24.600 --> 12:30.980
+Your system might try to solve a rule violation by allocating more compute power, which is how you get infinite crash loops.
+
+12:31.120 --> 12:32.180
+That makes total sense.
+
+12:32.260 --> 12:37.320
+So next time a system you rely on fails, you really need to ask yourself exactly which of these boundaries it failed at.
+
+12:37.360 --> 12:37.560
+Right.
+
+12:37.680 --> 12:38.940
+But the taxonomy goes deeper.
+
+12:39.260 --> 12:41.580
+We have Type III, which is an epistemic failure.
+
+12:42.020 --> 12:44.100
+This occurs at the boundary between C and K.
+
+12:44.100 --> 12:44.800
+No.
+
+12:44.800 --> 12:46.520
+Valid but uncertifiable.
+
+12:46.660 --> 12:46.840
+Okay.
+
+12:46.940 --> 12:48.420
+Here's where it gets really interesting.
+
+12:48.620 --> 12:51.380
+This leads us directly into parts four and five of the paper.
+
+12:51.980 --> 12:55.440
+The epistemic gap between observation and distributed knowledge.
+
+12:55.560 --> 12:55.720
+Yes.
+
+12:55.780 --> 13:03.640
+So we have an action that is physically feasible, and it's perfectly valid under the rules, but the actor cannot prove it.
+
+13:04.500 --> 13:06.100
+Let's say with a chemical reactor example.
+
+13:06.280 --> 13:06.520
+Okay.
+
+13:06.520 --> 13:11.840
+Well, the technician has a pressure gauge, but it's a really coarse, low-resolution sensor.
+
+13:12.060 --> 13:15.060
+It only reads two states, nominal and elevated.
+
+13:15.580 --> 13:21.240
+Now, elevated could mean a genuine overpressure situation, which means they must vent to satisfy the C layer.
+
+13:21.440 --> 13:21.680
+Right.
+
+13:21.680 --> 13:27.500
+Or elevated could just be a minor thermal false alarm where venting would just waste a ton of resources.
+
+13:27.500 --> 13:32.200
+This is what Flixion formally introduces as the diagnostic identifiability problem.
+
+13:32.900 --> 13:41.720
+You have a true state of the world that demands a specific intervention, but your sensor topology maps two totally different underlying realities to the exact same observation.
+
+13:41.860 --> 13:43.760
+Oh, D of by one equals D of by two.
+
+13:43.760 --> 13:44.320
+Exactly.
+
+13:44.660 --> 13:51.500
+When that happens, no downstream AI, no brilliant algorithmic planning engine, can magically deduce the correct action.
+
+13:51.980 --> 13:55.300
+The flaw is in the partition design, not the decision algorithm.
+
+13:55.860 --> 14:01.620
+If your sensor lumps two states together that require different treatments, the system is fundamentally incapable of establishing validity.
+
+14:02.080 --> 14:03.660
+It's a type 3 failure.
+
+14:04.040 --> 14:08.580
+So, as a systems architect, my immediate instinct here is just brute force.
+
+14:08.580 --> 14:14.160
+If the coarse sensor is the problem, the solution is just to add more sensors, right?
+
+14:14.540 --> 14:15.800
+Give the technician more data.
+
+14:16.020 --> 14:17.920
+Put a 4K thermal camera in there.
+
+14:18.300 --> 14:21.400
+Capture 100 gigabytes of telemetry and just feed it to an AI.
+
+14:21.780 --> 14:26.520
+What's fascinating here is that the text strictly warns against just maximizing signal volume.
+
+14:27.120 --> 14:29.100
+More data does not solve this.
+
+14:29.460 --> 14:29.920
+Wait, really?
+
+14:30.060 --> 14:30.440
+Why not?
+
+14:30.640 --> 14:36.540
+Because high-dimensional data actually introduces noise, overfitting, and catastrophic latency.
+
+14:36.540 --> 14:40.560
+The goal Fliction introduces is equivalence class engineering.
+
+14:40.840 --> 14:42.220
+Equivalence class engineering, okay.
+
+14:42.360 --> 14:44.280
+You don't need a high-def 4K camera.
+
+14:44.720 --> 14:48.660
+You just need a partition that specifically separates the faults needing different treatments.
+
+14:49.360 --> 14:57.580
+If state A and state B both require the reactor to keep running normally, your sensor should mathematically lump them together into the same equivalence class.
+
+14:57.660 --> 15:00.420
+Because distinguishing between them is computationally wasteful.
+
+15:00.740 --> 15:01.340
+Exactly.
+
+15:01.740 --> 15:04.720
+It epistemically irrelevant to the governing rules.
+
+15:04.720 --> 15:08.340
+More data does not equal more relevant distinctions.
+
+15:08.980 --> 15:15.300
+You engineer your sensors so their equivalence classes map one-to-one with the valid actions in your C-set.
+
+15:15.680 --> 15:16.480
+That is profound.
+
+15:17.060 --> 15:19.360
+You only partition what needs different treatment.
+
+15:19.540 --> 15:19.680
+Right.
+
+15:19.900 --> 15:22.780
+But getting the right data at the right time is hard enough.
+
+15:23.060 --> 15:26.440
+What happens when a single nose literally cannot achieve that partition?
+
+15:26.720 --> 15:26.940
+Right.
+
+15:27.040 --> 15:29.020
+This brings in GAP2, distributed knowledge.
+
+15:29.020 --> 15:32.940
+Let us introduce a second technician into our reactor network.
+
+15:33.020 --> 15:33.260
+Okay.
+
+15:33.980 --> 15:36.360
+Technician A has the coarse pressure gauge reading elevated.
+
+15:37.080 --> 15:40.800
+Technician B has a vibration sensor reading either quiet or noisy.
+
+15:40.980 --> 15:44.600
+This is where we run into a mind-bending mathematical point from the text.
+
+15:44.820 --> 15:46.880
+The non-implication of naive union.
+
+15:47.080 --> 15:47.280
+Right.
+
+15:47.280 --> 15:50.880
+If you ask technician A, can you certify that venting is authorized?
+
+15:51.500 --> 15:53.760
+Their establishable set, their case set is empty.
+
+15:54.020 --> 15:55.700
+Because elevated might be a false alarm.
+
+15:55.920 --> 15:56.100
+Yeah.
+
+15:56.200 --> 15:57.100
+They don't have enough proof.
+
+15:57.260 --> 16:00.060
+And if you ask technician B, their case set is also empty.
+
+16:00.480 --> 16:02.600
+Because noisy could just be a loose bracket rattling.
+
+16:03.000 --> 16:03.740
+Neither has proof.
+
+16:03.740 --> 16:07.680
+So if I just take the union of their localized conclusions, it's still empty.
+
+16:07.900 --> 16:08.820
+The system halts.
+
+16:09.300 --> 16:09.660
+Exactly.
+
+16:09.820 --> 16:12.100
+You cannot just pool their final conclusions.
+
+16:12.760 --> 16:19.100
+But if you look at their composed evaluation positions, the intersection of their raw sensory
+
+16:19.100 --> 16:25.100
+data, the combined data point of elevated and noisy completely rules out the false alarms.
+
+16:25.320 --> 16:25.800
+Oh, wow.
+
+16:26.160 --> 16:30.460
+Because the false thermal alarm doesn't cause noise and the loose bracket doesn't cause pressure.
+
+16:30.700 --> 16:31.200
+Precisely.
+
+16:31.200 --> 16:34.800
+The composed observation certifies the venting action.
+
+16:35.280 --> 16:36.640
+You cannot just pool conclusions.
+
+16:36.840 --> 16:40.200
+You must compose the evaluation positions before you evaluate the rules.
+
+16:40.360 --> 16:45.080
+Which means in a distributed network, you have to stream the raw partition data to a central
+
+16:45.080 --> 16:47.540
+layer, intersect it, and then check authorization.
+
+16:47.860 --> 16:48.220
+Exactly.
+
+16:48.460 --> 16:48.660
+Okay.
+
+16:48.740 --> 16:50.180
+So that solves the epistemic gap.
+
+16:50.260 --> 16:53.040
+We compose the state, establish the case set, and act.
+
+16:53.420 --> 16:56.860
+But everything we've talked about so far assumes a static environment, right?
+
+16:57.020 --> 16:57.260
+Right.
+
+16:57.340 --> 16:58.540
+A static state machine.
+
+16:58.660 --> 17:00.360
+But reality isn't a static.
+
+17:00.360 --> 17:04.640
+What happens when the simple act of making a decision fundamentally changes the rules
+
+17:04.640 --> 17:05.300
+for the next one?
+
+17:05.940 --> 17:07.740
+This brings us to part six of the text.
+
+17:07.840 --> 17:11.140
+The march of time, histories, and non-monotonicity.
+
+17:11.580 --> 17:15.500
+And this is where traditional state machine architectures completely break down.
+
+17:15.700 --> 17:15.840
+Yeah.
+
+17:15.840 --> 17:20.940
+We all have this intuitive assumption that as time passes and we collect more records in
+
+17:20.940 --> 17:23.920
+our database, our epistemic certainty grows.
+
+17:24.320 --> 17:24.600
+Right.
+
+17:24.980 --> 17:25.120
+Right.
+
+17:25.180 --> 17:30.160
+It append-only law gives me more context, so I should have a wider array of valid actions
+
+17:30.160 --> 17:30.660
+I can take.
+
+17:31.180 --> 17:33.480
+More history means more justified action.
+
+17:33.480 --> 17:37.000
+But fliction proves this is a structural fallacy.
+
+17:37.000 --> 17:39.580
+The theorem of non-monotonic justification.
+
+17:40.580 --> 17:45.660
+The paper formally proves that more history does not entail more currently justified action.
+
+17:46.060 --> 17:46.160
+Okay.
+
+17:46.260 --> 17:50.120
+We need to trace this sequence because this destroys how we normally build state machines.
+
+17:50.640 --> 17:52.060
+Let's go back to the technician.
+
+17:52.300 --> 17:52.500
+Okay.
+
+17:52.500 --> 17:54.980
+The system is at time zero, H zero.
+
+17:55.780 --> 17:59.940
+The composite observer has established that pressure is elevated and there is noise.
+
+18:00.460 --> 18:02.220
+They are fully certified to vent the machine.
+
+18:02.340 --> 18:02.500
+Right.
+
+18:02.800 --> 18:08.160
+But critically, at time zero, before they vent, the rules also state they are perfectly authorized
+
+18:08.160 --> 18:09.440
+to just restart the machine.
+
+18:09.560 --> 18:10.480
+It is in the C set.
+
+18:10.520 --> 18:10.660
+Right.
+
+18:10.720 --> 18:11.120
+It's valid.
+
+18:11.360 --> 18:12.280
+But they choose to vent.
+
+18:12.580 --> 18:16.460
+So if the venting action fires, the state transitions from H zero to H one.
+
+18:16.780 --> 18:18.220
+And this is the pivot.
+
+18:18.940 --> 18:22.160
+The physical act of venting doesn't just change the physical pressure.
+
+18:22.160 --> 18:24.020
+It triggers a new historical rule.
+
+18:24.020 --> 18:31.020
+The safety protocol dictates a post vent system must be recalibrated before restarting.
+
+18:31.220 --> 18:36.420
+Oh, so you're saying a perfect mathematically valid decision at 2.0 p.m.
+
+18:36.420 --> 18:40.860
+is exactly what makes that same decision illegal at 2.01 p.m.
+
+18:40.980 --> 18:41.520
+Exactly.
+
+18:42.280 --> 18:43.720
+Restarting is suddenly invalid.
+
+18:43.920 --> 18:45.240
+It drops out of the C set.
+
+18:45.760 --> 18:49.380
+The system's own action changed the future decision problem.
+
+18:50.000 --> 18:52.320
+Decision systems are dynamical systems.
+
+18:52.520 --> 18:52.860
+Wow.
+
+18:52.860 --> 18:58.660
+If you model a system as a series of isolated moments, without recognizing that its output
+
+18:58.660 --> 19:02.960
+reshakes the next instance inputs, you will build a system that inevitably breaks its own
+
+19:02.960 --> 19:03.320
+rules.
+
+19:03.500 --> 19:05.020
+That is so true for our own lives, too.
+
+19:05.520 --> 19:10.000
+Taking action closes some doors while opening others, but structurally, it reshapes the governing
+
+19:10.000 --> 19:11.960
+relation of what we are allowed to do next.
+
+19:12.060 --> 19:12.400
+Yes.
+
+19:12.540 --> 19:14.160
+But this introduces a huge complication.
+
+19:14.160 --> 19:18.120
+If the rules change based on history and identity, then merely looking at the physical
+
+19:18.120 --> 19:19.980
+outcome of an action is entirely inadequate.
+
+19:19.980 --> 19:21.840
+We have to look at relational identity.
+
+19:22.060 --> 19:25.140
+Which is the core focus of Chapter 20, beyond physical state.
+
+19:25.440 --> 19:25.620
+Right.
+
+19:25.680 --> 19:27.340
+So Flixing introduces this notation.
+
+19:27.640 --> 19:32.140
+T of H, U equals T of H, V. But R of H, U does not equal R, J of H, V.
+
+19:33.260 --> 19:37.260
+Why doesn't the author care just about what an action does to the physical world?
+
+19:37.860 --> 19:43.060
+Because two actions can induce the exact same physical state transition in the world, but
+
+19:43.060 --> 19:45.360
+have completely different relational validity.
+
+19:45.600 --> 19:47.940
+Isn't that just a long way of saying context matters?
+
+19:47.940 --> 19:49.920
+It's far more rigorous than that.
+
+19:50.200 --> 19:51.820
+Think about a distributed database.
+
+19:52.520 --> 19:58.100
+Actor I is a citizen, like a senior database admin, wanting a routine script to delete a
+
+19:58.100 --> 19:59.020
+deprecated file.
+
+19:59.280 --> 19:59.560
+Okay.
+
+19:59.840 --> 20:05.940
+Actor J is a malicious hacker who bypasses the firewall and executes an exploit to delete
+
+20:05.940 --> 20:07.120
+that exact same file.
+
+20:07.560 --> 20:12.940
+If you only measure the physical state transition, what Flixing calls T, the result is identical.
+
+20:13.140 --> 20:14.080
+The file is gone.
+
+20:14.180 --> 20:14.400
+Right.
+
+20:14.540 --> 20:15.740
+The hard drive sectors are wiped.
+
+20:15.740 --> 20:18.960
+But the relational status Rye versus RJ is totally opposite.
+
+20:19.240 --> 20:20.820
+One was authorized, one was a breach.
+
+20:21.200 --> 20:23.060
+Some rules are irreducibly relational.
+
+20:23.360 --> 20:26.040
+They exist only between specific actors and histories.
+
+20:26.380 --> 20:31.240
+So if your observability platform only monitors physical state like CPU load or table size,
+
+20:31.580 --> 20:32.500
+it won't see the hack.
+
+20:32.840 --> 20:33.400
+Precisely.
+
+20:33.900 --> 20:37.940
+And this is why Flixing introduces evidence objects, denoted as E.
+
+20:38.320 --> 20:40.420
+A decision shouldn't just assert a fact.
+
+20:40.620 --> 20:43.800
+It shouldn't just return a Boolean, true for authorized.
+
+20:43.800 --> 20:44.360
+Right.
+
+20:44.580 --> 20:50.320
+It needs a tangible evidence object, a cryptographic signature, provenance, a timestamp.
+
+20:50.580 --> 20:57.720
+When the K-layer establishes validity, it binds the action to this evidence object so it can be audited later.
+
+20:57.940 --> 21:02.100
+That sounds like the blueprint for a bulletproof legal or institutional system.
+
+21:02.160 --> 21:02.960
+It really is.
+
+21:03.080 --> 21:08.020
+Which leads us directly to the real-world applications of the paper, the so what of it all.
+
+21:08.020 --> 21:09.640
+So what does this all mean?
+
+21:09.840 --> 21:10.760
+How do we use this?
+
+21:11.260 --> 21:12.980
+The domain applications are massive.
+
+21:13.440 --> 21:15.000
+Let's look at security and authentication.
+
+21:15.700 --> 21:20.100
+Flixing shows us that just because a credential exists doesn't automatically mean an action is authorized.
+
+21:20.760 --> 21:23.620
+Identity is not evidence, and evidence is not commitment.
+
+21:23.840 --> 21:24.000
+Right.
+
+21:24.080 --> 21:24.780
+There are separate layers.
+
+21:25.080 --> 21:26.220
+What about autonomous agents?
+
+21:26.220 --> 21:36.460
+For AI, separating the actuators, which is feasibility, from the safety constraints, validity from the perception establishability, and finally from the planning commitment makes AI auditable.
+
+21:37.000 --> 21:39.640
+If a drone crashes, you know exactly which layer failed.
+
+21:40.020 --> 21:40.280
+Wow.
+
+21:40.780 --> 21:42.360
+And scientific reasoning too, right?
+
+21:42.560 --> 21:42.920
+Yes.
+
+21:43.600 --> 21:45.860
+An observation does not entail an inference.
+
+21:46.280 --> 21:48.800
+An inference doesn't entail a warranted result.
+
+21:49.140 --> 21:52.160
+And a warranted result doesn't entail that you should act on it.
+
+21:52.160 --> 21:59.560
+So to bring this all together for the listener to take into their own work, there are four final design principles mandated by the text.
+
+21:59.860 --> 22:00.600
+Let's run through them.
+
+22:00.680 --> 22:02.580
+Principle one, preserve the boundaries.
+
+22:02.940 --> 22:06.360
+Never collapse F, C, K, and A.
+
+22:07.080 --> 22:13.680
+Explicitly design your systems to separate physical capability from relational rules from certifiable evidence.
+
+22:14.000 --> 22:16.920
+Principle two, design for relevant distinguishability.
+
+22:17.100 --> 22:19.200
+Only partition what needs different treatment.
+
+22:19.200 --> 22:22.960
+Engineer your data equivalence classes to match your rule variance.
+
+22:23.100 --> 22:27.360
+Principle three, change the evaluation position when local inference isn't enough.
+
+22:27.780 --> 22:29.420
+Build composite observer patterns.
+
+22:29.740 --> 22:33.220
+Bring the evidence together mathematically before you ask if the rules are satisfied.
+
+22:33.380 --> 22:35.640
+And principle four, make history explicit.
+
+22:35.920 --> 22:38.040
+Because history determines future rules.
+
+22:38.580 --> 22:43.780
+Your architecture must dynamically re-evaluate the governing relation after every single action.
+
+22:44.100 --> 22:44.520
+Incredible.
+
+22:44.520 --> 22:49.700
+We started this deep dive with a simplistic, single-function view of decisions.
+
+22:50.080 --> 22:55.980
+And we've expanded it into a four-dimensional, history-dependent, heavily audited architecture.
+
+22:56.240 --> 23:01.580
+But if we connect this to the bigger picture, there is one final, unmentioned implication for the listener to ponder.
+
+23:01.700 --> 23:02.580
+Okay, let's hear it.
+
+23:02.840 --> 23:13.340
+What happens when two autonomous AI systems, both perfectly running this layered framework, interact with each other in the same environment?
+
+23:13.340 --> 23:13.940
+Oh, wow.
+
+23:14.060 --> 23:15.240
+A multi-agent scenario.
+
+23:15.460 --> 23:15.780
+Yes.
+
+23:16.200 --> 23:25.840
+If their relational rules, their C layers, and their evidence requirements, their K layers, are constantly and dynamically updating based on the other's non-monotonic history.
+
+23:26.040 --> 23:28.800
+Because every action rewrites the rules for the other one.
+
+23:28.840 --> 23:29.280
+Exactly.
+
+23:29.760 --> 23:31.900
+Could they trap each other in an infinite loop?
+
+23:32.340 --> 23:37.160
+A state of perfectly rational, fully certified, but completely paralyzed non-commitment.
+
+23:37.240 --> 23:38.400
+A digital standoff.
+
+23:38.760 --> 23:40.800
+Neither can act because the rules keep mutating.
+
+23:40.800 --> 23:41.480
+Precisely.
+
+23:41.780 --> 23:44.540
+They paralyze themselves because they are too mathematically rigorous.
+
+23:45.040 --> 23:46.780
+That is a wild thought to leave on.
+
+23:47.480 --> 23:49.760
+Thank you for joining us on this deep dive, everyone.
+
+23:50.020 --> 23:56.480
+We really encourage you to look at the systems around you, and even your own decisions, through these four distinct layers.
+
+23:56.900 --> 23:57.740
+Until next time.
+
+23:57.740 --> 24:02.800
+Teams will post actually.
+
+24:04.740 --> 24:06.460
+Thank you to my true thinking.
+
+24:06.500 --> 24:07.000
+Back in the video.
+
+24:07.200 --> 24:08.240
+Now we're from here.
+
+24:08.300 --> 24:10.100
+We'll see you next time.
+
+24:10.640 --> 24:11.060
+Bye-bye.
+
+24:11.060 --> 24:11.580
+Bye-bye.
+
+24:12.260 --> 24:13.060
+Bye-bye.
+
+24:13.120 --> 24:13.940
+Bye-bye.
+
+24:13.940 --> 24:14.160
+Bye-bye.
+
+24:14.300 --> 24:14.560
+Bye-bye.
+
+24:14.620 --> 24:14.920
+Bye-bye.
+
+24:15.060 --> 24:15.600
+Bye-bye.
+
+24:15.600 --> 24:16.120
+Bye-bye.
+
+24:16.120 --> 24:16.160
+Bye-bye.
+
+24:16.160 --> 24:16.560
+Bye-bye.
+
+24:16.620 --> 24:17.060
+Bye-bye.
+
+24:17.060 --> 24:18.060
+Bye-bye.
+
+24:18.060 --> 24:19.140
+Bye-bye.
+
+24:19.140 --> 24:20.080
+Bye-bye.
+
+24:20.120 --> 24:20.140
+Bye-bye.
+
+24:20.160 --> 24:22.480
+Bye-bye.
+
+24:22.560 --> 24:22.580
+Bye-bye.
+
+24:22.580 --> 24:23.700
+Bye-bye.
+
+24:23.700 --> 24:24.420
+Bye-bye.
+
+24:24.420 --> 24:24.720
+Bye-bye.
+
+24:24.720 --> 24:26.360
+Aaa-bye.
+
+24:26.360 --> 24:27.080
+Bye-bye.
+
