@@ -1,0 +1,391 @@
+\documentclass[11pt]{article}
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Pagella}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{margin=1.1in}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=black]{hyperref}
+
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\ql}{\ulcorner}
+\newcommand{\qr}{\urcorner}
+\newcommand{\quo}[1]{\ql #1\qr}
+\newcommand{\cmd}[1]{\texttt{#1}}
+
+\title{Rehearsable Abstraction:\\ Editable Expansion as a Regime of Implementation Visibility}
+\author{Flyxion\\ \small Independent Researcher}
+\date{September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent Programming culture treats abstraction as the art of hiding implementation: a good abstraction lets its user forget how the thing works. This essay isolates a different regime. In a \emph{rehearsable} abstraction, invoking an abbreviation does not execute the operation it stands for. It yields an editable textual representation of that operation, which the human may read, modify, and only then evaluate. The distinguishing structure is an intermediate quoted term that remains inside the interaction loop. The essay separates two properties usually conflated, compression of action and occlusion of implementation, and shows that expansion-based abbreviations compress without occluding. It gives an interventional criterion for when an expansion is actually being rehearsed rather than merely displayed, describes a lifecycle in which successful use makes the abstraction optional, catalogues prior art (fish abbreviations, readline expansion, Vim and Emacs abbreviations, AutoHotkey hotstrings, snippet engines), and states the claims that remain empirical. It then extends the interventional criterion, explicitly as analogy, to rendered parameterizations of experience and to interpersonal interpretation.
+\end{abstract}
+
+\section{The default view of abstraction}
+
+The standard account of abstraction says that its purpose is to relieve the user of detail. A function name stands for a procedure; once the name is trusted, the procedure can be forgotten. Parnas's information hiding, encapsulation, and the black-box ideal all express the same aim: the more completely the implementation disappears from the user's working attention, the better the abstraction has done its job.
+
+That aim is well suited to operations one has mastered and no longer wishes to think about. It is poorly suited to operations one is still learning, because for a learner the implementation is exactly the material to be acquired. A shell alias for a long media-conversion command is a typical case. The alias saves keystrokes and, in the same stroke, removes the command from view. The user who invokes it a hundred times may know the command no better on the hundredth use than on the first.
+
+There is a small and common alternative. Instead of binding the abbreviation to the effect, bind it to the text. Typing the abbreviation replaces it in place with the full command line, leaving the cursor where the human can inspect and change the command before pressing Enter. Nothing has been executed. What the abbreviation produced is syntax.
+
+This essay treats that alternative as an abstraction regime in its own right and asks what is distinctive about it. The answer is not the interaction technique, which is old. It is a design stance: that implementation visibility can be a feature of an abstraction rather than leakage from it.
+
+\section{The mechanism}
+
+Let $a$ be an abbreviation and $t$ its canonical expansion, a piece of text in some command language. Write $\quo{t}$ for the quotation of $t$, the term as a manipulable object rather than as something to be run. Ordinary execution abstraction has the form
+\[
+a \;\longrightarrow\; t \;\longrightarrow_{\mathrm{eval}}\; r,
+\]
+where $r$ is the result. An alias, a function, and a script all fit this pattern from the user's side: the name goes in and the effect comes out.
+
+Expansion-based abbreviation has the form
+\[
+a \;\longrightarrow\; \quo{t} \;\longrightarrow_{H}\; \quo{t'} \;\longrightarrow_{\mathrm{eval}}\; r',
+\]
+where $H$ is a rewriting step performed by the human, possibly the identity, and $t'$ is the edited term. The quoted stage $\quo{t}$ is not incidental interface. It is the object of interest, because it is the point at which the implementation re-enters the perceptual field before anything happens.
+
+\begin{remark}[Why not partial application]
+A first formalization might treat the abbreviation as a partially applied function. Suppose a general operation $F$ takes an input pattern, an output format, and a parameter set and constructs a concrete command $C(i,o,p)$. Fixing the arguments to \cmd{*.m4a}, \cmd{mp3}, and \cmd{192k} gives a specialization, and neighboring specializations such as the same conversion over \cmd{*.mp4} share a prefix of arguments. Currying therefore explains why a \emph{family} of neighboring commands exists. It does not describe the operative step. Partial application yields a function; the abbreviation yields a term. The editing that turns the \cmd{.m4a} variant into the \cmd{.mp4} variant is rewriting of $\quo{t}$, not application of anything.
+\end{remark}
+
+The mechanism thus has three roles played by one piece of text. It is a specialization (a concrete command for a recurrent purpose), a quotation (an object the human can read), and a template (a starting point for nearby commands). An alias is only the first of these.
+
+\section{Two axes that are usually conflated}
+
+Abstraction mechanisms differ along two independent dimensions.
+
+\emph{Compression of action} is the reduction in what the user must produce in order to invoke the operation. \emph{Occlusion of implementation} is the reduction in what the user is exposed to of how the operation is built. Conventional abstraction tends to deliver both at once, which is why they are rarely distinguished. They come apart as follows.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}p{3.3cm}p{5.2cm}p{5.2cm}@{}}
+\toprule
+ & \textbf{Implementation occluded} & \textbf{Implementation exposed}\\
+\midrule
+\textbf{Action compressed} & alias, function, executing macro, script with a short name & expansion-based abbreviation, snippet with editable slots\\
+\textbf{Action not compressed} & script with a long name, opaque wrapper & typing the full command\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The interesting cell is the upper right. It is the only one in which the user pays less to invoke the operation while being shown, each time, what the operation is. The lower left is rarely designed on purpose, but it exists: a wrapper invoked by a long name that hides its contents.
+
+The point of separating the axes is to make the claim precise. The claim is not that expansion is better than execution in general. It is that the two properties can be chosen independently, and that for operations under active learning there is a case for choosing compression without occlusion.
+
+\section{When an expansion is rehearsed}
+
+Visibility is necessary for rehearsal but not sufficient. A user who presses Enter reflexively on every expansion sees the text without reading it. Physically the chain is still
+\[
+a \to \quo{t} \to \mathrm{eval}(t),
+\]
+but functionally it has collapsed to $a \to r$. The syntax remains on screen and has become invisible to the process.
+
+What distinguishes the two cases is whether the content of the quoted term influences what the human does next. That is a property of the interaction, not of the interface, and it can be stated as an interventional condition, in the sense of the do-operator.
+
+\begin{definition}[Rehearsed expansion]
+Let $X$ denote the human's next action after the expansion appears (edit, evaluate unchanged, abandon), and let $\mathrm{disp}$ denote the text displayed. An expansion is \emph{rehearsed} in a context if there exist displayed texts $\tilde t$ that differ from the canonical $t$ in some component, such that
+\[
+P\big(X \mid \mathrm{do}(\mathrm{disp}=\tilde t)\big)\;\neq\;P\big(X \mid \mathrm{do}(\mathrm{disp}=t)\big).
+\]
+An abstraction is \emph{rehearsable} if its invocation produces a displayed, editable term before evaluation; it is \emph{rehearsed} to the extent that the condition above holds.
+\end{definition}
+
+The definition is deliberately interventional. Conditioning on the displayed text is useless here, because the expansion is a deterministic function of the abbreviation, so within a fixed abbreviation the canonical text never varies and any observational association is vacuous. Only by perturbing what is displayed can one ask whether the human's behavior tracks it. The user who would silently run a version whose bitrate flag had been changed is not reading the expansion; the user who notices is.
+
+\begin{remark}
+This is the same distinction that separates conditioning from intervention in causal inference: adding observations updates a belief without restructuring a dependency, while an intervention alters what the downstream variable can depend on. In these terms, a reflexive Enter corresponds to a flat region of the attentional landscape, one in which the option of editing exists but no gradient distinguishes it from the option of not editing.
+\end{remark}
+
+The perturbation test is an experimental design and carries a practical caution: perturbations must be benign, for example confined to flags whose wrong values are harmless or to a dry-run mode, since silently altering commands the user will execute is not acceptable.
+
+\section{Lifecycle: success makes the abstraction optional}
+
+An alias is designed to remain in use indefinitely; each use that does not require the implementation counts as success. A rehearsable abstraction has the opposite trajectory. Its intended lifecycle is
+\[
+\begin{aligned}
+&\text{unfamiliar syntax} \to \text{recognizable expansion} \to \text{editable template}\\
+&\qquad\to \text{remembered grammar} \to \text{optional abbreviation}.
+\end{aligned}
+\]
+At the last stage the abbreviation may persist for its keystroke savings, but dependence on it has fallen. The user could type the command unaided, and often does when a variant is needed. The abstraction has made itself unnecessary as a source of knowledge while remaining useful as a convenience.
+
+This is what makes the two-axis separation operational. Both an alias and an expansion reduce initial typing. Only the alias necessarily removes the underlying expression from the interaction loop for good. Compression of action can persist indefinitely; occlusion is the property that determines whether the user ever comes to own the grammar.
+
+The unit being learned is not specific to any shell. It may be a media-conversion command, a version-control invocation, a SQL pattern, a LaTeX construct, a compiler flag set, or any other textual command language whose expressions have internal grammar.
+
+\section{Prior art}
+
+The interaction technique is not new, and the essay should not pretend otherwise.
+
+The \emph{fish} shell provides abbreviations (\cmd{abbr}) that expand in place when the user types the abbreviation and a space or presses Enter, leaving the full command visible and editable before execution. This is nearly the exact mechanism described here. Bash and other readline-based shells provide commands for expanding aliases and shell expressions in the input line without executing them (for example \cmd{alias-expand-line} and \cmd{shell-expand-line}), which supply the same stage on request rather than automatically. Vim's insert-mode abbreviations and Emacs's abbrev mode expand text as it is typed, and AutoHotkey hotstrings do the same system-wide, which shows that the idea is not intrinsically a shell feature. Snippet systems in editors and integrated development environments go further by adding placeholder positions that the cursor visits in turn, an explicit affordance for editing the expansion.
+
+What these systems establish is that the mechanism is available and widely used. What they do not typically claim is a design rationale in which exposure is the point. They are ordinarily presented as typing aids. The contribution proposed here is the reframing: expansion viewed as an abstraction regime whose implementation visibility is intentional, evaluated by whether it supports progressive internalization rather than by keystrokes saved.
+
+\section{Failure modes and design responses}
+
+\paragraph{Habituation.} The principal failure is reflexive Enter, discussed above. Because predictable expansions are the ones people stop reading, a mechanism concerned with rehearsal has reason to introduce controlled variation: placing a different argument first, leaving one slot blank for the user to fill, or offering the neighboring variant as a suggested edit. Each restores a reason to read. This is a testable intervention, and it is the same perturbation used in the criterion of Section 4, serving as both instrument and remedy.
+
+\paragraph{Exposure as noise.} Long expansions may exceed what a reader will parse at each invocation, in which case visibility becomes clutter. The regime is best suited to expansions short enough to be read at a glance, or to a layered arrangement in which the expansion is short and the elaborate parts are exposed only when the user opts in.
+
+\paragraph{Premature internalization of error.} Because the user edits and then evaluates, an incorrect edit is executed as written. Rehearsal increases contact with the grammar; it does not add verification. Dry-run flags and confirmation for destructive operations remain separate matters.
+
+\section{What remains empirical}
+
+The claims above about mechanism, the two axes, and the interventional criterion are conceptual. Whether editable expansion produces better retention than aliasing is an empirical question and is not established by the formalism. The natural measurements, all obtainable from interaction logs, are:
+
+\begin{itemize}
+\item \emph{Edit rate}: the fraction of expansions modified before evaluation.
+\item \emph{Dwell time}: the interval between expansion and Enter, a rough proxy for parsing.
+\item \emph{Neighborhood use}: whether edited variants cluster near the canonical expansion, indicating use as a template.
+\item \emph{Dropout}: whether the full command is eventually typed unaided, with the abbreviation abandoned or retained only for keystrokes.
+\item \emph{Perturbation detection}: the rate at which benign alterations to the displayed text are noticed, the direct estimate of the criterion in Section 4.
+\end{itemize}
+
+It is also worth choosing the term with care. \emph{Spaced repetition} ordinarily denotes scheduling exposures at intervals tuned to retrieval performance. Nothing here schedules anything; usage determines when exposures occur. The accurate description is \emph{incidental rehearsal}: repeated contextual exposure with occasional active modification.
+
+\section{Rendered rehearsal: from syntax to phenomenology}
+
+The mechanism need not expand into linguistic syntax. It may expand into a perceptible model whose parameters remain editable before the model is committed as a report. The Tracer Replication Tool developed at the Qualia Research Institute \cite{qri} provides an instructive case. A participant attempts to reproduce a visual tracer, a trailing or repeating visual effect, by adjusting parameters governing persistence, intensity, decay, strobe frequency, replay frequency, pulse, ADSR envelopes, and color inversion. The output is not simply selected from a fixed catalogue. It is repeatedly rendered, compared with experience, and revised.
+
+Let $\mathcal{E}$ denote a space of experiences, $\Theta$ a parameter space, and
+\[
+R:\Theta\longrightarrow\mathcal{V}
+\]
+a renderer into a space of visible dynamic patterns. Given an experience $e\in\mathcal{E}$, the participant seeks a parameter vector $\theta^\ast$ such that $R(\theta^\ast)$ resembles $e$ under a subjective comparison functional
+\[
+D_e:\mathcal{V}\longrightarrow\mathbb{R}_{\geq 0}.
+\]
+The interaction is an iterative search
+\[
+\theta_{k+1}=H\bigl(\theta_k,R(\theta_k),e\bigr),
+\]
+terminating when further revisions no longer produce a meaningful reduction in $D_e$. The whole chain is
+\[
+e
+\longrightarrow
+\theta
+\longrightarrow
+R(\theta)
+\longrightarrow_H
+\theta'
+\longrightarrow
+R(\theta')
+\longrightarrow
+\text{submit}.
+\]
+
+This is a form of rehearsable abstraction. The parameter vector compresses a complex report, but the renderer prevents that compression from becoming complete occlusion. Each proposed description is expanded into a visible consequence before submission, and the participant can alter the description in response to what the expansion reveals. The rendered model plays the role occupied by the quoted term in the command-line case:
+\[
+\quo{t}
+\quad\longleftrightarrow\quad
+R(\theta).
+\]
+Both are intermediate representations that remain inside the human correction loop.
+
+\begin{definition}[Rendered rehearsal]
+A parameterized representation $(\Theta,R)$ is \emph{renderedly rehearsable} when a proposed encoding $\theta$ is transformed into a perceptible output $R(\theta)$ before commitment, and the perceived properties of that output can causally influence the submitted encoding. It is \emph{renderedly rehearsed} when there exist $\theta,\tilde\theta$ such that
+\[
+P\bigl(\theta_{\mathrm{sub}}\mid\mathrm{do}(R=R(\theta))\bigr)
+\neq
+P\bigl(\theta_{\mathrm{sub}}\mid\mathrm{do}(R=R(\tilde\theta))\bigr).
+\]
+\end{definition}
+
+As before, display alone is insufficient. If the participant adjusts controls according to a remembered verbal category while ignoring the rendered result, the rendering has no corrective role. Conversely, when an unexpected visual consequence causes the participant to reconsider a parameter, the implementation has become part of the inquiry.
+
+\subsection{Vocabulary acquisition}
+
+A rendered abstraction can teach not only parameter values but a factorization of the represented phenomenon. Before using such a tool, a participant may possess only an undifferentiated description such as ``the object left trails.'' After repeated use, the participant may distinguish continuous persistence from discrete strobing, delayed replay from pulsed intensity, and luminance modulation from color inversion. The tool thereby supplies a provisional grammar of experience.
+
+This learning process has the same lifecycle as editable command expansion:
+\[
+\begin{aligned}
+&\text{undifferentiated experience}
+\to \text{recognizable rendering}
+\to \text{editable parameterization}\\
+&\qquad\to \text{internalized distinctions}
+\to \text{optional interface}.
+\end{aligned}
+\]
+The abstraction becomes optional when the participant can apply its distinctions without reopening the tool. At that point the interface has ceased to be merely a reporting device and has become a means of perceptual education.
+
+\subsection{The danger of supplied coordinates}
+
+The same structure that makes rendered rehearsal powerful introduces a distinct epistemic hazard. The renderer exposes the consequences of a parameterization, but it does not expose phenomena for which the parameterization contains no coordinate. Let
+\[
+\mathcal{M}=R(\Theta)\subseteq\mathcal{V}
+\]
+be the model manifold of all outputs the tool can generate. The fitting procedure can find only
+\[
+\theta^\ast\in\arg\min_{\theta\in\Theta}D_e(R(\theta)).
+\]
+A close optimum shows that some available rendering resembles the experience. A poor optimum may indicate either inaccurate recollection or model inadequacy. The interface cannot distinguish these possibilities by itself.
+
+More seriously, different parameter vectors may produce perceptually indistinguishable outputs:
+\[
+\theta_1\neq\theta_2
+\quad\text{while}\quad
+R(\theta_1)\simeq R(\theta_2).
+\]
+The inverse problem is then non-identifiable. A fitted frequency or decay constant should not automatically be interpreted as the corresponding frequency or decay process in the nervous system. It is first a coordinate of the replication system: a fitted replay frequency establishes that a replay at that frequency in this renderer resembles the remembered experience, not that a replay loop at that frequency exists in the brain.
+
+The tool can also alter the report it is intended to elicit. Once a participant learns the categories \emph{strobe}, \emph{replay}, and \emph{pulse}, subsequent recollection may be reorganized around those categories. Formally, the comparison functional is not necessarily fixed:
+\[
+D_e^{(k+1)}
+=
+L\bigl(D_e^{(k)},R(\theta_k)\bigr),
+\]
+where $L$ represents learning or suggestion induced by exposure to the tool. The participant is not merely searching a static model space; the search may change the perceptual vocabulary by which the target experience is remembered.
+
+Rendered rehearsal therefore occupies an intermediate position between measurement and training. Its virtue is that the model remains visible and revisable. Its limitation is that visibility of the rendering does not guarantee visibility of the representational choices that made that rendering possible. The case generalizes to any interface with three properties: a compressed parameterization, an exposed consequence, and a human revision step before commitment.
+
+\section{Relational rehearsal}
+
+The preceding accounts concern a human interacting with a textual or rendered implementation. The structure admits a broader extension, which is offered here as deliberately analogical rather than as something the shell case proves. The bridge is the shared intermediate object: in the technical case, a quoted command remains available for inspection before execution; in the relational case, a proposed interpretation or continuation remains revisable before it is imposed.
+
+In a relationship, one person frequently acts not upon the other person directly, but upon a representation of what the other person means, needs, or may become. The danger is therefore similar to execution abstraction: an interpretation may pass directly into action without remaining available for inspection or correction.
+
+Let $i$ and $j$ be persons, let $s_j$ denote the presently observed state of $j$, and let $M_i(s_j)$ be $i$'s interpretation of that state. An unrehearsed relational transition has the form
+\[
+s_j \longrightarrow M_i(s_j)
+\longrightarrow_{\mathrm{act}} x,
+\]
+where $x$ is an action taken by $i$. The interpretation becomes operative without first becoming a shared object.
+
+A relationally rehearsable transition instead has the form
+\[
+s_j \longrightarrow \quo{M_i(s_j)}
+\longrightarrow_{H_{ij}} \quo{M'_{ij}(s_j)}
+\longrightarrow_{\mathrm{act}} x',
+\]
+where $H_{ij}$ is a revision process in which the represented person can correct, refuse, qualify, or replace the interpretation before it becomes action. The quotation marks do not imply that a person is reducible to a term. They mark the opposite: the representation is being held apart from the person so that it can be revised rather than mistaken for its object.
+
+\begin{definition}[Relational acceptance]
+Person $i$ \emph{accepts} a state of person $j$ when $i$ admits that state as evidence about $j$ without requiring its prior conversion into a state preferred by $i$. Formally, if $\Pi_i$ is the projection of observed states onto states acceptable to $i$, acceptance requires that
+\[
+M_i(s_j) \neq \Pi_i(s_j)
+\]
+whenever the projection would erase a distinction to which $j$ remains committed.
+\end{definition}
+
+Acceptance is therefore not approval, agreement, or passivity. It is a constraint on representation: the observed state must be allowed to correct the model rather than being rewritten merely to preserve the observer's expectations.
+
+\begin{definition}[Relational continuity]
+Let $R_t(i,j)$ denote the relation between $i$ and $j$ at time $t$. The relation has \emph{continuity} over $[t_0,t_n]$ when there exists a sequence
+\[
+R_{t_0},R_{t_1},\ldots,R_{t_n}
+\]
+such that each transition preserves at least one mutually recognizable path of answerability to the preceding state. Continuity does not require
+\[
+R_{t_{k+1}}=R_{t_k}.
+\]
+It requires that change not destroy every path by which an earlier commitment, injury, refusal, or act of care can remain consequential.
+\end{definition}
+
+This separates continuity from sameness. A relation that cannot change is merely rigid. A relation that can change without retaining any answerability is merely successive. Continuity is transformation with a recoverable path.
+
+Let $\mathcal{C}_j(s)$ be the continuations available to $j$ from state $s$, and let $\mathcal{A}_{i\to j}(s)\subseteq\mathcal{C}_j(s)$ be the continuations that the conduct of $i$ leaves practically admissible to $j$.
+
+\begin{definition}[Love]
+An action by $i$ is \emph{loving toward} $j$ when it tends to preserve or enlarge the viable continuation set of $j$ without appropriating $j$'s authority to select among those continuations:
+\[
+\mathcal{A}_{i\to j}(s_{t+1})
+\supseteq
+\mathcal{A}_{i\to j}(s_t),
+\]
+subject to the preservation of $j$'s capacities for refusal, revision, and return.
+\end{definition}
+
+The qualification is essential. Mere enlargement of options is not love if the options are chosen entirely by the giver, if refusal is punished, or if accepting assistance transfers control of subsequent transitions. Commitments can also legitimately narrow a continuation set; what the definition tracks is whether the narrowing is authored by $j$ or imposed on $j$. Love is not maximal permissiveness. It is the maintenance of another's viable difference through time.
+
+\begin{definition}[Family]
+A \emph{family} is a temporally persistent network $G_t=(V,E_t)$ in which the continuations of its members are treated as mutually consequential. For an edge $(i,j)\in E_t$, changes in the viable continuation set of $j$ enter the practical deliberation of $i$:
+\[
+\Delta\mathcal{C}_j \;\Rightarrow\; \Delta\mathcal{A}_i,
+\]
+not merely as information about $j$, but as a reason capable of altering $i$'s own action.
+\end{definition}
+
+This definition does not require biological relation, co-residence, affection at every moment, or permanence. It identifies family with a structure of distributed consequence. Its pathological form occurs when mutual consequence becomes mutual control; its dissolution occurs when one member's disappearance no longer changes what the others regard as an admissible future.
+
+The definition above is binary: an edge either exists or it does not. Interdependence is not all-or-nothing, and the same interventional form used throughout the essay gives a graded version.
+
+\begin{definition}[Coupling weight and range]
+Let $X_i$ denote the subsequent action of $i$. The \emph{coupling weight} of $j$ on $i$ is
+\[
+w_{ij}
+=
+\sup_{c,c'}\;
+d_{\mathrm{TV}}\Bigl(
+P\bigl(X_i\mid\mathrm{do}(\mathcal{C}_j=c)\bigr),\;
+P\bigl(X_i\mid\mathrm{do}(\mathcal{C}_j=c')\bigr)
+\Bigr)\;\in[0,1],
+\]
+where the supremum ranges over admissible continuation sets of $j$ and $d_{\mathrm{TV}}$ is total variation distance. The \emph{range} of the tie is the set of changes $(c,c')$ to which $i$'s action responds, that is, those for which the distance is positive.
+\end{definition}
+
+Strength and range come apart. A tie can be strong but narrow, responding sharply to one kind of change in $j$'s prospects and not at all to others, or weak but wide. The binary definition is recovered by thresholding, $E_t=\{(i,j):w_{ij}>\tau\}$, and setting $w_{ij}=0$ gives no edge at all. The weights need not be symmetric: $w_{ij}\neq w_{ji}$ is the ordinary case, as with a caregiver and a dependent, or two people who value one another unequally. They also aggregate. Ties among individuals compose into the strength with which a household, a village, or a lineage figures in one member's deliberation, so the notion is not tied to a single scale.
+
+Two cautions keep the graded form from being misread. First, weight measures consequence, not health. A tie with $w_{ij}$ near $1$ is not thereby a good one, since mutual consequence turns into mutual control when refusal is punished, and the clause of the Love definition concerning refusal, revision, and return is what separates the two. Second, the interventional form describes what would have to differ, and cannot be run as an experiment on a person's prospects; in practice the weight can be probed only through conduct and report. Its use here is structural. A tie in which $j$ may speak freely about their prospects while $w_{ij}=0$ is the relational counterpart of displayed syntax followed by reflexive Enter.
+
+\begin{definition}[Research with]
+To \emph{research with} another person is to construct an inquiry in which both the object of investigation and the investigators' representations remain revisable. If $Q$ is a question, $D$ the resulting evidence, and $M_i,M_j$ the participants' models, then research with requires a revision map
+\[
+H_{ij}:(M_i,M_j,D)\longmapsto(M_i',M_j')
+\]
+for which neither participant possesses unilateral authority to classify every possible $D$ as confirmation of their initial model.
+\end{definition}
+
+Research \emph{on} another person can leave the investigator's categories fixed while treating the other as a source of observations. Research \emph{with} another person places those categories inside the interaction loop. The other participant can contest not only an answer but the terms under which an answer becomes legible.
+
+\begin{proposition}[Non-collapse of relational rehearsal]
+If the contribution of $j$ cannot alter either $M_i$ or the action chosen from it, then the interaction is not relationally rehearsed, even when $j$ is permitted to speak.
+\end{proposition}
+
+\begin{proof}
+Relational rehearsal requires the existence of some intervention on the contribution of $j$ such that
+\[
+P\bigl(X_i\mid\mathrm{do}(Y_j=y)\bigr)
+\neq
+P\bigl(X_i\mid\mathrm{do}(Y_j=y')\bigr),
+\]
+where $X_i$ is the subsequent interpretive or practical action of $i$. If no possible contribution by $j$ changes either the representation or the action, then $H_{ij}$ is constant with respect to $Y_j$. The apparent revision stage therefore has no causal role, and the interaction collapses to unilateral execution.
+\end{proof}
+
+The proposition follows from the interventional definition rather than adding to it; its use is to state the criterion in relational terms. The connection to rehearsable abstraction is close at the level that matters. Visibility alone is insufficient in both cases. Displaying a command does not constitute rehearsal if its contents cannot affect the next action. Allowing another person to speak does not constitute acceptance or joint inquiry if their contribution cannot alter the model under which action proceeds. The operative criterion is corrective permeability: whether what appears inside the intermediate stage can change what happens after it. Speech without causal influence is the relational equivalent of displayed syntax followed by reflexive Enter.
+
+\section{Relation to a constraint-first account of attention}
+
+The account of sustained attention in \emph{Never Bored} holds that convenience, while efficient, often masks invariants by collapsing distinctions, and that voluntary limitation reintroduces friction so that learning proceeds through compression rather than accumulation. Rehearsable abstraction can be read as a design that keeps the convenience while declining the collapse. The keystrokes are saved, but the distinction between one variant of the command and its neighbors remains available on screen at the moment it might matter.
+
+It differs from voluntary handicapping in a useful way. Handicapping removes the shortcut, for example by learning algebra without a calculator or programming without high-level abstractions. Rehearsable abstraction retains the shortcut and relocates the friction to a single point: the moment of reading the expansion. This is a lighter constraint, appropriate when full handicapping would cost more than it teaches.
+
+The same essay treats boredom as occupation of an option space in which no action carries informational advantage over another. The habituated expansion is a small instance. Editing is possible but no longer distinguishable in value from not editing, and the interaction goes flat. Didactic framing, the standing practice of treating a repeated situation as a probe for structure, corresponds here to reading the expansion as a question about the grammar each time it appears.
+
+\section{Conclusion}
+
+The claim is deliberately modest. Editable abbreviations are not new. What can be said is that they instantiate an abstraction regime, distinguishable from aliases, functions, and executing macros by an intermediate quoted term that stays inside the interaction loop; that compression of action and occlusion of implementation are separable properties, and this regime compresses without occluding; that a rehearsed expansion is one whose displayed content causally affects what the human does next; and that success, in this regime, means the abstraction's own use becomes optional.
+
+The extensions to rendered parameterizations and to interpersonal interpretation carry a different status. They share the structure of a revisable intermediate representation and the interventional test of whether it changes what follows, but they are analogies, and the definitions in the relational section in particular are proposals rather than results.
+
+For operations one is still learning, implementation visibility is not a defect to be engineered away. It can be the reason the abstraction exists.
+
+\begin{thebibliography}{9}
+\bibitem{parnas} Parnas, D. L. (1972). On the criteria to be used in decomposing systems into modules. \emph{Communications of the ACM}, 15(12), 1053--1058.
+\bibitem{pearl} Pearl, J. (2009). \emph{Causality: Models, Reasoning, and Inference} (2nd ed.). Cambridge University Press.
+\bibitem{qri} Qualia Research Institute. \emph{Tracer Replication Tool} (Psychophysics Toolkit), and accompanying writeup by A.\ G\'omez Emilsson and colleagues. \url{https://qri.org}.
+\bibitem{flyxion} Flyxion. \emph{Never Bored: Voluntary Constraint, Didactic Framing, and the Structural Conditions of Sustained Attention}. Unpublished essay.
+\end{thebibliography}
+
+\end{document}

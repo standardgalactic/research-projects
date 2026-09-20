@@ -1,3 +1,7 @@
+[Rehearsable Abstraction](https://standardgalactic.github.io/research-projects/unsorted/rehearsable-abstraction.pdf)
+
+[Unchosen Adjacency](https://standardgalactic.github.io/research-projects/unsorted/unchosen-adjacency.pdf)
+
 [Distinction Holonomy](https://standardgalactic.github.io/research-projects/unsorted/distinction-holonomy.pdf)
 
 <!--
@@ -15,4 +19,12 @@
 * [Notes](https://standardgalactic.github.io/research-projects/unsorted/Sparse_Recursive_Holographic_Steganography.pdf)
 -->
 
-![](repair-infographic.png)
+[Holocoordinate Systems](https://standardgalactic.github.io/research-projects/unsorted/holocoordinate-systems.pdf)
+
+<!--
+[Modality-Heading](https://standardgalactic.github.io/research-projects/unsorted/modality-heading.pdf)
+-->
+
+[Arranged Conditions](https://standardgalactic.github.io/research-projects/unsorted/arranged-conditions.pdf)
+
+![](doom-infographic.png)
