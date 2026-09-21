@@ -19,7 +19,7 @@
 * [Notes](https://standardgalactic.github.io/research-projects/unsorted/Sparse_Recursive_Holographic_Steganography.pdf)
 -->
 
-[Holocoordinate Systems](https://standardgalactic.github.io/research-projects/unsorted/holocoordinate-systems.pdf)
+[Holocoordinate Systems](https://standardgalactic.github.io/research-projects/unsorted/holocoordinate-systems-revised.pdf)
 
 <!--
 [Modality-Heading](https://standardgalactic.github.io/research-projects/unsorted/modality-heading.pdf)
