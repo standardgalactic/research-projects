@@ -1,0 +1,224 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathpazo}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\title{The Spin Count\\[4pt]
+\large Component, System, and Composed Capacity in a 96,000-Spin Ising Machine}
+\author{Flyxion\\ Independent Researcher}
+\date{September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A recent Nature Electronics paper describes a CMOS-integrated spintronic Ising machine as a memory ``with 96,000 spins'' and as an ``on-chip all-to-all Ising machine.'' Both descriptions are supported by evidence in the paper, but by different evidence: the first by a fabricated 96-kb memory array, the second by problem instances of 60 to 450 spins. This essay asks what a spin count certifies when the capacities it summarizes are established separately. It distinguishes component capacity, system capacity, and demonstrated compositional capacity, and observes that the spin count measures a resource that grows linearly with problem size while all-to-all coupling consumes a resource that grows quadratically. Two bounds follow for the demonstrated apparatus. An information-theoretic storage bound shows that the most charitable representation of an arbitrary dense binary coupling matrix at 96,000 spins exceeds the entire external memory of the controlling FPGA board. A bandwidth bound, derived from the paper's own definition of an iteration, shows that the reported 45\,ns iteration time is compatible at that scale only with a system in which almost no spins flip. Neither bound shows that the paper's results are wrong. Together they show that ``96,000-spin'' and ``all-to-all'' are each demonstrated, and that their conjunction is not.
+\end{abstract}
+
+\section{A Number in a Title}
+
+The abstract of the paper under discussion \cite{li2026} describes its device as a magnetoresistive random-access memory ``with 96,000 spins'' and, two sentences later, as an ``on-chip all-to-all Ising machine.'' Neither phrase is false. The chip contains a 96-kb array of voltage-controlled magnetic tunnel junctions, each of which serves as a probabilistic Ising spin, and the system solves problems in which any spin may be coupled to any other. A reader who joins the two phrases arrives at a third claim that the paper never states: a machine that couples 96,000 spins all to all.
+
+The joining is not a careless reading. It is what the phrases invite by appearing together, and the paper reinforces it elsewhere, describing a ``current spin capacity of 96k that can be straightforwardly extended to larger system sizes'' and calling such scalability indispensable for industrial-scale workloads \cite{li2026}. The question this essay pursues is narrower than whether the paper overstates its result. It is what kind of fact a spin count is, and which of several possible capacities the number 96,000 actually measures.
+
+The problem is general. Headline counts of processing elements (cores, qubits, neurons, tokens of context) routinely summarize a machine by the size of one component, and the component is usually the one whose size grows most gently with the problem. The Ising machine is an unusually clean specimen because its two resources, spins and couplings, have an exact and simple relation, and because the paper documents both its fabricated capacity and its demonstrated instances precisely enough to measure the distance between them.
+
+\section{Three Kinds of Capacity}
+
+Three notions need to be kept apart.
+
+\begin{definition}[Component capacity]
+The number of physical elements of a given kind present in a component, independently of whether the surrounding system can use them together. The VC-MRAM chip has a component capacity of 96,000 spins.
+\end{definition}
+
+\begin{definition}[System capacity]
+For a problem class $\mathcal{C}$, the largest $N$ such that the complete apparatus, as built, can accept and process every instance in $\mathcal{C}$ of size $N$. Write $\mathrm{Cap}(\mathcal{C})$.
+\end{definition}
+
+\begin{definition}[Demonstrated compositional capacity]
+The largest $N$ at which instances of $\mathcal{C}$ have actually been run on the apparatus, with the component capacity, the coupling architecture, and the update schedule all operating together.
+\end{definition}
+
+These are ordered in the obvious way for any fixed class,
+\begin{equation}
+\text{demonstrated} \;\leq\; \mathrm{Cap}(\mathcal{C}) \;\leq\; \text{component},
+\end{equation}
+but the ordering says nothing about the gaps, and the gaps are where the information lies. System capacity, in particular, is not a single number. It is a function of the problem class, and two classes that share a spin count can differ in system capacity by orders of magnitude. ``All-to-all'' names a class, dense couplings over arbitrary pairs, and ``96,000'' names a component. The conjunction ``96,000-spin all-to-all'' is a claim about $\mathrm{Cap}(\text{dense})$, which is a third thing.
+
+It is worth noticing how the component count entered the paper. The chip is introduced as a ``96-kb'' memory, a unit of storage, and becomes ``96,000 spins,'' a unit of computation, by the identification of one junction with one spin. The identification is correct at the device level. It is also the point at which a memory's size is converted into a machine's size, and the conversion carries the storage figure into a context where storage of spins is not the binding constraint.
+
+\section{What Was Demonstrated}
+
+The paper's demonstrations are clear about their scale. Global routing, formulated as a rectilinear Steiner minimum tree problem, is mapped to an Ising graph of 450 spins with a graph density of 4\%. Layer assignment is demonstrated on problems of 20 to 100 segments, one spin per segment, with the illustrated instance at a density of 30\%. The cross-platform benchmark is a 60-node Max-cut problem at 50\% connectivity, and the reported system energy efficiency of $1.92 \times 10^5$ solutions per second per watt is measured on that benchmark \cite{li2026}.
+
+Device-level characterization operates at a different scale again: switching probabilities measured over 1,000 write-read cycles per cell, variability characterized over more than 1,000 devices across multiple dies, and randomness assessed with the NIST statistical tests \cite{li2026}. These establish that the array is uniform and that its elements behave as tunable Bernoulli trials. They do not involve coupling at all.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrl}
+\toprule
+Result & Spins & Density & What it certifies \\
+\midrule
+Fabricated array & 96,000 & n/a & component capacity, uniformity \\
+Global routing (RSMT) & 450 & 4\% & coupled operation, sparse class \\
+Layer assignment & 20--100 & $\sim$30\% & coupled operation, moderate density \\
+Max-cut benchmark & 60 & 50\% & coupled operation, dense class \\
+\bottomrule
+\end{tabular}
+\caption{Scales at which the paper's results are established. The largest coupled instance uses 450 of 96,000 spins, about 0.47\% of the array; the largest dense instance uses 60.}
+\label{tab:scales}
+\end{table}
+
+Nothing here is a defect. A fabrication result legitimately establishes one kind of scale, and an application result establishes another. The point of Table~\ref{tab:scales} is only that every row certifies something different, and no row certifies the product of the first row with any of the others. The observation that 450 is less than half a percent of 96,000 is where most readers would stop. It is the least interesting fact in the table, because it invites the reply that larger instances were simply not attempted. The more useful question is whether they could have been, on this apparatus, and what the answer depends on.
+
+\section{Linear and Quadratic Resources}
+
+An Ising machine with all-to-all connectivity has two stores. The spin store holds the configuration $s \in \{-1,+1\}^N$ and requires $N$ bits. The coupling store holds the matrix $J$ and, for symmetric couplings with no self-interaction, requires one entry for each of the $N(N-1)/2$ unordered pairs. At $b$ bits per coupling the ratio of the two is
+\begin{equation}
+\frac{\text{coupling store}}{\text{spin store}} \;=\; \frac{b\,N(N-1)/2}{N} \;=\; \frac{b(N-1)}{2}.
+\end{equation}
+At $N = 96{,}000$ and even $b = 1$, the coupling store is about 48,000 times the size of the spin store. The spin array occupies 12 kilobytes. The couplings it would need in order to be all-to-all occupy several hundred megabytes.
+
+The spin count therefore measures the smaller of the machine's two resources, and the one that grows more slowly. This is the sense in which the paper's extension argument addresses the wrong term. The claim that capacity ``can be straightforwardly extended'' is supported by citation to a 64-Gb STT-MRAM \cite{hatsuda2025,li2026}, a result about memory density. Memory density scales the spin store linearly. It says nothing about the coupling store, which a machine with $N$ spins must supply in quantity proportional to $N^2$, and which in the demonstrated system does not reside on the magnetic chip at all. The chip performs the Bernoulli trials; the couplings are held and applied by the FPGA, which computes the energy change of each proposed flip by matrix-vector multiplication \cite{li2026}.
+
+\section{The Storage Bound}
+
+The first bound concerns whether an arbitrary dense instance at the full spin count can be represented anywhere in the demonstrated apparatus.
+
+\begin{proposition}[Information-theoretic storage bound]\label{prop:storage}
+Any system that can accept every symmetric binary coupling matrix on $N$ spins must, at some point, hold or receive at least $N(N-1)/2$ bits of coupling information per instance.
+\end{proposition}
+
+\begin{proof}
+There are $2^{N(N-1)/2}$ distinct symmetric matrices with entries in a two-element set and zero diagonal. A representation that distinguishes all of them requires at least $\log_2 2^{N(N-1)/2} = N(N-1)/2$ bits.
+\end{proof}
+
+The bound is deliberately charitable. It allows only two coupling values, whereas the routing and layer-assignment Hamiltonians use weighted couplings; it assumes perfect exploitation of symmetry; it charges nothing for addressing, alignment, or the fields $h$; and it reserves no memory for the operating environment. At $N = 96{,}000$ it gives
+\begin{equation}
+\frac{N(N-1)}{2} = 4{,}607{,}952{,}000 \text{ bits} = 575{,}994{,}000 \text{ bytes} \approx 549.3 \text{ MiB}.
+\end{equation}
+
+The demonstrated system is a VC-MRAM chip on a custom board, controlled by a Xilinx PYNQ-Z2 development board built on the Zynq XC7Z020 \cite{li2026}. That board carries 512\,MB of DDR3 memory and 630\,KB of on-chip block RAM \cite{pynq,tul}. Read as 512\,MiB, the most generous interpretation, the external memory holds 536,870,912 bytes, which falls short of the one-bit lower bound by about 37.3\,MiB before the operating system, the programmable-logic buffers, or any second bit per coupling is accounted for. The block RAM holds roughly $5.2 \times 10^6$ bits, enough for about 53 rows of the matrix.
+
+Two readings of this result should be avoided. It does not show that the paper claims otherwise, since the paper nowhere states that a dense 96,000-spin instance was run. And it does not show that no 96,000-spin all-to-all machine can exist: a larger controller would remove this particular bound. What it shows is that the apparatus the paper describes, the one whose measurements support its headline numbers, cannot hold an arbitrary dense instance at the size of its own spin array. On this apparatus, $\mathrm{Cap}(\text{dense binary})$ is strictly smaller than the component capacity, and it is smaller for a reason that follows from counting rather than from engineering detail.
+
+\section{The Time Bound}
+
+Storage is not the only way the couplings could be supplied. They could be streamed from a larger store, such as the host computer, and applied as needed. The second bound addresses this by asking how fast coupling information can reach the valuation logic, and it requires first fixing what the paper means by an iteration.
+
+The paper supplies the definition itself. It defines the flip rate as ``the proportion of spins that flip in the entire system per iteration,'' and reports that this rate approaches 0.5 at high temperature \cite{li2026}. A proportion near one half of all spins can only be reached if an iteration proposes an update for every spin, so an iteration is a sweep, or a parallel update, over the whole system. The methods section is consistent with this, describing the programmable logic as performing matrix-vector multiplication to compute pulse widths \cite{li2026}. The reported end-to-end iteration time of 45\,ns, attributed to the overhead of the FPGA computation fabric, is therefore a time per sweep, and it is measured on the 60-node benchmark.
+
+The cheapest scheme for such sweeps caches the local fields $L_i = \sum_j J_{ij} s_j + h_i$ on chip. The fields for 96,000 spins need about 216\,KB at 18 bits each and fit in block RAM. A proposal that is rejected then costs almost nothing. A flip of spin $k$ that is accepted, however, changes every field by $2J_{ik}s_k$ and requires column $k$ of the coupling matrix, which is $N - 1$ bits even at one bit per entry.
+
+\begin{proposition}[Bandwidth bound per iteration]\label{prop:time}
+Suppose couplings for an arbitrary dense binary instance reside off chip and reach the valuation logic over a link of bandwidth $B$ bytes per second, and at most $c$ columns can be cached on chip. An iteration in which $m$ distinct spins flip requires at least $(m - c)(N-1)/8$ bytes of coupling data, and hence a time of at least
+\begin{equation}
+t_{\mathrm{iter}} \;\geq\; \frac{(m - c)(N - 1)}{8B}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+For an arbitrary instance the columns of distinct flipped spins are independent data, and every entry of each column is needed to update the corresponding field before the next sweep. Columns not cached on chip must cross the link.
+\end{proof}
+
+The DDR3 interface on the board is 16 bits wide at 1050 megatransfers per second \cite{pynq}, a theoretical peak of about 2.1\,GB/s before protocol overhead and contention. The numbers at $N = 96{,}000$ are then:
+\begin{itemize}
+\item One column, about 12,000 bytes, takes about $5.7\,\mu$s at peak bandwidth, roughly 127 times the reported iteration time. A single accepted flip does not fit in one iteration.
+\item At a flip rate of 0.5, some 48,000 columns are needed per iteration. Even allowing all 53 cacheable columns, the transfer takes about 0.27\,s per iteration, about six million times the reported 45\,ns.
+\item Supplied from the host over gigabit Ethernet at 125\,MB/s instead, one full pass over the matrix takes about 4.6\,s.
+\end{itemize}
+Run the bound in reverse and it becomes a statement about what a 45\,ns iteration would mean. At 2.1\,GB/s, 45\,ns admits 756 bits of coupling data. At $N = 96{,}000$ that is less than one hundredth of one column, so a 45\,ns iteration is compatible with an arbitrary dense instance only if fewer than one spin flips in every 127 iterations: a system that is, for practical purposes, frozen. The paper's own annealing traces, in which flip rates begin near one half, describe the opposite regime.
+
+A bound in terms of arithmetic rather than transfer is also available, since the board has 220 DSP slices \cite{pynq}, but it depends on how binary products are implemented and is not needed. The transfer bound does not depend on how the valuation is computed, only on where the couplings are.
+
+\begin{remark}
+The safest form of the conclusion is this. The reported 45\,ns iteration time cannot include the valuation of an arbitrary dense 96,000-spin instance on the demonstrated board. It is a small-instance figure, and the paper uses it as one.
+\end{remark}
+
+\section{Narrowed Capacities}
+
+Every route around these bounds exists, and every route changes the claim. It is tempting to say that each workaround merely moves the failure elsewhere, but that is too strong. Structured problems can genuinely escape the dense bound. The accurate statement is that each workaround replaces unrestricted all-to-all capacity with a narrower, conditional capacity, and the condition is part of what the machine can be said to do.
+
+\textbf{Sparsity} changes the problem class. The routing instance has a density of 4\%, and a binary sparse matrix at that density has an entropy of about 0.24 bits per potential coupling, so a 96,000-spin instance of the same density could in principle be encoded in about 140\,MB. The storage bound no longer bites. The time bound still does: an entropy-coded column is about 2.9\,KB and takes about $1.4\,\mu$s at peak bandwidth, some 31 times the reported iteration time for a single accepted flip. What sparsity buys is a real capacity for a real class, and that class is not ``all-to-all.''
+
+\textbf{Procedural couplings}, generated by rule rather than stored, restrict the family of representable matrices to those the rule can produce. A machine that can solve every instance of a structured family is a capable machine for that family. It is not an all-to-all machine, because all-to-all is precisely the promise that the family is unrestricted.
+
+\textbf{Streaming} from a larger store trades memory for time, which is what Proposition~\ref{prop:time} measures. It establishes a capacity with a different iteration time, and the iteration time is one of the quantities the paper's efficiency figure depends on.
+
+\textbf{Compression} of $J$ helps exactly to the extent that $J$ has structure, and adds decoding cost; for an arbitrary matrix it cannot beat Proposition~\ref{prop:storage}.
+
+\textbf{Integration} into a system on chip, which the paper projects as a route to 1\,ns iterations and 1\,mW \cite{li2026}, relocates the coupling store and its bandwidth to a design that has not been built. Its capacity is a projection, and belongs in a different column from measured results.
+
+In every case the capacity that survives is indexed by a class: $\mathrm{Cap}(\text{sparse at density } p)$, $\mathrm{Cap}(\text{family } \mathcal{F})$, $\mathrm{Cap}(\text{dense} \mid t_{\mathrm{iter}})$. None of these is the unqualified number that appears in the abstract, and none of them is a failure.
+
+\section{What the Small Instances Certify}
+
+The 450-spin routing problem and the 60-node benchmark are not a disappointing fraction of a larger promise. They certify something the fabricated array cannot: that the physical update, the pulse-width mapping from energy change to switching probability, the annealing schedule, and the coupling logic operate together as a working search. The paper's central contribution, a sub-nanosecond, sub-40-femtojoule probabilistic update realized in the physics of a junction rather than assembled from random bits, is established at the device level and does not depend on any of the bounds above.
+
+What the small instances do not certify is that the demonstrated composition persists at the size of the array. Composition is the thing that has to be demonstrated, because it is the thing that can fail for reasons none of the components exhibit. Every component here performs as reported. The coupling store, which belongs to no single component, is where the full-scale composition breaks, and it breaks for a reason visible in a single line of arithmetic.
+
+\section{The General Pattern}
+
+The structure is common enough to name. A machine is headlined by a count of elements that scales linearly with problem size, while the function the headline invokes consumes a resource that scales faster, and the faster resource lives somewhere the count does not reach.
+
+Annealing processors with sparse hardware graphs are the closest case, and the paper itself criticizes them for ``sparse topological constraints'' \cite{li2026}. A dense problem must be embedded into the sparse graph by representing each logical variable as a chain of physical qubits, and the largest complete graph that can be embedded is far smaller than the qubit count \cite{choi2008}. The qubit count measures the linear resource; dense connectivity is the quadratic one. The spintronic machine makes the same trade in a different place: its connectivity is complete, but only because the quadratic resource has been moved off the chip and onto a controller whose memory sets the true limit.
+
+Transformer context windows follow the same pattern with attention, whose cost grows with the square of the sequence length \cite{vaswani2017}, so that a window stated as a token count is a linear figure standing in front of a quadratic process. Core counts in parallel processors do the same with memory bandwidth and interconnect. In each case the headline count is accurate, the function is real, and the claim that the two compose at full scale is a third statement requiring its own evidence.
+
+\section{Conclusion}
+
+A spin count is a fact about a component. ``All-to-all'' is a fact about a problem class. Their conjunction is a fact about system capacity, and system capacity is determined by whichever resource runs out first, which for dense Ising problems is the coupling store rather than the spins.
+
+For the demonstrated apparatus, two bounds locate that limit. The most charitable encoding of an arbitrary dense binary instance at 96,000 spins does not fit in the controller's memory, and even if it were streamed, the reported iteration time would require a system in which almost nothing moves. The paper establishes that 96,000 spins exist and that all-to-all coupling works. It does not establish that they work together, and the arithmetic suggests that on this apparatus they could not.
+
+The general lesson is a discipline of description:
+\begin{equation}
+\text{component capacity} \;\neq\; \text{system capacity} \;\neq\; \text{demonstrated compositional capacity}.
+\end{equation}
+Capacities that coexist in a system description have not thereby been composed. The work of composition is a result in its own right, and it should be reported at the scale where it was achieved.
+
+\begin{thebibliography}{9}
+
+\bibitem{li2026}
+S.~Li, Y.~Zhang, A.~Lee, Z.~Zhu, L.~Zeng, P.~Wang, L.~Gao, D.~Wu, and W.~Zhao.
+An Ising Machine for Combinatorial Optimization Based on Sub-Nanosecond CMOS-Integrated Magnetoresistive Random-Access Memory.
+\emph{Nature Electronics}, 2026. doi:10.1038/s41928-026-01700-6.
+
+\bibitem{hatsuda2025}
+K.~Hatsuda et al.
+A 64 Gb DDR4 STT-MRAM Using a Time-Controlled Discharge-Reading Scheme for a 0.001681\,$\mu$m$^2$ 1T-1MTJ Cross-Point Cell.
+In \emph{Proc. IEEE International Solid-State Circuits Conference (ISSCC)}, 2025.
+
+\bibitem{pynq}
+TUL Corporation and AMD Xilinx.
+PYNQ-Z2 Development Board: Specifications (Zynq XC7Z020-1CLG400C; 512\,MB DDR3, 16-bit bus at 1050\,Mbps; 630\,KB block RAM; 220 DSP slices).
+PYNQ project documentation and vendor product listings, accessed September 2026.
+
+\bibitem{tul}
+FPGA Developer.
+PYNQ-Z2 board catalog entry: XC7Z020-1CLG400C, 140 block RAMs of 36\,Kb.
+boards.fpgadeveloper.com, accessed September 2026.
+
+\bibitem{choi2008}
+V.~Choi.
+Minor-Embedding in Adiabatic Quantum Computation: I. The Parameter Setting Problem.
+\emph{Quantum Information Processing}, 7:193--209, 2008.
+
+\bibitem{vaswani2017}
+A.~Vaswani, N.~Shazeer, N.~Parmar, J.~Uszkoreit, L.~Jones, A.~N.~Gomez, {\L}.~Kaiser, and I.~Polosukhin.
+Attention Is All You Need.
+In \emph{Advances in Neural Information Processing Systems 30}, 2017.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,204 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathpazo}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\title{The Comparison Table\\[4pt]
+\large Boundaries, Estimates, and the Revision of a Benchmark}
+\author{Flyxion\\ Independent Researcher}
+\date{September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A comparison table makes machines commensurable that were built on different physics, measured at different boundaries, and run on different problems. It does this by choosing a metric, a reference task, a boundary for each quantity, and a rule for filling cells that the original sources left empty. This essay examines one such table in two versions: the arXiv preprint and the published Nature Electronics article describing a spintronic Ising machine built on voltage-controlled MRAM. In the preprint, every entry in the headline column of ``solutions per second per watt'' can be reproduced exactly from two other columns, per-spin update time and system power, through a formula that contains no solution quality at all. In the published version the metric is replaced by time-to-solution on a dense Max-cut benchmark, the machine's own figure rises almost eightfold, and its claimed advantage over competitors contracts from as much as $3.6 \times 10^7$ to at most $1.8 \times 10^4$. The revision is a substantial improvement, and it retains one assumption, that iterations-to-solution are independent of platform, which the paper's own data show to hold only under a condition the table does not report. The device result survives both tables. What the two versions show together is that a comparison table is not a measurement but a construction, and that the construction can move by up to three orders of magnitude without any machine changing.
+\end{abstract}
+
+\section{The Table as a Genre}
+
+Most results in hardware papers are measurements of one system. The comparison table is a different kind of object. It places a new machine beside machines its authors did not build, described in papers they did not write, and it reports a single figure of merit for each, so that the new machine can be ranked. Every cell in such a table has a provenance: measured by the authors, reported by another group, projected from a design, extrapolated from a different operating point, or estimated from an assumption. The final row, where the ranking lives, typically combines cells of several provenances into one number per column, and the headline ratio is then computed across columns.
+
+The genre deserves attention because its outputs travel. ``Outperforms state-of-the-art platforms by a factor of 60 to 18,000'' is the kind of sentence that enters abstracts, press releases, and citing papers, while the column definitions and footnotes that condition it stay behind. The question is not whether such tables are legitimate. They are, and a field without them could not compare anything. The question is what a table has to do to make its machines comparable, and what is left in the number after it has done it.
+
+The paper examined here \cite{li2026} is unusually useful for this purpose because it exists in two versions. An earlier version, posted to arXiv \cite{li2025arxiv}, contains a comparison table built on one metric and one reference task. The published version rebuilds the comparison on a different metric and a different task. The machine did not change between them. The table did.
+
+\section{Two Tables for One Machine}
+
+The two versions agree on the device. Each voltage-controlled magnetic tunnel junction realizes a probabilistic spin update in 0.3 to 1\,ns at under 40\,fJ, the chip holds a 96-kb array of such junctions, and the system runs at about 40\,mW. They disagree on almost everything the comparison table adds.
+
+\begin{table}[h]
+\centering
+\footnotesize
+\begin{tabular}{p{0.2\textwidth}p{0.33\textwidth}p{0.37\textwidth}}
+\toprule
+ & arXiv version \cite{li2025arxiv} & Published version \cite{li2026} \\
+\midrule
+Reference task & 100 spins, $10^4$ iterations & 60-node dense Max-cut, 50\% connectivity \\
+Metric & solutions/s/W, normalized & time-to-solution, solutions/s/W \\
+VSIM figure & $2.5 \times 10^4$ & $1.92 \times 10^5$ \\
+Advantage range & $1.5 \times 10^3$ to $3.6 \times 10^7$ & 60 to $1.8 \times 10^4$ \\
+Headline claim & six and seven orders over QPU and GPU & 60 to 18,000 times \\
+Competitor rows & GPU, QPU, CIM, PTNO, SOT-MTJ, SMTJ, V-MTJ & GPU, QPU, CIM, PTNO, memristor, SMTJ, V-MTJ \\
+\bottomrule
+\end{tabular}
+\caption{The same machine in two comparison tables. The published figures are taken from the article text; the published table itself is not reproduced here.}
+\label{tab:versions}
+\end{table}
+
+The movement is striking in both directions. The new machine's own efficiency figure rose by a factor of about 7.7. Its advantage over the field fell, at the upper end, by a factor of about 2,000. Both changes are consequences of the table's construction rather than of any new measurement of the device, and they show that the construction was carrying most of the weight in the earlier headline.
+
+The arXiv table also carried two features that the genre often contains in quieter forms. A row labelled ``Number'' listed the spin count of each platform: 96k for the new machine beside 1,143, 80, 8, and 1 for the spintronic and oscillator competitors. As the companion essay on spin counts argues, that row compares component capacities, not the capacities at which any machine was shown to solve a coupled problem \cite{flyxion-spincount}. And a row labelled ``Difficulty level'' rated each platform's demonstrated problems with one to four stars, awarding four to the new machine's routing and layer-assignment tasks and one to three to everyone else's. A self-assigned difficulty scale is an honest attempt to say something real, since routing instances with constraint penalties are harder than unconstrained Max-cut. It is also a cell whose values are chosen by the party being ranked.
+
+\section{A Metric Without Solutions}
+
+The arXiv table's headline column reports ``solutions per second per watt,'' normalized, according to its footnote, to ``a reference task involving a 100-spin system executing $10^4$ iterations.'' Each platform's entry can be reproduced from two other columns of the same table: the per-spin update time $t_{\mathrm{spin}}$ and the system power $P$. The formula is
+\begin{equation}
+\text{solutions/s/W} \;=\; \frac{1}{t_{\mathrm{spin}} \times 100 \times 10^4 \times P}.
+\label{eq:formula}
+\end{equation}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Platform & $t_{\mathrm{spin}}$ & $P$ & Equation~\eqref{eq:formula} & Reported \\
+\midrule
+GPU & 3.2\,$\mu$s & 450\,W & $6.94 \times 10^{-4}$ & $6.95 \times 10^{-4}$ \\
+QPU & 7\,ns & 25\,kW & $5.71 \times 10^{-3}$ & $5.71 \times 10^{-3}$ \\
+PTNO & 1.85\,$\mu$s & 32\,mW & $1.69 \times 10^{1}$ & $1.69 \times 10^{1}$ \\
+SMTJ & 100\,$\mu$s & 329\,mW & $3.04 \times 10^{-2}$ & $3.04 \times 10^{-2}$ \\
+V-MTJ & 160\,ns & 404\,mW & $1.55 \times 10^{1}$ & $1.55 \times 10^{1}$ \\
+VSIM & 1\,ns & 40\,mW & $2.50 \times 10^{4}$ & $2.50 \times 10^{4}$ \\
+\bottomrule
+\end{tabular}
+\caption{Every entry in the arXiv table's efficiency column is reproduced, to the reported precision, by Equation~\eqref{eq:formula}. Inputs are the table's own speed and power columns \cite{li2025arxiv}.}
+\label{tab:reconstruct}
+\end{table}
+
+The agreement is exact to the reported precision for all six rows. It follows that the ``solution'' in this column is a fixed budget of $10^6$ spin updates, and that the column measures how quickly and cheaply each platform performs one update, scaled by a constant. Nothing in it depends on whether any platform finds a good answer, how many iterations it would need to find one, or whether its update rule is the same kind of operation as anyone else's. A quantum annealer's 7\,ns and a GPU's 3.2\,$\mu$s enter the same formula as if each were a Glauber step.
+
+The formula also mixes boundaries within every row. The time term is taken at the device: 1\,ns for the new machine is the junction's switching time, not the 45\,ns end-to-end iteration of its FPGA-controlled system, which the published version later reports. The power term is taken at the system: 40\,mW for the whole board, and for the quantum annealer 25\,kW, a figure dominated by the cryogenic infrastructure that keeps its qubits at 12\,mK. Each row therefore multiplies a device-level time by a system-level or facility-level power, and the product is a hybrid that corresponds to no single physical boundary on any platform. Since the same hybrid is used in every row, it might be defended as a consistent convention. But a convention applied uniformly to quantities that sit at different boundaries on different machines is uniform only in its arithmetic.
+
+None of this implies bad faith. Equation~\eqref{eq:formula} is the natural thing to compute when the sources report speed and power but not a common success rate on a common task, which is the ordinary situation. The point is that the column's name described something the column did not contain.
+
+\section{The Revision}
+
+The published version replaces this metric with time-to-solution on a standardized 60-node dense Max-cut benchmark at 50\% connectivity, and reports that the new machine reaches $1.92 \times 10^5$ solutions per second per watt, experimentally \cite{li2026}. Two things improve at once. ``Solution'' now means a solution: time-to-solution folds in the number of iterations and the success probability needed to reach a target answer. And the new machine's time term is now its measured system iteration of 45\,ns, not its device switching time.
+
+Both changes are corrections in the direction this essay would ask for, and the text is careful about them. It identifies the 45\,ns as a consequence of the FPGA fabric, separates the measured figure from a projected one ($3.45 \times 10^8$, for a hypothetical integrated chip at 1\,ns and 1\,mW), and marks simulated or projected table values in parentheses. The headline range contracts accordingly, from as much as seven orders of magnitude to a factor of 60 to 18,000.
+
+What the revision does not change is the need to fill cells that the competitors' own papers left empty. Two spintronic platforms, the superparamagnetic (SMTJ) and the earlier voltage-controlled (V-MTJ) machines, had not reported results on the 60-node benchmark. Their entries are estimated, and the estimate rests on a stated assumption: that although per-iteration time varies across MTJ platforms, ``the iterations-to-solution value and the corresponding success probability can be treated as platform independent, reflecting the shared algorithmic behaviour of probabilistic Ising machines using simulated annealing'' \cite{li2026}. Under that assumption, a competitor's time-to-solution is its own per-iteration time multiplied by the new machine's measured iteration count. The competitor's search is borrowed; only its clock is its own.
+
+\section{Three Kinds of Number, and a Fourth}
+
+Across the two tables, four provenances occur.
+
+\begin{definition}[Provenances of a table cell]
+A cell is \emph{measured} if its value was obtained by running the stated system on the stated task; \emph{projected} if it describes a system not yet built; \emph{extrapolated} if it was measured on a different configuration and scaled, as with the arXiv table's power figure for the oscillator machine, marked as ``an estimated extrapolation to a 100-spin system''; and \emph{estimated} if it combines a measured quantity from one system with an assumed quantity from another.
+\end{definition}
+
+The published table marks projected and simulated values, and the text identifies the estimated rows. This is better practice than the genre usually manages. The difficulty lies downstream, in the headline range, which is a ratio between a measured cell in one column and cells of mixed provenance in others. A ratio inherits the weakest provenance of its terms. ``60 to 18,000 times'' is in part a ratio between a measurement and an estimate, and the estimate is only as good as the assumption that produced it.
+
+\section{Boundaries}
+
+Every quantity in a hardware comparison is drawn at a boundary, and the relevant boundaries nest:
+\begin{equation}
+\text{device} \;\subset\; \text{system} \;\subset\; \text{infrastructure}.
+\end{equation}
+For the new machine the device boundary gives under 40\,fJ per update, the system boundary gives 40\,mW for the board, and the infrastructure boundary would add the host computer that maps problems and displays results. For a quantum annealer the device boundary gives nanosecond qubit dynamics, and the infrastructure boundary gives the 25\,kW that the paper, correctly, charges to the machine, since the machine cannot run without its refrigerator. For a coherent Ising machine the relevant infrastructure includes kilometre-scale fibre cavities, which the paper cites as a constraint on compactness rather than as a power figure.
+
+There is no single correct boundary. A physicist comparing switching mechanisms wants the device figure; a data-centre operator wants the infrastructure figure. The requirement is only that a column be drawn at one boundary for every row, or that the table carry separate columns for separate boundaries. A column in which the boundary shifts from row to row, because each row's value is whatever its source happened to report, compares boundaries as much as it compares machines.
+
+\section{The Platform-Independence Assumption}
+
+The assumption that licenses the estimated rows is testable, and the paper contains the test.
+
+Extended Data Fig.~3 compares the new machine's junctions with linear-feedback shift registers of different bit widths as the source of randomness for the same routing problem on the same annealing schedule \cite{li2026}. The junctions reach a success probability comparable to a 16-bit register, while 8-bit and 4-bit registers do worse. Holding the algorithm fixed and varying only the resolution of the probabilities the platform can express changes the success curve. The iterations needed to reach a given success probability are therefore not independent of the platform in general; they depend at least on probability resolution. The companion essay \emph{The Shape of Search} reads this as a statement about the geometry of the search kernel, in which a coarser kernel explores a coarser space \cite{flyxion-shape}.
+
+This does not refute the table. It locates the condition under which the assumption holds.
+
+\begin{proposition}[Conditional transfer of iteration counts]
+Let two probabilistic Ising machines run the same annealing schedule on the same instance. If their transition kernels are equal, their iteration-to-solution distributions are equal. If the kernels differ, for instance in probability resolution, the distributions may differ, and a transfer of iteration counts from one machine to the other requires evidence that the difference does not matter for the instance class.
+\end{proposition}
+
+\begin{proof}
+With a common schedule and instance, the sequence of configurations is a Markov chain determined by the kernel and the initial distribution. Equal kernels give equal laws of the whole trajectory and hence of the hitting time of any target set. The paper's resolution experiment exhibits kernels that differ only in resolution and yield different success curves, so the second clause is not vacuous.
+\end{proof}
+
+Applied row by row, the proposition sorts the estimates. The earlier voltage-controlled machine assembles each random number from 16 sequential stochastic bits \cite{li2026,duffee2025}, which on the paper's own resolution data is the regime in which performance matches the new junctions. For that row the transfer is plausible, and the estimated entry is probably of the right order. For the superparamagnetic machine, whose probability resolution the paper does not report, the transfer rests on the assumption alone. The same test applies with more force to any platform whose update rule is not a Glauber step at all, such as quantum annealing or oscillator dynamics, where ``the same number of iterations'' may not name a shared quantity.
+
+The appropriate statement is therefore narrower than the paper's and more useful: iteration counts transfer between platforms whose kernels match in the respects the instance is sensitive to, and the paper's own resolution experiment shows which respect to check first.
+
+\section{The Operating Point}
+
+A benchmark is a choice of operating point, and every choice favors someone. A 60-node dense Max-cut instance is small, which suits a system whose measured iteration time was obtained at small scale, and dense, which penalizes hardware with sparse native connectivity, since dense problems must be embedded into such hardware at a large cost in physical qubits and chain control \cite{hamerly2019}. The paper states its choice openly and cites standard practice, and the choice is defensible: dense Max-cut is a common reference problem, and a benchmark every platform can in principle run has to be small.
+
+But the result is conditional on the choice in a way the headline range does not carry. At a different size the new machine's own iteration time would be different (the companion essay on spin counts shows how quickly it would grow for dense instances on the demonstrated controller \cite{flyxion-spincount}), and the competitors' positions would move as well. A ranking at one operating point is a ranking at that point. It becomes a ranking of machines only if the order is preserved across the operating points that matter, which a single-benchmark table cannot show.
+
+\section{What an Honest Table Requires}
+
+The two versions of this table, read together, suggest a short set of requirements. None is novel. What the example adds is evidence that each one changes the numbers.
+
+\begin{enumerate}
+\item \textbf{A metric that contains what its name says.} If the column is called solutions per second per watt, it should depend on whether solutions are found. The arXiv column did not; the published one does.
+\item \textbf{One boundary per column.} Device time should not be multiplied by facility power. Where sources report at different boundaries, the table should carry separate columns or leave cells empty.
+\item \textbf{Provenance on every cell.} Measured, projected, extrapolated, and estimated values should be marked individually, as the published table partly does.
+\item \textbf{No headline ratios across provenance classes.} A range computed between a measurement and an estimate should be reported as such, or split into a measured range and an estimated range.
+\item \textbf{Stated and tested equivalence assumptions.} Where one platform's behavior is borrowed to fill another's cell, the condition under which borrowing is valid should be named and checked, as the resolution experiment makes possible here.
+\item \textbf{More than one operating point, or a statement that there is only one.}
+\end{enumerate}
+
+These requirements do not ask for a less favorable conclusion. The device result, a sub-nanosecond, sub-40-femtojoule probabilistic update realized in the physics of a junction, stands whatever the table says, because it is a measurement of one system rather than a comparison among many. The requirements ask only that the comparison be built from quantities that are actually comparable.
+
+\section{Conclusion}
+
+A comparison table is an instrument of commensuration. It takes machines that share no physics, no boundary, and no problem, and makes them comparable by choosing a metric, a task, a boundary, and a rule for missing cells. Each choice is reasonable. Together they can determine most of the result.
+
+The two versions of this paper's table make the point with unusual clarity, because the machine is held fixed while the table changes. In the first version the efficiency column is a closed-form function of speed and power, and the machine's lead over the field spans up to seven orders of magnitude. In the second, solutions mean solutions, the machine's own figure improves, and its lead contracts by up to three orders of magnitude. The revision is the better table. It is also a demonstration that the headline number was never a property of the machine alone, but of the machine, the table, and the decisions that joined them.
+
+\begin{thebibliography}{9}
+
+\bibitem{li2026}
+S.~Li, Y.~Zhang, A.~Lee, Z.~Zhu, L.~Zeng, P.~Wang, L.~Gao, D.~Wu, and W.~Zhao.
+An Ising Machine for Combinatorial Optimization Based on Sub-Nanosecond CMOS-Integrated Magnetoresistive Random-Access Memory.
+\emph{Nature Electronics}, 2026. doi:10.1038/s41928-026-01700-6.
+
+\bibitem{li2025arxiv}
+S.~Li, Y.~Zhang, A.~Lee, Z.~Zhu, L.~Zeng, P.~Wang, L.~Gao, D.~Wu, and W.~Zhao.
+Ultra-Fast Ising Machine for Combinatorial Optimization Using Sub-Nanosecond CMOS-Integrated Magnetoresistive Random Access Memory.
+Preprint, arXiv:2505.19106, 2025.
+
+\bibitem{duffee2025}
+C.~Duffee et al.
+An Integrated-Circuit-Based Probabilistic Computer That Uses Voltage-Controlled Magnetic Tunnel Junctions as Its Entropy Source.
+\emph{Nature Electronics}, 8:784--793, 2025.
+
+\bibitem{hamerly2019}
+R.~Hamerly et al.
+Experimental Investigation of Performance Differences Between Coherent Ising Machines and a Quantum Annealer.
+\emph{Science Advances}, 5:eaau0823, 2019.
+
+\bibitem{flyxion-spincount}
+Flyxion.
+The Spin Count: Component, System, and Composed Capacity in a 96,000-Spin Ising Machine.
+September 2026.
+
+\bibitem{flyxion-shape}
+Flyxion.
+The Shape of Search: Reachability, Measurement, and Attraction in Physical, Cognitive, and Conversational Systems.
+September 2026.
+
+\end{thebibliography}
+
+\end{document}

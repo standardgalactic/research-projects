@@ -1,0 +1,184 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathpazo}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\title{The Location of Chance\\[4pt]
+\large Locality, Naming, and the Parts of a Hybrid Machine}
+\author{Flyxion\\ Independent Researcher}
+\date{September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A spintronic Ising machine reported in Nature Electronics is described as ``on-chip,'' ``all-to-all,'' and as performing spin updates ``in situ.'' Each description is accurate for some part of the apparatus. A probabilistic spin update decomposes into valuation, the computation of each spin's energy change, and sampling, the random decision to flip. In the demonstrated system, sampling happens in magnetic tunnel junctions on the chip, while valuation, coupling, scheduling, and problem mapping happen in an FPGA and a host computer. The locality words follow the sampling. This essay argues that such naming is not false but asymmetric: the machine is named after the location of its chance rather than the location of its valuation, and the choice tracks which component is new rather than which component governs performance. At the paper's own benchmark, the junctions account for roughly a tenth of a percent of the energy of an iteration, and the system's projected speedup comes entirely from relocating the unnamed part. An Amdahl-style bound makes the consequence precise. The same pattern appears across physics-inspired computing, where machines are named for whichever operation their novel physics performs. The essay proposes a descriptive discipline: a locality claim should say which operations it covers, and should be judged informative in proportion to the share of cost those operations carry.
+\end{abstract}
+
+\section{Three Words}
+
+The published abstract calls the system an ``on-chip all-to-all Ising machine.'' The introduction criticizes conventional CMOS Ising machines for ``computational latency due to ex situ Ising spin updates'' and presents the new design as achieving ``in situ Ising spins.'' The routing demonstration is described as ``efficiently implemented on chip using the VSIM system'' \cite{li2026}. The arXiv version of the same paper puts it more compactly: ``the all-to-all Ising machine implemented on-chip'' \cite{li2025arxiv}.
+
+The methods section describes the same system differently. A problem is mapped to an Ising model on the processing system of a Xilinx PYNQ-Z2 board, where the couplings $J$ and fields $h$ are determined. These are transferred to the board's programmable logic, which ``performs MVM operations to calculate the required pulse width'' and configures the chip's pulse generator. After each pulse, the logic reads back the spin states. A host computer running a Jupyter notebook configures the run and displays the result \cite{li2026}.
+
+Both descriptions are accurate. The question is how the first inherits its unity from the second. Three locality words, on-chip, in situ, and all-to-all, are attached to a machine whose operations are distributed over a magnetic chip, a field-programmable gate array, an embedded processor, and a desktop computer. The words are not wrong about any of these parts. They are selective about which part the machine is.
+
+\section{What an Update Contains}
+
+A probabilistic Ising update under the Glauber rule has two stages. The first is valuation: computing, for spin $i$, the energy change of a flip,
+\begin{equation}
+\delta H_i = -2 s_i \Big( \sum_j J_{ij} s_j + h_i \Big),
+\end{equation}
+which requires the couplings of spin $i$ to every other spin and the current state of all of them. The second is sampling: flipping spin $i$ with probability $1/(1 + e^{-\delta H_i / T})$, which requires a source of randomness whose probability can be set by $\delta H_i$ and $T$. Around these two stages sit the operations that make them a machine: storing the couplings, scheduling the temperature, mapping the problem to the Hamiltonian, and reading out the answer.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+Operation & Location in the demonstrated system & Physics \\
+\midrule
+Problem mapping ($J$, $h$) & PYNQ-Z2 processing system; host PC & digital \\
+Coupling storage & FPGA board & digital \\
+Valuation ($\delta H$, MVM) & FPGA programmable logic & digital \\
+Schedule ($T$) and pulse width & FPGA programmable logic & digital \\
+Sampling (Bernoulli trial) & VCMA-MTJ on the VC-MRAM chip & magnetic \\
+Spin storage & VCMA-MTJ on the VC-MRAM chip & magnetic \\
+Readout and display & FPGA, then host PC & digital \\
+\bottomrule
+\end{tabular}
+\caption{Where the parts of an update happen, from the paper's methods and Extended Data Fig.~1 \cite{li2026}.}
+\label{tab:locations}
+\end{table}
+
+\emph{The Shape of Search} compressed this table into a sentence: ``Valuation is digital; chance is magnetic'' \cite{flyxion-shape}. The sentence was offered there as a qualification on any claim that matter had absorbed the algorithm. Here it becomes the starting point for a question about names. Of the seven rows in Table~\ref{tab:locations}, two happen on the chip. The locality words attach to those two.
+
+\section{The Borrowed Criticism}
+
+The introduction's complaint about conventional machines is that their spin updates are ``ex situ,'' performed away from the spins by digital circuitry, and that this causes latency \cite{li2026}. The new machine answers the complaint by moving sampling onto the spins: the junction's own switching is the random decision, so no pseudo-random number generator, lookup table, or comparator is needed. That is a real advance and the paper's central contribution.
+
+But ``spin update'' in the complaint and ``spin update'' in the answer do not cover the same operations. In the complaint, the update includes the whole cycle that makes conventional machines slow. In the answer, it means the sampling step. Valuation, which in any dense machine is the step whose cost grows with the number of couplings, remains ex situ in exactly the sense the complaint uses. The paper is candid about the consequence: the single-spin update completes in 0.3 to 1\,ns, but the end-to-end iteration ``extends to 45 ns owing to the overhead introduced by the FPGA-based computation fabric'' \cite{li2026}.
+
+The share of the iteration that the named locus carries can be estimated from the paper's own figures. At the 60-node benchmark, an iteration updates up to 60 spins at under 40\,fJ each, at most about 2.4\,pJ, while the system draws 40\,mW for 45\,ns, about 1.8\,nJ. The junctions account for roughly
+\begin{equation}
+\frac{60 \times 40\,\text{fJ}}{40\,\text{mW} \times 45\,\text{ns}} \;\approx\; 1.3 \times 10^{-3}
+\end{equation}
+of the energy of an iteration. For time, the device switches in at most about 1\,ns within a 45\,ns iteration if spins are updated in parallel; under any schedule, the paper attributes the remainder of the iteration to the FPGA. By either measure, nearly all of the cost of an update lies outside the boundary the word ``in situ'' draws.
+
+\section{Naming by Novelty}
+
+Why should the machine be named after its sampling rather than its valuation? The answer is not concealment. The paper states the division of labor plainly, and its Fig.~3d diagram marks the chip and the FPGA in different colors. The answer is that machines in this field are named after the component whose physics is new.
+
+The pattern is general. The coherent Ising machines that demonstrated all-to-all coupling for 100 and 2,000 spins represented spins as optical pulses in a fiber cavity, but implemented the couplings by measuring the pulses and feeding back a correction computed in an FPGA \cite{mcmahon2016,inagaki2016}. They are named after their optical spins. Memristor Hopfield networks reverse the allocation: the analog crossbar performs the matrix-vector multiplication, which is valuation, and the device's intrinsic noise supplies the randomness \cite{cai2020}. They are named after their memristors, which in that design means after the location of valuation. The published paper itself draws this contrast, distinguishing in-memory approaches that accelerate energy computation from its own, which ``exploits the stochastic switching dynamics'' of the junctions and represents ``a different computational paradigm'' \cite{li2026}. Quantum annealers with programmable physical couplers are the rare case in which both valuation and sampling happen in the same physical medium, and the name covers both \cite{johnson2011}.
+
+In each case the name tracks novelty. As a description of a research program, this is reasonable: the paper is about a new way to sample, and calling the machine after its sampler says what the contribution is. As a description of a capability, it is misleading, because capability is governed by whatever part is slowest, and the novel part is usually not that.
+
+\section{How Much Can Cross a Boundary}
+
+The informativeness of a locality claim can be made precise with a familiar bound.
+
+\begin{proposition}[Amdahl bound for named components]
+Let a fraction $f$ of an iteration's cost lie outside the component named by a locality claim, and suppose the named component is made faster or cheaper by a factor $k$. Then the iteration's cost falls by a factor of at most
+\begin{equation}
+\frac{1}{f + (1 - f)/k} \;<\; \frac{1}{f}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+The cost outside the named component is unchanged, and the cost inside falls from $1 - f$ to $(1-f)/k$ in units of the original total. The bound as $k \to \infty$ is $1/f$.
+\end{proof}
+
+This is Amdahl's argument about parallel speedup \cite{amdahl1967}, applied to the boundary a name draws instead of the portion of a program that parallelizes. With $f$ near $0.98$ for time at the 60-node benchmark, as the 1\,ns and 45\,ns figures suggest, even an infinitely fast junction would shorten the system iteration by about two percent. With $f$ near $0.999$ for energy, the junction's energy could fall to zero and the system's efficiency would barely move.
+
+The converse is equally direct. The paper's projection of a 1\,ns iteration at 1\,mW for a future integrated chip \cite{li2026} comes entirely from redesigning the component outside the named boundary: moving valuation into the same silicon as the sampler, as the conclusion proposes with a matrix-vector-multiplication accelerator. The name describes the part of the system that is already fast. The projection describes the part that must change.
+
+This suggests a working criterion.
+
+\begin{definition}[Informative locality claim]
+A claim that a machine performs operation class $O$ at location $L$ is \emph{informative about capability} to the extent that the operations outside $L$ carry a small share of the cost that limits the capability in question.
+\end{definition}
+
+By this criterion, ``in situ spin updates'' is highly informative about the physics of sampling and only weakly informative about how fast the machine solves problems. ``On-chip all-to-all'' is weaker still, because all-to-all is a property of the coupling store, and the coupling store is not on the chip. The companion essay on spin counts shows that at the chip's full size, that store would not fit on the demonstrated controller at all \cite{flyxion-spincount}.
+
+\section{The Integration Promise}
+
+There is a sense in which the names are true of a machine that does not yet exist. The published conclusion anticipates a system on chip integrating the MRAM array with an accelerator for matrix-vector multiplication, possibly implemented itself as computing-in-memory MRAM, to form ``an all-spintronic-based Ising chip'' \cite{li2026}. In that design, valuation, coupling, and sampling would share a substrate, and ``on-chip all-to-all'' would describe the whole update.
+
+The present tense of the abstract borrows from this future architecture. This is a common movement in hardware writing, where a demonstrated component and a projected integration are described together, and the vocabulary of the integration is applied to the demonstration. The paper keeps the numbers apart carefully, separating the measured $1.92 \times 10^5$ from the projected $3.45 \times 10^8$ solutions per second per watt. The words are not kept apart in the same way. A number can be marked as projected by parentheses. A locality word has no parentheses.
+
+\section{What Names Should Carry}
+
+None of this requires abandoning short names. It requires that the short name be backed by an explicit allocation, and that locality claims say which operations they cover. A description adequate to the demonstrated system might read: an FPGA-controlled Ising system in which spin sampling and storage are performed by a CMOS-integrated array of voltage-controlled magnetic tunnel junctions, and valuation, coupling, and scheduling are performed in programmable logic. That is longer than ``on-chip all-to-all Ising machine.'' It is also something a reader could not misread.
+
+Three practices would carry most of the information:
+\begin{enumerate}
+\item \textbf{Name the operation, not only the place.} ``In situ sampling'' says what ``in situ spin updates'' leaves open.
+\item \textbf{Report the cost share of the named component.} A figure such as ``the junctions account for about 0.1\% of iteration energy at the benchmark'' tells a reader how much of the system the name describes.
+\item \textbf{Keep projected locality out of present-tense descriptions.} If ``on-chip all-to-all'' is true of the integrated design, it belongs with the projected figure for that design.
+\end{enumerate}
+
+\section{Conclusion}
+
+The spintronic Ising machine is not falsely named. It is asymmetrically named: after the location of its chance rather than the location of its valuation. The asymmetry follows a convention the field uses widely, in which a machine takes the name of its novel physics, and the convention serves well as a description of where the research contribution lies.
+
+It serves poorly as a description of capability, because capability is set by whichever part of the machine is slowest, most expensive, or least scalable, and in a dense Ising machine that part is the valuation and the coupling store behind it. At the paper's own benchmark, the part the name describes carries a small fraction of the cost, and the paper's own projection of future gains comes from changing the part the name leaves out. A locality word can be accurate about a component and uninformative about a machine. The discipline is to say which it is meant to be.
+
+\begin{thebibliography}{9}
+
+\bibitem{li2026}
+S.~Li, Y.~Zhang, A.~Lee, Z.~Zhu, L.~Zeng, P.~Wang, L.~Gao, D.~Wu, and W.~Zhao.
+An Ising Machine for Combinatorial Optimization Based on Sub-Nanosecond CMOS-Integrated Magnetoresistive Random-Access Memory.
+\emph{Nature Electronics}, 2026. doi:10.1038/s41928-026-01700-6.
+
+\bibitem{li2025arxiv}
+S.~Li, Y.~Zhang, A.~Lee, Z.~Zhu, L.~Zeng, P.~Wang, L.~Gao, D.~Wu, and W.~Zhao.
+Ultra-Fast Ising Machine for Combinatorial Optimization Using Sub-Nanosecond CMOS-Integrated Magnetoresistive Random Access Memory.
+Preprint, arXiv:2505.19106, 2025.
+
+\bibitem{mcmahon2016}
+P.~L.~McMahon et al.
+A Fully Programmable 100-Spin Coherent Ising Machine with All-to-All Connections.
+\emph{Science}, 354:614--617, 2016.
+
+\bibitem{inagaki2016}
+T.~Inagaki et al.
+A Coherent Ising Machine for 2000-Node Optimization Problems.
+\emph{Science}, 354:603--606, 2016.
+
+\bibitem{cai2020}
+F.~Cai et al.
+Power-Efficient Combinatorial Optimization Using Intrinsic Noise in Memristor Hopfield Neural Networks.
+\emph{Nature Electronics}, 3:409--418, 2020.
+
+\bibitem{johnson2011}
+M.~W.~Johnson et al.
+Quantum Annealing with Manufactured Spins.
+\emph{Nature}, 473:194--198, 2011.
+
+\bibitem{amdahl1967}
+G.~M.~Amdahl.
+Validity of the Single Processor Approach to Achieving Large Scale Computing Capabilities.
+In \emph{Proc. AFIPS Spring Joint Computer Conference}, 483--485, 1967.
+
+\bibitem{flyxion-shape}
+Flyxion.
+The Shape of Search: Reachability, Measurement, and Attraction in Physical, Cognitive, and Conversational Systems.
+September 2026.
+
+\bibitem{flyxion-spincount}
+Flyxion.
+The Spin Count: Component, System, and Composed Capacity in a 96,000-Spin Ising Machine.
+September 2026.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,197 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathpazo}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\title{The Easy Phase\\[4pt]
+\large Instance Hardness, Released Data, and a Photonic Ising Machine}
+\author{Flyxion\\ Independent Researcher}
+\date{September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A photonic Ising machine reported in Nature partitions sets of up to 256 integers with a 100\% success rate, fits an exponential curve to its time-to-solution, and contrasts both with a quantum annealer that fails beyond 32 variables. The paper releases its experiment code and figure data, which makes the claim checkable. Counting exactly, the released 256-integer instance has about $1.2 \times 10^{75}$ ground-state spin configurations, roughly 1\% of all $2^{256}$; the 64- and 128-integer instances are at 2.1\% and 1.3\%. The instances lie deep in the easy phase of number partitioning, where perfect partitions are abundant and a uniformly random guess succeeds about once in a hundred tries. The annealer comparison used instances selected to have a unique solution, a class that does not occur at these sizes under the integer range the paper states for its own instances. The fitted time-to-solution curve predicts negative times for problems smaller than about 24 integers, including one the paper reports. None of this bears on the device, whose modulators, digital signal processing, and noise injection are measured carefully. It bears on what a benchmark instance certifies. The essay places the result beside three other documents: a 1997 paper that locates its own advantage with unusual candor, a 2026 perspective in which the machine's projected figures reappear as its measured ones, and a correction that repaired the paper's drawings of amino acids. It ends on the release itself, which is what made every check here possible.
+\end{abstract}
+
+\section{A Benchmark Previously Unaddressed}
+
+The cascaded-modulator Ising machine of Al-Kayed and colleagues encodes spins as symbols on a thin-film lithium niobate modulator at 106 gigabaud, multiplies them optically against a flattened coupling matrix on a second modulator, and closes the loop through analogue-to-digital conversion, signal processing, and digital-to-analogue conversion \cite{alkayed2025}. Among its demonstrations, the paper presents number partitioning and lattice protein folding as benchmarks that photonic systems had not previously addressed. For number partitioning, it reports ground-state solutions for sets of 16 to 256 integers, a 100\% success rate up to 256 in experiment, an exponential fit to time-to-solution, and a comparison with a D-Wave annealer whose success probability falls to 0.03\% at 32 variables and to zero beyond \cite{alkayed2025}.
+
+The claims are specific, and the paper supports them with a public repository containing its MATLAB experiment scripts and the data behind every main and supplementary figure, alongside a separate simulator \cite{cmimrepo}. That is the release practice the essay \emph{Replottable, Not Rerunnable} argued for \cite{flyxion-replot}. It also means the instances themselves can be examined. The question this essay asks is the one that a benchmark instance should answer before a solver's performance on it means anything: how hard is it?
+
+\section{Number Partitioning Has Phases}
+
+Number partitioning asks for a division of a set of integers into two subsets with equal sums, or as nearly equal as possible. It is NP-hard in general, and it is also one of the best-understood examples of a problem whose typical difficulty depends sharply on how instances are generated. For $N$ integers drawn uniformly with $b$ bits each, the control parameter $\kappa = b/N$ separates two regimes \cite{mertens1998,borgs2001}. When $\kappa$ is well below a critical value near 1, perfect partitions are exponentially numerous and easy to find. When $\kappa$ is above it, perfect partitions typically do not exist, the optimum is unique up to the swap of the two subsets, and finding it is hard.
+
+The intuition is elementary. With $N$ small integers, the signed sum $\sum_i s_i \sigma_i$ over random spin assignments is approximately normal, centered at zero, with a standard deviation that grows only as $\sqrt{N}$. The residue can take only a limited range of values, and a fixed fraction of all $2^N$ assignments land on zero. With $N$ large integers, the range of the sum dwarfs the number of assignments, and zero is hit rarely or not at all.
+
+A benchmark for an optimizer is informative only if its instances are hard for the method class being compared. Hardness is not a property of a problem name. It is a property of an instance distribution.
+
+\section{Counting the Released Instances}
+
+The repository stores each partitioning instance as its integers alongside the recorded spin trajectory over 1,000 iterations \cite{cmimrepo}. For the 64-, 128-, and 256-integer instances the integers are available, and the number of spin configurations with zero residue can be counted exactly by a standard subset-sum recurrence.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{rcrrrr}
+\toprule
+$N$ & integers & sum & ground-state configurations & fraction of $2^N$ & $\kappa = b/N$ \\
+\midrule
+64 & 1--8 & 254 & $3.9 \times 10^{17}$ & 2.1\% & 0.047 \\
+128 & 1--8 & 606 & $4.5 \times 10^{36}$ & 1.3\% & 0.023 \\
+256 & 1--8 & 1{,}078 & $1.2 \times 10^{75}$ & 1.0\% & 0.012 \\
+\bottomrule
+\end{tabular}
+\caption{Exact ground-state counts for the released number-partitioning instances \cite{cmimrepo}. A configuration and its global flip are counted separately; the number of distinct partitions is half the stated figure. Here $b = 3$ bits, since the largest integer is 8.}
+\label{tab:counts}
+\end{table}
+
+About one uniformly random spin assignment in a hundred is a ground state of the 256-integer instance. Sampling 200,000 random assignments confirms it, with a hit rate of 1.1\%. The released integers range from 1 to 8, while the methods describe integers drawn from 0 to 16 \cite{alkayed2025}; the smaller range may reflect a rescaling in preparation, and either range places the instances in the same regime. With $\kappa$ between 0.01 and 0.05, these instances lie far inside the easy phase.
+
+\section{What Random Guessing Does}
+
+The consequence can be stated as a baseline. An algorithm that draws uniformly random spin assignments and checks each residue needs, on average, about a hundred draws to find a ground state of the 256-integer instance, at 256 additions per check. In unoptimized NumPy on an ordinary computer, the median wall-clock time to a ground state is on the order of a millisecond, and an optimized implementation would need microseconds \cite{flyxion-script2}. The paper's time-to-solution for the same size is 14.08 seconds for the demonstrated set-up, itself marked as an estimate, and 353.64 microseconds under the projected pipelined signal processing \cite{alkayed2025}.
+
+This is not a claim that the machine performs worse than chance. Its dynamics are not random sampling, and its trajectories reach low-residue states for structural reasons. The claim is narrower: on these instances, success does not distinguish a good optimizer from a trivial one, because the target occupies about a hundredth of the space. A 100\% success rate on such an instance certifies that the machine runs, not that it searches well.
+
+\section{Two Instance Classes, One Comparison}
+
+The paper's comparison with a quantum annealer is where instance class matters most. The methods state that, to ensure a fair scaling analysis, the problems run on the annealer were specifically selected to have only one unique solution \cite{alkayed2025}. A unique perfect partition is the signature of the hard side of the phase transition.
+
+Under the integer range the paper gives for its own instances, such instances essentially do not arise at the sizes the annealer was tested on. Among 5,000 random sets of 16 integers from 0 to 16, and 5,000 sets of 32, none had a unique perfect partition; at 8 integers, about 2\% did \cite{flyxion-script2}. The annealer's instances at 16 to 32 variables must therefore have come from a different distribution, one the main text does not describe. Whatever that distribution was, it was selected for exactly the property that makes instances hard, while the photonic machine's released instances have that property in no measure at all.
+
+The scaling contrast the paper draws, a success probability decaying as $e^{-N}$ for the photonic machine and as $e^{-N^2}$ for the annealer, therefore compares performance on two different problems that share a name. The annealer's embedding overhead for dense problems is real, and the paper is right that clique embedding limits it. But its failure on unique-solution instances and the photonic machine's success on instances where a ground state is one draw in a hundred are not two points on one curve. \emph{The Comparison Table} argued that a table becomes a ranking only when its rows share a boundary \cite{flyxion-table}. Instance class is such a boundary, and here it runs between the rows.
+
+\section{Passing Through}
+
+The released trajectories show how the machine meets the ground state. For the 256-integer instance, the residue first reaches zero at iteration 571, which matches the 572 iterations reported in the paper's survey table, and the trajectory then leaves: at iteration 1,000 the residue is 892. The 64-integer trajectory first reaches zero at iteration 144 and ends at 74; the 128-integer trajectory reaches zero at 156 and ends at 4 \cite{cmimrepo}.
+
+Recording the first visit to a ground state is a legitimate definition of success when the best configuration is tracked, and the paper notes that the machine sometimes finds several distinct solutions within a run, attributing this to system noise exploring degenerate ground states \cite{alkayed2025}. On instances with $10^{75}$ ground-state configurations, that is expected. It also means the machine's behavior is passage rather than convergence: the trajectory crosses a region where ground states are dense and continues through it. The paper's language of convergence to the ground state describes the tracked best, not the state the machine is left in.
+
+\section{A Curve That Goes Negative}
+
+Figure 5b fits the time-to-solution with the model $A e^{bN} + C$, with $A = 0.300057$, $b = 0.018509$, and $C = -0.469471$ \cite{alkayed2025}. Because $C$ is negative, the fitted time crosses zero at
+\begin{equation}
+N = \frac{1}{b}\ln\!\left(\frac{-C}{A}\right) \approx 24.2,
+\end{equation}
+and predicts negative times for smaller problems. At $N = 16$, a size the paper reports solving, the model gives about $-0.066$ seconds. On the figure's logarithmic axis the curve plunges near that size, which is the visible trace of a fit passing through zero.
+
+A three-parameter exponential fitted to five points will fit, and the constant may simply absorb a fixed overhead that the model does not otherwise represent. But the fit is presented as evidence that time-to-solution grows exponentially, consistent with the complexity of the task. Given Table~\ref{tab:counts}, it cannot be evidence of that. On these instances the density of ground states falls only slowly with $N$, while each iteration's length grows with the $N(N+1)$ time-multiplexed symbols it must stream. The curve measures the machine's growing iteration time on instances that stay easy, not a search growing harder.
+
+\section{The Measured Loop and the Pipelined One}
+
+The paper is careful to mark its projections. In its survey table every time-to-solution for the new machine carries a dagger for estimated, and a second figure in parentheses, marked with an asterisk, is estimated with a pipelined signal-processing chain that has not been built \cite{alkayed2025}. The ratios are large. For 256 integers, the 14.08-second estimate for the demonstrated set-up becomes 353.64 microseconds, a factor of about 40,000. For the 41,209-spin lattice, 75.16 seconds over 1,000 iterations, about 75 milliseconds per iteration, becomes 1.936 milliseconds in total.
+
+The difference lies in where the loop closes. In the demonstrated system, the modulated waveform is generated by a 256-gigasample arbitrary waveform generator, sampled by a 256-gigasample real-time oscilloscope, and fed back through a PC \cite{alkayed2025}. The photonic element performs the element-wise multiplication; summation, equalization, synchronization, clipping, and the nonlinear update happen in digital processing. \emph{The Location of Chance} described the same pattern for a spintronic machine, named after the physics of its novel step while its valuation happens elsewhere \cite{flyxion-chance}. The efficiency figure follows the same boundary: 48 GOPS per watt at 212 GOPS implies about 4.4 watts, which cannot include the bench instruments that close the loop, and it is compared with a GPU's 64-bit floating-point efficiency, for an analogue computation with an effective precision of 3.3 bits \cite{alkayed2025}.
+
+None of this is concealed. The paper states its projections as projections. The difficulty begins when the numbers leave it.
+
+\section{How a Number Travels}
+
+In July 2026 several of the same authors, with collaborators, posted a perspective on photonic Ising machines toward a million spins \cite{aadhi2026}. Its survey table lists the machine under integrated photonics with 41,000 spins, scalability graded ``Excellent,'' and a latency of 1.9 milliseconds, where the table defines latency as the per-step computation time.
+
+The figure has changed kind in transit. In the Nature table, 1.936 milliseconds is the projected total time for 1,000 iterations under a pipeline not yet built. In the perspective it is an unmarked per-step latency. As a per-step figure it is too slow by a factor of 1,000 relative to the projection and too fast by a factor of about 40 relative to the measured 75 milliseconds. It corresponds to no measurement and no projection, and the asterisk that marked its provenance did not travel with it. The perspective's scalability grade is assigned by authors of the work being graded. Its roadmap projects a 1,000-spin free-space system at about 2 peta-operations per second for about 13 watts against a GPU's 700, again comparing an unbuilt analogue system with a shipping digital one. Its data are available on reasonable request.
+
+This is the ordinary life of a figure in a field: measured in one paper, projected in the same paper, and cited as a property of the machine in the next. Each step is small. The accumulated drift is not.
+
+\section{A Candid Precedent}
+
+A paper from 1997 shows that the genre does not require this. Lidar and Biham presented a quantum algorithm that prepares a superposition in which each Ising configuration's probability equals its Boltzmann weight \cite{lidar1997}. Partway through, having built the open-chain construction, they stop to say what it is: the algorithm as described so far ``is in fact classical.'' A classical probabilistic computer could run it with the same efficiency, and the only purely quantum ingredient enters later, in the interference step that closes loops. Their conclusion states that the tools simulate Ising systems as efficiently as the best classical algorithms, not better, and that the method does not bear on whether quantum computers can solve the spin-glass ground-state problem efficiently.
+
+The candor is not modesty for its own sake. It is the location of an advantage. The authors identify which stage of their construction is new, which stage is ordinary, and which question their result does not answer. That is the discipline the photonic benchmarks lack: not a failure of measurement, but a failure to say which instances would have distinguished the machine from anything else.
+
+\section{What Got Corrected}
+
+In March 2026 Nature published an author correction to the photonic paper \cite{alkayed2026corr}. It repairs the names and chemical structures of several amino acids in Fig.~4a, the panel that sorts the twenty natural amino acids into hydrophobic and polar classes for the lattice protein model. The corrected drawings are accurate, and the correction was right to make.
+
+The panel is also, computationally, ornamental. The hydrophobic-polar model uses only the two class labels; the structures of the side chains play no part in the Hamiltonian. The correction process worked on the part of the paper that could be checked by looking, and did not reach the part that required counting. That is not a criticism of the correction. It is an observation about which errors a reader sees.
+
+\section{What the Release Made Possible}
+
+Every finding in this essay depends on material the authors chose to publish: the instances, the recorded trajectories, the fit parameters, the experiment code. The companion essay on the spintronic machine found that its release was replottable but not rerunnable \cite{flyxion-replot}. This release is richer, and the checks it enables are correspondingly deeper. A reader can count the ground states of the benchmark instances, see where the trajectories go, and compare the stated methods with the stored data. The authors deserve credit for that, and the findings here are an argument for their practice, not against it.
+
+The practice would be complete with three additions that cost little:
+\begin{enumerate}
+\item \textbf{Report instance hardness.} For number partitioning, state $\kappa$ and the number of perfect partitions. For any benchmark, state how the instances were generated and why that distribution is hard.
+\item \textbf{Compare on shared instances.} Where one solver is run on instances selected for uniqueness, run the others on the same instances.
+\item \textbf{Include a trivial baseline.} Random guessing and a greedy heuristic, run on the same instances, show what the benchmark can distinguish.
+\end{enumerate}
+
+\section{Conclusion}
+
+The photonic Ising machine is a serious piece of hardware. Its modulators run at over 100 gigabaud, its signal processing turns telecommunications techniques into a stable computing loop, and its noise injection is characterized with care. The number-partitioning benchmark does not measure any of that. On the released instances a ground state is one random draw in a hundred, the comparison solver was given a different and harder class of instance, and the exponential curve fitted to the results predicts negative time for problems the paper solved.
+
+The general point is older than Ising machines. A problem's name does not fix its difficulty; its instance distribution does. A benchmark claim is a claim about a distribution, and the distribution belongs in the claim. Lidar and Biham, three decades ago, said which part of their construction was ordinary. That sentence is the most useful thing a paper of this kind can contain, and the released data here make it possible to write it on the authors' behalf.
+
+\begin{thebibliography}{9}
+
+\bibitem{alkayed2025}
+N.~Al-Kayed, C.~St-Arnault, H.~Morison, A.~Aadhi, C.~Huang, A.~N.~Tait, D.~V.~Plant, and B.~J.~Shastri.
+Programmable 200 GOPS Hopfield-Inspired Photonic Ising Machine.
+\emph{Nature}, 648:576--584, 2025. doi:10.1038/s41586-025-09838-7.
+
+\bibitem{alkayed2026corr}
+N.~Al-Kayed et al.
+Author Correction: Programmable 200 GOPS Hopfield-Inspired Photonic Ising Machine.
+\emph{Nature}, 651:E16, 2026. doi:10.1038/s41586-026-10305-0.
+
+\bibitem{cmimrepo}
+Shastri Lab.
+tfln-ising-nature-paper-2025: data and code.
+GitHub repository, \url{https://github.com/Shastri-Lab/tfln-ising-nature-paper-2025}. Accessed September 2026.
+
+\bibitem{aadhi2026}
+A.~Aadhi, N.~Al-Kayed, T.~Austin, C.~St-Arnault, N.~Rotenberg, H.~Ballani, D.~V.~Plant, E.~Ng, Y.~Yamamoto, P.~L.~McMahon, and B.~J.~Shastri.
+Photonic Ising Machines Toward and Beyond a Million Spins.
+Preprint, arXiv:2607.13446, 2026.
+
+\bibitem{lidar1997}
+D.~A.~Lidar and O.~Biham.
+Simulating Ising Spin Glasses on a Quantum Computer.
+\emph{Physical Review E}, 56:3661, 1997. arXiv:quant-ph/9611038.
+
+\bibitem{mertens1998}
+S.~Mertens.
+Phase Transition in the Number Partitioning Problem.
+\emph{Physical Review Letters}, 81:4281--4284, 1998.
+
+\bibitem{borgs2001}
+C.~Borgs, J.~Chayes, and B.~Pittel.
+Phase Transition and Finite-Size Scaling for the Integer Partitioning Problem.
+\emph{Random Structures and Algorithms}, 19:247--288, 2001.
+
+\bibitem{flyxion-replot}
+Flyxion.
+Replottable, Not Rerunnable: What a Figure Repository Lets a Reader Check.
+September 2026.
+
+\bibitem{flyxion-table}
+Flyxion.
+The Comparison Table: Boundaries, Estimates, and the Revision of a Benchmark.
+September 2026.
+
+\bibitem{flyxion-chance}
+Flyxion.
+The Location of Chance: Locality, Naming, and the Parts of a Hybrid Machine.
+September 2026.
+
+\bibitem{flyxion-script2}
+Flyxion.
+\texttt{verify\_cmim\_partitioning.py}: checks on the released number-partitioning data.
+Public domain, September 2026.
+
+\end{thebibliography}
+
+\end{document}

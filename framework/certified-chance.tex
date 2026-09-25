@@ -1,0 +1,179 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathpazo}
+\usepackage{microtype}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\title{Certified Chance\\[4pt]
+\large What a Physical Entropy Source Has to Prove, and to Whom}
+\author{Flyxion\\ Independent Researcher}
+\date{September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A spintronic Ising machine replaces pseudo-random number generation with the stochastic switching of magnetic tunnel junctions, and supports the substitution with several kinds of evidence: statistical randomness tests, a sigmoidal switching curve, cycle-to-cycle and device-to-device measurements, an endurance test, a projected lifetime, and optimization performance. The same paper reports that a deterministic 16-bit linear-feedback shift register matches the junctions' optimization performance. This essay takes that result seriously. If a predictable source performs as well as a physical one on the task, then what the task consumes is not unpredictability, and the physical source is vindicated by its cost rather than by the quality of its chance. The essay separates seven properties that the word ``random'' collects, identifies which evidence certifies which property for which audience, and draws on the complexity-theoretic definition of pseudorandomness, in which a source is random only relative to a class of tests it must fool. Two further observations follow. The logistic switching curve is a fit over a pulse-width window rather than a law of the device, and the paper's two versions report different values at its midpoint. And the 13-year lifetime is a statement about a usage model: at the device's own update speed, the tested endurance of $10^{13}$ cycles corresponds to under three hours of continuous switching. Certifications of chance are not degrees of one quality. They are answers to different questions asked by different consumers.
+\end{abstract}
+
+\section{What Randomness Is For}
+
+Every probabilistic Ising machine needs a source of chance. At each update, a spin must flip with a probability set by its energy change and the current temperature, and something has to make that decision. Conventional digital machines make it with pseudo-random number generators, lookup tables for the sigmoid, and comparators. The machine discussed here makes it with physics: a voltage pulse of controlled width across a magnetic tunnel junction produces a switch with a probability that rises smoothly with the width \cite{li2026}. The pulse is the decision.
+
+To justify the substitution, the paper offers a range of evidence. The junctions pass the National Institute of Standards and Technology randomness tests. Their switching probability follows a sigmoid in pulse width, symmetric between the two magnetic states. Cycle-to-cycle variation over 1,000 sweeps is negligible, and device-to-device variation is characterized over more than 1,000 devices. The junctions survive $10^{13}$ switching cycles, with testing continuing, and an operational lifetime of 13 years is estimated. And the machine solves routing problems with a success probability comparable to that obtained with a 16-bit linear-feedback shift register, at ten times the speed, a hundred and fiftieth of the energy, and a three-thousandth of the transistors of an FPGA implementation \cite{li2026}.
+
+These are presented together, as if each added to a single case that the junctions are a good source of chance. They are better read as answers to different questions. Some concern whether the bits look random. Some concern whether the probability can be set precisely. Some concern whether the device lasts. One concerns whether the optimization works. And one, the shift-register comparison, bears directly on which of the others the optimization actually needs.
+
+\section{Seven Properties}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{0.2\textwidth}p{0.36\textwidth}p{0.34\textwidth}}
+\toprule
+Property & Evidence in the paper & Consumer who needs it \\
+\midrule
+Unpredictability & none directly & cryptography, adversarial settings \\
+Distributional conformity & NIST statistical tests & auditors, standards bodies \\
+Resolution & LFSR bit-width comparison & sampling algorithms \\
+Shape & sigmoid fit of $P_{\mathrm{sw}}$ to $W_v$ & samplers requiring a target law \\
+Stability & cycle-to-cycle and device-to-device data & system designers \\
+Endurance & $10^{13}$ cycles; 13-year estimate & product engineers \\
+Cost per draw & 0.3--1\,ns, $<$40\,fJ, transistor count & hardware architects \\
+\bottomrule
+\end{tabular}
+\caption{Seven properties collected under ``random,'' the evidence the paper offers for each \cite{li2026}, and who needs it.}
+\label{tab:props}
+\end{table}
+
+\textbf{Unpredictability} is the property that an observer, even one who knows the mechanism and has seen previous outputs, cannot predict the next. It is what cryptographic key generation requires. \textbf{Distributional conformity} is the property that the output passes tests for independence and uniformity. \textbf{Resolution} is the number of distinct probabilities the source can express. \textbf{Shape} is the fidelity with which the probability follows a prescribed function of its control input. \textbf{Stability} is the persistence of that function across cycles and devices. \textbf{Endurance} is the number of draws before the source degrades. \textbf{Cost} is the time, energy, and area per draw.
+
+These properties are independent. A source can have any of them without the others. The paper's evidence addresses all of them except the first, which the paper does not claim and which its application does not need.
+
+\section{Chance Relative to a Test}
+
+Theoretical computer science settled long ago that randomness is not an absolute property of a sequence but a relation between a source and a class of tests. A generator is pseudorandom for a class of distinguishers if no distinguisher in the class can tell its output from truly random bits with more than negligible advantage \cite{yao1982,blum1984}. Different classes give different notions. A generator can fool every test of bounded complexity while being trivially predictable to a stronger one, and derandomization results show that weak algorithms can often be fooled by very simple generators \cite{nisan1994}.
+
+\begin{definition}[Adequacy relative to a consumer]
+A source $S$ is \emph{adequate} for a consumer $C$ if $C$'s performance when driven by $S$ is indistinguishable, within tolerance, from its performance when driven by ideal randomness with the same resolution and shape.
+\end{definition}
+
+\begin{proposition}[Adequacy is relative and only partially ordered]
+If $S$ is adequate for every consumer in a class $\mathcal{D}$, it is adequate for every subclass of $\mathcal{D}$. The converse fails: adequacy for a weak class does not imply adequacy for a stronger one.
+\end{proposition}
+
+\begin{proof}
+The first claim is immediate from the definition. For the second, a linear-feedback shift register of length $L$ passes many statistical tests of independence and uniformity, yet its entire future output is determined by $2L$ consecutive bits, which the Berlekamp--Massey algorithm recovers efficiently \cite{massey1969}. It is adequate for consumers that do not model the register and inadequate for any consumer that does.
+\end{proof}
+
+The consequence for certification is direct. A statistical test battery, such as the NIST suite commonly used for such claims \cite{nist80022}, certifies adequacy against the class of tests it contains. It does not certify unpredictability, and NIST's own standard for entropy sources used in cryptography is a different document, concerned with min-entropy estimation and continuous health testing \cite{nist80090b}. Passing one battery does not place a source higher on a single scale of randomness. It places the source in the set of sources adequate for one class of consumers.
+
+\section{The Shift-Register Result}
+
+In Extended Data Fig.~3, the paper runs the same routing problem on the same annealing schedule with the junctions replaced by linear-feedback shift registers of different widths \cite{li2026}. The junctions reach a success probability comparable to a 16-bit register. Registers of 8 and 4 bits do worse.
+
+Read through the previous section, the result identifies the consumer. Simulated annealing on a routing Hamiltonian is a weak distinguisher. It does not model its random source and cannot exploit the register's linear structure. What it can detect is coarse resolution: a register that can express only $2^4$ probability levels drives a coarser kernel than one that can express $2^{16}$, and the search suffers. \emph{The Shape of Search} read this as a statement about the geometry of the kernel \cite{flyxion-shape}. Here it is a statement about which property of randomness the task consumes. The task consumes resolution and shape. It does not consume unpredictability, because a fully predictable source serves it as well as a physical one.
+
+This inverts a common intuition. It is natural to suppose that a physical entropy source is better than a pseudo-random one because its chance is real. For this consumer, real chance buys nothing that pseudo-random chance does not. The junctions are vindicated not by the quality of their randomness but by its cost: a single sub-nanosecond pulse on one device replaces sixteen shift-register cycles, a sigmoid lookup, and a comparator. The paper's own comparisons, ten times faster, 150 times less energy, 3,000 times fewer transistors than the FPGA implementation, are all comparisons of cost. That is a strong result. It is a result about engineering economy, not about chance.
+
+\section{Shape over a Window}
+
+The junctions' probability follows a sigmoid in pulse width,
+\begin{equation}
+P_{\mathrm{sw}}(W_v) = \frac{1}{1 + e^{-\alpha (W_v - W_0)}},
+\end{equation}
+where $\alpha$ and $W_0$ are fitting coefficients \cite{li2026}. This is what allows a pulse width to implement the Glauber rule exactly: the target flip probability is logistic in $\delta H / T$, the device's switching probability is logistic in $W_v$, and a linear map between them makes the device's law the algorithm's law.
+
+The sigmoid is a fit over a window, 0.3 to 1\,ns at the reported voltages. Voltage-driven precessional switching is generally reported to depend non-monotonically on pulse duration over longer ranges, because the magnetization precesses and the probability of ending reversed rises and falls with the fraction of a precession period the pulse covers \cite{shiota2012}. The certified shape is the shape within the operating window, and the window is part of what is certified.
+
+The paper's two versions also differ at the center of the curve. For pulses of 0.5, 0.65, and 0.8\,ns, the arXiv version reports switching probabilities of about 2\%, 45\%, and 95\% \cite{li2025arxiv}; the published version reports about 2\%, 55\%, and 95\% \cite{li2026}. Either figure is plausible for a steep sigmoid near its midpoint, where a small shift in fitted $W_0$ moves the value substantially, and the change may reflect remeasurement or correction. It illustrates that shape is certified to a precision, and that the precision is lowest exactly where the curve is steepest, which is where the algorithm spends much of its time.
+
+\section{Variation and Tolerance}
+
+The paper characterizes about a fifth of measured devices as reaching a peak switching probability below 90\%, and shows in emulation that success probability stays above 95\% as long as the affected devices peak above 60\% \cite{li2026}. This is a certification of the consumer as much as of the source. It shows that annealing tolerates substantial imperfection in shape, which is consistent with its being a weak distinguisher. A consumer that tolerates a fifth of its random sources saturating at 60\% is not one that could benefit from certified unpredictability. The same tolerance makes the stability data, rather than any single device's quality, the relevant evidence: the certification that matters is of a population of sources, not of a source.
+
+\section{Endurance and the Usage Model}
+
+Endurance is reported as $10^{13}$ cycles, ``with further testing underway to assess longevity beyond this limit,'' and an operational lifetime of 13 years is estimated \cite{li2026}. The first figure is a censored measurement: devices were tested to $10^{13}$ cycles without reported failure, so it is a lower bound on endurance rather than a failure point. That is favorable to the device.
+
+The second figure depends on a usage model, which the arithmetic makes visible. Thirteen years is about $4.1 \times 10^8$ seconds. For $10^{13}$ cycles to last that long, a junction must switch on average about 24,000 times per second, or once every 41 microseconds. At the device's own update time of 1\,ns, $10^{13}$ cycles are exhausted in about 2.8 hours of continuous operation; at 0.3\,ns, in 50 minutes; at one write per 45\,ns system iteration, in about five days.
+\begin{equation}
+t_{\mathrm{life}} = \frac{N_{\mathrm{cycles}}}{r_{\mathrm{write}}}, \qquad \frac{10^{13}}{10^{9}\,\mathrm{s}^{-1}} \approx 2.8\ \mathrm{h}, \qquad \frac{10^{13}}{2.4 \times 10^{4}\,\mathrm{s}^{-1}} \approx 13\ \mathrm{years}.
+\end{equation}
+None of this contradicts the paper, whose lifetime estimate presumably rests on a stated duty cycle in its supplementary material. It shows what kind of claim the estimate is. Endurance is a property of the device; lifetime is a property of the device under a usage model. A source advertised for its speed and certified for its lifetime is certified at a rate far below the speed it is advertised for. Whether that matters depends on the consumer: a solver that runs occasionally is well served, and a continuously running accelerator driving each junction near its maximum rate would reach the tested endurance in hours, beyond which the evidence does not yet reach.
+
+\section{Where Physical Chance Matters}
+
+There are consumers for whom the physical source's distinctive property is exactly what is needed. Cryptographic key generation, nonce generation, and protocols that must resist an adversary who knows the implementation require unpredictability, and no pseudo-random generator seeded from a small state can supply it. For such consumers, a physical entropy source is not an economy but a necessity, and its certification follows a different regime: estimation of min-entropy per sample, continuous health tests that detect failure during operation, and conditioning \cite{nist80090b}.
+
+The paper does not claim cryptographic suitability, and its evidence is not designed to establish it. The point is that the same device, described with the same word, would face an entirely different certification if offered to a different consumer. ``The high-quality randomness of our VC-MRAM'' is a phrase that sounds like a property of the device. It is a relation between the device and the tests it was given.
+
+\section{Conclusion}
+
+A physical entropy source in an optimization machine must prove several things: that its probabilities can be set finely, that they follow the required curve over the operating window, that they are stable across cycles and devices, that the device lasts under the intended use, and that it does all this cheaply. The paper proves most of these well. What the optimization does not require it to prove is unpredictability, and the shift-register comparison shows as much, since a predictable source serves the task equally well.
+
+This is not a weakness of the work. It is a clarification of what the work achieves. The junction is not a better source of chance for annealing; it is a cheaper one, by large factors, and that is what the machine needs. The broader lesson concerns the word itself. ``Random'' names at least seven properties, each certified by different evidence for a different consumer, and the certifications are not steps on one ladder. The right question to put to any claim of certified chance is not how random the source is, but random for whom, against which tests, and at what rate of use.
+
+\begin{thebibliography}{9}
+
+\bibitem{li2026}
+S.~Li, Y.~Zhang, A.~Lee, Z.~Zhu, L.~Zeng, P.~Wang, L.~Gao, D.~Wu, and W.~Zhao.
+An Ising Machine for Combinatorial Optimization Based on Sub-Nanosecond CMOS-Integrated Magnetoresistive Random-Access Memory.
+\emph{Nature Electronics}, 2026. doi:10.1038/s41928-026-01700-6.
+
+\bibitem{li2025arxiv}
+S.~Li, Y.~Zhang, A.~Lee, Z.~Zhu, L.~Zeng, P.~Wang, L.~Gao, D.~Wu, and W.~Zhao.
+Ultra-Fast Ising Machine for Combinatorial Optimization Using Sub-Nanosecond CMOS-Integrated Magnetoresistive Random Access Memory.
+Preprint, arXiv:2505.19106, 2025.
+
+\bibitem{yao1982}
+A.~C.~Yao.
+Theory and Applications of Trapdoor Functions.
+In \emph{Proc. 23rd IEEE Symposium on Foundations of Computer Science}, 80--91, 1982.
+
+\bibitem{blum1984}
+M.~Blum and S.~Micali.
+How to Generate Cryptographically Strong Sequences of Pseudo-Random Bits.
+\emph{SIAM Journal on Computing}, 13:850--864, 1984.
+
+\bibitem{nisan1994}
+N.~Nisan and A.~Wigderson.
+Hardness vs Randomness.
+\emph{Journal of Computer and System Sciences}, 49:149--167, 1994.
+
+\bibitem{massey1969}
+J.~L.~Massey.
+Shift-Register Synthesis and BCH Decoding.
+\emph{IEEE Transactions on Information Theory}, 15:122--127, 1969.
+
+\bibitem{nist80022}
+L.~E.~Bassham et al.
+\emph{A Statistical Test Suite for Random and Pseudorandom Number Generators for Cryptographic Applications}.
+NIST Special Publication 800-22 Rev.~1a, 2010.
+
+\bibitem{nist80090b}
+M.~S.~Turan et al.
+\emph{Recommendation for the Entropy Sources Used for Random Bit Generation}.
+NIST Special Publication 800-90B, 2018.
+
+\bibitem{shiota2012}
+Y.~Shiota, T.~Nozaki, F.~Bonell, S.~Murakami, T.~Shinjo, and Y.~Suzuki.
+Induction of Coherent Magnetization Switching in a Few Atomic Layers of FeCo Using Voltage Pulses.
+\emph{Nature Materials}, 11:39--43, 2012.
+
+\bibitem{flyxion-shape}
+Flyxion.
+The Shape of Search: Reachability, Measurement, and Attraction in Physical, Cognitive, and Conversational Systems.
+September 2026.
+
+\end{thebibliography}
+
+\end{document}
