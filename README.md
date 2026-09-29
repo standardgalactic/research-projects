@@ -1,34 +1,36 @@
 # Research Projects
 
-[The Vocabulary of Acceleration](https://github.com/standardgalactic/research-projects/blob/main/rhetoric/variants/README.md)
+[Artificial Meat](https://github.com/standardgalactic/research-projects/blob/main/engineering/README.md)
 
-[The Ecology of Distinctions](https://github.com/standardgalactic/research-projects/blob/main/textbook/README.md)
+[The Vocabulary of Acceleration](https://github.com/standardgalactic/rhetoric/blob/main/variants/README.md)
 
-[Admissibility Lab](https://github.com/standardgalactic/research-projects/blob/main/admissibility-lab/README.md)
+[The Ecology of Distinctions](https://github.com/standardgalactic/textbook/blob/main/README.md)
 
-[Latent Structures](https://github.com/standardgalactic/research-projects/blob/main/philosophy/README.md)
+[Admissibility Lab](https://github.com/standardgalactic/admissibility-lab/blob/main/README.md)
 
-[Morphology as Computation](https://standardgalactic.github.io/research-projects/epistemology/morphology-as-computation.pdf)
+[Latent Structures](https://github.com/standardgalactic/philosophy/blob/main/README.md)
 
-* [Why Physical Boundaries Define Intelligence](https://standardgalactic.github.io/research-projects/epistemology/) — *Audio Overview*
+[Morphology as Computation](https://standardgalactic.github.io/epistemology/morphology-as-computation.pdf)
 
-[Bayesian Photonics](https://standardgalactic.github.io/research-projects/photonics/bayesian-photonics.pdf)
+* [Why Physical Boundaries Define Intelligence](https://standardgalactic.github.io/epistemology/) — *Audio Overview*
 
-* [Trajectory Space Physics](https://standardgalactic.github.io/research-projects/photonics/Trajectory_Space_Physics.pdf) — *Notes*
+[Bayesian Photonics](https://standardgalactic.github.io/photonics/bayesian-photonics.pdf)
 
-* [Geometric Defense Mechanisms](https://standardgalactic.github.io/research-projects/photonics/) — *Audio Overview*
+* [Trajectory Space Physics](https://standardgalactic.github.io/photonics/Trajectory_Space_Physics.pdf) — *Notes*
+
+* [Geometric Defense Mechanisms](https://standardgalactic.github.io/photonics/) — *Audio Overview*
 
 [Flash Reluctance Engine](https://standardgalactic.github.io/research-projects/paper/flash_reluctance_engine.pdf)
 
 * [Simulator](https://standardgalactic.github.io/research-projects/paper/flash_reluctance_simulator.html)
 
-[Semantic Relaxation Networks](https://standardgalactic.github.io/research-projects/intelligence/semantic-relaxation-networks.pdf)
+[Semantic Relaxation Networks](https://standardgalactic.github.io/intelligence/semantic-relaxation-networks.pdf)
 
-* [Why Next Token Prediction Is Not Intelligence](https://standardgalactic.github.io/research-projects/intelligence/) — *Audio Overviews*
+* [Why Next Token Prediction Is Not Intelligence](https://standardgalactic.github.io/intelligence/) — *Audio Overviews*
 
-[Trajectory Inference](https://standardgalactic.github.io/research-projects/rsvp-lab/trajectory_inference.pdf)
+[Trajectory Inference](https://standardgalactic.github.io/rsvp-lab/trajectory_inference.pdf)
 
-* [Everything Is a Slow-Moving Verb](https://standardgalactic.github.io/research-projects/rsvp-lab/) — *Audio Overview*
+* [Everything Is a Slow-Moving Verb](https://standardgalactic.github.io/rsvp-lab/) — *Audio Overview*
 
 # RSVP–Polyxan World Engine Framework
 
@@ -115,7 +117,7 @@ By separating generation from persistence, this framework enables:
 
 ---
 
-[Complex Systems](https://standardgalactic.github.io/research-projects/history/overview/) — *Audio Overview*
+[Complex Systems](https://standardgalactic.github.io/history/overview/) — *Audio Overview*
 
 ---
 
