@@ -1,5 +1,7 @@
 # Research Projects
 
+[The Architecture of Coarse-Grained Projection Systems](https://github.com/standardgalactic/research-projects/blob/main/paper/README.md) — *Project*
+
 [Artificial Meat](https://github.com/standardgalactic/research-projects/blob/main/engineering/README.md)
 
 [The Vocabulary of Acceleration](https://github.com/standardgalactic/rhetoric/blob/main/variants/README.md)
