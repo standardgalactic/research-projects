@@ -1,5 +1,7 @@
 ## Aurora
 
+[Concurrent Engagement and the Enclosed Application](https://standardgalactic.github.io/research-projects/Aurora/concurrent_engagement.pdf)
+
 [Biodiversity as Infrastructure](https://standardgalactic.github.io/research-projects/Aurora/biodiversity-as-infrastructure.pdf)
 
 [Gesture Before Symbol](https://standardgalactic.github.io/research-projects/Aurora/gesture-before-symbol.pdf)
